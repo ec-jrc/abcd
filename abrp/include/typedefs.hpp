@@ -29,7 +29,7 @@
 
 #include <jansson.h>
 #include <zmq.h>
-#include "redpitaya/rp.h"
+#include "rp.h"
 
 #include "defaults.h"
 #include "events.hpp"
