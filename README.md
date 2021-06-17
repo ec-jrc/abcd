@@ -199,7 +199,50 @@ We opted to use PUB-SUB sockets for the data streams and statuses streams, and P
 
 For the moment there are only two kinds of binary data streams.
 
-![Fig. Binary formats visual representation](doc/binary_protocols.png)
+```
+########################################################
+# ASCIIart visual representation of the binary formats #
+########################################################
+
++-------------------------------------------------------------------------------+
+| PSD event: word of 16 bytes                                                   |
++---------------------------------------+---------+---------+---------+----+----+
+| Timestamp                             |Q short  |Q long   |Baseline |Ch. |PUR |
+| 64 bit                                |16 bit   |16 bit   |16 bit   |8bit|8bit|
+| C99 stdint: uint64_t                  |uint16_t |uint16_t |uint16_t |uint|uint|
++---------------------------------------+---------+---------+---------+----+----+
+
++---------------------------------------------------------------------+
+| Waveform: header of 14 bytes followed by variable length arrays     |
++---------------------------------------+----+-------------------+----+
+| Timestamp                             |Ch. |Samples number (N) |M   |
+| 64 bit                                |8bit|32 bit             |8bit|
+| uint64_t                              |uint|uint32_t           |uint|
++---------------------------------------+----+-------------------+----+
+| Samples: array of N unsigned ints, total: 16 bit x N                |
++---------+---------+---------+---------+---------+-------+-----------+
+|sample[0]|sample[1]|sample[2]|sample[3]|sample[4]|       |sample[N-1]|
+|16 bit   |16 bit   |16 bit   |16 bit   |16 bit   |  ...  |16 bit     |
+|uint16_t |uint16_t |uint16_t |uint16_t |uint16_t |       |uint16_t   |
++---------+---------+---------+---------+---------+-------+-----------+
+| Digitizer gates or additional waveforms                             |
+| M arrays of N unsigned ints, total: 8 bit x M x N                   |
++-----------+----+----+----+----+------+------------------------------+
+|   Gate 0: |a[0]|a[1]|a[2]|    |a[N-1]|
+|           |8bit|8bit|8bit|... |8 bit |
+|           |uint|uint|uint|    |uint  |
++-----------+----+----+----+----+------+
+|   Gate 1: |b[0]|b[1]|b[2]|    |b[N-1]|
+|           |8bit|8bit|8bit|... |8 bit |
+|           |uint|uint|uint|    |uint  |
++-----------+----+----+----+----+------+
+| ...                                  |
++-----------+----+----+----+----+------+
+| Gate M-1: |z[0]|z[1]|z[2]|    |z[N-1]|
+|           |8bit|8bit|8bit|... |8 bit |
+|           |uint|uint|uint|    |uint  |
++-----------+----+----+----+----+------+
+```
 
 ### PSD events binary protocols
 Each PSD event is a 16 bytes binary word with:
