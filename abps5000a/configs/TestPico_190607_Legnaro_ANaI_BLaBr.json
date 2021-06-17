@@ -1,0 +1,32 @@
+{
+    "resolution": 12,
+    "timebase": 3,
+    "sampleCount": 512,
+    "pretrigger": 128,
+    "block_Ncaptures": 32,
+    "channels": [
+        {"id": 0,
+         "enable": true,
+         "range": "1V",
+	 "coupling": "DC",
+         "offset": 0.0,
+	 "trigger_level_mv": -20,
+	 "trigger_condition": "AND",
+	 "trigger_direction": "FALLING",
+         "zzz": null
+        },
+        {"id": 1,
+         "enable": true,
+         "range": "1V",
+	 "coupling": "DC",
+         "offset": 0.0,
+	 "trigger_level_mv": -20,
+	 "trigger_condition": "AND",
+	 "trigger_direction": "FALLING",
+	 "COMMENT": "LaBr, EJ301",
+	 "zzz": null
+        },
+        null
+    ],
+    "zzz": null
+}

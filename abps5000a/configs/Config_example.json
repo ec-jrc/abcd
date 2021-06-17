@@ -1,0 +1,43 @@
+{
+    "COMMENT -> Possible resolution": [8,12,14,15,16],
+    "resolution": 12,
+    "COMMENT -> See timebase guide on the programmer's guide. Timebase 2 = 4ns per sample": "",
+    "timebase": 3,
+    "sampleCount": 512,
+    "pretrigger": 96,
+    "COMMENT -> Numbers of captures for each block": "from 1 to 65535",
+    "BUG WARNING": "Select a number of captures in each block < of the events rate",
+    "block_Ncaptures": 2048,
+    "COMMENT -> Available channels on 5243A": " A -> id = 0, B -> id = 1",
+    "COMMENT ->": "Insert settings for all the possible channels (5243A has 2channels)",
+    "channels": [
+        {"id": 0,
+         "enable": false,
+	 "COMMENT -> Possible ranges (!Bipolar!)": "10mV,20mV,50mV,100mV,200mV,500mV,1V,2V,5V,10V,20V",
+         "range": "200mV",
+	 "coupling": "DC",
+         "offset": 0.0,
+	 "trigger_level_mv": -20,
+	 "COMMENT -> To use when two channels are enabled": "AND for coincidence, OR for indipendency",
+	 "trigger_condition": "AND",
+	 "COMMENT -> Possibilities": "RISING / FALLING (other not implemented)",
+	 "trigger_direction": "FALLING",
+         "zzz": null
+        },
+        {"id": 1,
+         "enable": true,
+	 "COMMENT -> Possible ranges (!Bipolar!)": "10mV,20mV,50mV,100mV,200mV,500mV,1V,2V,5V,10V,20V",
+         "range": "200mV",
+	 "coupling": "DC",
+         "offset": 0.0,
+	 "trigger_level_mv": -20,
+	 "COMMENT -> To use when two channels are enabled": "AND for coincidence, OR for indipendency",
+	 "trigger_condition": "AND",
+	 "COMMENT -> Possibilities": "RISING / FALLING (other not implemented)",
+	 "trigger_direction": "FALLING",
+         "zzz": null
+        },
+        null
+    ],
+    "zzz": null
+}

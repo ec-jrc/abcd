@@ -1,0 +1,41 @@
+{
+    "module": "waps",
+    "channels": [{
+        "id": 0,
+        "enabled": true,
+        "charge_sensitivity": 0,
+        "pretrigger": 130,
+        "pregate": 10,
+        "short_gate": 13,
+        "long_gate": 80,
+        "pulse_polarity": "negative",
+        "name": "LaBr3 - RP - 8ns",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 6,
+            "zero_crossing_samples": 4,
+            "delay": 4,
+            "fraction": 0.55
+        }
+    },
+    {
+        "id": 1,
+        "enabled": true,
+        "charge_sensitivity": 0,
+        "pretrigger": 130,
+        "pregate": 40,
+        "short_gate": 13,
+        "long_gate": 200,
+        "pulse_polarity": "negative",
+        "name": "NaI - RP - 8ns",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 5,
+            "zero_crossing_samples": 6,
+            "delay": 30,
+            "fraction": 0.75
+        }
+    },
+    {}
+    ]
+}

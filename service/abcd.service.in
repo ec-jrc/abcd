@@ -1,0 +1,14 @@
+[Unit]
+Description=ABCD data acquisition
+After=network.target
+
+[Service]
+Type=oneshot
+User={{ username }}
+ExecStart=/bin/bash {{ ABCD_folder }}/{{ startup_script }}
+ExecStop=/usr/bin/tmux kill-session -t ABCD
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+

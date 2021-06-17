@@ -1,0 +1,57 @@
+{
+    "id": "HV Right",
+    "model": 6533,
+    "connection_type": "OpticalLink",
+    "link_number": 0,
+    "CONET_node": 0,
+    "VME_address": "0x3690000",
+    "channels": [{"id": 0, 
+                  "on": null, 
+                  "voltage": 1280, 
+                  "max_current": 3000, 
+                  "max_voltage": 2000, 
+                  "ramp_up": 100, 
+                  "ramp_down": 100
+                 },
+                 {"id": 1, 
+                  "on": null, 
+                  "voltage": 1150, 
+                  "max_current": 3000, 
+                  "max_voltage": 2000, 
+                  "ramp_up": 100, 
+                  "ramp_down": 100
+                 },
+                 {"id": 2, 
+                  "on": null, 
+                  "voltage": 1180, 
+                  "max_current": 3000, 
+                  "max_voltage": 2000, 
+                  "ramp_up": 100, 
+                  "ramp_down": 100
+                 },
+                 {"id": 3, 
+                  "on": null, 
+                  "voltage": 1210, 
+                  "max_current": 3000, 
+                  "max_voltage": 2000, 
+                  "ramp_up": 100, 
+                  "ramp_down": 100
+                 },
+                 {"id": 4, 
+                  "on": null, 
+                  "voltage": 1400, 
+                  "max_current": 3000, 
+                  "max_voltage": 2000, 
+                  "ramp_up": 100, 
+                  "ramp_down": 100
+                 },
+                 {"id": 5, 
+                  "on": null, 
+                  "voltage": 1350, 
+                  "max_current": 3000, 
+                  "max_voltage": 2000, 
+                  "ramp_up": 100, 
+                  "ramp_down": 100
+                 }
+                ]
+}

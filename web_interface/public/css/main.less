@@ -1,0 +1,173 @@
+@dark_color: #333333;
+@light_color: #a9a9a9;
+@slider_height: 2.2em;
+@slider_width: @slider_height * 2.1;
+@slider_radius: @slider_height;
+@slider_border: .1ex;
+@slider_checkedText: "on";
+@slider_uncheckedText: "off";
+@slider_checkedColor: #ce3e3e;
+@slider_uncheckedColor: #59bc65;
+@slider_uncheckedColor: #cccccc;
+@slider_transitionSpeed: .5s;
+@slider_innerborder: .5ex;
+
+body {
+    font-family: "Fira Sans", sans-serif;
+    font-weight: 400;
+    font-size: 12pt;
+}
+
+h1 {
+    font-family: "Fira Sans", sans-serif;
+    font-weight: 100;
+    font-size: 300%;
+}
+
+h2 {
+    font-family: "Fira Sans", sans-serif;
+    font-weight: 200;
+    font-size: 250%;
+}
+
+h3 {
+    font-family: "Fira Sans", sans-serif;
+    font-weight: 700;
+    display: inline-block;
+}
+
+.display {
+    border: 2px dashed @light_color;
+    border-radius: 5px;
+    padding: 15px;
+    margin: 15px;
+    text-align: left;
+    color: @dark_color;
+}
+
+.good_status {
+    color: #338033;
+}
+
+.good_status:before {
+    content: "\f00c";
+    font-family: "FontAwesome";
+    margin-right: 1ex;
+}
+
+.bad_status {
+    color: #803333;
+}
+
+.bad_status:before {
+    content: "\f00d";
+    font-family: "FontAwesome";
+    margin-right: 1ex;
+}
+
+.unknown_status * {
+    color: @light_color;
+}
+
+.unknown_status:before {
+    content: "\f128";
+    font-family: "FontAwesome";
+    margin-right: 1ex;
+}
+
+.custom-slider{
+    width: @slider_width;
+    height: @slider_height;
+    border: @slider_border solid #666666;
+    border-radius: @slider_radius;
+    display: inline-block;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    .transition(@slider_transitionSpeed);
+}
+
+.custom-slider input{
+    display: none;
+}
+
+.custom-slider .cursor{
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: @slider_uncheckedColor;
+    border-radius: @slider_radius - @slider_innerborder;
+    .transition(@slider_transitionSpeed);
+}
+
+.custom-slider .cursor:after {
+    position: absolute;
+
+    left: @slider_innerborder;
+    bottom: @slider_innerborder;
+
+    width: @slider_height - @slider_innerborder;
+    height: @slider_height - @slider_innerborder;
+    border-radius: @slider_radius - @slider_innerborder;
+    
+    line-height: @slider_height - @slider_innerborder;
+    content: @slider_uncheckedText;
+    text-align: center;
+    padding: 0;
+    vertical-align: center;
+    color: black;
+    font-family: "Fira Sans";
+    box-shadow: 0px 0px 5px 0px rgba(50, 50, 50, 0.75);
+
+    background-color: white;
+    .transition(@slider_transitionSpeed);
+}
+
+.custom-slider input:checked + .cursor {
+    background-color: @slider_checkedColor;
+}
+
+.custom-slider input:focus + .cursor {
+    box-shadow: 0 0 1px #2196F3;
+}
+
+.custom-slider input:checked + .cursor:after {
+    content: @slider_checkedText;
+    transform: translateX(@slider_width - @slider_height);
+}
+
+.transition(@slider_speed){
+    transition: all @slider_speed ease;
+}
+
+.hidden {
+    display: none;
+}
+
+pre {
+    font-family: "Fira Mono", monospace;
+}
+
+.ace_editor {
+    //position: relative;
+    //display: block;
+    margin: 10px;
+    padding: 10px;
+    height: 500px;
+    border: 1px solid #DDD;
+    border-radius: 5px;
+}
+
+button#abcd_start:before {
+    content: "\f0f4";
+    font-family: "FontAwesome";
+    margin-right: 1ex;
+}
+
+button#abcd_stop:before {
+    content: "\f236";
+    font-family: "FontAwesome";
+    margin-right: 1ex;
+}

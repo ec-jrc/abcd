@@ -1,0 +1,84 @@
+{
+    "module": "waan",
+    "forward_waveforms": true,
+    "enable_additional": true,
+    "channels": [
+        {
+            "id": 0,
+            "name": "LaBr 5415",
+            "note": "This channel is used to analyze a LaBr3 scintillator.",
+            "enabled": true,
+            "user_libraries": {
+                "timestamp": "src/libCFD.so",
+                "energy": "src/libPSD.so",
+                "note1": "Insert here the library file names with the analysis functions.",
+                "note2": "If using a file and not a system wide library, the filename shall contain a '/'."
+            },
+            "user_config": {
+                "baseline_samples": 30,
+                "smooth_samples": 16,
+                "fraction": 1.0,
+                "delay": 30,
+                "zero_crossing_samples": 2,
+                "fractional_bits": 8,
+                "disable_shift": true,
+                "pregate": 35,
+                "short_gate": 20,
+                "long_gate": 80,
+                "pulse_polarity": "negative",
+                "integrals_scaling": 0.25,
+                "note": "This user-defined configuration is passed to both the init functions."
+            }
+        },
+        {
+            "id": 1,
+            "name": "NIM pulse 5415",
+            "enabled": true,
+            "user_libraries": {
+                "timestamp": "src/libCFD.so",
+                "energy": "src/libTPZ.so"
+            },
+            "user_config": {
+                "baseline_samples": 64,
+                "smooth_samples": 16,
+                "fraction": 1.2,
+                "delay": 10,
+                "zero_crossing_samples": 2,
+                "fractional_bits": 8,
+                "disable_shift": true,
+                "decay_time": 1000000,
+                "trapezoid_risetime": 120,
+                "trapezoid_flattop": 50,
+                "peaking_time": 120,
+                "pulse_polarity": "negative",
+                "height_scaling": 0.08
+            }
+        },
+        {
+            "id": 2,
+            "name": "NIM pulse 5415",
+            "enabled": true,
+            "user_libraries": {
+                "timestamp": "src/libCFD.so",
+                "energy": "src/libTPZ.so"
+            },
+            "user_config": {
+                "baseline_samples": 64,
+                "smooth_samples": 16,
+                "fraction": 1.2,
+                "delay": 10,
+                "zero_crossing_samples": 2,
+                "fractional_bits": 8,
+                "disable_shift": true,
+                "decay_time": 90000,
+                "trapezoid_risetime": 30,
+                "trapezoid_flattop": 10,
+                "peaking_time": 20,
+                "pulse_polarity": "negative",
+                "height_scaling": 0.01
+            }
+        },
+        {}
+    ],
+    "zzz": null
+}

@@ -1,0 +1,28 @@
+I started to check the code with PVS-Studio analyzer:
+
+http://www.viva64.com/en/pvs-studio/
+
+Which is now free to use to personal, academic and open source projects:
+
+http://www.viva64.com/en/b/0457/
+
+Summarizing, just add these two lines of code to the *.cpp and *.c files:
+
+// This is a personal academic project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
+
+How-to:
+
+http://www.viva64.com/en/m/0036/
+
+Summarizing, from the root ABCD directory:
+
+$ make clean
+$ # strace is required for this next step:
+$ pvs-studio-analyzer trace -- make
+$ pvs-studio-analyzer analyze -o ABCD.log
+$ plog-converter -a GA:1,2 -t errorfile -o ABCD.err ABCD.log
+
+Download and install:
+
+http://www.viva64.com/en/pvs-studio-download-linux/

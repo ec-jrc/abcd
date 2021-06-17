@@ -1,0 +1,68 @@
+digraph D {
+    node [fontname = "Linux Biolinum"];
+    edge [fontname = "Linux Biolinum"];
+
+    start [label = "Start", peripheries = 2];
+    create_context [label = "Create ZeroMQ\ncontext"];
+    create_sockets [label = "Create\nsockets"];
+    bind_sockets [label = "Bind\nsockets"];
+    create_hv [label = "Create\nHV"];
+    recreate_hv [label = "Create\nHV"];
+    read_config [label = "Read\nconfiguration"];
+    initialize_hv [label = "Initialize\nHV"];
+    configure_hv [label = "Configure\nHV"];
+    reconfigure_destroy_hv [label = "Destroy\nHV"];
+    receive_commands [label = "Receive\ncommands"];
+    publish_status [label = "Publish\nstatus"];
+    destroy_hv [label = "Destroy\nHV"];
+    close_sockets [label = "Close\nsockets"];
+    destroy_context [label = "Destroy\ncontext"];
+    stop [label = "Stop", peripheries = 2];
+
+    communication_error [label = "Communication\nerror", color = "red"];
+    configure_error [label = "Configuration\nerror", color = "red"];
+    io_error [label = "I/O\nerror", color = "red"];
+
+    {rank = "source"; start}
+    {rank = "same"; bind_sockets communication_error}
+    //{rank = "same"; read_config io_error}
+    {rank = "same"; create_hv recreate_hv}
+    {rank = "same"; configure_hv configure_error reconfigure_destroy_hv}
+    {rank = "same"; receive_commands publish_status}
+
+    start -> create_context;
+    create_context -> create_sockets [label = "ZeroMQ\nOK"];
+    create_sockets -> bind_sockets [label = "ZeroMQ\nOK"];
+    bind_sockets -> read_config [label = "ZeroMQ\nOK"];
+    read_config -> create_hv;
+    create_hv -> initialize_hv;
+    initialize_hv -> configure_hv;
+    reconfigure_destroy_hv -> recreate_hv;
+    recreate_hv -> initialize_hv;
+    configure_hv -> receive_commands [tailport = "sw", headport = "nw"];
+    receive_commands -> configure_hv [label = "Reconfigure", color = "blue", tailport = "ne", headport = "se"];
+    //receive_commands -> publish_status [tailport = "sw", headport = "nw"];
+    //publish_status -> receive_commands [tailport = "ne", headport = "se"];
+    receive_commands -> publish_status;
+    publish_status -> receive_commands;
+
+    create_context -> communication_error [label = "ZeroMQ\nerror", color = "red"];
+    create_sockets -> communication_error [label = "ZeroMQ\nerror", color = "red"];
+    bind_sockets -> communication_error [label = "ZeroMQ\nerror", color = "red"];
+    communication_error -> close_sockets [headport = "ne"];
+    io_error -> close_sockets;
+
+    read_config -> io_error [label = "I/O\nerror", color = "red"];
+
+    create_hv -> configure_error [label = "HV\nerror", color = "red"];
+    recreate_hv -> configure_error [label = "HV\nerror", color = "red"];
+    initialize_hv -> configure_error [label = "HV\nerror", color = "red"];
+    configure_hv -> configure_error [label = "HV\nerror", color = "red"];
+    publish_status -> configure_error [label = "HV\nerror", color = "red"];
+    configure_error -> reconfigure_destroy_hv;
+
+    receive_commands -> destroy_hv [label = "Off or SIGINT\nor SIGTERM", color = "blue"];
+    destroy_hv -> close_sockets;
+    close_sockets -> destroy_context;
+    destroy_context -> stop;
+}

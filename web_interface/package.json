@@ -1,0 +1,31 @@
+{
+  "name": "web_interface",
+  "description": "ABCD web interface server",
+  "author": "Cristiano Fontana <fontana@pd.infn.it>",
+  "version": "0.1.0",
+  "dependencies": {
+    "ace-builds": "1.x.x",
+    "d3": "4.x.x",
+    "express": "4.x.x",
+    "font-awesome": "4.7.x",
+    "humanize-duration": "3.x.x",
+    "jquery": "3.x.x",
+    "jquery.tipsy": "^1.0.3",
+    "lodash": "4.x.x",
+    "moment": "2.x.x",
+    "mozilla-fira-pack": "0.x.x",
+    "serve-favicon": "2.x.x",
+    "socket.io": "1.x.x",
+    "socket.io-client": "1.x.x",
+    "yargs": "12.x.x",
+    "zeromq": "4.x.x"
+  },
+  "devDependencies": {
+    "less": "2.x.x"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/cristiano.fontana/abcd.git"
+  }
+}

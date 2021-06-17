@@ -1,0 +1,26 @@
+{
+    "dgtzs": {
+        "BoardName": "V1730",
+        "ChannelEnableMask": 1,
+        "DPPAcquisitionMode": 2,
+        "MaxNumAggregatesBLT": 1023,
+        "ShowGates": 1,
+        "ch0": {
+            "BSLSamples": 64,
+            "ChannelName": "CaF2",
+            "ChargeSensitivity": 1,
+            "DCOffset14bit": 1000,
+            "DynamicRange": 0,
+            "LongGate": 1000,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 140,
+            "PreTrigger": 170,
+            "PulsePolarity": 1,
+            "ScopeSamples": 2000,
+            "ShortGate": 200,
+            "Threshold": 40,
+            "TriggerHoldOffNs": 2000,
+            "TriggerMode": 0
+        }
+    }
+}

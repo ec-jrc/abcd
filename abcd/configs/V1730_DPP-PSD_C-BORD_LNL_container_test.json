@@ -1,0 +1,39 @@
+{
+    "dgtzs": {
+        "BoardName": "V1730",
+        "ChannelEnableMask": 3,
+        "DPPAcquisitionMode": 1,
+        "MaxNumAggregatesBLT": 1023,
+        "ShowGates": 1,
+        "ch0": {
+            "BSLSamples": 64,
+            "ChannelName": "PMT20",
+            "ChargeSensitivity": 3,
+            "DCOffset14bit": 1000,
+            "DynamicRange": 0,
+            "LongGate": 600,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 64,
+            "PreTrigger": 140,
+            "PulsePolarity": 1,
+            "ScopeSamples": 800,
+            "ShortGate": 20,
+            "Threshold": 300
+        },
+        "ch1": {
+            "BSLSamples": 64,
+            "ChannelName": "PMT17",
+            "ChargeSensitivity": 3,
+            "DCOffset14bit": 1000,
+            "DynamicRange": 0,
+            "LongGate": 600,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 64,
+            "PreTrigger": 140,
+            "PulsePolarity": 1,
+            "ScopeSamples": 800,
+            "ShortGate": 20,
+            "Threshold": 300
+        }
+    }
+}

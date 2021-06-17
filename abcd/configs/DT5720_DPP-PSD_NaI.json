@@ -1,0 +1,25 @@
+{
+    "dgtzs": {
+        "BoardName": "DT5720B",
+        "ChannelEnableMask": 1,
+        "DPPAcquisitionMode": 1,
+        "MaxNumAggregatesBLT": 1023,
+        "ShowGates": 0,
+        "ch0": {
+            "BSLSamples": 32,
+            "ChannelName": "NaI",
+            "ChargeSensitivity": 0,
+            "DCOffset12bit": 500,
+            "LongGate": 300,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 30,
+            "PreTrigger": 50,
+            "PulsePolarity": 1,
+            "ScopeSamples": 704,
+            "ShortGate": 34,
+            "Threshold": 40,
+            "TriggerHoldOffNs": 600,
+            "TriggerMode": 0
+        }
+    }
+}

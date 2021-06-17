@@ -1,0 +1,44 @@
+{
+    "module": "waps",
+    "channels": [
+    {
+        "id": 4,
+        "enabled": true,
+        "charge_sensitivity": 0,
+        "pretrigger": 150,
+        "pregate": 40,
+        "short_gate": 30,
+        "long_gate": 100,
+        "pulse_polarity": "negative",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 5,
+            "fraction": 0.7,
+            "delay": 30,
+            "zero_crossing_samples": 4
+        },
+        "name": "LYSO scintillator",
+        "note": "LYSO scintillator with SiPM"
+    },
+    {
+        "id": 6,
+        "enabled": true,
+        "charge_sensitivity": 0,
+        "pretrigger": 150,
+        "pregate": 40,
+        "short_gate": 30,
+        "long_gate": 100,
+        "pulse_polarity": "positive",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 5,
+            "fraction": 0.5,
+            "delay": 30,
+            "zero_crossing_samples": 4
+        },
+        "name": "LYSO scintillator",
+        "note": "LYSO scintillator with SiPM"
+    },
+    {}
+    ]
+}

@@ -1,0 +1,31 @@
+{
+    "dgtzs": {
+        "BoardName": "DT5725",
+        "BufferBlockNumber": 10,
+        "ChannelEnableMask": 3,
+        "CoincidenceLevel": 0,
+        "MaxNumEventsBLT": 1023,
+        "PostTriggerSamples": 1000,
+        "RecordLength": 4000,
+        "SWTriggerMode": 3,
+        "TriggerEnableMask": 1,
+        "TriggerOverlap": 0,
+        "TriggerUnderThreshold": 1,
+        "ch0": {
+            "DCOffsetPercent": -40,
+            "DynamicRange": 1,
+            "ScopeSamples": 1000,
+            "SelfTrigger": 1,
+            "TriggerNSamples": 4,
+            "TriggerThreshold": 13800
+        },
+        "ch1": {
+            "DCOffsetPercent": -40,
+            "DynamicRange": 1,
+            "ScopeSamples": 1000,
+            "SelfTrigger": 1,
+            "TriggerNSamples": 4,
+            "TriggerThreshold": 13800
+        }
+    }
+}

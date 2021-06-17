@@ -1,0 +1,25 @@
+{
+    "dgtzs": {
+        "BoardName": "DT5751",
+        "ChannelEnableMask": 1,
+        "DPPAcquisitionMode": 2,
+        "EnabledBSL": 1,
+        "MaxNumAggregatesBLT": 1023,
+        "ShowGates": 0,
+        "WriteBuffer": 1,
+        "ch0": {
+            "BSLSamples": 64,
+            "ChargeSensitivity": 0,
+            "DCOffset10bit": 1500,
+            "LongGateNs": 280,
+            "PreGateNs": 40,
+            "PreTrigger": 96,
+            "PulsePolarity": 1,
+            "ScopeSamples": 400,
+            "ShortGateNs": 68,
+            "Threshold": 25,
+            "TriggerHoldOff": 8000,
+            "TriggerMode": 0
+        }
+    }
+}

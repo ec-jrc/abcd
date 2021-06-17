@@ -1,0 +1,1623 @@
+{
+    "abcd": {
+        "registers": [
+            {
+                "address": "0x8004",
+                "note": "Enable extra word on x730, x725 and x751",
+                "value": 131072
+            },
+            {
+                "address": "0x8004",
+                "note": "Set trigger out bidirectional",
+                "value": 4
+            },
+            {
+                "address": "0x8004",
+                "note": "Enable auto-flush of data on x730, x725 and x751",
+                "value": 1
+            },
+            {
+                "address": "0x103C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 5
+            },
+            {
+                "address": "0x103C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 1
+            },
+            {
+                "address": "0x1084",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 1
+            },
+            {
+                "address": "0x103C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1084",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1080",
+                "n": 1,
+                "note": "Enable DCFD for Alpha Sum",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x123C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 5
+            },
+            {
+                "address": "0x123C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 1
+            },
+            {
+                "address": "0x1284",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 1
+            },
+            {
+                "address": "0x123C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1284",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1280",
+                "n": 1,
+                "note": "Enable DCFD for Alpha X",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x133C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 5
+            },
+            {
+                "address": "0x133C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 1
+            },
+            {
+                "address": "0x1384",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 1
+            },
+            {
+                "address": "0x133C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1384",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1380",
+                "n": 1,
+                "note": "Enable DCFD for Alpha Y",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x143C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 100
+            },
+            {
+                "address": "0x143C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 0
+            },
+            {
+                "address": "0x1484",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 3
+            },
+            {
+                "address": "0x143C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1484",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1480",
+                "n": 1,
+                "note": "Enable DCFD for S15",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x153C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 100
+            },
+            {
+                "address": "0x153C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 0
+            },
+            {
+                "address": "0x1584",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 3
+            },
+            {
+                "address": "0x153C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1584",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1580",
+                "n": 1,
+                "note": "Enable DCFD for S10",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x163C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 100
+            },
+            {
+                "address": "0x163C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 0
+            },
+            {
+                "address": "0x1684",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 3
+            },
+            {
+                "address": "0x163C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1684",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1680",
+                "n": 1,
+                "note": "Enable DCFD for S4",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x173C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 100
+            },
+            {
+                "address": "0x173C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 0
+            },
+            {
+                "address": "0x1784",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 3
+            },
+            {
+                "address": "0x173C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1784",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1780",
+                "n": 1,
+                "note": "Enable DCFD for S19",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x183C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 100
+            },
+            {
+                "address": "0x183C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 0
+            },
+            {
+                "address": "0x1884",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 3
+            },
+            {
+                "address": "0x183C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1884",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1880",
+                "n": 1,
+                "note": "Enable DCFD for S17",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x193C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 100
+            },
+            {
+                "address": "0x193C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 0
+            },
+            {
+                "address": "0x1984",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 3
+            },
+            {
+                "address": "0x193C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1984",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1980",
+                "n": 1,
+                "note": "Enable DCFD for S3",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1A3C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 100
+            },
+            {
+                "address": "0x1A3C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 0
+            },
+            {
+                "address": "0x1A84",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 3
+            },
+            {
+                "address": "0x1A3C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1A84",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1A80",
+                "n": 1,
+                "note": "Enable DCFD for S9",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1B3C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 100
+            },
+            {
+                "address": "0x1B3C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 0
+            },
+            {
+                "address": "0x1B84",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 3
+            },
+            {
+                "address": "0x1B3C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1B84",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1B80",
+                "n": 1,
+                "note": "Enable DCFD for S18",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1C3C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 100
+            },
+            {
+                "address": "0x1C3C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 0
+            },
+            {
+                "address": "0x1C84",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 3
+            },
+            {
+                "address": "0x1C3C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1C84",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1C80",
+                "n": 1,
+                "note": "Enable DCFD for S1",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1D3C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 100
+            },
+            {
+                "address": "0x1D3C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 0
+            },
+            {
+                "address": "0x1D84",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 3
+            },
+            {
+                "address": "0x1D3C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1D84",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1D80",
+                "n": 1,
+                "note": "Enable DCFD for S2",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1E3C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 25
+            },
+            {
+                "address": "0x1E3C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 1
+            },
+            {
+                "address": "0x1E84",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 0
+            },
+            {
+                "address": "0x1E3C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1E84",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1E80",
+                "n": 1,
+                "note": "Enable DCFD for LaBr_B",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1F3C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 25
+            },
+            {
+                "address": "0x1F3C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 1
+            },
+            {
+                "address": "0x1F84",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 0
+            },
+            {
+                "address": "0x1F3C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1F84",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1F80",
+                "n": 1,
+                "note": "Enable DCFD for LaBr_3",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1084",
+                "n": 1,
+                "note": "Enable trigger out from channel couples for Alpha Sum",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1284",
+                "n": 1,
+                "note": "Enable trigger out from channel couples for Alpha X",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1384",
+                "n": 1,
+                "note": "Enable trigger out from channel couples for Alpha Y",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1484",
+                "n": 1,
+                "note": "Enable trigger out from channel couples",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1584",
+                "n": 1,
+                "note": "Enable trigger out from channel couples",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1684",
+                "n": 1,
+                "note": "Enable trigger out from channel couples",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1784",
+                "n": 1,
+                "note": "Enable trigger out from channel couples",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1884",
+                "n": 1,
+                "note": "Enable trigger out from channel couples",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1984",
+                "n": 1,
+                "note": "Enable trigger out from channel couples",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1A84",
+                "n": 1,
+                "note": "Enable trigger out from channel couples",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1B84",
+                "n": 1,
+                "note": "Enable trigger out from channel couples",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1C84",
+                "n": 1,
+                "note": "Enable trigger out from channel couples",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1D84",
+                "n": 1,
+                "note": "Enable trigger out from channel couples",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1E84",
+                "n": 1,
+                "note": "Enable trigger out from channel couples",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1F84",
+                "n": 1,
+                "note": "Enable trigger out from channel couples",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x806C",
+                "note": "Delay for validation signal from main board, fixed value for all channels",
+                "value": 9
+            },
+            {
+                "address": "0x1084",
+                "n": 1,
+                "note": "Enable validation input from main board, for Alpha Sum",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1284",
+                "n": 1,
+                "note": "Enable validation input from main board, for Alpha X",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1384",
+                "n": 1,
+                "note": "Enable validation input from main board, for Alpha Y",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1484",
+                "n": 1,
+                "note": "Enable validation input from main board",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1584",
+                "n": 1,
+                "note": "Enable validation input from main board",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1684",
+                "n": 1,
+                "note": "Enable validation input from main board",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1784",
+                "n": 1,
+                "note": "Enable validation input from main board",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1884",
+                "n": 1,
+                "note": "Enable validation input from main board",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1984",
+                "n": 1,
+                "note": "Enable validation input from main board",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1A84",
+                "n": 1,
+                "note": "Enable validation input from main board",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1B84",
+                "n": 1,
+                "note": "Enable validation input from main board",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1C84",
+                "n": 1,
+                "note": "Enable validation input from main board",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1D84",
+                "n": 1,
+                "note": "Enable validation input from main board",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1E84",
+                "n": 1,
+                "note": "Enable validation input from main board",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1F84",
+                "n": 1,
+                "note": "Enable validation input from main board",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x8070",
+                "note": "Trigger out width, determines the coincidence window, 8 ns steps, 0x8*** is a broadcast of the setting",
+                "value": 50
+            },
+            {
+                "address": "0x1070",
+                "n": 10,
+                "note": "Trigger out width, determines the coincidence window, 8 ns steps, Alpha Sum",
+                "start": 0,
+                "value": 50
+            },
+            {
+                "address": "0x1270",
+                "n": 10,
+                "note": "Trigger out width, determines the coincidence window, 8 ns steps, Alpha X",
+                "start": 0,
+                "value": 50
+            },
+            {
+                "address": "0x1370",
+                "n": 10,
+                "note": "Trigger out width, determines the coincidence window, 8 ns steps, Alpha Y",
+                "start": 0,
+                "value": 50
+            },
+            {
+                "address": "0x1080",
+                "n": 2,
+                "note": "Validation signal interpretation for Alpha Sum (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 1
+            },
+            {
+                "address": "0x1280",
+                "n": 2,
+                "note": "Validation signal interpretation for Alpha X (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 1
+            },
+            {
+                "address": "0x1380",
+                "n": 2,
+                "note": "Validation signal interpretation for Alpha Y (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 1
+            },
+            {
+                "address": "0x1480",
+                "n": 2,
+                "note": "Validation signal interpretation (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 0
+            },
+            {
+                "address": "0x1580",
+                "n": 2,
+                "note": "Validation signal interpretation (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 0
+            },
+            {
+                "address": "0x1680",
+                "n": 2,
+                "note": "Validation signal interpretation (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 0
+            },
+            {
+                "address": "0x1780",
+                "n": 2,
+                "note": "Validation signal interpretation (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 0
+            },
+            {
+                "address": "0x1880",
+                "n": 2,
+                "note": "Validation signal interpretation (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 0
+            },
+            {
+                "address": "0x1980",
+                "n": 2,
+                "note": "Validation signal interpretation (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 0
+            },
+            {
+                "address": "0x1A80",
+                "n": 2,
+                "note": "Validation signal interpretation (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 0
+            },
+            {
+                "address": "0x1B80",
+                "n": 2,
+                "note": "Validation signal interpretation (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 0
+            },
+            {
+                "address": "0x1C80",
+                "n": 2,
+                "note": "Validation signal interpretation (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 0
+            },
+            {
+                "address": "0x1D80",
+                "n": 2,
+                "note": "Validation signal interpretation (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 0
+            },
+            {
+                "address": "0x1E80",
+                "n": 2,
+                "note": "Validation signal interpretation (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 0
+            },
+            {
+                "address": "0x1F80",
+                "n": 2,
+                "note": "Validation signal interpretation (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 0
+            },
+            {
+                "address": "0x1084",
+                "n": 2,
+                "note": "Trigger out calculation from couple triggers for Alpha Sum (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x1284",
+                "n": 2,
+                "note": "Trigger out calculation from couple triggers for Alpha X (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x1384",
+                "n": 2,
+                "note": "Trigger out calculation from couple triggers for Alpha Y (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x1484",
+                "n": 2,
+                "note": "Trigger out calculation from couple triggers (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x1584",
+                "n": 2,
+                "note": "Trigger out calculation from couple triggers (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x1684",
+                "n": 2,
+                "note": "Trigger out calculation from couple triggers (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x1784",
+                "n": 2,
+                "note": "Trigger out calculation from couple triggers (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x1884",
+                "n": 2,
+                "note": "Trigger out calculation from couple triggers (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x1984",
+                "n": 2,
+                "note": "Trigger out calculation from couple triggers (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x1A84",
+                "n": 2,
+                "note": "Trigger out calculation from couple triggers (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x1B84",
+                "n": 2,
+                "note": "Trigger out calculation from couple triggers (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x1C84",
+                "n": 2,
+                "note": "Trigger out calculation from couple triggers (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x1D84",
+                "n": 2,
+                "note": "Trigger out calculation from couple triggers (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x1E84",
+                "n": 2,
+                "note": "Trigger out calculation from couple triggers (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x1F84",
+                "n": 2,
+                "note": "Trigger out calculation from couple triggers (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x1084",
+                "n": 2,
+                "note": "Validation input calculation for Alpha Sum (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple)",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x1284",
+                "n": 2,
+                "note": "Validation input calculation for Alpha X (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple)",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x1384",
+                "n": 2,
+                "note": "Validation input calculation for Alpha Y (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple)",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x1484",
+                "n": 2,
+                "note": "Validation input calculation (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple)",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x1584",
+                "n": 2,
+                "note": "Validation input calculation (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple)",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x1684",
+                "n": 2,
+                "note": "Validation input calculation (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple)",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x1784",
+                "n": 2,
+                "note": "Validation input calculation (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple)",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x1884",
+                "n": 2,
+                "note": "Validation input calculation (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple)",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x1984",
+                "n": 2,
+                "note": "Validation input calculation (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple)",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x1A84",
+                "n": 2,
+                "note": "Validation input calculation (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple)",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x1B84",
+                "n": 2,
+                "note": "Validation input calculation (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple)",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x1C84",
+                "n": 2,
+                "note": "Validation input calculation (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple)",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x1D84",
+                "n": 2,
+                "note": "Validation input calculation (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple)",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x1E84",
+                "n": 2,
+                "note": "Validation input calculation (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple)",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x1F84",
+                "n": 2,
+                "note": "Validation input calculation (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple)",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x8180",
+                "note": "Validation output calculation for couple 0, or of all the gammas (value: 0xFC)",
+                "value": 252
+            },
+            {
+                "address": "0x8184",
+                "note": "Validation output calculation for couple 1, or of all the gammas (value: 0xFC)",
+                "value": 252
+            },
+            {
+                "address": "0x8188",
+                "note": "Validation output calculation for couple 2, alpha sum",
+                "value": 1
+            },
+            {
+                "address": "0x818C",
+                "note": "Validation output calculation for couple 3, alpha sum",
+                "value": 1
+            },
+            {
+                "address": "0x8190",
+                "note": "Validation output calculation for couple 4, alpha sum",
+                "value": 1
+            },
+            {
+                "address": "0x8194",
+                "note": "Validation output calculation for couple 5, alpha sum",
+                "value": 1
+            },
+            {
+                "address": "0x8198",
+                "note": "Validation output calculation for couple 6, alpha sum",
+                "value": 1
+            },
+            {
+                "address": "0x819C",
+                "note": "Validation output calculation for couple 7, alpha sum",
+                "value": 1
+            },
+            {
+                "address": "0x8044",
+                "note": "Set a threshold on the charge (qlong) value, 0x8*** is a broadcast of the setting",
+                "value": 100
+            },
+            {
+                "address": "0x1E44",
+                "note": "Set a threshold on the charge (qlong) value, for LaBr",
+                "value": 10
+            },
+            {
+                "address": "0x1F44",
+                "note": "Set a threshold on the charge (qlong) value, for LaBr",
+                "value": 10
+            },
+            {
+                "address": "0x1080",
+                "n": 1,
+                "note": "Enable charge threshold, for Alpha Sum",
+                "start": 25,
+                "value": 1
+            },
+            {
+                "address": "0x1280",
+                "n": 1,
+                "note": "Enable charge threshold, for Alpha X",
+                "start": 25,
+                "value": 1
+            },
+            {
+                "address": "0x1380",
+                "n": 1,
+                "note": "Enable charge threshold, for Alpha Y",
+                "start": 25,
+                "value": 1
+            },
+            {
+                "address": "0x1480",
+                "n": 1,
+                "note": "Enable charge threshold",
+                "start": 25,
+                "value": 1
+            },
+            {
+                "address": "0x1580",
+                "n": 1,
+                "note": "Enable charge threshold",
+                "start": 25,
+                "value": 1
+            },
+            {
+                "address": "0x1680",
+                "n": 1,
+                "note": "Enable charge threshold",
+                "start": 25,
+                "value": 1
+            },
+            {
+                "address": "0x1780",
+                "n": 1,
+                "note": "Enable charge threshold",
+                "start": 25,
+                "value": 1
+            },
+            {
+                "address": "0x1880",
+                "n": 1,
+                "note": "Enable charge threshold",
+                "start": 25,
+                "value": 1
+            },
+            {
+                "address": "0x1980",
+                "n": 1,
+                "note": "Enable charge threshold",
+                "start": 25,
+                "value": 1
+            },
+            {
+                "address": "0x1A80",
+                "n": 1,
+                "note": "Enable charge threshold",
+                "start": 25,
+                "value": 1
+            },
+            {
+                "address": "0x1B80",
+                "n": 1,
+                "note": "Enable charge threshold",
+                "start": 25,
+                "value": 1
+            },
+            {
+                "address": "0x1C80",
+                "n": 1,
+                "note": "Enable charge threshold",
+                "start": 25,
+                "value": 1
+            },
+            {
+                "address": "0x1D80",
+                "n": 1,
+                "note": "Enable charge threshold",
+                "start": 25,
+                "value": 1
+            },
+            {
+                "address": "0x1E80",
+                "n": 1,
+                "note": "Enable charge threshold",
+                "start": 25,
+                "value": 1
+            },
+            {
+                "address": "0x1F80",
+                "n": 1,
+                "note": "Enable charge threshold",
+                "start": 25,
+                "value": 1
+            },
+            {}
+        ]
+    },
+    "dgtzs": {
+        "BoardName": "V1730",
+        "ChannelEnableMask": 65533,
+        "DPPAcquisitionMode": 1,
+        "MaxNumAggregatesBLT": 1023,
+        "ShowGates": 1,
+        "WriteBuffer": 0,
+        "ch0": {
+            "BSLSamples": 64,
+            "ChannelName": "Alpha Sum",
+            "ChargeSensitivity": 2,
+            "DCOffset14bit": 15500,
+            "DynamicRange": 0,
+            "LongGate": 100,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 50,
+            "PreTrigger": 100,
+            "PulsePolarity": 0,
+            "ScopeSamples": 480,
+            "ShortGate": 17,
+            "Threshold": 1000,
+            "TriggerHoldOffNs": 600,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch10": {
+            "BSLSamples": 64,
+            "ChannelName": "S7",
+            "ChargeSensitivity": 3,
+            "DCOffset14bit": 1000,
+            "LongGate": 300,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 150,
+            "PreTrigger": 240,
+            "PulsePolarity": 1,
+            "ScopeSamples": 840,
+            "ShortGate": 34,
+            "Threshold": 40,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch11": {
+            "BSLSamples": 64,
+            "ChannelName": "S6",
+            "ChargeSensitivity": 3,
+            "DCOffset14bit": 1000,
+            "LongGate": 300,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 150,
+            "PreTrigger": 240,
+            "PulsePolarity": 1,
+            "ScopeSamples": 840,
+            "ShortGate": 34,
+            "Threshold": 20,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch12": {
+            "BSLSamples": 64,
+            "ChannelName": "S16",
+            "ChargeSensitivity": 3,
+            "DCOffset14bit": 1000,
+            "LongGate": 300,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 150,
+            "PreTrigger": 240,
+            "PulsePolarity": 1,
+            "ScopeSamples": 840,
+            "ShortGate": 34,
+            "Threshold": 20,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch13": {
+            "BSLSamples": 64,
+            "ChannelName": "S8",
+            "ChargeSensitivity": 3,
+            "DCOffset14bit": 1000,
+            "LongGate": 300,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 150,
+            "PreTrigger": 240,
+            "PulsePolarity": 1,
+            "ScopeSamples": 840,
+            "ShortGate": 34,
+            "Threshold": 15,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch14": {
+            "BSLSamples": 64,
+            "ChannelName": "LaBr_A",
+            "ChargeSensitivity": 2,
+            "DCOffset14bit": 1000,
+            "LongGate": 130,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 60,
+            "PreTrigger": 100,
+            "PulsePolarity": 1,
+            "ScopeSamples": 280,
+            "ShortGate": 34,
+            "Threshold": 25,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch15": {
+            "BSLSamples": 64,
+            "ChannelName": "EJ-309",
+            "ChargeSensitivity": 1,
+            "DCOffset14bit": 1000,
+            "LongGate": 140,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 35,
+            "PreTrigger": 60,
+            "PulsePolarity": 1,
+            "ScopeSamples": 280,
+            "ShortGate": 34,
+            "Threshold": 110,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch2": {
+            "BSLSamples": 64,
+            "ChannelName": "Alpha X",
+            "ChargeSensitivity": 2,
+            "DCOffset14bit": 15500,
+            "DynamicRange": 0,
+            "LongGate": 100,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 50,
+            "PreTrigger": 100,
+            "PulsePolarity": 0,
+            "ScopeSamples": 480,
+            "ShortGate": 17,
+            "Threshold": 1000,
+            "TriggerHoldOffNs": 600,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch3": {
+            "BSLSamples": 64,
+            "ChannelName": "Alpha Y",
+            "ChargeSensitivity": 2,
+            "DCOffset14bit": 15500,
+            "DynamicRange": 0,
+            "LongGate": 100,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 50,
+            "PreTrigger": 100,
+            "PulsePolarity": 0,
+            "ScopeSamples": 480,
+            "ShortGate": 17,
+            "Threshold": 1000,
+            "TriggerHoldOffNs": 600,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch4": {
+            "BSLSamples": 64,
+            "ChannelName": "S11",
+            "ChargeSensitivity": 3,
+            "DCOffset14bit": 1000,
+            "LongGate": 300,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 150,
+            "PreTrigger": 240,
+            "PulsePolarity": 1,
+            "ScopeSamples": 840,
+            "ShortGate": 34,
+            "Threshold": 50,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch5": {
+            "BSLSamples": 64,
+            "ChannelName": "S20",
+            "ChargeSensitivity": 3,
+            "DCOffset14bit": 1000,
+            "LongGate": 300,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 150,
+            "PreTrigger": 240,
+            "PulsePolarity": 1,
+            "ScopeSamples": 840,
+            "ShortGate": 34,
+            "Threshold": 20,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch6": {
+            "BSLSamples": 64,
+            "ChannelName": "S12",
+            "ChargeSensitivity": 3,
+            "DCOffset14bit": 1000,
+            "LongGate": 300,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 150,
+            "PreTrigger": 240,
+            "PulsePolarity": 1,
+            "ScopeSamples": 840,
+            "ShortGate": 34,
+            "Threshold": 40,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch7": {
+            "BSLSamples": 64,
+            "ChannelName": "S13",
+            "ChargeSensitivity": 3,
+            "DCOffset14bit": 1000,
+            "LongGate": 300,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 150,
+            "PreTrigger": 240,
+            "PulsePolarity": 1,
+            "ScopeSamples": 840,
+            "ShortGate": 34,
+            "Threshold": 10,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch8": {
+            "BSLSamples": 64,
+            "ChannelName": "S5",
+            "ChargeSensitivity": 3,
+            "DCOffset14bit": 1000,
+            "LongGate": 300,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 150,
+            "PreTrigger": 240,
+            "PulsePolarity": 1,
+            "ScopeSamples": 840,
+            "ShortGate": 34,
+            "Threshold": 15,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch9": {
+            "BSLSamples": 64,
+            "ChannelName": "S14",
+            "ChargeSensitivity": 3,
+            "DCOffset14bit": 1000,
+            "LongGate": 300,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 150,
+            "PreTrigger": 240,
+            "PulsePolarity": 1,
+            "ScopeSamples": 840,
+            "ShortGate": 34,
+            "Threshold": 15,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "zzz": false
+    }
+}

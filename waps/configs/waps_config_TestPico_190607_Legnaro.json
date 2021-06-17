@@ -1,0 +1,299 @@
+{
+    "module": "waps",
+    "channels": [
+    {
+        "id": 40,
+        "enabled": false,
+        "charge_sensitivity": 0,
+        "pretrigger": 160,
+        "pregate": 5,
+        "short_gate": 7,
+        "long_gate": 30,
+        "pulse_polarity": "negative",
+        "name": "EJ301 - AD2 - 10ns",
+        "note": "This channel is very important",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 2,
+            "zero_crossing_samples": 2,
+            "delay": 2,
+            "fraction": 0.42,
+            "threshold": 80
+        }
+    },
+    {
+        "id": 123,
+        "enabled": false,
+        "charge_sensitivity": 0,
+        "pretrigger": 160,
+        "pregate": 5,
+        "short_gate": 7,
+        "long_gate": 30,
+        "pulse_polarity": "negative",
+        "name": "EJ228 - AD2 - 10ns",
+        "note": "This channel is very important",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 2,
+            "zero_crossing_samples": 2,
+            "delay": 2,
+            "fraction": 0.42,
+            "threshold": 80
+        }
+    },
+    {
+        "id": 123,
+        "enabled": false,
+        "charge_sensitivity": 2,
+        "pretrigger": 140,
+        "pregate": 27,
+        "short_gate": 40,
+        "long_gate": 100,
+        "pulse_polarity": "negative",
+        "name": "EJ301 - Pico - 1ns",
+        "note": "This channel is very important",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 6,
+            "zero_crossing_samples": 4,
+            "delay": 16,
+            "fraction": 0.6,
+            "threshold": 350
+        }
+    },{
+        "id": 106,
+        "enabled": false,
+        "charge_sensitivity": 1,
+        "pretrigger": 190,
+        "pregate": 40,
+        "short_gate": 50,
+        "long_gate": 200,
+        "pulse_polarity": "negative",
+        "name": "NaI - AD2 - 10ns",
+        "note": "This channel is very important",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 4,
+            "zero_crossing_samples": 2,
+            "delay": 30,
+            "fraction": 0.8,
+            "threshold": 30
+        }
+    },
+    {
+        "id": 1000,
+        "enabled": false,
+        "charge_sensitivity": 0,
+        "pretrigger": 400,
+        "pregate": 20,
+        "short_gate": 20,
+        "long_gate": 80,
+        "pulse_polarity": "negative",
+        "name": "EJ228 - DT5751 - 1ns",
+        "note": "This channel is very important",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 10,
+            "zero_crossing_samples": 7,
+            "delay": 10,
+            "fraction": 0.5
+        }
+    },
+    {
+        "id": 1001,
+        "enabled": false,
+        "charge_sensitivity": 0,
+        "pretrigger": 600,
+        "pregate": 20,
+        "short_gate": 20,
+        "long_gate": 150,
+        "pulse_polarity": "negative",
+        "name": "EJ301 - DT5751 - 1ns",
+        "note": "This channel is very important",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 10,
+            "zero_crossing_samples": 7,
+            "delay": 10,
+            "fraction": 0.5
+        }
+    },
+    {
+        "id": 12,
+        "enabled": false,
+        "charge_sensitivity": 0,
+        "pretrigger": 150,
+        "pregate": 8,
+        "short_gate": 12,
+        "long_gate": 25,
+        "pulse_polarity": "negative",
+        "name": "LaBr - AD2 - 10ns",
+        "note": "This channel is very important",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 2,
+            "zero_crossing_samples": 2,
+            "delay": 2,
+            "fraction": 0.75,
+            "threshold": 30
+        }
+    },
+    {
+        "id": 17,
+        "enabled": false,
+        "charge_sensitivity": 3,
+        "pretrigger": 150,
+        "pregate": 60,
+        "short_gate": 80,
+        "long_gate": 180,
+        "pulse_polarity": "negative",
+        "name": "LaBr - Pico - 1ns",
+        "note": "This channel is very important",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 4,
+            "zero_crossing_samples": 10,
+            "delay": 16,
+            "fraction": 0.8,
+            "threshold": 500
+        }
+    },
+    {
+        "id": 13,
+        "enabled": false,
+        "charge_sensitivity": 1,
+        "pretrigger": 128,
+        "pregate": 8,
+        "short_gate": 10,
+        "long_gate": 40,
+        "pulse_polarity": "negative",
+        "name": "EJ301 - Pico - 8ns - TODO",
+        "note": "This channel is very important",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 4,
+            "zero_crossing_samples": 2,
+            "delay": 2,
+            "fraction": 0.55,
+            "threshold": 500
+        }
+    },
+    {
+        "id": 0,
+        "enabled": true,
+        "charge_sensitivity": 0,
+        "pretrigger": 200,
+        "pregate": 10,
+        "short_gate": 13,
+        "long_gate": 80,
+        "pulse_polarity": "negative",
+        "name": "EJ301 - RP - 8ns",
+        "CFD": {
+            "enabled": true,
+	    "smooth_samples": 5,
+	    "zero_crossing_samples": 4,
+            "delay": 4,
+            "fraction": 0.55
+        }
+    },
+    {
+        "id": 1,
+        "enabled": true,
+        "charge_sensitivity": 0,
+        "pretrigger": 300,
+        "pregate": 10,
+        "short_gate": 13,
+        "long_gate": 80,
+        "pulse_polarity": "negative",
+        "name": "EJ228 - RP - 8ns",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 5,
+            "zero_crossing_samples": 4,
+            "delay": 4,
+            "fraction": 0.55
+        }
+    },
+    {
+        "id": 19,
+        "enabled": false,
+        "charge_sensitivity": 2,
+        "pretrigger": 134,
+        "pregate": 8,
+        "short_gate": 15,
+        "long_gate": 30,
+        "pulse_polarity": "negative",
+        "name": "LaBr - Pico - 8ns",
+        "note": "This channel is very important",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 2,
+            "zero_crossing_samples": 2,
+            "delay": 4,
+            "fraction": 0.45,
+            "threshold": 300
+        }
+    },
+    {
+        "id": 102,
+	"enabled": false,
+        "charge_sensitivity": 2,
+        "pretrigger": 150,
+        "pregate": 35,
+        "short_gate": 50,
+        "long_gate": 160,
+        "pulse_polarity": "negative",
+        "name": "NaI - Pico - 8ns",
+        "note": "This channel is very important",
+	"CFD": {
+            "enabled": true,
+	    "smooth_samples": 10,
+	    "zero_crossing_samples": 4,
+            "delay": 25,
+            "fraction": 0.75,
+            "threshold": 150
+        }
+    },
+    {
+        "id": 108,
+        "enabled": false,
+        "charge_sensitivity": 3,
+        "pretrigger": 400,
+        "pregate": 300,
+        "short_gate": 250,
+        "long_gate": 850,
+        "pulse_polarity": "negative",
+        "name": "NaI - Pico - 1ns",
+        "note": "This channel is very important",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 12,
+            "zero_crossing_samples": 10,
+            "delay": 250,
+            "fraction": 0.75,
+            "threshold": 250
+        }
+    },
+    {
+        "id": 43,
+        "enabled": false,
+        "charge_sensitivity": 0,
+        "pretrigger": 100,
+        "pregate": 10,
+        "short_gate": 20,
+        "long_gate": 70,
+        "pulse_polarity": "negative",
+        "name": "EJ301 - DT5725 - 4ns",
+        "note": "This channel is very important",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 4,
+            "zero_crossing_samples": 8,
+            "delay": 6,
+            "fraction": 0.75,
+            "threshold": 100
+        }
+    },
+    {}
+    ]
+}

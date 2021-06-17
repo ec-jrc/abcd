@@ -1,0 +1,124 @@
+{
+    "module": "tofcalc",
+    "channels": [
+    {
+        "id": 0,
+        "reference": true,
+        "bins_ToF": 200,
+        "min_ToF": -100,
+        "max_ToF": 100,
+        "bins_E": 100,
+        "min_E": 0,
+        "max_E": 60000,
+        "note": "Start"
+    },
+    {
+        "id": 1,
+        "reference": true,
+        "bins_ToF": 200,
+        "min_ToF": -100,
+        "max_ToF": 100,
+        "bins_E": 100,
+        "min_E": 0,
+        "max_E": 60000,
+        "note": "Detector"
+    },
+    {
+        "id": 2,
+        "reference": false,
+        "bins_ToF": 200,
+        "min_ToF": -100,
+        "max_ToF": 100,
+        "bins_E": 100,
+        "min_E": 0,
+        "max_E": 60000,
+        "note": "Detector"
+    },
+    {
+        "id": 3,
+        "reference": false,
+        "bins_ToF": 200,
+        "min_ToF": -70,
+        "max_ToF": -40,
+        "bins_E": 100,
+        "min_E": 0,
+        "max_E": 60000,
+        "note": "Detector"
+    },
+    {
+        "id": 4,
+        "reference": false,
+        "bins_ToF": 200,
+        "min_ToF": -100,
+        "max_ToF": 100,
+        "bins_E": 100,
+        "min_E": 0,
+        "max_E": 60000,
+        "note": "Detector"
+    },
+    {
+        "id": 5,
+        "reference": false,
+        "bins_ToF": 200,
+        "min_ToF": -70,
+        "max_ToF": -40,
+        "bins_E": 100,
+        "min_E": 0,
+        "max_E": 60000,
+        "note": "Detector"
+    },
+    {
+        "id": 6,
+        "reference": false,
+        "bins_ToF": 200,
+        "min_ToF": -100,
+        "max_ToF": 100,
+        "bins_E": 100,
+        "min_E": 0,
+        "max_E": 60000,
+        "note": "Detector"
+    },
+    {
+        "id": 7,
+        "reference": false,
+        "bins_ToF": 200,
+        "min_ToF": -70,
+        "max_ToF": -40,
+        "bins_E": 100,
+        "min_E": 0,
+        "max_E": 60000,
+        "note": "Detector"
+    },
+    {}
+    ],
+    "gui_config": {
+        "publish_timeout": 3,
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://*:16200",
+            "ip": "127.0.0.1",
+            "topic": "status_tofcalc"
+        },
+        {
+            "type": "events",
+            "address": "tcp://*:16200",
+            "ip": "127.0.0.1",
+            "topic": "events_tofcalc"
+        },
+        {
+            "type": "data",
+            "address": "tcp://*:16201",
+            "ip": "127.0.0.1",
+            "topic": "data_tofcalc"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://*:16202",
+            "ip": "127.0.0.1"
+        },
+        {}
+        ],
+        "zzz": null
+    }
+}

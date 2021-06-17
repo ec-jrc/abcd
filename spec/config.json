@@ -1,0 +1,27 @@
+{
+    "module": "spec",
+    "gui_config": {
+        "publish_timeout": 3,
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://*:16187",
+            "ip": "127.0.0.1",
+            "topic": "status_pqrs"
+        },
+        {
+            "type": "data",
+            "address": "tcp://*:16188",
+            "ip": "127.0.0.1",
+            "topic": "data_pqrs"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://*:16189",
+            "ip": "127.0.0.1"
+        },
+        {}
+        ],
+        "zzz": null
+    }
+}

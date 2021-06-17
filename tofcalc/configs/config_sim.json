@@ -1,0 +1,49 @@
+{
+    "module": "tofcalc",
+    "channels": [
+    {
+        "id": 1,
+        "reference": true,
+        "note": "LaBr"
+    },
+    {
+        "id": 2,
+        "reference": false,
+        "bins": 1000,
+        "min": -100,
+        "max": 100,
+        "note": "CeBr"
+    },
+    {}
+    ],
+    "gui_config": {
+        "publish_timeout": 3,
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://*:16200",
+            "ip": "127.0.0.1",
+            "topic": "status_tofcalc"
+        },
+        {
+            "type": "events",
+            "address": "tcp://*:16200",
+            "ip": "127.0.0.1",
+            "topic": "events_tofcalc"
+        },
+        {
+            "type": "data",
+            "address": "tcp://*:16201",
+            "ip": "127.0.0.1",
+            "topic": "data_tofcalc"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://*:16202",
+            "ip": "127.0.0.1"
+        },
+        {}
+        ],
+        "zzz": null
+    }
+}

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <link rel="stylesheet" href="/firasans-bold,firasans-bolditalic,firasans-thin,firasans-thinitalic,firasans-italic,firasans-regular,fontawesome-webfont/fonts.css">
+        <link rel="stylesheet" href="css/main.css">
+    </head>
+    <body>
+        <div id="main">
+            <h1>ABCD Defaults</h1>
+            <div>
+                <h2>Socket communications:</h2>
+                <div>
+                    <div>
+                        <h3>IPs:</h3>
+                        <ul id="IPs"></ul>
+                    </div>
+                    <div id="commands">
+                        <h3>Commands sockets:</h3>
+                        <ul id="commands_address"></ul>
+                    </div>
+                    <div id="data">
+                        <h3>Data sockets:</h3>
+                        <ul id="data_address"></ul>
+                    </div>
+                    <div id="status">
+                        <h3>Status sockets:</h3>
+                        <ul id="status_address"></ul>
+                    </div>
+                    <div>
+                        <h3>PUB Topics:</h3>
+                        <ul id="pub_topics"></ul>
+                    </div>
+                    <div>
+                        <h3>HTTP port:</h3>
+                        <p id="efg_http_port"></p>
+                    </div>
+                </div>
+                <div>
+                    <h2>Hardware configuration:</h2>
+                    <div>
+                        <h3>Base periods:</h3>
+                        <ul id="base_periods"></ul>
+                    </div>
+                    <div>
+                        <h3>CAEN boards:</h3>
+                        <ul id="caen_configs"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Having the scripts on the bottom tricks the user in thinking that the page loads faster -->
+        <script src="js/jquery.min.js"></script>
+        <script src="js/load_defaults.js"></script>
+    </body>
+</html>

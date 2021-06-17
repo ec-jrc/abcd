@@ -1,0 +1,12 @@
+{
+    "module": "wadi",
+    "sockets": [
+    {
+        "type": "data",
+        "address": "tcp://*:16188",
+        "ip": "127.0.0.1",
+        "topic": "data_wadi"
+    },
+    {}
+    ]
+}

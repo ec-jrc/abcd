@@ -1,0 +1,27 @@
+{
+    "dgtzs": {
+        "BoardName": "DT5730",
+        "ChannelEnableMask": 3,
+        "DPPAcquisitionMode": 2,
+        "BufferBlockNumber": 10,
+        "MaxNumEventsBLT": 1023,
+        "ShowGates": "1",
+        "ch0": {
+            "ChannelName": "Pulser",
+            "ChargeSensitivity": 1,
+            "PulsePolarity": 1,
+            "MaxNumEvPerBuf": 512,
+            "DCOffsetPercent": -40,
+            "DynamicRange": 1,
+            "BSLSamples": 64,
+            "LongGate": "70",
+            "PreGate": "17",
+            "PreTrigger": "40",
+            "PulsePolarity": "1",
+            "ScopeSamples": "144",
+            "ShortGate": "10",
+            "Threshold": "40",
+            "TriggerMode": "0"
+        }
+    }
+}

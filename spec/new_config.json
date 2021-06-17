@@ -1,0 +1,63 @@
+{
+    "abcd_prefix": "",
+    "gui_configs": [
+    {
+        "module": "spec",
+        "module_dir": "spec/",
+        "name": "spec",
+        "description": "Spectra calculation module",
+        "enable": true,
+        "publish_timeout": 3,
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://*:16187",
+            "ip": "127.0.0.1",
+            "topic": "status_pqrs"
+        },
+        {
+            "type": "data",
+            "address": "tcp://*:16188",
+            "ip": "127.0.0.1",
+            "topic": "data_pqrs"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://*:16189",
+            "ip": "127.0.0.1"
+        }
+        ]
+    },
+    {
+        "module": "tofcalc",
+        "module_dir": "tofcalc/",
+        "enable": true,
+        "publish_timeout": 3,
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://*:16200",
+            "ip": "127.0.0.1",
+            "topic": "status_tofcalc"
+        },
+        {
+            "type": "events",
+            "address": "tcp://*:16200",
+            "ip": "127.0.0.1",
+            "topic": "events_tofcalc"
+        },
+        {
+            "type": "data",
+            "address": "tcp://*:16201",
+            "ip": "127.0.0.1",
+            "topic": "data_tofcalc"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://*:16202",
+            "ip": "127.0.0.1"
+        }
+        ]
+    }
+    ]
+}

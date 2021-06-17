@@ -1,0 +1,58 @@
+{
+    "dgtzs": {
+        "BoardName": "RTMUnit1",
+        "ChannelEnableMask": "12",
+        "DPPAcquisitionMode": "2",
+        "EnabledBSL": "1",
+        "MaxNumAggregatesBLT": "1023",
+        "ShowGates": "0",
+        "WriteBuffer": "1",
+        "ch2": {
+            "ChargeSensitivity": "0",
+            "DCOffset14bit": "1500",
+            "LongGate": "70",
+            "PreGate": "17",
+            "PreTrigger": "40",
+            "PulsePolarity": "1",
+            "ScopeSamples": "400",
+            "ShortGate": "10",
+            "Threshold": "40",
+            "TriggerMode": "0"
+        },
+        "ch3": {
+            "ChargeSensitivity": "0",
+            "DCOffset14bit": "1500",
+            "LongGateNs": "600",
+            "PreGateNs": "40",
+            "PreTrigger": "96",
+            "PulsePolarity": "1",
+            "ScopeSamples": "400",
+            "ShortGateNs": "80",
+            "Threshold": "64",
+            "TriggerMode": "0"
+        }
+    },
+    "abcd": {
+        "registers": [
+            {"address": "0x103C",
+             "value": 100,
+             "start": 0,
+             "n": 8,
+             "notes": "Prova di registro",
+             "disaudaih": "ciao"
+            }
+        ],
+        "config": [
+            {"key": "Trigger",
+             "value": 230,
+             "notes": "boooh ciao"
+            }
+        ],
+        "channels": [
+            {"id": 0,
+             "enable": true,
+             "threshold": 321
+            }
+        ]
+    }
+}

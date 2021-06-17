@@ -1,0 +1,37 @@
+{
+    "module": "waps",
+    "channels": [
+    {
+        "id": 0,
+        "enabled": true,
+        "charge_sensitivity": 0,
+        "pretrigger": 512,
+        "pregate": 55,
+        "short_gate": 40,
+        "long_gate": 200,
+        "pulse_polarity": "negative",
+        "name": "NaI",
+        "CFD": {
+            "enabled": true,
+            "smooth_samples": 10,
+            "fraction": 0.5,
+            "delay": 30,
+            "zero_crossing_samples": 4
+        },
+        "note": "This channel is very important"
+    },
+    {
+        "id": 1,
+        "enabled": false,
+        "charge_sensitivity": 0,
+        "pretrigger": 240,
+        "pregate": 150,
+        "short_gate": 30,
+        "long_gate": 300,
+        "pulse_polarity": "negative",
+        "name": "Plastic scintillator",
+        "note": "This channel is very important"
+    },
+    {}
+    ]
+}

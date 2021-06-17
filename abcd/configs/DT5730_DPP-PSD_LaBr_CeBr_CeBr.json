@@ -1,0 +1,229 @@
+{
+    "abcd": {
+        "registers": [
+            {
+                "address": "0x8004",
+                "note": "Enable extra word on x730, x725 and x751",
+                "value": 131072
+            },
+            {
+                "address": "0x8004",
+                "note": "Set trigger out bidirectional",
+                "value": 4
+            },
+            {
+                "address": "0x8004",
+                "note": "Enable auto-flush of data on x730, x725 and x751",
+                "value": 1
+            },
+            {
+                "address": "0x113C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 30
+            },
+            {
+                "address": "0x113C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1184",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 4
+            },
+            {
+                "address": "0x113C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1184",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1180",
+                "n": 1,
+                "note": "Enable DCFD for LaBr",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x163C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 30
+            },
+            {
+                "address": "0x163C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1684",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 4
+            },
+            {
+                "address": "0x163C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1684",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1680",
+                "n": 1,
+                "note": "Enable DCFD for CeBr",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x173C",
+                "n": 8,
+                "note": "Delay for DCFD (Delta t [ns] / 2 ns)",
+                "start": 0,
+                "value": 30
+            },
+            {
+                "address": "0x173C",
+                "n": 2,
+                "note": "Fraction for DCFD (0: 25%, 1: 50%, 2: 75%, 3: 100%)",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1784",
+                "n": 4,
+                "note": "Smoothing for DCFD (2^n points)",
+                "start": 12,
+                "value": 4
+            },
+            {
+                "address": "0x173C",
+                "n": 2,
+                "note": "Select zero-crossing interpolation points (0: first two points, 1: second ones, 2: third ones, 3: fourth ones)",
+                "start": 10,
+                "value": 0
+            },
+            {
+                "address": "0x1784",
+                "n": 3,
+                "note": "Enable fine timestamp in extra word",
+                "start": 8,
+                "value": 2
+            },
+            {
+                "address": "0x1780",
+                "n": 1,
+                "note": "Enable DCFD for CeBr",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1144",
+                "note": "Set a threshold on the charge (qlong) value, for LaBr",
+                "value": 10
+            },
+            {
+                "address": "0x1244",
+                "note": "Set a threshold on the charge (qlong) value, for CeBr",
+                "value": 10
+            },
+            {
+                "address": "0x1180",
+                "n": 1,
+                "note": "Enable charge threshold, for LaBr",
+                "start": 25,
+                "value": 1
+            },
+            {
+                "address": "0x1280",
+                "n": 1,
+                "note": "Enable charge threshold, for CeBr",
+                "start": 25,
+                "value": 1
+            },
+            {}
+        ]
+    },
+    "dgtzs": {
+        "BoardName": "V1730",
+        "ChannelEnableMask": 194,
+        "DPPAcquisitionMode": 2,
+        "MaxNumAggregatesBLT": 1023,
+        "ShowGates": 1,
+        "WriteBuffer": 0,
+        "ch0": {
+            "ScopeSamples": 300
+        },
+        "ch1": {
+            "BSLSamples": 64,
+            "ChannelName": "LaBr",
+            "ChargeSensitivity": 1,
+            "DCOffset14bit": 1000,
+            "LongGate": 140,
+            "PreGate": 85,
+            "PreTrigger": 200,
+            "PulsePolarity": 1,
+            "ScopeSamples": 300,
+            "ShortGate": 30,
+            "Threshold": 10,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch6": {
+            "BSLSamples": 64,
+            "ChannelName": "CeBr",
+            "ChargeSensitivity": 1,
+            "DCOffset14bit": 1000,
+            "LongGate": 130,
+            "PreGate": 85,
+            "PreTrigger": 200,
+            "PulsePolarity": 1,
+            "ScopeSamples": 300,
+            "ShortGate": 38,
+            "Threshold": 10,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch7": {
+            "BSLSamples": 64,
+            "ChannelName": "CeBr",
+            "ChargeSensitivity": 1,
+            "DCOffset14bit": 1000,
+            "LongGate": 130,
+            "PreGate": 85,
+            "PreTrigger": 200,
+            "PulsePolarity": 1,
+            "ScopeSamples": 300,
+            "ShortGate": 38,
+            "Threshold": 10,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "zzz": false
+    }
+}

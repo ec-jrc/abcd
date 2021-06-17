@@ -1,0 +1,27 @@
+{
+    "dgtzs": {
+        "BoardName": "V1720",
+        "ChannelEnableMask": 1,
+        "DPPAcquisitionMode": 2,
+        "MaxNumAggregatesBLT": 1023,
+        "ShowGates": 1,
+        "WriteBuffer": 0,
+        "ch0": {
+            "ChannelName": "EJ301",
+            "BSLSamples": 32,
+            "ChargeSensitivity": 0,
+            "DynamicRange": 0,
+            "DCOffset12bit": 500,
+            "LongGate": 84,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 10,
+            "PreTrigger": 26,
+            "PulsePolarity": 1,
+            "ScopeSamples": 104,
+            "ShortGate": 17,
+            "Threshold": 40,
+            "TriggerHoldOffNs": 600,
+            "TriggerMode": 0
+        }
+    }
+}

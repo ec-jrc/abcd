@@ -1,0 +1,32 @@
+{
+    "module": "waph",
+    "channels": [
+    {
+        "id": 0,
+        "enabled": true,
+        "trapezoid_risetime": 1000,
+        "trapezoid_flattop": 1000,
+        "trapezoid_rescaling": 7,
+        "peaking_time": 2700,
+        "baseline_window": 0,
+        "decay_time": 90000,
+        "pulse_polarity": "positive",
+        "name": "HPGe",
+        "note": "This channel is very important"
+    },
+    {
+        "id": 1,
+        "enabled": false,
+        "trapezoid_risetime": 1000,
+        "trapezoid_flattop": 10,
+        "trapezoid_rescaling": 8,
+        "peaking_time": 1100,
+        "baseline_window": 100,
+        "decay_time": 90000,
+        "pulse_polarity": "positive",
+        "name": "HPGe",
+        "note": "This channel is very important"
+    },
+    {}
+    ]
+}

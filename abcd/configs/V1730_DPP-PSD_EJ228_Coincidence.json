@@ -1,0 +1,59 @@
+{
+    "dgtzs": {
+        "BoardName": "V1730",
+        "ChannelEnableMask": 273,
+        "DPPAcquisitionMode": 1,
+        "MaxNumAggregatesBLT": 1023,
+        "ShowGates": 0,
+        "WriteBuffer": 0,
+        "ch0": {
+            "BSLSamples": 64,
+            "ChannelName": "EJ228 1",
+            "ChargeSensitivity": 1,
+            "DCOffset14bit": 1000,
+            "LongGate": 140,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 16,
+            "PreTrigger": 80,
+            "PulsePolarity": 1,
+            "ScopeSamples": 144,
+            "ShortGate": 34,
+            "Threshold": 170,
+            "TriggerHoldOffNs": 600,
+            "TriggerMode": 0
+        },
+        "ch4": {
+            "BSLSamples": 64,
+            "ChannelName": "EJ228 2",
+            "ChargeSensitivity": 1,
+            "DCOffset14bit": 1000,
+            "LongGate": 140,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 16,
+            "PreTrigger": 80,
+            "PulsePolarity": 1,
+            "ScopeSamples": 144,
+            "ShortGate": 34,
+            "Threshold": 250,
+            "TriggerHoldOffNs": 600,
+            "TriggerMode": 0
+        },
+        "ch8": {
+            "BSLSamples": 64,
+            "ChannelName": "NaI",
+            "ChargeSensitivity": 1,
+            "DCOffset14bit": 1000,
+            "LongGate": 600,
+            "MaxNumEvPerBuff": 512,
+            "PreGate": 32,
+            "PreTrigger": 160,
+            "PulsePolarity": 1,
+            "ScopeSamples": 704,
+            "ShortGate": 34,
+            "Threshold": 30,
+            "TriggerHoldOffNs": 600,
+            "TriggerMode": 0
+        }
+    }
+    }
+}

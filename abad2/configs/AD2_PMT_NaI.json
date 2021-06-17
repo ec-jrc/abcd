@@ -1,0 +1,31 @@
+{
+    "sample_rate": 100000000,
+    "buffer_size": 512,
+    "acquisition_mode": "single",
+    "trigger" : {
+        "source": "detector_analog_in",
+        "position": 1e-6,
+        "hold_off": 4e-6,
+        "channel": 0,
+        "level": -0.010,
+        "type": "transition",
+        "condition": "falling_negative",
+        "zzz": null
+    },
+    "channels": [
+        {"id": 0,
+         "enable": true,
+         "range": 5,
+         "offset": -2.0,
+         "zzz": null
+        },
+        {"id": 1,
+         "enable": false,
+         "range": 5,
+         "offset": -2.0,
+         "zzz": null
+        },
+        null
+    ],
+    "zzz": null
+}

@@ -1,0 +1,68 @@
+digraph D {
+    node [fontname = "Linux Biolinum"];
+    edge [fontname = "Linux Biolinum"];
+
+    start [label = "Start", peripheries = 2];
+    create_context [label = "Create ZeroMQ\ncontext"];
+    create_sockets [label = "Create\nsockets"];
+    bind_sockets [label = "Bind\nsockets"];
+    receive_commands [label = "Receive\ncommands"];
+    publish_status [label = "Publish\nstatus"];
+    open_file [label = "Open\nfile"];
+    empty_queue [label = "Empty\nqueue"];
+    write_data [label = "Write\nto file"];
+    flush_file [label = "Flush\nfile"];
+    saving_publish_status [label = "Publish\nstatus"];
+    saving_receive_commands [label = "Receive\ncommands"];
+    close_file [label = "Close\nfile"];
+    stop_close_file [label = "Close\nfile"];
+    close_sockets [label = "Close\nsockets"];
+    destroy_context [label = "Destroy\ncontext"];
+    stop [label = "Stop", peripheries = 2];
+
+    communication_error [label = "Communication\nerror", color = "red"];
+    io_error [label = "I/O\nerror", color = "red"];
+
+    {rank = "source"; start}
+    {rank = "same"; bind_sockets communication_error}
+    {rank = "same"; receive_commands empty_queue}
+    {rank = "same"; io_error open_file close_file}
+    {rank = "same"; flush_file saving_publish_status saving_receive_commands}
+
+    start -> create_context;
+    create_context -> create_sockets [label = "ZeroMQ\nOK"];
+    create_sockets -> bind_sockets [label = "ZeroMQ\nOK"];
+    bind_sockets -> publish_status [label = "ZeroMQ\nOK"];
+
+    receive_commands -> empty_queue;
+    empty_queue -> receive_commands;
+    receive_commands -> publish_status [label = "Timeout"];
+    publish_status -> empty_queue;
+
+    receive_commands -> open_file [label = "Start", color = "blue"]
+    open_file -> write_data;
+    write_data -> write_data [tailport = "w"];
+    write_data -> flush_file [label = "Timeout"];
+    flush_file -> saving_publish_status;
+    //saving_publish_status -> write_data;
+    //write_data -> saving_publish_status [label = "Timeout", tailport = "ne", headport = "nw"];
+    saving_publish_status -> saving_receive_commands;
+    saving_receive_commands -> write_data;
+    saving_receive_commands -> close_file [label = "Stop", color = "blue"];
+    close_file -> receive_commands;
+
+    create_context -> communication_error [label = "ZeroMQ\nerror", color = "red"];
+    create_sockets -> communication_error [label = "ZeroMQ\nerror", color = "red"];
+    bind_sockets -> communication_error [label = "ZeroMQ\nerror", color = "red"];
+    communication_error -> close_sockets [headport = "ne"];
+
+    io_error -> close_file;
+
+    open_file -> io_error [label = "I/O\nerror", color = "red"];
+    write_data -> io_error [label = "I/O\nerror", color = "red"];
+
+    receive_commands -> stop_close_file [label = "Quit", color = "blue"];
+    stop_close_file -> close_sockets;
+    close_sockets -> destroy_context;
+    destroy_context -> stop;
+}

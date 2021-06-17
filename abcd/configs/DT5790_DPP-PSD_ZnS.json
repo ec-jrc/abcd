@@ -1,0 +1,23 @@
+{
+    "dgtzs": {
+        "BoardName": "DT5790",
+        "ChannelEnableMask": 4,
+        "DPPAcquisitionMode": 2,
+        "EnabledBSL": 1,
+        "MaxNumAggregatesBLT": 1023,
+        "ShowGates": 1,
+        "WriteBuffer": 0,
+        "ch4": {
+            "ChargeSensitivity": 0,
+            "DCOffsetPercent": -50,
+            "PreGateNs": 40,
+            "PreTrigger": 96,
+            "PulsePolarity": 1,
+            "ScopeSamples": 256,
+            "ShortGateNs": 68,
+            "LongGateNs": 280,
+            "Threshold": 64,
+            "TriggerMode": 0
+        }
+    }
+}

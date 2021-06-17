@@ -1,0 +1,24 @@
+{
+    "model": 6533,
+    "connection_type": "USB",
+    "link_number": 0,
+    "CONET_node": 0,
+    "VME_address": "0x590000",
+    "channels": [{"id": 0, 
+                  "on": null, 
+                  "voltage": 1150, 
+                  "max_current": 3000, 
+                  "max_voltage": 1800, 
+                  "ramp_up": 100, 
+                  "ramp_down": 100
+                 },
+                 {"id": 1, 
+                  "on": null, 
+                  "voltage": 1200, 
+                  "max_current": 3000, 
+                  "max_voltage": 1800, 
+                  "ramp_up": 100, 
+                  "ramp_down": 100
+                 }
+                ]
+}

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <!-- The jquery-ui.css file contains both jquery-ui.structure.css and jquery-ui.theme.css. -->
+        <link rel="stylesheet" href="css/jquery-ui.structure.min.css">
+        <link rel="stylesheet" href="css/jquery-ui.theme.min.css">
+        <!--<link rel="stylesheet" href="/firasans-bold,firasans-bolditalic,firasans-book,firasans-bookitalic,firasans-eight,firasans-eightitalic,firasans-extrabold,firasans-extrabolditalic,firasans-extralight,firasans-extralightitalic,firasans-four,firasans-fouritalic,firasans-hair,firasans-hairitalic,firasans-heavy,firasans-heavyitalic,firasans-italic,firasans-light,firasans-lightitalic,firasans-medium,firasans-mediumitalic,firasans-regular,firasans-semibold,firasans-semibolditalic,firasans-thin,firasans-thinitalic,firasans-two,firasans-twoitalic,firasans-ultra,firasans-ultraitalic,firasans-ultralight,firasans-ultralightitalic,fontawesome-webfont/fonts.css">-->
+        <!--<link rel="stylesheet" href="/firasans-bold,firasans-bolditalic,firasans-thin,firasans-thinitalic,firasans-italic,firasans-regular,firamono-regular,firamono-bold,fontawesome-webfont/fonts.css">-->
+        <link rel="stylesheet" href="Fira/fira.css">
+        <link rel="stylesheet" href="font-awesome/css/font-awesome.min.css">
+        <link rel="stylesheet" href="css/main.css">
+    </head>
+    <body>
+        <h1>Acquisition and Broadcast of Collected Data</h1>
+        <div id="controls">
+            <ul>
+                <li><a title="Data acquisition module" href="#controls-abcd">ABCD</a></li>
+                <li><a title="Graphical user interface module" href="#controls-efg">EFG</a></li>
+                <li><a title="Higvoltages management module" href="#controls-hijk">HIJK</a></li>
+                <li><a title="Data logging module" href="#controls-lmno">LMNO</a></li>
+                <li><a title="Data display module" href="#controls-pqrs">PQRS</a></li>
+                <li><a title="Data acquisition module settings" href="#config_editor">ABCD Settings</a></li>
+            </ul>
+            <div id="controls-abcd">
+                <div id="accordion_abcd">
+                    <h3>Commands</h3>
+                    <div>
+                        <div>
+                            <button id="abcd_start">Start</button>
+                            <button id="abcd_stop">Stop</button>
+                        </div>
+                    </div>
+                    <h3>Status</h3>
+                    <div>
+                        <div id="abcd_general_status">
+                        </div>
+                    </div>
+                    <h3>Events log<span id="errorlog_abcd_n"></span></h3>
+                    <div>
+                        <ol id="errorlog_abcd">
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            <div id="controls-efg">
+                <div id="accordion_efg">
+                    <h3>Settings</h3>
+                    <div>
+                        <label>
+                            Plot refresh time [s]: <input type="number" id="chart_refresh_time" value="3">
+                        </label><br>
+                        <label>
+                            Expiration time [s]: <input type="number" id="expiration_time" value="6">
+                        </label>
+                    </div>
+                    <h3>Status</h3>
+                    <div>
+                        <div id="efg_general_status">
+                        </div>
+                    </div>
+                    <h3>Events log<span id="errorlog_efg_n"></span></h3>
+                    <div>
+                        <ol id="errorlog_efg">
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            <div id="controls-hijk">
+                <div id="accordion_hijk">
+                    <h3>Commands</h3>
+                    <div>
+                        <div id="commands_hijk">
+                        </div>
+                        <div>
+                            <button id="hijk_reconfigure">Send configuration</button>
+                        </div>
+                    </div>
+                    <h3>Status</h3>
+                    <div>
+                        <div id="hijk_general_status">
+                        </div>
+                    </div>
+                    <h3>Events log<span id="errorlog_hijk_n"></span></h3>
+                    <div>
+                        <ol id="errorlog_hijk">
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            <div id="controls-lmno">
+                <div id="accordion_lmno">
+                    <h3>Commands</h3>
+                    <div>
+                        <div>
+                            <label>File name: <input type="text" id="lmno_file"></input></label><br>
+                            <label><input type="checkbox" id="events_file_enable" checked> Enable events file</label><br>
+                            <label><input type="checkbox" id="waveforms_file_enable"> Enable waveforms file</label><br>
+                            <label><input type="checkbox" id="raw_file_enable"> Enable raw file</label><br>
+                            <button id="lmno_start">Start</button>
+                            <button id="lmno_stop">Stop</button>
+                        </div>
+                    </div>
+                    <h3>Status</h3>
+                    <div>
+                        <div id="lmno_general_status">
+                        </div>
+                    </div>
+                    <h3>Events log<span id="errorlog_lmno_n"></span></h3>
+                    <div>
+                        <ol id="errorlog_lmno">
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            <div id="controls-pqrs">
+                <div id="accordion_pqrs">
+                    <h3>Commands</h3>
+                    <div>
+                        <div id="commands_pqrs">
+                        </div>
+                        <div>
+                            <button id="pqrs_reconfigure">Send configuration</button>
+                            <button id="pqrs_reset_channel">Reset channel</button>
+                            <button id="pqrs_reset_all">Reset all</button>
+                        </div>
+                    </div>
+                    <h3>Status</h3>
+                    <div>
+                        <div id="pqrs_general_status">
+                        </div>
+                    </div>
+                    <h3>Events log<span id="errorlog_pqrs_n"></span></h3>
+                    <div>
+                        <ol id="errorlog_pqrs">
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            <div id="config_editor">
+                <h3>Commands</h3>
+                <div>
+                    <button id="abcd_reconfigure">Send configuration</button>
+                    <button id="abcd_get_configuration">Get configuration</button>
+                </div>
+                <h3>Configuration</h3>
+                <div>
+                    <pre id="online_editor" class=".ace_editor"></pre>
+                </div>
+            </div>
+        </div>
+        <div class="display" id="connections_displays">
+            <ul>
+                <li>
+                    <div><h3>ABCD</h3> - Data acquisition module</div>
+                    <div id="abcd_connection_status" class="unknown_status">No connection</div>
+                </li>
+                <li>
+                    <div><h3>EFG</h3> - Graphical user interface module</div>
+                    <div id="efg_connection_status" class="unknown_status">No connection</div>
+                </li>
+                <li>
+                    <div><h3>HIJK</h3> - Highvoltages management module</div>
+                    <div id="hijk_connection_status" class="unknown_status">No connection</div>
+                </li>
+                <li>
+                    <div><h3>LMNO</h3> - Data logging module</div>
+                    <div id="lmno_connection_status" class="unknown_status">No connection</div>
+                </li>
+                <li>
+                    <div><h3>PQRS</h3> - Data display module</div>
+                    <div id="pqrs_connection_status" class="unknown_status">No connection</div>
+                </li>
+            </ul>
+        </div>
+        <div class="display" id="display_plots">
+            <fieldset>
+                <legend>Qlong display</legend>
+                <p>
+                    <label>Select channel:
+                        <select name="channel" id="channel_select"></select>
+                    </label>
+                    <label>
+                        Spectrum y-scale:
+                            <select name="spectrum_yscale" id="spectrum_yscale">
+                                <option value="linear" selected="selected">Linear</option>
+                                <option value="logarithmic">Logarithmic</option>
+                            </select>
+                    </label>
+                </p>
+                <canvas id="qlong_chart" width="400" height="200"></canvas>
+            </fieldset>
+
+            <fieldset>
+                <legend>Waveforms display</legend>
+                <p>
+                    <label for="waveforms_channel">Select channel:</label>
+                    <select name="waveforms_channel" id="waveforms_channel_select"></select>
+                </p>
+                <canvas id="waveform_chart" width="400" height="200"></canvas>
+            </fieldset>
+        </div>
+
+        <!-- Having the scripts on the bottom tricks the user in thinking that the page loads faster -->
+        <script src="js/lodash.min.js"></script>
+        <script src="js/jquery.min.js"></script>
+        <script src="js/jquery-ui.min.js"></script>
+        <!--<script src="js/socket.io.min.js"></script>-->
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="js/moment-with-locales.min.js"></script>
+        <script src="js/humanize-duration.js"></script>
+        <!--<script src="js/plotly-latest.min.js"></script>-->
+        <script src="js/Chart.min.js"></script>
+        <script src="js/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="js/commands.js"></script>
+        <script src="js/utilities.js"></script>
+        <script src="js/charts.js"></script>
+        <script src="js/events.js"></script>
+        <script src="js/statuses.js"></script>
+        <script src="js/main.js"></script>
+    </body>
+</html>

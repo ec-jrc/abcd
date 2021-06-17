@@ -1,0 +1,81 @@
+digraph D {
+    node [fontname = "Linux Biolinum"];
+    edge [fontname = "Linux Biolinum"];
+
+    start [label = "Start", peripheries = 2];
+    create_context [label = "Create ZeroMQ\ncontext"];
+    create_sockets [label = "Create\nsockets"];
+    bind_sockets [label = "Bind\nsockets"];
+
+    read_config [label = "Read\nconfig"];
+    initial_clear_memory [label = "Initial\nclear\nmemory"];
+    apply_config [label = "Apply\nconfig"];
+
+    accumulate_start [label = "Accumulate\nstart"];
+
+    accumulate_publish_status [label = "Accumulate\npublish\nstatus"];
+    accumulate_receive_commands [label = "Accumulate\nreceive\ncommands"];
+    accumulate_read_socket [label = "Accumulate\nread\nsocket"];
+
+    normal_fit_peak         [label = "Normal\nfit\npeak"];
+    normal_publish_status   [label = "Normal\npublish\nstatus"];
+    normal_receive_commands [label = "Normal\nreceive\ncommands"];
+    normal_read_socket      [label = "Normal\nread\nsocket"];
+
+    idle_publish_status   [label = "Idle\npublish\nstatus"];
+    idle_receive_commands [label = "Idle\nreceive\ncommands"];
+    idle_read_socket      [label = "Idle\nread\nsocket"];
+
+    close_sockets [label = "Close\nsockets"];
+    destroy_context [label = "Destroy\ncontext"];
+    stop [label = "Stop", peripheries = 2];
+
+    communication_error [label = "Communication\nerror", color = "red"];
+
+    {rank = "source"; start}
+    {rank = "same"; bind_sockets communication_error}
+
+    start -> create_context;
+    create_context -> create_sockets [label = "ZeroMQ\nOK"];
+    create_sockets -> bind_sockets [label = "ZeroMQ\nOK"];
+    bind_sockets -> read_config [label = "ZeroMQ\nOK"];
+
+    read_config -> initial_clear_memory;
+    initial_clear_memory -> apply_config;
+    apply_config -> accumulate_start;
+
+    accumulate_start -> accumulate_publish_status;
+    accumulate_publish_status -> accumulate_receive_commands;
+    accumulate_receive_commands -> accumulate_read_socket;
+    accumulate_read_socket -> accumulate_read_socket;
+    accumulate_read_socket -> accumulate_publish_status [label = "Timeout"];
+    accumulate_read_socket -> normal_fit_peak [label = "Timeout"];
+
+    accumulate_receive_commands -> idle_publish_status [label = "Disable", color = "blue"];
+
+    normal_fit_peak -> normal_publish_status;
+    normal_publish_status -> normal_receive_commands;
+    normal_receive_commands -> normal_read_socket;
+    normal_read_socket -> normal_read_socket;
+    normal_read_socket -> normal_fit_peak [label = "Timeout"];
+
+    normal_receive_commands -> idle_publish_status [label = "Disable", color = "blue"];
+
+    idle_publish_status -> idle_receive_commands;
+    idle_receive_commands -> idle_read_socket;
+    idle_read_socket -> idle_read_socket;
+    idle_read_socket -> idle_publish_status [label = "Timeout"];
+
+    idle_receive_commands -> accumulate_start [label = "Enable", color = "blue"];
+
+    create_context -> communication_error [label = "ZeroMQ\nerror", color = "red"];
+    create_sockets -> communication_error [label = "ZeroMQ\nerror", color = "red"];
+    bind_sockets -> communication_error [label = "ZeroMQ\nerror", color = "red"];
+    communication_error -> close_sockets [headport = "ne"];
+
+    accumulate_receive_commands -> close_sockets [label = "Quit", color = "blue"]
+    normal_receive_commands -> close_sockets [label = "Quit", color = "blue"]
+    idle_receive_commands -> close_sockets [label = "Quit", color = "blue"]
+    close_sockets -> destroy_context;
+    destroy_context -> stop;
+}

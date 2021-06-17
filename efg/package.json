@@ -1,0 +1,30 @@
+{
+  "name": "EFG",
+  "description": "Element For the GUI",
+  "author": "Cristiano Fontana <fontana@pd.infn.it>",
+  "version": "0.1.0",
+  "dependencies": {
+    "ace-builds": "1.x.x",
+    "chart.js": "2.7.x",
+    "d3": "^4.13.0",
+    "express": "4.x.x",
+    "font-awesome": "4.7.x",
+    "humanize-duration": "3.x.x",
+    "jquery": "3.x.x",
+    "lodash": "4.17.x",
+    "moment": "2.x.x",
+    "mozilla-fira-pack": "0.0.x",
+    "serve-favicon": "2.x.x",
+    "socket.io": "1.x.x",
+    "socket.io-client": "1.x.x",
+    "zeromq": "4.x.x"
+  },
+  "devDependencies": {
+    "less": "2.x.x"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/cristiano.fontana/abcd.git"
+  }
+}

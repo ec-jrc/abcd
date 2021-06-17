@@ -1,0 +1,33 @@
+digraph D {
+    node [fontname = "Linux Biolinum"];
+    edge [fontname = "Linux Biolinum"];
+
+    start [label = "Start", peripheries = 2];
+    configure_digitizer [label = "Configure\ndigitizer"];
+    idle [label = "Idle"];
+    read_events [label = "Read\nevents"];
+    publish_events [label = "Publish\nevents"];
+    stop [label = "Stop", peripheries = 2];
+
+    {rank = "source"; start}
+    //{rank = "same"; bind_sockets communication_error}
+    //{rank = "same"; configure_digitizer configure_error}
+    //{rank = "same"; idle publish_status}
+    //{rank = "same"; allocate_memory clear_memory destroy_digitizer}
+    //{rank = "same"; start_acquisition stop_acquisition stop_publish_events close_sockets}
+    //{rank = "same"; acquisition_idle acquisition_error}
+    {rank = "same"; idle read_events publish_events}
+    {rank = "sink"; stop}
+
+    start -> configure_digitizer;
+    configure_digitizer -> idle [tailport = "sw", headport = "nw"];
+    idle -> configure_digitizer [label = "Reconfigure", color = "blue", tailport = "ne", headport = "se"];
+    idle -> idle [tailport = "w"];
+    idle -> read_events [label = "Start", color = "blue"];
+    read_events -> publish_events [label = "Buffer\nfull", tailport = "s", headport = "s"];
+    read_events -> read_events [tailport = "ne", headport = "nw"];
+    publish_events -> read_events;
+    read_events -> idle [label = "Stop", color = "blue"];
+
+    idle -> stop [label = "Quit", color = "blue"];
+}

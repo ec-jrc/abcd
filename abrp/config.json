@@ -1,0 +1,29 @@
+{
+    "scope_samples": 1024,
+    "decimation": 1,
+    "poll_timeout": 10,
+    "rearm_timeout": 2,
+    "channels": [
+        {
+            "id": 0,
+            "gain": "high",
+            "enable": true
+        },
+        {
+            "id": 1,
+            "gain": "high", 
+            "enable": false
+        },
+        {}
+    ],
+    "trigger": {
+        "mode": "normal",
+        "source": "analog",
+        "channel": 0,
+        "slope": "falling",
+        "level": -0.100,
+        "pretrigger": 128,
+        "zzz": null
+    },
+    "zzz": null
+}

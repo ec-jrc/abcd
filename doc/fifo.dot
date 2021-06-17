@@ -1,0 +1,39 @@
+digraph D {
+    node [fontname = "Linux Biolinum"];
+    edge [fontname = "Linux Biolinum"];
+
+    start [label = "Start", peripheries = 2];
+    create_context [label = "Create ZeroMQ\ncontext"];
+    create_sockets [label = "Create\nsockets"];
+    bind_sockets [label = "Bind\nsockets"];
+    publish_status [label = "Publish\nstatus"];
+    receive_commands [label = "Receive\ncommands"];
+    read_socket [label = "Read\nsocket"];
+    close_sockets [label = "Close\nsockets"];
+    destroy_context [label = "Destroy\ncontext"];
+    stop [label = "Stop", peripheries = 2];
+
+    communication_error [label = "Communication\nerror", color = "red"];
+
+    {rank = "source"; start}
+    {rank = "same"; bind_sockets communication_error}
+
+    start -> create_context;
+    create_context -> create_sockets [label = "ZeroMQ\nOK"];
+    create_sockets -> bind_sockets [label = "ZeroMQ\nOK"];
+    bind_sockets -> publish_status [label = "ZeroMQ\nOK"];
+
+    publish_status -> receive_commands;
+    receive_commands -> read_socket;
+    read_socket -> read_socket;
+    read_socket -> publish_status [label = "Timeout"];
+
+    create_context -> communication_error [label = "ZeroMQ\nerror", color = "red"];
+    create_sockets -> communication_error [label = "ZeroMQ\nerror", color = "red"];
+    bind_sockets -> communication_error [label = "ZeroMQ\nerror", color = "red"];
+    communication_error -> close_sockets [headport = "ne"];
+
+    receive_commands -> close_sockets [label = "Quit", color = "blue"]
+    close_sockets -> destroy_context;
+    destroy_context -> stop;
+}
