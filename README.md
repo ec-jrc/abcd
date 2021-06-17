@@ -126,7 +126,7 @@ With the default setting the interface can be accessed with the link
 
 There are also a few utilities written in python that give the possibility to interact from the command line.
 For instance [`send_command.py`](./bin/send_command.py) can be used to send a command to a process that supports commands.
-[`stop_ABCD.sh`](./bin/stop_ABCD.sh) is a script that can stop the execution of a running instance of ABCD.
+[`stop_ABCD.sh`](./startup/stop_ABCD.sh) is a script that can stop the execution of a running instance of ABCD.
 
 ### DAQ events logging
 In the default startup script some events loggers are activated.
