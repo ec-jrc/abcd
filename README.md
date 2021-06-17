@@ -76,7 +76,7 @@ The Red Pitaya STEMlab has the libraries already installed, refer to the [docume
 ### Installation
 You can download directly the repository from GitHub using git:
 
-    git clone https://gitlab.com/cristiano.fontana/abcd.git
+    git clone https://github.com/ec-jrc/abcd.git
 
 A bash [installation script](./install_dependencies.sh) is available:
 
