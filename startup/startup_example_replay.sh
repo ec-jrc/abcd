@@ -7,6 +7,15 @@ FOLDER="$HOME""/abcd/"
 # Folder in which data should be saved
 DATA_FOLDER="$FOLDER""/data/"
 
+FILE_NAME="$1"
+
+if [[ "x${FILE_NAME}x" == "xx" ]]
+then
+    FILE_NAME="${FOLDER}/data/example_data_DT5730_Ch1_LaBr3_Ch6_CeBr3_Ch7_CeBr3_coincidence_raw.adr.bz2"
+fi
+
+echo "Replaying data file: ${FILE_NAME}"
+
 TODAY="`date "+%Y%m%d"`"
 echo 'Today is '"$TODAY"
 
