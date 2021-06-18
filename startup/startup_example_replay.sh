@@ -1,4 +1,4 @@
-#! /bin/bash -x
+#! /bin/bash
 # 
 # Example of startup script
 
