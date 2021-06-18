@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/bash -x
 # 
 # Example of startup script
 
@@ -55,7 +55,7 @@ echo "Waiting for node.js to start"
 sleep 2
 
 echo "Creating replayer window"
-tmux new-window -d -c "$FOLDER" -P -t ABCD -n abcd "python3 ./replay/replay_raw.py -c -T 200 ${FOLDER}/data/example_data_DT5730_Ch1_LaBr3_Ch6_CeBr3_Ch7_CeBr3_coincidence_raw.adr.bz2"
+tmux new-window -d -c "$FOLDER" -P -t ABCD -n abcd "python3 ./replay/replay_raw.py -c -T 200 ${FILE_NAME}"
 
 echo "Creating DaSa window, folder: ""$DATA_FOLDER"
 tmux new-window -d -c "$DATA_FOLDER" -P -t ABCD -n dasa "$FOLDER"'/dasa/dasa'
