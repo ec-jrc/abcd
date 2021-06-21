@@ -79,11 +79,11 @@ int main(int argc, char *argv[])
 
         // Here be where the data is actually read
         while (!feof(in_file) && !ferror(in_file)) {
-            // First we define a buffer as big as the size of a single event
-            char input_buffer[sizeof(struct event_PSD)];
+            // First we create a single event that will hold what is read from the file
+            struct event_PSD event;
 
             // The next event is then read from the input file
-            const size_t result = fread(input_buffer, sizeof(struct event_PSD), 1, in_file);
+            const size_t result = fread(&event, sizeof(struct event_PSD), 1, in_file);
 
             if (verbosity > 1) {
                 fprintf(stderr, "[%zu] Read result: %zu\n", counter, result);
@@ -91,9 +91,6 @@ int main(int argc, char *argv[])
 
             // If exactly one event was read then we can expect that the reading is good
             if (result == 1) {
-                // Converting the buffer to the struct that describes the event
-                const struct event_PSD event = *((struct event_PSD*)(input_buffer));
-
                 // Pulse example
                 // =============
                 //
