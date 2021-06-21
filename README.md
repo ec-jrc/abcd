@@ -86,10 +86,13 @@ The script tries to identify the Linux distribution, if it detects Fedora, Ubunt
 If necessary, it will download and execute the installer for Node.js 10, from the Node.js official web page.
 
 ### Compilation
+The default compiler is `clang`. It is possible to change the compiler to `gcc` modifying the file [`common_definitions.mk`](./common_definitions.mk).
 The global Makefile compiles the whole system just by running in the global directory:
 
     make
 
+The hardware interfacing modules will not be compiled, as they depend on specific libraries that might not be installed.
+The user should compile the suitable modules for the hardware (_e.g._ `abcd`, `abad2`, `abps5000a`, ` abrp`, or ` hivo`).
 The Graphical User Interface (GUI) modules must be installed independently:
 
     cd efg/
