@@ -23,8 +23,10 @@ import struct
 
 import tkinter
 import numpy as np
+import numpy.fft as fft
 import matplotlib.pyplot as plt
 
+from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 # Compatibility with old API for Debian
@@ -35,7 +37,6 @@ except:
 
 # Implement the default Matplotlib key bindings.
 from matplotlib.backend_bases import key_press_handler
-from matplotlib.figure import Figure
 
 parser = argparse.ArgumentParser(description='Plots waveforms from ABCD waveforms data files.\n' +
     "Pressing the left and right keys shows the previous or next waveform.\n" +
@@ -53,6 +54,14 @@ parser.add_argument('-n',
                     type = int,
                     default = None,
                     help = 'Plots the Nth waveform')
+parser.add_argument('--clock_step',
+                    type = float,
+                    default = 2,
+                    help = 'Step of the ADC sampling of the waveform in ns (default: 2 ns)')
+parser.add_argument('--baseline_samples',
+                    type = int,
+                    default = 700,
+                    help = 'Step of the ADC sampling of the waveform in ns (default: 2 ns)')
 
 args = parser.parse_args()
 
@@ -70,6 +79,8 @@ else:
 input_file = this_open(args.file_name, "rb")
 
 selected_channel = args.channel
+show_transform = False
+previous_xlims = None
 waveforms_buffer = list()
 waveform_index = -1
 if args.waveform_number is not None:
@@ -119,6 +130,12 @@ def next_waveform():
             print("ERROR: Unable to read the new waveform: {}".format(e))
             return None
 
+def curr_waveform():
+    global waveforms_buffer
+    global waveform_index
+
+    return waveforms_buffer[waveform_index]
+
 def prev_waveform():
     global waveforms_buffer
     global waveform_index
@@ -134,10 +151,28 @@ def prev_waveform():
         print("Already at the first waveform")
         return None
 
-def plot_waveform(waveform, canvas, ax_wave, ax_gate = None):
-    global waveforms_buffer
+def plot_update(waveform):
+    global show_transform
+
+    if not show_transform:
+        plot_waveform(waveform)
+    else:
+        plot_transform(waveform)
+
+def plot_waveform(waveform):
     global waveform_index
     global args
+    global previous_xlims
+    global canvas
+    global ax_wave
+    global ax_gate
+
+    N = len(waveform["samples"])
+
+    if previous_xlims == None:
+        previous_xlims = (0, N)
+    else:
+        previous_xlims = ax_wave.get_xlim()
 
     try:
         print("Plotting waveform of index: {:d}".format(waveform_index))
@@ -148,30 +183,92 @@ def plot_waveform(waveform, canvas, ax_wave, ax_gate = None):
                      waveform["timestamp"],
                      args.file_name))
         ax_wave.clear()
-        ax_wave.step(range(len(waveform["samples"])), 
+        ax_wave.step(range(N), 
                      waveform["samples"],
                      color = "C0",
                      where = 'post')
-        ax_wave.set_xlim(0, len(waveform["samples"]))
+        ax_wave.set_xlim(previous_xlims[0], previous_xlims[1])
+        ax_wave.set_yscale('linear')
         ax_wave.grid()
 
-        if ax_gate is not None:
-            ax_gate.clear()
+        ax_gate.clear()
 
-            for index, gate in enumerate(waveform["gates"]):
-                print("Plotting gate of index: {:d}.{:d}".format(waveform_index, index))
-                ax_gate.step(range(len(gate)),
-                             gate,
-                             label = "Gate {:d}".format(index),
-                             color = "C{:d}".format((index + 1) % 10),
-                             where = 'post')
-            ax_gate.set_xlim(0, len(waveform["samples"]))
-            ax_gate.grid()
-            ax_gate.legend()
+        for index, gate in enumerate(waveform["gates"]):
+            print("Plotting gate of index: {:d}.{:d}".format(waveform_index, index))
+            ax_gate.step(range(N),
+                         gate,
+                         label = "Gate {:d}".format(index),
+                         color = "C{:d}".format((index + 1) % 10),
+                         where = 'post')
+        ax_gate.set_xlim(previous_xlims[0], previous_xlims[1])
+        ax_gate.grid()
+        ax_gate.legend()
 
         canvas.draw()
     except Exception as e:
         print("ERROR: Unable to plot the new waveform: {}".format(e))
+
+def plot_transform(waveform):
+    global waveform_index
+    global args
+    global previous_xlims
+    global canvas
+    global ax_wave
+    global ax_gate
+
+    average = np.average(waveform["samples"][0:args.baseline_samples])
+
+    N = len(waveform["samples"])
+    #transform = fft.rfft(waveform["samples"] - average)
+    transform = fft.rfft(15600 - np.asarray(waveform["samples"]))
+
+    magnitudes = np.abs(transform)
+    phases = np.angle(transform)
+
+    M = len(magnitudes)
+    T = N * args.clock_step * 1e-9
+
+    frequencies = fft.rfftfreq(N, d = args.clock_step * 1e-9) * 1e-6
+
+    magnitudes[0] = 0
+
+    if previous_xlims == None:
+        previous_xlims = (0, max(frequencies))
+    else:
+        previous_xlims = ax_wave.get_xlim()
+
+    try:
+        print("Plotting transform of index: {:d}".format(waveform_index))
+
+        fig.suptitle('Fourier transform, index: {:d}, ch: {:d}, timestamp: {:d},\nfile: {}'.format(
+                     waveform_index,
+                     waveform["channel"],
+                     waveform["timestamp"],
+                     args.file_name))
+
+        ax_wave.clear()
+        ax_wave.step(frequencies,
+                     magnitudes,
+                     color = "C0",
+                     where = 'post')
+        ax_wave.set_xlim(previous_xlims[0], previous_xlims[1])
+        ax_wave.set_yscale('log')
+        ax_wave.grid()
+        ax_wave.set_xlabel("Frequency [MHz]")
+
+        ax_gate.clear()
+
+        ax_gate.step(frequencies,
+                     phases,
+                     color = "C1",
+                     where = 'post')
+        ax_gate.set_xlim(previous_xlims[0], previous_xlims[1])
+        ax_gate.grid()
+        ax_gate.set_xlabel("Frequency [MHz]")
+
+        canvas.draw()
+    except Exception as e:
+        print("ERROR: Unable to plot the new transform: {}".format(e))
         
 def export_waveform(waveform):
     global args
@@ -207,24 +304,6 @@ def export_waveform(waveform):
 
     except Exception as e:
         print("ERROR: Unable to export the new waveform: {}".format(e))
-                
-
-root = tkinter.Tk()
-
-root.wm_title("ABCD waveforms display")
-
-fig = Figure(figsize=(8, 4.5))#, dpi=120)
-ax_wave = fig.add_subplot(211)
-ax_gate = fig.add_subplot(212, sharex = ax_wave)
-
-canvas = FigureCanvasTkAgg(fig, master = root)
-canvas.draw()
-canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
-
-# This is the standard Matplotlib toolbar
-toolbar = NavigationToolbar2Tk(canvas, root)
-toolbar.update()
-canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
 
 def quit_gui():
     print("Quitting")
@@ -239,56 +318,93 @@ def quit_gui():
     root.destroy()
 
 def on_key_press(event):
+    global show_transform
+    global previous_xlims
+
     print("Pressed key: '{}'".format(event.key))
-    key_press_handler(event, canvas, toolbar)
+    # Disabling the default key_press events so it does not interfere with the
+    # waveforms navigation
+    #key_press_handler(event, canvas, toolbar)
 
-    if event.key == 'right' or event.key == 'down':
-        print("Loading next waveform")
-        current_waveform = next_waveform()
-        plot_waveform(current_waveform, canvas, ax_wave, ax_gate)
+    if event.key == 'h':
+        print("Resetting view")
+        previous_xlims = None
+        plot_update(curr_waveform())
 
-    elif event.key == 'left' or event.key == 'up':
-        print("Loading previous waveform")
-        current_waveform = prev_waveform()
-        plot_waveform(current_waveform, canvas, ax_wave, ax_gate)
+    elif event.key == 'f':
+        # Toggle transform display
+        if show_transform:
+            show_transform = False
+        else:
+            show_transform = True
 
-    if event.key == 'down':
-        print("Loading next waveform, jump ahead of 10 waveforms")
-        for i in range(10):
-            current_waveform = next_waveform()
-        plot_waveform(current_waveform, canvas, ax_wave, ax_gate)
-
-    elif event.key == 'up':
-        print("Loading previous waveform, jump ahead of 10 waveforms")
-        for i in range(10):
-            current_waveform = prev_waveform()
-        plot_waveform(current_waveform, canvas, ax_wave, ax_gate)
-
-    if event.key == 'pagedown':
-        print("Loading next waveform, jump ahead of 100 waveforms")
-        for i in range(100):
-            current_waveform = next_waveform()
-        plot_waveform(current_waveform, canvas, ax_wave, ax_gate)
-
-    elif event.key == 'pageup':
-        print("Loading previous waveform, jump ahead of 100 waveforms")
-        for i in range(100):
-            current_waveform = next_waveform()
-        plot_waveform(current_waveform, canvas, ax_wave, ax_gate)
+        previous_xlims = None
+        print("Calculating Fourier transform")
+        plot_update(curr_waveform())
 
     elif event.key == 'e':
         print("Exporting waveform")
-        export_waveform(waveforms_buffer[waveform_index])
+        export_waveform(curr_waveform())
+
+    elif event.key == 'right':
+        print("Loading next waveform")
+        plot_update(next_waveform())
+
+    elif event.key == 'left':
+        print("Loading previous waveform")
+        plot_update(prev_waveform())
+
+    elif event.key == 'down':
+        print("Loading next waveform, jump ahead of 10 waveforms")
+        for i in range(10 - 1):
+            next_waveform()
+        plot_update(next_waveform())
+
+    elif event.key == 'up':
+        print("Loading previous waveform, jump after of 10 waveforms")
+        for i in range(10 - 1):
+            prev_waveform()
+        plot_update(prev_waveform())
+
+    elif event.key == 'pagedown':
+        print("Loading next waveform, jump ahead of 100 waveforms")
+        for i in range(100 - 1):
+            next_waveform()
+        plot_update(next_waveform())
+
+    elif event.key == 'pageup':
+        print("Loading previous waveform, jump after of 100 waveforms")
+        for i in range(100 - 1):
+            prev_waveform()
+        plot_update(prev_waveform())
 
     elif event.key == 'q':
         quit_gui()
 
+root = tkinter.Tk()
+
+root.wm_title("ABCD waveforms display")
+
+fig = Figure(figsize=(8, 4.5))#, dpi=120)
+ax_wave = fig.add_subplot(211)
+ax_gate = fig.add_subplot(212, sharex = ax_wave)
+
+canvas = FigureCanvasTkAgg(fig, master = root)
+canvas.draw()
+canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
+
+#NavigationToolbar2Tk.toolitems = [toolitem for toolitem in NavigationToolbar2Tk.toolitems if not toolitem[0] == 'Home']
+
+# This is the standard Matplotlib toolbar
+toolbar = NavigationToolbar2Tk(canvas, root)
+toolbar.update()
+
+canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
+
 canvas.mpl_connect("key_press_event", on_key_press)
 
-
 print("Loading first waveform")
-current_waveform = next_waveform()
-plot_waveform(current_waveform, canvas, ax_wave, ax_gate)
+plot_update(next_waveform())
 tkinter.mainloop()
 
 # If you put root.destroy() here, it will cause an error if the window is
