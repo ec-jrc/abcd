@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-#  (C) Copyright 2016, 2019 Cristiano Lino Fontana
+#  (C) Copyright 2016, 2019, 2021, European Union, Cristiano Lino Fontana
 #
 #  This file is part of ABCD.
 #
@@ -38,8 +38,11 @@ except:
 # Implement the default Matplotlib key bindings.
 from matplotlib.backend_bases import key_press_handler
 
-parser = argparse.ArgumentParser(description='Plots waveforms from ABCD waveforms data files.\n' +
-    "Pressing the left and right keys shows the previous or next waveform.\n" +
+parser = argparse.ArgumentParser(description='Plots waveforms from ABCD waveforms data files. ' +
+    "Pressing the left and right keys shows the previous or next waveform. " +
+    "Pressing the up and down keys jump ahead or behind of 10 waveforms, page up and down jump 100 waveforms. " +
+    "Pressing the 'h' key resets the view to the full waveform. " +
+    "Pressing the 'f' key toggles between showing the waveform and its Fourier transform. " +
     "Pressing the 'e' key exports the current waveform to a CSV file.")
 parser.add_argument('file_name',
                     type = str,
@@ -57,10 +60,6 @@ parser.add_argument('-n',
 parser.add_argument('--clock_step',
                     type = float,
                     default = 2,
-                    help = 'Step of the ADC sampling of the waveform in ns (default: 2 ns)')
-parser.add_argument('--baseline_samples',
-                    type = int,
-                    default = 700,
                     help = 'Step of the ADC sampling of the waveform in ns (default: 2 ns)')
 
 args = parser.parse_args()
@@ -80,7 +79,9 @@ input_file = this_open(args.file_name, "rb")
 
 selected_channel = args.channel
 show_transform = False
-previous_xlims = None
+previous_channel = None
+previous_xlims_waveform = dict()
+previous_xlims_transform = dict()
 waveforms_buffer = list()
 waveform_index = -1
 if args.waveform_number is not None:
@@ -151,8 +152,37 @@ def prev_waveform():
         print("Already at the first waveform")
         return None
 
-def plot_update(waveform):
+def update_xlims(waveform):
     global show_transform
+    global ax_wave
+    global previous_channel
+    global previous_xlims_waveform
+    global previous_xlims_transform
+
+    channel = waveform["channel"]
+
+    if channel not in previous_xlims_waveform:
+        previous_xlims_waveform[channel] = None
+    if channel not in previous_xlims_transform:
+        previous_xlims_transform[channel] = None
+
+    if previous_channel != channel:
+        print("Not updating xlims for channel: {:d}".format(channel))
+    else:
+        print("Updating xlims for channel: {:d}".format(channel))
+        if not show_transform and previous_xlims_waveform[channel] is not None:
+            previous_xlims_waveform[channel] = ax_wave.get_xlim()
+        elif previous_xlims_transform[channel] is not None:
+            previous_xlims_transform[channel] = ax_wave.get_xlim()
+
+def plot_update(waveform, do_update_xlims = True):
+    global show_transform
+    global previous_channel
+
+    if do_update_xlims:
+        update_xlims(waveform)
+
+    previous_channel = waveform["channel"]
 
     if not show_transform:
         plot_waveform(waveform)
@@ -162,47 +192,48 @@ def plot_update(waveform):
 def plot_waveform(waveform):
     global waveform_index
     global args
-    global previous_xlims
+    global previous_xlims_waveform
     global canvas
     global ax_wave
     global ax_gate
 
     N = len(waveform["samples"])
+    channel = waveform["channel"]
 
-    if previous_xlims == None:
-        previous_xlims = (0, N)
-    else:
-        previous_xlims = ax_wave.get_xlim()
+    if previous_xlims_waveform[channel] == None:
+        previous_xlims_waveform[channel] = (0, N * args.clock_step)
 
     try:
         print("Plotting waveform of index: {:d}".format(waveform_index))
 
         fig.suptitle('Waveform, index: {:d}, ch: {:d}, timestamp: {:d},\nfile: {}'.format(
                      waveform_index,
-                     waveform["channel"],
+                     channel,
                      waveform["timestamp"],
                      args.file_name))
         ax_wave.clear()
-        ax_wave.step(range(N), 
+        ax_wave.step(np.arange(N) * args.clock_step, 
                      waveform["samples"],
                      color = "C0",
                      where = 'post')
-        ax_wave.set_xlim(previous_xlims[0], previous_xlims[1])
+        ax_wave.set_xlim(previous_xlims_waveform[channel][0], previous_xlims_waveform[channel][1])
         ax_wave.set_yscale('linear')
         ax_wave.grid()
+        ax_wave.set_xlabel("Time [ns]")
 
         ax_gate.clear()
 
         for index, gate in enumerate(waveform["gates"]):
             print("Plotting gate of index: {:d}.{:d}".format(waveform_index, index))
-            ax_gate.step(range(N),
+            ax_gate.step(np.arange(N) * args.clock_step,
                          gate,
                          label = "Gate {:d}".format(index),
                          color = "C{:d}".format((index + 1) % 10),
                          where = 'post')
-        ax_gate.set_xlim(previous_xlims[0], previous_xlims[1])
+        ax_gate.set_xlim(previous_xlims_waveform[channel][0], previous_xlims_waveform[channel][1])
         ax_gate.grid()
         ax_gate.legend()
+        ax_gate.set_xlabel("Time [ns]")
 
         canvas.draw()
     except Exception as e:
@@ -211,16 +242,15 @@ def plot_waveform(waveform):
 def plot_transform(waveform):
     global waveform_index
     global args
-    global previous_xlims
+    global previous_xlims_transform
     global canvas
     global ax_wave
     global ax_gate
 
-    average = np.average(waveform["samples"][0:args.baseline_samples])
-
+    channel = waveform["channel"]
     N = len(waveform["samples"])
-    #transform = fft.rfft(waveform["samples"] - average)
-    transform = fft.rfft(15600 - np.asarray(waveform["samples"]))
+
+    transform = fft.rfft(waveform["samples"])
 
     magnitudes = np.abs(transform)
     phases = np.angle(transform)
@@ -232,39 +262,43 @@ def plot_transform(waveform):
 
     magnitudes[0] = 0
 
-    if previous_xlims == None:
-        previous_xlims = (0, max(frequencies))
-    else:
-        previous_xlims = ax_wave.get_xlim()
+    if previous_xlims_transform[channel] == None:
+        previous_xlims_transform[channel] = (0, max(frequencies))
 
     try:
         print("Plotting transform of index: {:d}".format(waveform_index))
 
         fig.suptitle('Fourier transform, index: {:d}, ch: {:d}, timestamp: {:d},\nfile: {}'.format(
                      waveform_index,
-                     waveform["channel"],
+                     channel,
                      waveform["timestamp"],
                      args.file_name))
 
         ax_wave.clear()
         ax_wave.step(frequencies,
                      magnitudes,
+                     label = "Magnitude",
                      color = "C0",
                      where = 'post')
-        ax_wave.set_xlim(previous_xlims[0], previous_xlims[1])
+        ax_wave.set_xlim(previous_xlims_transform[channel][0], previous_xlims_transform[channel][1])
         ax_wave.set_yscale('log')
         ax_wave.grid()
+        #ax_wave.legend()
         ax_wave.set_xlabel("Frequency [MHz]")
+        ax_wave.set_ylabel("Magnitude [a.u.]")
 
         ax_gate.clear()
 
         ax_gate.step(frequencies,
                      phases,
+                     label = "Phase",
                      color = "C1",
                      where = 'post')
-        ax_gate.set_xlim(previous_xlims[0], previous_xlims[1])
+        ax_gate.set_xlim(previous_xlims_transform[channel][0], previous_xlims_transform[channel][1])
         ax_gate.grid()
+        #ax_gate.legend()
         ax_gate.set_xlabel("Frequency [MHz]")
+        ax_gate.set_ylabel("Phase [rad]")
 
         canvas.draw()
     except Exception as e:
@@ -319,7 +353,8 @@ def quit_gui():
 
 def on_key_press(event):
     global show_transform
-    global previous_xlims
+    global previous_xlims_waveform
+    global previous_xlims_transform
 
     print("Pressed key: '{}'".format(event.key))
     # Disabling the default key_press events so it does not interfere with the
@@ -328,19 +363,22 @@ def on_key_press(event):
 
     if event.key == 'h':
         print("Resetting view")
-        previous_xlims = None
+        channel = curr_waveform()["channel"]
+        previous_xlims_waveform[channel] = None
+        previous_xlims_transform[channel] = None
         plot_update(curr_waveform())
 
     elif event.key == 'f':
+        update_xlims(curr_waveform())
+
         # Toggle transform display
         if show_transform:
             show_transform = False
         else:
             show_transform = True
 
-        previous_xlims = None
         print("Calculating Fourier transform")
-        plot_update(curr_waveform())
+        plot_update(curr_waveform(), do_update_xlims = False)
 
     elif event.key == 'e':
         print("Exporting waveform")
@@ -386,6 +424,7 @@ root = tkinter.Tk()
 root.wm_title("ABCD waveforms display")
 
 fig = Figure(figsize=(8, 4.5))#, dpi=120)
+fig.subplots_adjust(left = 0.09, bottom = 0.11, right = 0.98, top = 0.86, hspace = 0.32)
 ax_wave = fig.add_subplot(211)
 ax_gate = fig.add_subplot(212, sharex = ax_wave)
 
@@ -393,13 +432,9 @@ canvas = FigureCanvasTkAgg(fig, master = root)
 canvas.draw()
 canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
 
-#NavigationToolbar2Tk.toolitems = [toolitem for toolitem in NavigationToolbar2Tk.toolitems if not toolitem[0] == 'Home']
-
 # This is the standard Matplotlib toolbar
 toolbar = NavigationToolbar2Tk(canvas, root)
 toolbar.update()
-
-canvas.get_tk_widget().pack(side=tkinter.TOP, fill=tkinter.BOTH, expand=1)
 
 canvas.mpl_connect("key_press_event", on_key_press)
 
