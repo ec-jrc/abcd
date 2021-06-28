@@ -13,6 +13,24 @@ enum pulse_polarity_t {
 
 typedef enum pulse_polarity_t pulse_polarity_t;
 
+inline extern int to_double(const uint16_t *samples, size_t n, double **double_samples)
+{
+    if (!samples || !double_samples)
+    {
+        return EXIT_FAILURE;
+    }
+    if (!(*double_samples))
+    {
+        return EXIT_FAILURE;
+    }
+
+    for (size_t i = 0; i < n; i++) {
+        (*double_samples)[i] = samples[i];
+    }
+
+    return EXIT_SUCCESS;
+}
+
 /******************************************************************************/
 /* find_extrema(): find the extrema of a series of samples                    */
 /*                                                                            */
@@ -464,7 +482,9 @@ inline extern int calculate_var(const uint16_t *samples, size_t n, double baseli
 /*          EXIT_FAILURE otherwise                                            */
 /*                                                                            */
 /******************************************************************************/
-inline extern int pole_zero_correction(const uint16_t *samples, int N, unsigned int decay_time, int pulse_polarity, double **filtered_samples)
+inline extern int pole_zero_correction(const double *samples, int N, \
+                                       double decay_time, int pulse_polarity, \
+                                       double **filtered_samples)
 {
     if (!samples || !filtered_samples)
     {
@@ -478,7 +498,7 @@ inline extern int pole_zero_correction(const uint16_t *samples, int N, unsigned 
 
     const double factor = exp(-1.0 / decay_time);
 
-    const uint16_t *x = samples;
+    const double *x = samples;
     double *y = (*filtered_samples);
 
     y[0] = 0;
