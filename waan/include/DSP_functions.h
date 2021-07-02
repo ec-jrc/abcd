@@ -13,7 +13,17 @@ enum pulse_polarity_t {
 
 typedef enum pulse_polarity_t pulse_polarity_t;
 
-inline extern int to_double(const uint16_t *samples, size_t n, double **double_samples)
+/*! \brief Function that converts the integer samples to doubles.
+ *
+ * \param[in] samples an array with the input samples.
+ * \param[in] samples_number the number of samples in the array.
+ *
+ * \param[out] double_samples a pointer to an allocated double array with n samples.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int to_double(const uint16_t *samples, size_t samples_number, \
+                            double **double_samples)
 {
     if (!samples || !double_samples)
     {
@@ -24,29 +34,26 @@ inline extern int to_double(const uint16_t *samples, size_t n, double **double_s
         return EXIT_FAILURE;
     }
 
-    for (size_t i = 0; i < n; i++) {
+    for (size_t i = 0; i < samples_number; i++) {
         (*double_samples)[i] = samples[i];
     }
 
     return EXIT_SUCCESS;
 }
 
-/******************************************************************************/
-/* find_extrema(): find the extrema of a series of samples                    */
-/*                                                                            */
-/*  Input:  samples[]: array with all the samples                             */
-/*          start:     starting index for the search (included)               */
-/*          end:       ending index for the search (not included)             */
-/*                                                                            */
-/*  Output: index_min: the index of the minimum of the samples                */
-/*          index_max: the index of the maximum                               */
-/*          minimum:   the minimum of the samples                             */
-/*          maximum:   the maximum                                            */
-/*                                                                            */
-/*  Return: EXIT_SUCCESS if it was able to find the extrema                   */
-/*          EXIT_FAILURE otherwise                                            */
-/*                                                                            */
-/******************************************************************************/
+/*! \brief Function that determines the extrema of an array.
+ *
+ * \param[in] samples an array with the input samples.
+ * \param[in] start starting index for the search (included).
+ * \param[in] end ending index for the search (not included).
+ *
+ * \param[out] index_min the index of the minimum of the samples.
+ * \param[out] index_max the index of the maximum of the samples.
+ * \param[out] min the minimum of the samples.
+ * \param[out] max the maximum of the samples.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
 inline extern int find_extrema(const double *samples, size_t start, size_t end, \
                                size_t *index_min, size_t *index_max, \
                                double *minimum,   double *maximum)
@@ -61,36 +68,35 @@ inline extern int find_extrema(const double *samples, size_t start, size_t end, 
     (*minimum) = samples[start];
     (*maximum) = samples[start];
 
-    for (size_t n = start; n < end; ++n)
+    for (size_t i = start; i < end; ++i)
     {
-        if ((*minimum) > samples[n])
+        if ((*minimum) > samples[i])
         {
-            (*minimum) = samples[n];
-            (*index_min) = n;
+            (*minimum) = samples[i];
+            (*index_min) = i;
         }
-        if ((*maximum) < samples[n])
+        if ((*maximum) < samples[i])
         {
-            (*maximum) = samples[n];
-            (*index_max) = n;
+            (*maximum) = samples[i];
+            (*index_max) = i;
         }
     }
 
     return EXIT_SUCCESS;
 }
 
-/******************************************************************************/
-/* sum(): calculates the sum of the given samples                             */
-/*                                                                            */
-/*  Input:  samples[]: array with all the samples                             */
-/*          N:         the samples number                                     */
-/*                                                                            */
-/*  Output: sum: the sum up to the end of the array                           */
-/*                                                                            */
-/*  Return: EXIT_SUCCESS if it was able to compute the sum                    */
-/*          EXIT_FAILURE otherwise                                            */
-/*                                                                            */
-/******************************************************************************/
-inline extern int calculate_sum(const double *samples, size_t start, size_t end, double *sum)
+/*! \brief Function that calculates the sum of all the given samples.
+ *
+ * \param[in] samples an array with the input samples.
+ * \param[in] start starting index for the search (included).
+ * \param[in] end ending index for the search (not included).
+ *
+ * \param[out] sum the resulting sum.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int calculate_sum(const double *samples, size_t start, size_t end, \
+                                double *sum)
 {
     if ((start > end) || !samples || !sum)
     {
@@ -109,6 +115,16 @@ inline extern int calculate_sum(const double *samples, size_t start, size_t end,
     return EXIT_SUCCESS;
 }
 
+/*! \brief Function that calculates the average of the given samples.
+ *
+ * \param[in] samples an array with the input samples.
+ * \param[in] start starting index for the search (included).
+ * \param[in] end ending index for the search (not included).
+ *
+ * \param[out] average the resulting average.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
 inline extern int calculate_average(const double *samples, size_t start, size_t end, \
                                     double *average)
 {
@@ -132,41 +148,50 @@ inline extern int calculate_average(const double *samples, size_t start, size_t 
     return EXIT_SUCCESS;
 }
 
-inline extern int add_constant(const double *samples, size_t n, \
-                               double constant, double **added_samples)
+/*! \brief Function that adds a constant to the samples and multiplies them by another constant.
+ *
+ * \param[in] samples an array with the input samples.
+ * \param[in] samples_number the number of samples in the array.
+ * \param[in] adding the addition constant.
+ * \param[in] multiplying the multiplication constant.
+ *
+ * \param[out] output_samples a pointer to an allocated double array with n samples.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int add_and_multiply_constant(const double *samples, size_t samples_number, \
+                                            double adding, double multiplying,
+                                            double **output_samples)
 {
-    if (!samples || !added_samples)
+    if (!samples || !output_samples)
     {
         return EXIT_FAILURE;
     }
-    if (!(*added_samples))
+    if (!(*output_samples))
     {
         return EXIT_FAILURE;
     }
 
-    for (size_t i = 0; i < n; i++) {
-        (*added_samples)[i] = samples[i] + constant;
+    for (size_t i = 0; i < samples_number; i++) {
+        (*output_samples)[i] = multiplying * (samples[i] + adding);
     }
 
     return EXIT_SUCCESS;
 }
 
-/******************************************************************************/
-/* running_mean():                                                            */
-    // Recursive running mean as described in the DSP book, chapter 15, eq. (15-3)
-/*                                                                            */
-/*  Input:  samples[]: array with all the samples                             */
-/*          n:         the samples number                                     */
-/*          delay:     delay to be used for the shifted signal                */
-/*          fraction:  fraction to be multiplied to the shifted signal        */
-/*                                                                            */
-/*  Output: monitor_samples[]: the array containing the resulting signal      */
-/*                                                                            */
-/*  Return: EXIT_SUCCESS if it was able to compute the sum                    */
-/*          EXIT_FAILURE otherwise                                            */
-/*                                                                            */
-/******************************************************************************/
-inline extern int running_mean(const uint16_t *samples, size_t n, unsigned int smooth_samples, double **smoothed_samples)
+/*! \brief Function that applies a recursive running mean, as described in the DSP book, chapter 15, eq. (15-3)
+ *
+ * \param[in] samples an array with the input samples.
+ * \param[in] samples_number the number of samples in the array.
+ * \param[in] smooth_samples the number of samples of the averaging window.
+ *
+ * \param[out] smoothed_samples a pointer to an allocated double array with n samples.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int running_mean(const uint16_t *samples, size_t samples_number, \
+                               unsigned int smooth_samples, \
+                               double **smoothed_samples)
 {
     if (!samples || !smoothed_samples)
     {
@@ -192,34 +217,33 @@ inline extern int running_mean(const uint16_t *samples, size_t n, unsigned int s
         (*smoothed_samples)[i] = beginning_average;
     }
 
-    for (uint32_t i = (P + 1); i < (n - P); i++) {
+    for (uint32_t i = (P + 1); i < (samples_number - P); i++) {
         (*smoothed_samples)[i] = (*smoothed_samples)[i - 1]
                                  + (((int32_t)samples[i + P]) - ((int32_t)samples[i - (P + 1)])) / M;
     }
 
     // The last (P + 1) numbers will be all identical.
-    for (uint32_t i = (n - P); i < n; i++) {
-        (*smoothed_samples)[i] = (*smoothed_samples)[n - P - 1];
+    for (uint32_t i = (samples_number - P); i < samples_number; i++) {
+        (*smoothed_samples)[i] = (*smoothed_samples)[samples_number - P - 1];
     }
 
     return EXIT_SUCCESS;
 }
 
-/******************************************************************************/
-/* CFD_signal(): calculate the CFD signal also known as monitor signal        */
-/*                                                                            */
-/*  Input:  samples[]: array with all the samples                             */
-/*          n:         the samples number                                     */
-/*          delay:     delay to be used for the shifted signal                */
-/*          fraction:  fraction to be multiplied to the shifted signal        */
-/*                                                                            */
-/*  Output: monitor_samples[]: the array containing the resulting signal      */
-/*                                                                            */
-/*  Return: EXIT_SUCCESS if it was able to compute the sum                    */
-/*          EXIT_FAILURE otherwise                                            */
-/*                                                                            */
-/******************************************************************************/
-inline extern int CFD_signal(const double *samples, size_t n, int delay, double fraction, double **monitor_samples)
+/*! \brief Function that calculates the CFD signal also known as monitor signal.
+ *
+ * \param[in] samples an array with the input samples.
+ * \param[in] samples_number the number of samples in the array.
+ * \param[in] delay the integer number of steps that the signal will be delayed.
+ * \param[in] fraction the multiplication factor for the delayed signal.
+ *
+ * \param[out] monitor_samples a pointer to an allocated double array with n samples.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int CFD_signal(const double *samples, size_t samples_number, \
+                             int delay, double fraction, \
+                             double **monitor_samples)
 {
     if (!samples || !monitor_samples)
     {
@@ -230,7 +254,7 @@ inline extern int CFD_signal(const double *samples, size_t n, int delay, double 
         return EXIT_FAILURE;
     }
 
-    for (size_t i = 0; i < n; ++i)
+    for (size_t i = 0; i < samples_number; ++i)
     {
         const int new_i = i - delay;
 
@@ -240,9 +264,9 @@ inline extern int CFD_signal(const double *samples, size_t n, int delay, double 
         {
             delayed_sample = samples[0];
         }
-        else if (new_i >= (int)n)
+        else if (new_i >= (int)samples_number)
         {
-            delayed_sample = samples[n - 1];
+            delayed_sample = samples[samples_number - 1];
         }
         else
         {
@@ -255,21 +279,18 @@ inline extern int CFD_signal(const double *samples, size_t n, int delay, double 
     return EXIT_SUCCESS;
 }
 
-/******************************************************************************/
-/* find_zero_crossing(): determine the zero crossing index using the bisection*/
-/*                       method, assuming that L < R.                         */
-/*                                                                            */
-/*  Input:  samples[]: array with all the samples                             */
-/*          L:         left index for the search                              */
-/*          R:         right index for the search                             */
-/*                                                                            */
-/*  Output: zero_crossing_index: the index of the zero crossing               */
-/*                                                                            */
-/*  Return: EXIT_SUCCESS if it was able to compute the sum                    */
-/*          EXIT_FAILURE otherwise                                            */
-/*                                                                            */
-/******************************************************************************/
-inline extern int find_zero_crossing(const double *samples, size_t L, size_t R, size_t *zero_crossing_index)
+/*! \brief Function that determines the zero crossing index using the bisection method, assuming that L < R.
+ *
+ * \param[in] samples an array with the input samples.
+ * \param[in] L starting index for the search (included).
+ * \param[in] R ending index for the search (included).
+ *
+ * \param[out] zero_crossing_index the index of the zero crossing.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int find_zero_crossing(const double *samples, size_t L, size_t R, \
+                                     size_t *zero_crossing_index)
 {
     if (!samples || !zero_crossing_index)
     {
@@ -304,21 +325,20 @@ inline extern int find_zero_crossing(const double *samples, size_t L, size_t R, 
     return EXIT_FAILURE;
 }
 
-/******************************************************************************/
-/* find_fine_zero_crossing(): given the zero crossing interpolates around it  */
-/*                                                                            */
-/*  Input:  samples[]: array with all the samples                             */
-/*          n:         the samples number                                     */
-/*          zero_crossing_index:   the index of the zero crossing             */
-/*          zero_crossing_samples: the number of samples for the interpolation*/
-/*                                                                            */
-/*  Output: fine_zero_crossing: the interpolated position of the zero crossing*/
-/*                                                                            */
-/*  Return: EXIT_SUCCESS if it was able to compute the sum                    */
-/*          EXIT_FAILURE otherwise                                            */
-/*                                                                            */
-/******************************************************************************/
-inline extern int find_fine_zero_crossing(const double *samples, size_t n, unsigned int zero_crossing_index, unsigned int zero_crossing_samples, double *fine_zero_crossing)
+/*! \brief Function that linearly interpolates the samples around the zero crossing index.
+ *
+ * \param[in] samples an array with the input samples.
+ * \param[in] samples_number the number of samples in the array.
+ * \param[in] zero_crossing_index the index of the zero crossing.
+ * \param[in] zero_crossing_samples the number of points to use in the interpolation.
+ *
+ * \param[out] the position of the zero crossing with better resolution.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int find_fine_zero_crossing(const double *samples, size_t samples_number, \
+                                          unsigned int zero_crossing_index, unsigned int zero_crossing_samples, \
+                                          double *fine_zero_crossing)
 {
     if (!samples)
     {
@@ -335,7 +355,7 @@ inline extern int find_fine_zero_crossing(const double *samples, size_t n, unsig
     unsigned int W = (zero_crossing_samples / 2) * 2 + 1;
     unsigned int half_W = W / 2;
 
-    if (((int)zero_crossing_index - (int)half_W) < 0 || (zero_crossing_index + half_W +1) > n)
+    if (((int)zero_crossing_index - (int)half_W) < 0 || (zero_crossing_index + half_W +1) > samples_number)
     {
         return EXIT_FAILURE;
     }
@@ -367,19 +387,17 @@ inline extern int find_fine_zero_crossing(const double *samples, size_t n, unsig
     return EXIT_SUCCESS;
 }
 
-/******************************************************************************/
-/* cumulative_sum(): calculates the cumulative sum for the given samples      */
-/*                                                                            */
-/*  Input:  samples[]: array with all the samples                             */
-/*          n:         the samples number                                     */
-/*                                                                            */
-/*  Output: integral_samples[]: the array containing the cumulative sum       */
-/*                                                                            */
-/*  Return: EXIT_SUCCESS if it was able to compute the sum                    */
-/*          EXIT_FAILURE otherwise                                            */
-/*                                                                            */
-/******************************************************************************/
-inline extern int cumulative_sum(const uint16_t *samples, size_t n, uint64_t **integral_samples)
+/*! \brief Function that calculates the cumulative sum of all the samples.
+ *
+ * \param[in] samples an array with the input samples.
+ * \param[in] samples_number the number of samples in the array.
+ *
+ * \param[out] integral_samples a pointer to an allocated uint64_t array with n samples.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int cumulative_sum(const uint16_t *samples, size_t samples_number, \
+                                 uint64_t **integral_samples)
 {
     if (!samples || !integral_samples)
     {
@@ -393,7 +411,7 @@ inline extern int cumulative_sum(const uint16_t *samples, size_t n, uint64_t **i
 
     int64_t total_sum = 0;
 
-    for (size_t i = 0; i < n; ++i)
+    for (size_t i = 0; i < samples_number; ++i)
     {
         total_sum += (uint64_t)samples[i];
         (*integral_samples)[i] = total_sum;
@@ -402,21 +420,19 @@ inline extern int cumulative_sum(const uint16_t *samples, size_t n, uint64_t **i
     return EXIT_SUCCESS;
 }
 
-/******************************************************************************/
-/* integral_baseline_subtrac(): correct the cumulative sum by subtracting the */
-/*                              constant component of the baseline.           */
-/*                                                                            */
-/*  Input:  integral_samples[]: array with the cumulative sum                 */
-/*          n:                  the samples number                            */
-/*          baseline:           the constant component to be subtracted       */
-/*                                                                            */
-/*  Output: integral_curve[]:   the array containing the corrected integral   */
-/*                                                                            */
-/*  Return: EXIT_SUCCESS if it was able to compute the sum                    */
-/*          EXIT_FAILURE otherwise                                            */
-/*                                                                            */
-/******************************************************************************/
-inline extern int integral_baseline_subtract(const uint64_t *integral_samples, size_t n, double baseline, double **integral_curve)
+/*! \brief Function that subtracts the baseline from the integral of the pulse.
+ *
+ * \param[in] integral_samples an array with the integral of the input samples.
+ * \param[in] samples_number the number of samples in the array.
+ * \param[in] baseline the baseline to be subtracted.
+ *
+ * \param[out] integral_curve the integral of the input signal, baseline subtracted.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int integral_baseline_subtract(const uint64_t *integral_samples, size_t samples_number, \
+                                             double baseline, \
+                                             double **integral_curve)
 {
     if (!integral_samples || !integral_curve)
     {
@@ -428,7 +444,7 @@ inline extern int integral_baseline_subtract(const uint64_t *integral_samples, s
         return EXIT_FAILURE;
     }
 
-    for (size_t i = 0; i < n; ++i)
+    for (size_t i = 0; i < samples_number; ++i)
     {
         // We add one to 'i' otherwise the first bin would not be subtracted
         (*integral_curve)[i] = (double)integral_samples[i] - (i + 1) * baseline;
@@ -437,54 +453,19 @@ inline extern int integral_baseline_subtract(const uint64_t *integral_samples, s
     return EXIT_SUCCESS;
 }
 
-/******************************************************************************/
-/* calculate_var(): calculates the Root Mean Square of the signal samples.    */
-/*                                                                            */
-/*  Input:  samples[]: array with all the samples, with the baseline          */
-/*          n:         the samples number                                     */
-/*          baseline:  the signal baseline                                    */
-/*                                                                            */
-/*  Output: signal_var: the calculated variance.                              */
-/*                                                                            */
-/*  Return: EXIT_SUCCESS if it was able to compute the sum                    */
-/*          EXIT_FAILURE otherwise                                            */
-/*                                                                            */
-/******************************************************************************/
-inline extern int calculate_var(const uint16_t *samples, size_t n, double baseline, double *signal_var)
-{
-    if (!samples || !signal_var)
-    {
-        return EXIT_FAILURE;
-    }
-
-    double sum = 0;
-    for (size_t i = 0; i < n; ++i)
-    {
-        const double difference = (double)samples[i] - baseline;
-        sum += difference * difference;
-    }
-
-    *signal_var = sum / (n - 1);
-
-    return EXIT_SUCCESS;
-}
-
-/******************************************************************************/
-/* pole_zero_correction(): compensate the exponential decay                   */
-/*                                                                            */
-/*  Input:  samples[]: array with all the samples                             */
-/*          N:         the samples number                                     */
-/*          decay_time:the signal slow decay time                             */
-/*                                                                            */
-/*  Output: filtered_samples[]: the array containing the output               */
-/*                                                                            */
-/*  Return: EXIT_SUCCESS if it was able to compute the filter                 */
-/*          EXIT_FAILURE otherwise                                            */
-/*                                                                            */
-/******************************************************************************/
-inline extern int pole_zero_correction(const double *samples, int N, \
-                                       double decay_time, int pulse_polarity, \
-                                       double **filtered_samples)
+/*! \brief Function that compensates the exponential decay of a pulse.
+ *
+ * \param[in] samples an array with the input samples, the baseline shall already be subtracted.
+ * \param[in] samples_number the number of samples in the array.
+ * \param[in] decay_time the decay time of the exponential, in terms of clock steps.
+ *
+ * \param[out] filtered_samples the resulting pulse.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int decay_compensation(const double *samples, int samples_number, \
+                                     double decay_time, \
+                                     double **filtered_samples)
 {
     if (!samples || !filtered_samples)
     {
@@ -498,58 +479,39 @@ inline extern int pole_zero_correction(const double *samples, int N, \
 
     const double factor = exp(-1.0 / decay_time);
 
+    // Just renaming arrays
     const double *x = samples;
     double *y = (*filtered_samples);
 
     y[0] = 0;
 
-    if (pulse_polarity == POLARITY_POSITIVE)
+    // Loop through all the samples
+    for (int i = 0; i < samples_number; ++i)
     {
-        // Loop through all the samples
-        for (int n = 0; n < N; ++n)
-        {
-            const double prev_y = (n - 1) >= 0 ? y[n - 1] : y[0];
-            const double x_n = x[n];
-            const double x_n_minus_one = (n - 1) >= 0 ? x[n - 1] : x[0];
+        const double y_i_minus_one = (i - 1) >= 0 ? y[i - 1] : y[0];
+        const double x_i = x[i];
+        const double x_i_minus_one = (i - 1) >= 0 ? x[i - 1] : x[0];
 
-            const double this_y = prev_y + (x_n - x_n_minus_one * factor);
-
-            y[n] = this_y;
-        }
-    }
-    else
-    {
-        // Loop through all the samples
-        for (int n = 0; n < N; ++n)
-        {
-            const double prev_y = (n - 1) >= 0 ? y[n - 1] : y[0];
-            const double x_n = x[n];
-            const double x_n_minus_one = (n - 1) >= 0 ? x[n - 1] : x[0];
-
-            const double this_y = prev_y + ((INT16_MAX - x_n) - (INT16_MAX - x_n_minus_one) * factor);
-
-            y[n] = this_y;
-        }
+        y[i] = y_i_minus_one + 2.0 / (1.0 + factor) * (x_i - factor * x_i_minus_one);
     }
 
     return EXIT_SUCCESS;
 }
 
-/******************************************************************************/
-/* trapezoidal_filter(): applied a trapezoidal filter to the given samples    */
-/*                                                                            */
-/*  Input:  samples[]: array with all the samples                             */
-/*          N:         the samples number                                     */
-/*          risetime:  trapezoidal risetime                                   */
-/*          flattop:   trapezoidal flattop                                    */
-/*                                                                            */
-/*  Output: filtered_samples[]: the array containing the output               */
-/*                                                                            */
-/*  Return: EXIT_SUCCESS if it was able to compute the filter                 */
-/*          EXIT_FAILURE otherwise                                            */
-/*                                                                            */
-/******************************************************************************/
-inline extern int trapezoidal_filter(const double *samples, int N, unsigned int risetime, unsigned int flattop, unsigned int pulse_polarity, double **filtered_samples)
+/*! \brief Function that applies a trapezoidal filter
+ *
+ * \param[in] samples an array with the input samples, the baseline shall already be subtracted.
+ * \param[in] samples_number the number of samples in the array.
+ * \param[in] risetime the risetime of the trapezoid in terms of clock samples.
+ * \param[in] flattop the width of the top of the trapezoid.
+ *
+ * \param[out] filtered_samples the resulting pulse.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int trapezoidal_filter(const double *samples, int samples_number, \
+                                     unsigned int risetime, unsigned int flattop, \
+                                     double **filtered_samples)
 {
     if (!samples || !filtered_samples)
     {
@@ -561,45 +523,128 @@ inline extern int trapezoidal_filter(const double *samples, int N, unsigned int 
         return EXIT_FAILURE;
     }
 
-    const int k = risetime;
-    const int l = risetime + flattop;
+    const int K = risetime;
+    const int L = risetime + flattop;
 
     const double *x = samples;
     double *y = (*filtered_samples);
 
     y[0] = 0;
 
-    if (pulse_polarity == POLARITY_POSITIVE)
+    // Loop through all the samples
+    for (int i = 0; i < samples_number; ++i)
     {
-        // Loop through all the samples
-        for (int n = 0; n < N; ++n)
-        {
-            const double prev_y = (n - 1) >= 0 ? y[n - 1] : y[0];
-            const double x_n = x[n];
-            const double x_n_minus_k = (n - k) >= 0 ? x[n - k] : x[0];
-            const double x_n_minus_l = (n - l) >= 0 ? x[n - l] : x[0];
-            const double x_n_minus_kl = (n - k - l) >= 0 ? x[n - k - l] : x[0];
+        const double y_i_minus_one = (i - 1) >= 0 ? y[i - 1] : y[0];
+        const double x_i = x[i];
+        const double x_i_minus_K = (i - K) >= 0 ? x[i - K] : x[0];
+        const double x_i_minus_L = (i - L) >= 0 ? x[i - L] : x[0];
+        const double x_i_minus_KL =(i - K - L) >= 0 ? x[i - K - L] : x[0];
 
-            const double this_y = prev_y + (x_n - x_n_minus_k) - (x_n_minus_l - x_n_minus_kl);
-
-            y[n] = this_y;
-        }
+        y[i] = y_i_minus_one + (x_i - x_i_minus_K) - (x_i_minus_L - x_i_minus_KL);
     }
-    else
+
+    return EXIT_SUCCESS;
+}
+
+/*! \brief Function that applies a single pole high-pass filter (CR filter)
+ *
+ * \param[in] samples an array with the input samples, the baseline shall already be subtracted.
+ * \param[in] samples_number the number of samples in the array.
+ * \param[in] decay_time the decay time of the filter.
+ *
+ * \param[out] filtered_samples the resulting pulse.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int CR_filter(const double *samples, int samples_number, \
+                            double decay_time, \
+                            double **filtered_samples)
+{
+    if (!samples || !filtered_samples)
     {
-        // Loop through all the samples
-        for (int n = 0; n < N; ++n)
-        {
-            const double prev_y = (n - 1) >= 0 ? y[n - 1] : y[0];
-            const double x_n = x[n];
-            const double x_n_minus_k = (n - k) >= 0 ? x[n - k] : x[0];
-            const double x_n_minus_l = (n - l) >= 0 ? x[n - l] : x[0];
-            const double x_n_minus_kl = (n - k - l) >= 0 ? x[n - k - l] : x[0];
+        return EXIT_FAILURE;
+    }
 
-            const double this_y = prev_y + (- x_n + x_n_minus_k) - (- x_n_minus_l + x_n_minus_kl);
+    if (!(*filtered_samples))
+    {
+        return EXIT_FAILURE;
+    }
 
-            y[n] = this_y;
-        }
+    const double factor = exp(-1 / decay_time);
+
+    const double a0 = (1.0 + factor) / 2.0;
+    const double a1 = -(1.0 + factor) / 2.0;
+    const double b1 = factor;
+
+    const double *x = samples;
+    double *y = (*filtered_samples);
+
+    y[0] = 0;
+
+    // Loop through all the samples
+    for (int i = 0; i < samples_number; ++i)
+    {
+        const double x_i = x[i];
+        const double x_i_minus_one = (i - 1) >= 0 ? x[i - 1] : x[0];
+        const double y_i_minus_one = (i - 1) >= 0 ? y[i - 1] : y[0];
+
+        y[i] = a0 * x_i + a1 * x_i_minus_one + b1 * y_i_minus_one;
+    }
+
+    return EXIT_SUCCESS;
+}
+
+/*! \brief Function that applies four single pole low-pass filters (RC^4 filter)
+ *
+ * \param[in] samples an array with the input samples, the baseline shall already be subtracted.
+ * \param[in] samples_number the number of samples in the array.
+ * \param[in] decay_time the decay time of the filter.
+ *
+ * \param[out] filtered_samples the resulting pulse.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int RC4_filter(const double *samples, int samples_number, \
+                             double decay_time, \
+                             double **filtered_samples)
+{
+    if (!samples || !filtered_samples)
+    {
+        return EXIT_FAILURE;
+    }
+
+    if (!(*filtered_samples))
+    {
+        return EXIT_FAILURE;
+    }
+
+    const double factor = exp(-1 / decay_time);
+
+    const double a0 = (1.0 - factor) * (1.0 - factor) * (1.0 - factor) * (1.0 - factor);
+    const double b1 =  4. * factor;
+    const double b2 = -6. * factor * factor;
+    const double b3 =  4. * factor * factor * factor;
+    const double b4 = -1. * factor * factor * factor * factor;
+
+    const double *x = samples;
+    double *y = (*filtered_samples);
+
+    y[0] = 0;
+
+    // Loop through all the samples
+    for (int i = 0; i < samples_number; ++i)
+    {
+        const double x_i = x[i];
+        const double y_i_minus_one = (i - 1) >= 0 ? y[i - 1] : y[0];
+        const double y_i_minus_two = (i - 2) >= 0 ? y[i - 2] : y[0];
+        const double y_i_minus_three = (i - 3) >= 0 ? y[i - 3] : y[0];
+        const double y_i_minus_four = (i - 4) >= 0 ? y[i - 4] : y[0];
+
+        y[i] = a0 * x_i \
+             + b1 * y_i_minus_one \
+             + b2 * y_i_minus_two \
+             + b3 * y_i_minus_three \
+             + b4 * y_i_minus_four;
     }
 
     return EXIT_SUCCESS;
