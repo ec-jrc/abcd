@@ -191,6 +191,15 @@ bool actions::generic::configure(status &global_status)
     global_status.forward_waveforms = json_is_true(json_object_get(config, "forward_waveforms"));
     global_status.enable_additional = json_is_true(json_object_get(config, "enable_additional"));
 
+    //const bool discard_messages = json_is_true(json_object_get(config, "discard_messages"));
+
+    //const int conflate = discard_messages ? 1 : 0;
+
+    //zmq_setsockopt(global_status.data_input_socket,
+    //               ZMQ_SUBSCRIBE,
+    //               &conflate,
+    //               sizeof(conflate));
+
     if (global_status.verbosity > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
@@ -1023,8 +1032,8 @@ state actions::read_socket(status &global_status)
     void *data_input_socket = global_status.data_input_socket;
     const int verbosity = global_status.verbosity;
 
-    char *topic;
-    char *input_buffer;
+    char *topic = NULL;
+    char *input_buffer = NULL;
     size_t size;
     size_t inner_counter = 0;
 
@@ -1311,7 +1320,17 @@ state actions::read_socket(status &global_status)
         free(topic);
         free(input_buffer);
 
+        topic = NULL;
+        input_buffer = NULL;
+
         result = receive_byte_message(data_input_socket, &topic, (void **)(&input_buffer), &size, true, global_status.verbosity);
+    }
+
+    if (topic) {
+        free(topic);
+    }
+    if (input_buffer) {
+        free(input_buffer);
     }
 
     if (now - global_status.last_publication > publish_period)
