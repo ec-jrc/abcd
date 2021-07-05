@@ -193,19 +193,33 @@ bool actions::generic::configure(status &global_status)
 
     const bool discard_messages = json_is_true(json_object_get(config, "discard_messages"));
 
-    const int conflate = discard_messages ? 1 : 0;
+    if (discard_messages) {
+        const int conflate = discard_messages ? 1 : 0;
 
-    zmq_setsockopt(global_status.data_input_socket,
-                   ZMQ_SUBSCRIBE,
-                   &conflate,
-                   sizeof(conflate));
+        zmq_setsockopt(global_status.data_input_socket,
+                       ZMQ_CONFLATE,
+                       &conflate,
+                       sizeof(conflate));
+
+        //const int high_water_mark = 10;
+
+        //zmq_setsockopt(global_status.data_input_socket,
+        //               ZMQ_RCVHWM,
+        //               &high_water_mark,
+        //               sizeof(high_water_mark));
+    }
 
     if (global_status.verbosity > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
         std::cout << "Forward waveforms: " << (global_status.forward_waveforms ? "true" : "false") << "; ";
+        std::cout << std::endl;
+        std::cout << '[' << time_buffer << "] ";
         std::cout << "Enable additional: " << (global_status.enable_additional ? "true" : "false") << "; ";
+        std::cout << std::endl;
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Discarding messages: " << (discard_messages ? "true" : "false") << "; ";
         std::cout << std::endl;
     }
 
