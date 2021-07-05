@@ -815,6 +815,10 @@ state actions::read_config(status &global_status)
         return states::PARSE_ERROR;
     }
 
+    if (json_is_object(global_status.config)) {
+    	json_decref(global_status.config);
+    }
+
     global_status.config = new_config;
 
     return states::APPLY_CONFIG;
@@ -1344,6 +1348,12 @@ state actions::read_socket(status &global_status)
 state actions::clear_memory(status &global_status)
 {
     actions::generic::clear_memory(global_status);
+
+    if (json_is_object(global_status.config)) {
+    	json_decref(global_status.config);
+
+        global_status.config = NULL;
+    }
 
     return states::CLOSE_SOCKETS;
 }
