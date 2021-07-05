@@ -191,14 +191,14 @@ bool actions::generic::configure(status &global_status)
     global_status.forward_waveforms = json_is_true(json_object_get(config, "forward_waveforms"));
     global_status.enable_additional = json_is_true(json_object_get(config, "enable_additional"));
 
-    //const bool discard_messages = json_is_true(json_object_get(config, "discard_messages"));
+    const bool discard_messages = json_is_true(json_object_get(config, "discard_messages"));
 
-    //const int conflate = discard_messages ? 1 : 0;
+    const int conflate = discard_messages ? 1 : 0;
 
-    //zmq_setsockopt(global_status.data_input_socket,
-    //               ZMQ_SUBSCRIBE,
-    //               &conflate,
-    //               sizeof(conflate));
+    zmq_setsockopt(global_status.data_input_socket,
+                   ZMQ_SUBSCRIBE,
+                   &conflate,
+                   sizeof(conflate));
 
     if (global_status.verbosity > 0) {
         char time_buffer[BUFFER_SIZE];
