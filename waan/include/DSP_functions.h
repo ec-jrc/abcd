@@ -594,6 +594,52 @@ inline extern int CR_filter(const double *samples, int samples_number, \
     return EXIT_SUCCESS;
 }
 
+/*! \brief Function that applies a single pole low-pass filters (RC filter)
+ *
+ * \param[in] samples an array with the input samples, the baseline shall already be subtracted.
+ * \param[in] samples_number the number of samples in the array.
+ * \param[in] decay_time the decay time of the filter.
+ *
+ * \param[out] filtered_samples the resulting pulse.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int RC_filter(const double *samples, int samples_number, \
+                            double decay_time, \
+                            double **filtered_samples)
+{
+    if (!samples || !filtered_samples)
+    {
+        return EXIT_FAILURE;
+    }
+
+    if (!(*filtered_samples))
+    {
+        return EXIT_FAILURE;
+    }
+
+    const double factor = exp(-1 / decay_time);
+
+    const double a0 = (1.0 - factor);
+    const double b1 = factor;
+
+    const double *x = samples;
+    double *y = (*filtered_samples);
+
+    y[0] = 0;
+
+    // Loop through all the samples
+    for (int i = 0; i < samples_number; ++i)
+    {
+        const double x_i = x[i];
+        const double y_i_minus_one = (i - 1) >= 0 ? y[i - 1] : y[0];
+
+        y[i] = a0 * x_i + b1 * y_i_minus_one;
+    }
+
+    return EXIT_SUCCESS;
+}
+
 /*! \brief Function that applies four single pole low-pass filters (RC^4 filter)
  *
  * \param[in] samples an array with the input samples, the baseline shall already be subtracted.
