@@ -1,5 +1,6 @@
 {
     "module": "waan",
+    "discard_messages": true,
     "forward_waveforms": true,
     "enable_additional": true,
     "channels": [
@@ -77,7 +78,7 @@
             }
         },
         {
-            "id": 3,
+            "id": 7,
             "name": "NIM pulse 5415",
             "enabled": true,
             "user_libraries": {
