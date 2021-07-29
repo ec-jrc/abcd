@@ -1,0 +1,57 @@
+{
+    "module": "waan",
+    "forward_waveforms": true,
+    "enable_additional": true,
+    "channels": [
+        {
+            "id": 1,
+            "name": "LaBr",
+            "enabled": false,
+            "user_libraries": {
+                "timestamp": "src/libCFD.so",
+                "energy": "src/libPSD.so"
+            },
+            "user_config": {
+                "baseline_samples": 30,
+                "smooth_samples": 16,
+                "fraction": 0.5,
+                "delay": 10,
+                "zero_crossing_samples": 2,
+                "fractional_bits": 10,
+                "disable_shift": true,
+                "pregate": 33,
+                "short_gate": 20,
+                "long_gate": 70,
+                "pulse_polarity": "negative",
+                "integrals_scaling": 2
+            }
+        },
+        {
+            "id": 6,
+            "name": "HPGe",
+            "enabled": true,
+            "user_libraries": {
+                "timestamp": "src/libCFD.so",
+                "energy": "src/libTPZ.so"
+            },
+            "user_config": {
+                "baseline_samples": 800,
+                "smooth_samples": 128,
+                "fraction": 1.5,
+                "delay": 64,
+                "zero_crossing_samples": 4,
+                "fractional_bits": 10,
+                "disable_shift": true,
+                "disable_CFD_gates": true,
+                "decay_time": 26000,
+                "trapezoid_risetime": 1600,
+                "trapezoid_flattop": 320,
+                "peaking_time": 1800,
+                "pulse_polarity": "negative",
+                "height_scaling": 100
+            }
+        },
+        {}
+    ],
+    "zzz": null
+}

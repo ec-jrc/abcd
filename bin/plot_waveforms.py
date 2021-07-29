@@ -253,7 +253,8 @@ def plot_transform(waveform):
     transform = fft.rfft(waveform["samples"])
 
     magnitudes = np.abs(transform)
-    phases = np.angle(transform)
+    reals = np.real(transform)
+    imags = np.imag(transform)
 
     M = len(magnitudes)
     T = N * args.clock_step * 1e-9
@@ -261,6 +262,8 @@ def plot_transform(waveform):
     frequencies = fft.rfftfreq(N, d = args.clock_step * 1e-9) * 1e-6
 
     magnitudes[0] = 0
+    reals[0] = 0
+    imags[0] = 0
 
     if previous_xlims_transform[channel] == None:
         previous_xlims_transform[channel] = (0, max(frequencies))
@@ -290,15 +293,21 @@ def plot_transform(waveform):
         ax_gate.clear()
 
         ax_gate.step(frequencies,
-                     phases,
-                     label = "Phase",
-                     color = "C1",
+                     imags,
+                     label = "Imag part",
+                     color = "black",
+                     where = 'post')
+        ax_gate.step(frequencies,
+                     reals,
+                     label = "Real part",
+                     color = "C3",
                      where = 'post')
         ax_gate.set_xlim(previous_xlims_transform[channel][0], previous_xlims_transform[channel][1])
+        #ax_gate.set_yscale('log')
         ax_gate.grid()
-        #ax_gate.legend()
+        ax_gate.legend()
         ax_gate.set_xlabel("Frequency [MHz]")
-        ax_gate.set_ylabel("Phase [rad]")
+        ax_gate.set_ylabel("Value [a.u.]")
 
         canvas.draw()
     except Exception as e:

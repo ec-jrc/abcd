@@ -6,7 +6,7 @@ EXEC = waan
 SOURCES = $(SRC_DIR)/actions.cpp $(SRC_DIR)/states.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
-ANALYSIS_SOURCES = $(SRC_DIR)/libCFD.c $(SRC_DIR)/libPSD.c $(SRC_DIR)/libTPZ.c $(SRC_DIR)/libGeP.c $(SRC_DIR)/libCRRC4.c
+ANALYSIS_SOURCES = $(SRC_DIR)/libCFD.c $(SRC_DIR)/libTFACFD.c $(SRC_DIR)/libPSD.c $(SRC_DIR)/libTPZ.c $(SRC_DIR)/libGeP.c $(SRC_DIR)/libCRRC4.c
 ANALYSIS_OBJECTS = $(ANALYSIS_SOURCES:.c=.so)
 
 CFLAGS += 
