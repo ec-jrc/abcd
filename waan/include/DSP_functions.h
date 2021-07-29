@@ -534,11 +534,16 @@ inline extern int trapezoidal_filter(const double *samples, int samples_number, 
     // Loop through all the samples
     for (int i = 0; i < samples_number; ++i)
     {
-        const double y_i_minus_one = (i - 1) >= 0 ? y[i - 1] : y[0];
+        //const double y_i_minus_one = (i - 1) >= 0 ? y[i - 1] : y[0];
+        //const double x_i = x[i];
+        //const double x_i_minus_K = (i - K) >= 0 ? x[i - K] : x[0];
+        //const double x_i_minus_L = (i - L) >= 0 ? x[i - L] : x[0];
+        //const double x_i_minus_KL =(i - K - L) >= 0 ? x[i - K - L] : x[0];
+        const double y_i_minus_one = (i - 1) >= 0 ? y[i - 1] : 0;
         const double x_i = x[i];
-        const double x_i_minus_K = (i - K) >= 0 ? x[i - K] : x[0];
-        const double x_i_minus_L = (i - L) >= 0 ? x[i - L] : x[0];
-        const double x_i_minus_KL =(i - K - L) >= 0 ? x[i - K - L] : x[0];
+        const double x_i_minus_K = (i - K) >= 0 ? x[i - K] : 0;
+        const double x_i_minus_L = (i - L) >= 0 ? x[i - L] : 0;
+        const double x_i_minus_KL =(i - K - L) >= 0 ? x[i - K - L] : 0;
 
         y[i] = y_i_minus_one + (x_i - x_i_minus_K) - (x_i_minus_L - x_i_minus_KL);
     }

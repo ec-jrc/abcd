@@ -9,6 +9,9 @@
 #include "analysis_functions.h"
 #include "DSP_functions.h"
 
+#define min(x,y) ((x) < (y)) ? (x) : (y)
+#define max(x,y) ((x) > (y)) ? (x) : (y)
+
 /*! \brief Sctructure that holds the configuration for the `energy_analysis` function.
  *
  * This function parses a JSON object determining the configuration for the
@@ -16,12 +19,25 @@
  */
 struct PSD_config
 {
-    uint32_t pregate;
-    uint32_t short_gate;
-    uint32_t long_gate;
+    uint32_t baseline_samples;
+    int64_t short_pregate;
+    int64_t long_pregate;
+    int64_t short_gate;
+    int64_t long_gate;
     enum pulse_polarity_t pulse_polarity;
     double integrals_scaling;
+
+    bool is_error;
+
+    uint32_t previous_samples_number;
+
+    uint64_t *samples_cumulative;
+    double *curve_integral;
 };
+
+/*! \brief Function that allocates the necessary memory for the calculations.
+ */
+void reallocate_curves(uint32_t samples_number, struct PSD_config **user_config);
 
 /*! \brief Function that reads the json_t configuration for the `energy_analysis` function.
  *
@@ -34,7 +50,14 @@ struct PSD_config
  * - "pulse_polarity": a string describing the expected pulse polarity, it
  *   can be "positive" or "negative".
  * - "pregate": the number of samples before the trigger_position that define
- *   the beginning of the integration windows.
+ *   the beginning of the integration windows. If this setting is found both
+ *   integration windows will start from this point.
+ * - "short_pregate": the number of samples before the trigger_position that
+ *   define the beginning of the short integration window. This setting has the
+ *   precedence over "pregate".
+ * - "long_pregate": the number of samples before the trigger_position that
+ *   define the beginning of the long integration window. This setting has the
+ *   precedence over "pregate".
  * - "short_gate": the number of samples of the width of the short integration
  *   window.
  * - "long_gate": the number of samples of the width of the long integration
@@ -59,7 +82,18 @@ void energy_init(json_t *json_config, void **user_config)
             (*user_config) = NULL;
         }
 
-        config->pregate = json_integer_value(json_object_get(json_config, "pregate"));
+        config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
+
+        config->short_pregate = json_integer_value(json_object_get(json_config, "pregate"));
+        config->long_pregate = json_integer_value(json_object_get(json_config, "pregate"));
+
+        if (json_is_number(json_object_get(json_config, "short_pregate"))) {
+            config->short_pregate = json_integer_value(json_object_get(json_config, "short_pregate"));
+        }
+        if (json_is_number(json_object_get(json_config, "long_pregate"))) {
+            config->long_pregate = json_integer_value(json_object_get(json_config, "long_pregate"));
+        }
+
         config->short_gate = json_integer_value(json_object_get(json_config, "short_gate"));
         config->long_gate = json_integer_value(json_object_get(json_config, "long_gate"));
 
@@ -86,6 +120,12 @@ void energy_init(json_t *json_config, void **user_config)
             }
         }
 
+        config->is_error = false;
+        config->previous_samples_number = 0;
+
+        config->samples_cumulative = NULL;
+        config->curve_integral = NULL;
+
         (*user_config) = (void*)config;
     }
 }
@@ -94,6 +134,15 @@ void energy_init(json_t *json_config, void **user_config)
  */
 void energy_close(void *user_config)
 {
+    struct PSD_config *config = (struct PSD_config*)user_config;
+
+    if (config->samples_cumulative) {
+        free(config->samples_cumulative);
+    }
+    if (config->curve_integral) {
+        free(config->curve_integral);
+    }
+
     if (user_config) {
         free(user_config);
     }
@@ -111,28 +160,15 @@ void energy_analysis(const uint16_t *samples,
 {
     struct PSD_config *config = (struct PSD_config*)user_config;
 
-    bool is_error = false;
-
-    uint64_t *integral_samples = malloc(samples_number * sizeof(uint64_t));
-    double *integral_curve = malloc(samples_number * sizeof(double));
-
-    if (!integral_samples) {
-        printf("ERROR: libPSD energy_analysis(): Unable to allocate integral_samples memory\n");
-
-        is_error = true;
-    }
-    if (!integral_curve) {
-        printf("ERROR: libPSD energy_analysis(): Unable to allocate integral_curve memory\n");
-
-        is_error = true;
-    }
+    reallocate_curves(samples_number, &config);
 
     // N.B. That '-1' is to have the right integration window since,
     // having a discrete domain, the integrals should be considered
     // calculated always up to the right edge of the intervals.
-    const int64_t baseline_end = trigger_position - config->pregate;
-    const int64_t short_gate_end = baseline_end + config->short_gate - 1;
-    const int64_t long_gate_end = baseline_end + config->long_gate - 1;
+    //const int64_t baseline_end = trigger_position - config->pregate;
+    const int64_t baseline_end = config->baseline_samples;
+
+    bool is_error = false;
 
     if (baseline_end < 1) {
         printf("ERROR: libPSD energy_analysis(): baseline_end is less than one!\n");
@@ -144,48 +180,69 @@ void energy_analysis(const uint16_t *samples,
         is_error = true;
     }
 
+    int64_t short_gate_start = trigger_position - config->short_pregate;
+    int64_t long_gate_start = trigger_position - config->long_pregate;
+
+    if (short_gate_start < 0) {
+        printf("ERROR: libPSD energy_analysis(): short_gate_start is less than zero!\n");
+
+        short_gate_start = 0;
+    } else if (short_gate_start >= samples_number) {
+        printf("ERROR: libPSD energy_analysis(): short_gate_start is greater than samples_number!\n");
+
+        short_gate_start = samples_number - 1;
+    }
+
+    if (long_gate_start < 0) {
+        printf("ERROR: libPSD energy_analysis(): long_gate_start is less than zero!\n");
+
+        long_gate_start = 0;
+    } else if (long_gate_start >= samples_number) {
+        printf("ERROR: libPSD energy_analysis(): long_gate_start is greater than samples_number!\n");
+
+        long_gate_start = samples_number - 1;
+    }
+
+    int64_t short_gate_end = short_gate_start + config->short_gate - 1;
+    int64_t long_gate_end = long_gate_start + config->long_gate - 1;
+
     if (short_gate_end < 0) {
         printf("ERROR: libPSD energy_analysis(): short_gate_end is less than zero!\n");
 
-        is_error = true;
+        short_gate_end = 0;
     } else if (short_gate_end >= samples_number) {
         printf("ERROR: libPSD energy_analysis(): short_gate_end is greater than samples_number!\n");
 
-        is_error = true;
+        short_gate_end = samples_number - 1;
     }
 
     if (long_gate_end < 0) {
         printf("ERROR: libPSD energy_analysis(): long_gate_end is less than zero!\n");
 
-        is_error = true;
+        long_gate_end = 0;
     } else if (long_gate_end >= samples_number) {
         printf("ERROR: libPSD energy_analysis(): long_gate_end is greater than samples_number!\n");
 
-        is_error = true;
+        long_gate_end = samples_number - 1;
     }
 
-    if (is_error) {
-        if (integral_samples) {
-            free(integral_samples);
-        }
-        if (integral_curve) {
-            free(integral_curve);
-        }
+    if (config->is_error || is_error) {
+        printf("ERROR: libPSD energy_analysis(): Error status detected\n");
 
         return;
     }
 
-    cumulative_sum(samples, samples_number, &integral_samples);
+    cumulative_sum(samples, samples_number, &config->samples_cumulative);
 
-    const uint64_t raw_baseline = integral_samples[baseline_end - 1];
+    const uint64_t raw_baseline = config->samples_cumulative[baseline_end - 1];
     const double baseline = (double)raw_baseline / baseline_end;
 
-    integral_baseline_subtract(integral_samples, samples_number, baseline, &integral_curve);
+    integral_baseline_subtract(config->samples_cumulative, samples_number, baseline, &config->curve_integral);
 
-    const double qshort = integral_curve[short_gate_end]
-                          - integral_curve[baseline_end - 2];
-    const double qlong  = integral_curve[long_gate_end]
-                          - integral_curve[baseline_end - 2];
+    const double qshort = config->curve_integral[short_gate_end]
+                          - config->curve_integral[short_gate_start - 2];
+    const double qlong  = config->curve_integral[long_gate_end]
+                          - config->curve_integral[long_gate_start - 2];
 
     const double scaled_qshort = qshort * config->integrals_scaling;
     const double scaled_qlong = qlong * config->integrals_scaling;
@@ -234,19 +291,33 @@ void energy_analysis(const uint16_t *samples,
 
     uint8_t *additional_gate_short = waveform_additional_get(waveform, initial_additional_number + 0);
     uint8_t *additional_gate_long = waveform_additional_get(waveform, initial_additional_number + 1);
+    //uint8_t *additional_integral = waveform_additional_get(waveform, initial_additional_number + 2);
+
+    //double integral_min = 0;
+    //double integral_max = 0;
+    //size_t integral_index_min = 0;
+    //size_t integral_index_max = 0;
+
+    //find_extrema(config->curve_integral, 0, samples_number,
+    //             &integral_index_min, &integral_index_max,
+    //             &integral_min, &integral_max);
+
+    //const double integral_abs_max = (fabs(integral_max) > fabs(integral_min)) ? fabs(integral_max) : fabs(integral_min);
 
     const uint8_t ZERO = UINT8_MAX / 2;
     const uint8_t MAX = UINT8_MAX / 2;
 
     for (uint32_t i = 0; i < samples_number; i++) {
-        if (baseline_end <= i && i < baseline_end + config->short_gate)
+        //additional_integral[i] = (config->curve_integral[i] / integral_abs_max) * MAX + ZERO;
+
+        if (short_gate_start <= i && i < short_gate_end)
         {
             additional_gate_short[i] = ZERO + MAX;
         } else {
             additional_gate_short[i] = ZERO;
         }
 
-        if (baseline_end <= i && i < baseline_end + config->long_gate)
+        if (long_gate_start <= i && i < long_gate_end)
         {
             additional_gate_long[i] = ZERO + MAX;
         } else {
@@ -255,12 +326,35 @@ void energy_analysis(const uint16_t *samples,
     }
 
     (*select_event) = SELECT_TRUE;
+}
 
-    // Cleanup
-    if (integral_samples) {
-        free(integral_samples);
-    }
-    if (integral_curve) {
-        free(integral_curve);
+void reallocate_curves(uint32_t samples_number, struct PSD_config **user_config)
+{
+    struct PSD_config *config = (*user_config);
+
+    if (samples_number != config->previous_samples_number) {
+	config->previous_samples_number = samples_number;
+
+        config->is_error = false;
+
+        uint64_t *new_samples_cumulative = realloc(config->samples_cumulative,
+                                            samples_number * sizeof(uint64_t));
+        double *new_curve_integral = realloc(config->curve_integral,
+                                                samples_number * sizeof(double));
+
+        if (!new_samples_cumulative) {
+            printf("ERROR: libPSD reallocate_curves(): Unable to allocate samples_cumulative memory\n");
+
+            config->is_error = true;
+        } else {
+            config->samples_cumulative = new_samples_cumulative;
+        }
+        if (!new_curve_integral) {
+            printf("ERROR: libPSD reallocate_curves(): Unable to allocate curve_integral memory\n");
+
+            config->is_error = true;
+        } else {
+            config->curve_integral = new_curve_integral;
+        }
     }
 }
