@@ -273,7 +273,7 @@ inline extern int CFD_signal(const double *samples, size_t samples_number, \
             delayed_sample = samples[new_i];
         }
 
-        (*monitor_samples)[i] = fraction * delayed_sample - samples[i];
+        (*monitor_samples)[i] = fraction * samples[i] - delayed_sample;
     }
 
     return EXIT_SUCCESS;
