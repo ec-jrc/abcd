@@ -69,15 +69,15 @@ void signal_handler(int signum)
 void print_usage(const char *name) {
     printf("Usage: %s [options]\n", name);
     printf("\n");
-    printf("Datastream filter that selects only one waveform per message and converts it to JSON, used by the GUI.\n");
+    printf("Selects only one waveform per channel per message and converts it to JSON, used only for the GUI.\n");
     printf("\n");
     printf("Optional arguments:\n");
     printf("\t-h: Display this message\n");
     printf("\t-v: Set verbose execution\n");
     printf("\t-v: Set more verbose execution\n");
     //printf("\t-N <number>: Number of waveforms to keep per channel, default: %s\n", defaults_wafi_number);
-    printf("\t-S <address>: SUB socket address, default: %s\n", defaults_abcd_data_address_sub);
-    printf("\t-P <address>: PUB socket address, default: %s\n", defaults_wafi_data_address);
+    printf("\t-A <address>: ABCD data socket address, default: %s\n", defaults_abcd_data_address_sub);
+    printf("\t-D <address>: Data output socket address, default: %s\n", defaults_wafi_data_address);
     printf("\t-T <period>: Set base period in milliseconds, default: %d\n", defaults_wafi_base_period);
 
     return;
@@ -127,10 +127,10 @@ int main(int argc, char *argv[])
             case 'h':
                 print_usage(argv[0]);
                 return EXIT_SUCCESS;
-            case 'S':
+            case 'A':
                 input_address = optarg;
                 break;
-            case 'P':
+            case 'D':
                 output_address = optarg;
                 break;
             case 'T':
@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
         printf("Base period: %u\n", base_period);
     }
 
-    // Creates a ØMQ context
+    // Creates a ZeroMQ context
     void *context = zmq_ctx_new();
     if (!context)
     {
@@ -357,7 +357,6 @@ int main(int argc, char *argv[])
 
         // Putting a delay in order not to fill-up the queues
         nanosleep(&wait, NULL);
-        //usleep(base_period * 1000);
 
         if (verbosity > 1)
         {
@@ -367,7 +366,6 @@ int main(int argc, char *argv[])
 
     // Wait a bit to allow the sockets to deliver
     nanosleep(&slow_joiner_wait, NULL);
-    //usleep(defaults_abcd_zmq_delay * 1000);
 
     const int ic = zmq_close(input_socket);
     if (ic != 0)
