@@ -122,7 +122,7 @@ int main(int argc, char *argv[])
     char *output_address = defaults_wafi_data_address;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hS:P:T:vV")) != -1) {
+    while ((c = getopt(argc, argv, "hA:D:T:vV")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
