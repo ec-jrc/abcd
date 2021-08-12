@@ -1,0 +1,29 @@
+extends layout
+
+block content
+  script(src='/static/javascripts/wadi.js')
+
+  h1 ABCD data acquisition system
+  h2 On-line waveforms display
+  div.display 
+    h3 Plot display
+    fieldset 
+      legend Controls
+      label Show channel: #[select(id="channel_select")] 
+      label Enable update: #[span.custom-slider #[input(type="checkbox" id="update_plot" checked="checked")] #[span.cursor]] 
+      button(id="download_waveform") Download waveform data 
+    div
+      p #[strong Timestamp:] #[span(id="timestamp_display")]
+    div(id="plot_waveform")
+  div.display 
+    h3 Connection status
+    p #[strong Computer hostname:] #{hostname}
+    p #[strong Name:] #{name} of type #{type}
+    p #[strong Webserver connection:] #[span#wit_connection_status.unknown_status No connection]
+  div.display 
+    h3 User interface settings
+    p
+      label Refresh time [s]:
+        input(type="number" id="time_refresh" value="3")
+
+  input(type="hidden" name=name id="module_name" value=name)
