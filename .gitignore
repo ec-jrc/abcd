@@ -11,6 +11,7 @@ replay/replay_raw
 replay/replay_events
 background_estimate/background_estimate
 wafi/wafi
+wadi/wadi
 cofi/cofi
 chafi/chafi
 enfi/enfi
