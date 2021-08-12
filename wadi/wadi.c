@@ -331,7 +331,7 @@ int main(int argc, char *argv[])
                 json_object_set_new_nocheck(json_message, "active_channels", active_channels);
                 json_object_set_new_nocheck(json_message, "channels", channels);
 
-                send_json_message(output_socket, "data_wadi_waveforms_v0", json_message, verbosity);
+                send_json_message(output_socket, defaults_wadi_data_waveforms_topic, json_message, verbosity);
                 msg_ID += 1;
 
                 json_decref(json_message);
