@@ -3,7 +3,6 @@ extends layout
 block content
   script(src='/static/javascripts/wadi.js')
 
-  h1 ABCD data acquisition system
   h2 On-line waveforms display
   div.display 
     h3 Plot display
@@ -25,5 +24,3 @@ block content
     p
       label Refresh time [s]:
         input(type="number" id="time_refresh" value="3")
-
-  input(type="hidden" name=name id="module_name" value=name)
