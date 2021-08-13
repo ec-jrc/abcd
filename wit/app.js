@@ -106,7 +106,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 router_module.set_config(config.modules);
 
 app.use('/', router_index(router_module.get_config()));
-app.use('/modules', router_module.create_router());
+app.use('/module', router_module.create_router());
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
