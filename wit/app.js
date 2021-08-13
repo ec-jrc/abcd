@@ -74,6 +74,9 @@ const config = JSON.parse(config_data);
 
 const heartbeat = Number(_.get(config, "heartbeat", 500));
 
+var io_modules_associations = {};
+var modules_pushes_associations = {};
+
 /**
  * Express initialization
  */
@@ -91,6 +94,8 @@ app.use('/jquery', express.static(path.join(__dirname, 'node_modules/jquery/dist
 app.use('/moment', express.static(path.join(__dirname, 'node_modules/moment/min/')));
 app.use('/plotly.js', express.static(path.join(__dirname, 'node_modules/plotly.js/dist/')));
 app.use('/lodash', express.static(path.join(__dirname, 'node_modules/lodash/')));
+app.use('/humanize-duration', express.static(path.join(__dirname, 'node_modules/humanize-duration/')));
+app.use('/file-size', express.static(path.join(__dirname, 'node_modules/file-size/')));
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -103,10 +108,13 @@ app.use(express.urlencoded({ extended: false }));
 app.use(lessMiddleware(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, 'public')));
 
-router_module.set_config(config.modules);
+router_module.init_sockets(app, logger, config.modules);
+modules_pushes_associations = router_module.get_sockets_push();
+
+app.use('/module', router_module.create_router());
+
 
 app.use('/', router_index(router_module.get_config()));
-app.use('/module', router_module.create_router());
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -157,15 +165,17 @@ io.on('connection', socket => {
 
   logger(req, res, (err) => res);
 
-  socket.on('join_module', message => {
-    debug("Joining socket " + socket.id + " to room: " + message);
-    socket.join(message);
+  socket.on('join_module', module_name => {
+    debug("Joining socket " + socket.id + " to room: " + module_name);
+    socket.join(module_name);
 
-    socket.emit("acknowledge", "Joined to room: " + message);
+    io_modules_associations[socket.id] = module_name;
+
+    socket.emit("acknowledge", "Joined to room: " + module_name);
 
     // Faking a request and response for morgan
     let req = {'method': 'SOCKET.IO',
-               'url': 'joining socket id: ' + socket.id + " to room: " + message};
+               'url': 'joining socket id: ' + socket.id + " to room: " + module_name};
     // With a true in headersSent morgan prints the status code
     let res = {'headersSent': true,
                'getHeader': (name) => '',
@@ -174,6 +184,21 @@ io.on('connection', socket => {
 
     logger(req, res, (err) => res);
   })
+
+  socket.on('command', message => {
+    try {
+      const module_name = io_modules_associations[socket.id];
+      const zmq_sockets_push = modules_pushes_associations[module_name];
+
+      debug("Sending message from id: " + socket.id + " to module: " + module_name);
+
+      for (let socket_push of zmq_sockets_push) {
+        socket_push.send(message);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  });
 
   socket.on('pong', message => {
     debug_heartbeat("Pong received from socket: " + socket.id);
