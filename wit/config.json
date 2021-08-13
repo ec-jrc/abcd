@@ -3,6 +3,43 @@
     "heartbeat": 1000,
     "modules": [
     {
+        "name": "data_saver",
+        "type": "dasa",
+        "description": "Data saver module",
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://127.0.0.1:16185",
+            "topic": "status_lmno"
+        },
+        {
+            "type": "events",
+            "address": "tcp://127.0.0.1:16185",
+            "topic": "events_lmno"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://127.0.0.1:16186"
+        },
+        {}
+        ],
+        "zzz": null
+    },
+    {
+        "name": "waveforms_display",
+        "type": "wadi",
+        "description": "On-line waveforms display",
+        "sockets": [
+        {
+            "type": "data",
+            "address": "tcp://127.0.0.1:16190",
+            "topic": "data_wadi_waveforms"
+        },
+        {}
+        ],
+        "zzz": null
+    },
+    {
         "name": "ToF_calculator",
         "type": "tofcalc",
         "description": "Time-of-Flight calculator",
@@ -25,20 +62,6 @@
         {
             "type": "commands",
             "address": "tcp://127.0.0.1:16202"
-        },
-        {}
-        ],
-        "zzz": null
-    },
-    {
-        "name": "waveforms_display",
-        "type": "wadi",
-        "description": "On-line waveforms display",
-        "sockets": [
-        {
-            "type": "data",
-            "address": "tcp://127.0.0.1:16190",
-            "topic": "data_wadi_waveforms"
         },
         {}
         ],

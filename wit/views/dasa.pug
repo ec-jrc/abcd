@@ -1,0 +1,39 @@
+extends layout
+
+block content
+  script(src='/static/javascripts/dasa.js')
+
+  h2 Data saving module
+  div.display 
+    h3 Controls
+    p
+      label File name: 
+        input(type="text" id="file_name")
+      button(id="button_start") Start
+      button(id="button_stop") Stop
+      ul
+        li
+          label #[input(type="checkbox" id="file_enable_events" checked)] Enable events file
+        li
+          label #[input(type="checkbox" id="file_enable_waveforms")] Enable waveforms file
+        li
+          label #[input(type="checkbox" id="file_enable_raw")] Enable raw file
+  div.display 
+    h3 Status
+    div#module_status
+  div.display 
+    h3 Events log
+    div#events_log
+  div.display 
+    h3 Connection status
+    p #[strong Computer hostname:] #{hostname}
+    p #[strong Name:] #{name} of type #{type}
+    p #[strong Webserver connection:] #[span#wit_connection_status.unknown_status No connection]
+    p #[strong Module connection:] #[span#module_connection_status.unknown_status No connection]
+  div.display 
+    h3 User interface settings
+    p
+      label Refresh time [s]:
+        input(type="number" id="time_refresh" value="3")
+
+  input(type="hidden" name=name id="module_name" value=name)

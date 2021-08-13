@@ -92,6 +92,100 @@ function selected_channel() {
     return parseInt($("#channel_select").val());
 }
 
+function update_events_log() {
+    let previous_events = [];
+
+    return function (events) {
+        if (! _.isEqual(previous_events, events)) {
+            previous_events = events;
+
+            if (events.length > 0) {
+                $("#events_log").text(" (" + events.length + ")");
+            } else {
+                $("#events_log").text('');
+            }
+
+            if (events.length > 0) {
+                const message = events[0];
+
+                const type = message["type"];
+                const timestamp = moment(message["timestamp"]);
+                const description = message[type];
+
+                var counts = []
+                counts[0] = {T: type, d: description, n: 1|0, t: timestamp};
+
+                for (let i = 1; i < events.length; i++) {
+                    const message = events[i];
+
+                    const type = message["type"];
+                    const timestamp = moment(message["timestamp"]);
+                    const description = message[type];
+
+                    const last_index = counts.length - 1;
+
+                    if (counts[last_index].d === description)
+                    {
+                        counts[last_index].n += 1|0;
+                        counts[last_index].t = timestamp;
+                    }
+                    else
+                    {
+                        counts.push({T: type, d: description, n: 1|0, t: timestamp});
+                    }
+                }
+
+                let ol = $("<ol>");
+
+                for (let i = 0; i < counts.length; i++) {
+                    let li = $("<li>");
+
+                    if (counts[i].n > 1) {
+                        li.text("[" + counts[i].t.format('LLL') + "] " + counts[i].d + " (x " + counts[i].n + ")");
+                    } else {
+                        li.text("[" + counts[i].t.format('LLL') + "] " + counts[i].d);
+                    }
+
+                    if (counts[i].T === 'error') {
+                        li.addClass("bad_status");
+                    }
+
+                    ol.append(li);
+                }
+
+                $("#events_log").html(ol);
+            }
+        }
+    }
+}
+
+function send_command (socket_io, command, kwargs_generator) {
+    let msg_counter = 0;
+
+    return function () {
+        let kwargs = null;
+
+        if (!_.isNil(kwargs_generator)) {
+            if (_.isFunction(kwargs_generator)) {
+                kwargs = kwargs_generator();
+            } else {
+                kwargs = kwargs_generator;
+            }
+        }
+
+        const now = moment().format();
+
+        const data = {"command": command,
+                      "arguments": kwargs,
+                      "msg_ID": msg_counter,
+                      "timestamp": now
+                     };
+
+        socket_io.emit("command", JSON.stringify(data));
+
+        msg_counter += 1;
+    }
+}
 
 function create_and_download_file (contents, file_name, file_type) {
     const data = new Blob([contents], {type: 'text/' + file_type});
