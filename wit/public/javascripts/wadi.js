@@ -18,6 +18,8 @@
 "use strict";
 
 function page_loaded() {
+    const utf8decoder = new TextDecoder("utf8");
+
     const default_time_refresh = 3;
 
     const layout_waveform = {
@@ -52,7 +54,6 @@ function page_loaded() {
 
     var socket_io = io();
 
-    const update_delay = 2;
     var next_update_plot = moment().add(-10, "seconds");
 
     var active_channels = [];
@@ -61,6 +62,8 @@ function page_loaded() {
     const module_name = String($('input#module_name').val());
     
     console.log("Module name: " + module_name);
+
+    $("#time_refresh").val(default_time_refresh);
 
     function add_to_waveforms(message) {
         //console.log("timestamp: " + message.timestamp);
@@ -76,40 +79,6 @@ function page_loaded() {
             }
 
             active_channels = _.sortBy(_.uniq(active_channels));
-        }
-    }
-
-    function selected_channel() {
-        return parseInt($("#channel_select").val());
-    }
-
-    function update_selector() {
-        let do_update = false;
-
-        if ($('#channel_select option').length !== active_channels.length) {
-            do_update = true;
-        } else {
-            const old_active = $("#channel_select option").map((index, element) => Number($(element).val())).toArray();
-
-            if (!_.isEqual(active_channels, old_active)) {
-                do_update = true;
-            }
-        }
-
-        if (do_update) {
-            //console.log("Updating selector");
-
-            const this_selected_channel = selected_channel();
-
-            let channel_select = $("#channel_select").html('');
-
-            for (let active_channel of active_channels) {
-               if (active_channel === this_selected_channel) {                                      
-                   channel_select.append($('<option>', {value: active_channel, text: String(active_channel), selected: "selected"}));
-               } else {                                                         
-                   channel_select.append($('<option>', {value: active_channel, text: String(active_channel)}));                                    
-               }                      
-            }
         }
     }
 
@@ -169,48 +138,15 @@ function page_loaded() {
         }
     }
 
-    function socket_io_connection() {
-        console.log("Connected to wit server");
-
-        $('#wit_connection_status').removeClass();
-        $('#wit_connection_status').addClass("good_status").text("Connection OK");
-    
-        //socket_io.on('event_gui', generate_update_events("gui"));
-    
-        socket_io.emit('join_module', (function () {
-            console.log("Requesting to join a room with name: " + module_name);
-            return module_name;
-        })());
-
-        socket_io.on('acknowledge', function (message) {
-            console.log("Acknowledge message: " + message);
-        });
-
-        socket_io.on('ping', function (message) {
-            socket_io.emit('pong', { "timestamp" : moment() });
-        });
-
-        socket_io.on('data', function (message) {
-            let utf8decoder = new TextDecoder("utf8");
-            const decoded_string = utf8decoder.decode(message);
-            const new_waveforms = JSON.parse(decoded_string);
-            add_to_waveforms(new_waveforms);
-            update_selector();
-            update_plot();
-        });
-    
-        socket_io.on('disconnect', socket_io_disconnection);
+    function on_data(message) {
+        const decoded_string = utf8decoder.decode(message);
+        const new_waveforms = JSON.parse(decoded_string);
+        add_to_waveforms(new_waveforms);
+        update_selector(active_channels);
+        update_plot();
     }
 
-    
-    function socket_io_disconnection(error) {
-        console.log("Server disconnected, error: " + error);
-    
-        $('#wit_connection_status').removeClass().addClass("unknown_status");
-        $('#wit_connection_status').text("No connection");
-    }
-    
-    socket_io.on("connect", socket_io_connection);
+    socket_io.on("connect", socket_io_connection(socket_io, module_name, null, null, on_data));
 
     $("#channel_select").on('change', function () {
         console.log("Changed channel");
@@ -255,8 +191,6 @@ function page_loaded() {
             console.error(error);
         }
     });
-
-    $("#time_refresh").val(default_time_refresh);
 
     create_plot();
     

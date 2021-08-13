@@ -17,6 +17,82 @@
 
 "use strict";
 
+function socket_io_connection(socket_io, module_name, on_status, on_events, on_data) {
+    return function () {
+        console.log("Connected to wit server");
+
+        $('#wit_connection_status').removeClass().addClass("good_status").text("Connection OK");
+
+        socket_io.emit('join_module', (function () {
+            console.log("Requesting to join a room with name: " + module_name);
+            return module_name;
+        })());
+
+        socket_io.on('acknowledge', function (message) {
+            console.log("Acknowledge message: " + message);
+        });
+
+        socket_io.on('ping', function (message) {
+            socket_io.emit('pong', { "timestamp" : moment() });
+        });
+
+        if (!_.isNil(on_status)) {
+            socket_io.on('status', on_status);
+        }
+        if (!_.isNil(on_events)) {
+            socket_io.on('events', on_events);
+        }
+        if (!_.isNil(on_data)) {
+            socket_io.on('data', on_data);
+        }
+
+        socket_io.on('disconnect', socket_io_disconnection);
+    }
+}
+
+function socket_io_disconnection(error) {
+    console.log("Server disconnected, error: " + error);
+
+    $('#wit_connection_status').removeClass().addClass("unknown_status").text("No connection");
+}
+    
+function update_selector(active_channels) {
+    const sorted_actives = _.sortBy(active_channels);
+
+    let do_update = false;
+
+    if ($('#channel_select option').length !== sorted_actives.length) {
+        do_update = true;
+    } else {
+        const old_actives = _.sortBy($("#channel_select option").map((index, element) => Number($(element).val())).toArray());
+
+        if (!_.isEqual(sorted_actives, old_actives)) {
+            do_update = true;
+        }
+    }
+
+    if (do_update) {
+        //console.log("Updating selector");
+
+        const this_selected_channel = selected_channel();
+
+        let channel_select = $("#channel_select").html('');
+
+        for (let active_channel of sorted_actives) {
+           if (active_channel === this_selected_channel) {                                      
+               channel_select.append($('<option>', {value: active_channel, text: String(active_channel), selected: "selected"}));
+           } else {                                                         
+               channel_select.append($('<option>', {value: active_channel, text: String(active_channel)}));                                    
+           }                      
+        }
+    }
+}
+
+function selected_channel() {
+    return parseInt($("#channel_select").val());
+}
+
+
 function create_and_download_file (contents, file_name, file_type) {
     const data = new Blob([contents], {type: 'text/' + file_type});
 
