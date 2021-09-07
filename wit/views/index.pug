@@ -1,0 +1,19 @@
+extends layout
+
+block content
+  h2 Landing page
+
+  div.display
+    h3 Computer hostname
+    p #{hostname}
+
+  div.display
+    h3 Active modules
+    ul
+      each module in modules
+        li
+          p #[strong Name:] #[a(href=`/module/` + module.name) #{module.name}]
+          p #[strong Module type:] #{module.type}
+          p #[strong Description:] #{module.description}
+      else
+        li No modules detected

@@ -1,0 +1,13 @@
+doctype html
+html
+  head
+    title= title
+    link(rel='stylesheet', href='/fira-sans/latin.css')
+    link(rel='stylesheet', href='/fira-mono/latin.css')
+    link(rel='stylesheet', href='/material-icons/index.css')
+    link(rel='stylesheet', href='/stylesheets/style.css')
+    include scripts.pug
+  body
+    h1 ABCD data acquisition system
+    block content
+    input(type="hidden" name=name id="module_name" value=name)

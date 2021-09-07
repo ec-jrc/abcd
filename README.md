@@ -4,8 +4,6 @@ ABCD is a distributed Data Acquisition System (DAQ), in which each task related 
 Its main application is the acquisition of data from detectors in Nuclear Physics experiments.
 The system is composed of a set of very simple modules that exchange information through dedicated communication sockets.
 ABCD supports the acquisition from various signal digitizers from different vendors (_e.g._ [CAEN](http://www.caen.it/), [Red Pitaya](https://www.redpitaya.com/), and [Digilent](https://store.digilentinc.com/)).
-digitizers (_e.g._ [V1730](http://www.caen.it/csite/CaenProd.jsp?idmod=779&parent=11), [DT5730](http://www.caen.it/csite/CaenProd.jsp?parent=14&idmod=757), ...) with the standard or the [DPP-PSD](http://www.caen.it/csite/CaenProd.jsp?parent=39&idmod=770) firmwares.
-Both the USB and the OpticalLink connections are supported.
 The user interface is implemented as a web-service and can be accessed with a regular web browser.
 
 ## Introductory video

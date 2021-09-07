@@ -119,6 +119,9 @@
 #define defaults_califo_status_topic "status_califo"
 #define defaults_califo_events_topic "events_califo"
 
+#define defaults_wafi_data_waveforms_topic "data_wafi_waveforms"
+#define defaults_wadi_data_waveforms_topic "data_wadi_waveforms"
+
 #define defaults_waan_status_topic "status_waan"
 #define defaults_waan_events_topic "events_waan"
 
