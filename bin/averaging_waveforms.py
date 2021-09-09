@@ -204,17 +204,16 @@ if args.save_data:
         print("Exporting to {}".format(new_file))
                      
         with open(new_file, "w") as output_file:
-            output_file.write("# Average waveform\n")
-            output_file.write("# Baseline samples: {:d}\n".format(args.baseline_samples))
-            output_file.write("# Long gate: {:d}\n".format(args.long_gate))
-            output_file.write("# Energy: {:f} to {:f}\n".format(args.energy_min, args.energy_max))
-            output_file.write("# N: {:d}\n".format(counter_averaged))
-            output_file.write("# Pulse polarity: {}\n".format(args.pulse_polarity))
-            output_file.write("#i\tsample")
+            output_file.write("#i,averaged sample")
+            output_file.write(",Baseline samples: {:d}".format(args.baseline_samples))
+            output_file.write(",Long gate: {:d}".format(args.long_gate))
+            output_file.write(",Energy: {:f} to {:f}".format(args.energy_min, args.energy_max))
+            output_file.write(",N: {:d}".format(counter_averaged))
+            output_file.write(",Pulse polarity: {}".format(args.pulse_polarity))
             output_file.write("\n")
 
             for index, sample in enumerate(samples_averaged):
-                output_file.write("{:d}\t{:f}".format(index, sample))
+                output_file.write("{:d},{:f}".format(index, sample))
                 output_file.write("\n")
 
     except Exception as e:
