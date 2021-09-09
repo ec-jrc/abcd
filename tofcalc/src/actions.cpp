@@ -638,12 +638,15 @@ bool actions::generic::read_socket(status &global_status)
                                 }
                                 else
                                 {
-                                    histogram_fill(histo_ToF, time_of_flight);
-                                    histogram_fill(histo_E, that_event.qlong);
-                                    histogram2D_fill(histo_EToF, time_of_flight, that_event.qlong);
-                                    global_status.partial_counts[that_event.channel] += 1;
+                                    if (histo_EToF->min_x <= time_of_flight && time_of_flight < histo_EToF->max_x &&
+                                        histo_EToF->min_y <= that_event.qlong && that_event.qlong < histo_EToF->max_y) {
+                                        histogram_fill(histo_ToF, time_of_flight);
+                                        histogram_fill(histo_E, that_event.qlong);
+                                        histogram2D_fill(histo_EToF, time_of_flight, that_event.qlong);
+                                        global_status.partial_counts[that_event.channel] += 1;
     
-                                    found_coincidences += 1;
+                                        found_coincidences += 1;
+                                    }
                                 }
                             }
                         }
@@ -717,12 +720,15 @@ bool actions::generic::read_socket(status &global_status)
                                 }
                                 else
                                 {
-                                    histogram_fill(histo_ToF, time_of_flight);
-                                    histogram_fill(histo_E, that_event.qlong);
-                                    histogram2D_fill(histo_EToF, time_of_flight, that_event.qlong);
-                                    global_status.partial_counts[that_event.channel] += 1;
+                                    if (histo_EToF->min_x <= time_of_flight && time_of_flight < histo_EToF->max_x &&
+                                        histo_EToF->min_y <= that_event.qlong && that_event.qlong < histo_EToF->max_y) {
+                                        histogram_fill(histo_ToF, time_of_flight);
+                                        histogram_fill(histo_E, that_event.qlong);
+                                        histogram2D_fill(histo_EToF, time_of_flight, that_event.qlong);
+                                        global_status.partial_counts[that_event.channel] += 1;
     
-                                    found_coincidences += 1;
+                                        found_coincidences += 1;
+                                    }
                                 }
                             }
                         }
