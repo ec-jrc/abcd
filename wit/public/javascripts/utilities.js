@@ -17,6 +17,9 @@
 
 "use strict";
 
+dayjs.extend(window.dayjs_plugin_duration);
+dayjs.extend(window.dayjs_plugin_localizedFormat);
+
 function socket_io_connection(socket_io, module_name, on_status, on_events, on_data) {
     return function () {
         console.log("Connected to wit server");

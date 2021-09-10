@@ -18,8 +18,6 @@
 "use strict";
 
 function page_loaded() {
-    dayjs.extend(window.dayjs_plugin_duration);
-
     const utf8decoder = new TextDecoder("utf8");
 
     var connection_checker = new ConnectionChecker();
