@@ -1,0 +1,42 @@
+extends layout
+
+block content
+  script(src='/static/javascripts/abcd.js')
+  script(src='/ace/ace.js' type="text/javascript" charset="utf-8")
+
+  h2 Data saving module
+  div.display 
+    h3 Controls
+    p
+      button(id="button_start") Start
+      button(id="button_stop") Stop
+    p
+      button(id="button_starttimer") Start with timer
+      | #{' '} 
+      label Acquisition time [min]:
+        input(type="number" id="acquisition_time" value="10")
+  div.display 
+    h3 Status
+    div#module_status
+  div.display 
+    h3 Digitizer configuration
+    p
+      button(id="button_config_send") Send configuration
+      button(id="button_config_get") Get configuration
+      button(id="button_config_download") Download configuration
+    p
+      div#online_editor
+  div.display 
+    h3 Events log
+    div#events_log
+  div.display 
+    h3 Connection status
+    p #[strong Computer hostname:] #{hostname}
+    p #[strong Name:] #{name} of type #{type}
+    p #[strong Webserver connection:] #[span#wit_connection_status.unknown_status No connection]
+    p #[strong Module connection:] #[span#module_connection_status.unknown_status No connection]
+  div.display 
+    h3 User interface settings
+    p
+      label Expiration time [s]:
+        input(type="number" id="time_expiration" value="10")
