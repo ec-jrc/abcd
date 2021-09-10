@@ -11,7 +11,7 @@ var path = require('path');
 var lessMiddleware = require('less-middleware');
 var _ = require('lodash');
 var morgan = require('morgan');
-const moment = require('moment');
+const dayjs = require('dayjs');
 var debug = require('debug')('wit:server');
 var debug_heartbeat = require('debug')('wit:server:heartbeat');
 var http = require('http');
@@ -91,7 +91,7 @@ app.use('/fira-mono', express.static(path.join(__dirname, 'node_modules/@fontsou
 app.use('/material-icons', express.static(path.join(__dirname, 'node_modules/@fontsource/material-icons/')));
 
 app.use('/jquery', express.static(path.join(__dirname, 'node_modules/jquery/dist/')));
-app.use('/moment', express.static(path.join(__dirname, 'node_modules/moment/min/')));
+app.use('/dayjs', express.static(path.join(__dirname, 'node_modules/dayjs/')));
 app.use('/plotly.js', express.static(path.join(__dirname, 'node_modules/plotly.js/dist/')));
 app.use('/lodash', express.static(path.join(__dirname, 'node_modules/lodash/')));
 app.use('/humanize-duration', express.static(path.join(__dirname, 'node_modules/humanize-duration/')));
@@ -226,7 +226,7 @@ io.on('connection', socket => {
  */
  
 setInterval(function () {
-  io.emit('ping', { "timestamp" : moment() });
+  io.emit('ping', { "timestamp" : dayjs() });
 }, heartbeat);
 
 /**

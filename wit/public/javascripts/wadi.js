@@ -54,7 +54,7 @@ function page_loaded() {
 
     var socket_io = io();
 
-    var next_update_plot = moment().add(-10, "seconds");
+    var next_update_plot = dayjs().add(-10, "seconds");
 
     var active_channels = [];
     var waveforms = {};
@@ -89,7 +89,7 @@ function page_loaded() {
     function update_plot(force) {
         const force_update = !_.isNil(force);
 
-        const now = moment();
+        const now = dayjs();
         const difference = next_update_plot.diff(now, "seconds");
 
         const can_update = $('#update_plot').is(":checked");
@@ -134,7 +134,7 @@ function page_loaded() {
             Plotly.react('plot_waveform', data, layout_waveform);
 
             const refresh_time = Number($("#time_refresh").val());
-            next_update_plot = moment().add(refresh_time, "seconds");
+            next_update_plot = dayjs().add(refresh_time, "seconds");
         }
     }
 
@@ -155,7 +155,7 @@ function page_loaded() {
 
     $("#time_refresh").on('change', function () {
         const refresh_time = Number($("#time_refresh").val());
-        next_update_plot = moment().add(refresh_time, "seconds");
+        next_update_plot = dayjs().add(refresh_time, "seconds");
         update_plot();
     });
 

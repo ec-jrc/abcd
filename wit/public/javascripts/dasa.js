@@ -1,4 +1,4 @@
-// (C) Copyright 2016,2020 Cristiano Lino Fontana
+// (C) Copyright 2016,2020,2021 European Union, Cristiano Lino Fontana
 //
 // This file is part of ABCD.
 //
@@ -18,6 +18,8 @@
 "use strict";
 
 function page_loaded() {
+    dayjs.extend(window.dayjs_plugin_duration);
+
     const utf8decoder = new TextDecoder("utf8");
 
     var socket_io = io();
@@ -33,7 +35,7 @@ function page_loaded() {
         let status_list = $("<ul>");
 
         if (_.has(new_status, "runtime")) {
-            const run_time = moment.duration(new_status["runtime"], "seconds");
+            const run_time = dayjs.duration(new_status["runtime"], "seconds");
             $("<li>").text("Saving time: " + humanizeDuration(run_time.asMilliseconds()) + " (" + run_time.asSeconds() + " s)").appendTo(status_list);
         } else {
             $("<li>").text("Saving time: none").appendTo(status_list);
