@@ -22,7 +22,7 @@ function page_loaded() {
 
     const utf8decoder = new TextDecoder("utf8");
 
-    const connection_checker = new ConnectionChecker();
+    var connection_checker = new ConnectionChecker();
 
     var socket_io = io();
 
