@@ -33,7 +33,7 @@ function socket_io_connection(socket_io, module_name, on_status, on_events, on_d
         });
 
         socket_io.on('ping', function (message) {
-            socket_io.emit('pong', { "timestamp" : moment() });
+            socket_io.emit('pong', { "timestamp" : dayjs() });
         });
 
         if (!_.isNil(on_status)) {
@@ -109,7 +109,7 @@ function update_events_log() {
                 const message = events[0];
 
                 const type = message["type"];
-                const timestamp = moment(message["timestamp"]);
+                const timestamp = dayjs(message["timestamp"]);
                 const description = message[type];
 
                 var counts = []
@@ -119,7 +119,7 @@ function update_events_log() {
                     const message = events[i];
 
                     const type = message["type"];
-                    const timestamp = moment(message["timestamp"]);
+                    const timestamp = dayjs(message["timestamp"]);
                     const description = message[type];
 
                     const last_index = counts.length - 1;
@@ -159,7 +159,7 @@ function update_events_log() {
     }
 }
 
-function send_command (socket_io, command, kwargs_generator) {
+function send_command(socket_io, command, kwargs_generator) {
     let msg_counter = 0;
 
     return function () {
@@ -173,7 +173,13 @@ function send_command (socket_io, command, kwargs_generator) {
             }
         }
 
-        const now = moment().format();
+        const now = dayjs().format();
+
+        if (_.isNil(kwargs)) {
+            console.log("Sending command: " + String(command));
+        } else {
+            console.log("Sending command: " + String(command) + " with arguments: " + JSON.stringify(kwargs))
+        }
 
         const data = {"command": command,
                       "arguments": kwargs,
@@ -201,40 +207,44 @@ function create_and_download_file (contents, file_name, file_type) {
     a.dispatchEvent(click_event);
 }
 
-function check_connection (timestamp) {
-    // Expiration time in seconds
-    const expiration = Math.abs(Number($("#time_expiration").val()));
-
-    const now = moment();
-    const then = moment(timestamp);
-
-    const difference = now.diff(then, 'seconds');
-
-    //console.log("Expiration: " + expiration + "; difference: " + difference);
-
-    if (difference < expiration) {
-        return true;
-    } else {
-        return false;
+class ConnectionChecker {
+    constructor() {
+        this.last_timestamp = dayjs();
     }
-}
+    beat () {
+        this.last_timestamp = dayjs();
+    }
+    check(timestamp) {
+        const then = _.isNil(timestamp) ? this.last_timestamp : timestamp;
 
-function display_connection (module) {
-    const connected = check_connection(last_timestamp);
-    const then = moment(last_timestamp);
+        // Expiration time in seconds
+        const expiration = Math.abs(parseFloat($("#time_expiration").val()));
 
-    //console.log("Module: " + module + "; last timestamp: " + last_timestamp + "; connected: " + connected);
+        const now = dayjs();
 
-    $("#" + module + "_connection_status").removeClass();
-    $("#" + module + "_general_status").removeClass();
+        const difference = now.diff(then, 'seconds');
 
-    if (connected) {
-        $("#" + module + "_connection_status").addClass("good_status").text('Connection OK');
-    } else if (then.isValid()) {
-        $("#" + module + "_general_status").addClass("unknown_status");
-        $("#" + module + "_connection_status").addClass("bad_status").text('Connection lost, last update: ' + then.format('LLL'));
-    } else {
-        $("#" + module + "_general_status").addClass("unknown_status");
-        $("#" + module + "_connection_status").addClass("unknown_status").text('No connection');
+        //console.log("Expiration: " + expiration + "; difference: " + difference);
+
+        if (difference < expiration) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    display () {
+        const connected = this.check();
+
+        //console.log("Last timestamp: " + this.last_timestamp.format() + "; connected: " + connected);
+
+        $("#module_connection_status").removeClass();
+        $("#module_status").removeClass();
+
+        if (connected) {
+            $("#module_connection_status").addClass("good_status").text('Connection OK');
+        } else {
+            $("#module_status").addClass("unknown_status");
+            $("#module_connection_status").addClass("unknown_status").text('No connection');
+        }
     }
 }
