@@ -22,6 +22,8 @@ function page_loaded() {
 
     const utf8decoder = new TextDecoder("utf8");
 
+    var connection_checker = new ConnectionChecker();
+
     var socket_io = io();
 
     const module_name = String($('input#module_name').val());
@@ -31,6 +33,8 @@ function page_loaded() {
     function on_status(message) {
         const decoded_string = utf8decoder.decode(message);
         const new_status = JSON.parse(decoded_string);
+
+        connection_checker.beat();
 
         let status_list = $("<ul>");
 
@@ -128,6 +132,11 @@ function page_loaded() {
     }
 
     socket_io.on("connect", socket_io_connection(socket_io, module_name, on_status, update_events_log(), null));
+
+    window.setInterval(function () {
+        connection_checker.display();
+    }, 1000);
+
 
     $("#button_start").on("click", send_command(socket_io, 'start', dasa_arguments));
     $("#button_stop").on("click", send_command(socket_io, 'stop'));
