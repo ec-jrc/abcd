@@ -3,6 +3,43 @@
     "heartbeat": 1000,
     "modules": [
     {
+        "name": "digitizer_interface",
+        "type": "abcd",
+        "description": "Digitizer interface",
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://127.0.0.1:16180",
+            "topic": "status_abcd"
+        },
+        {
+            "type": "events",
+            "address": "tcp://127.0.0.1:16180",
+            "topic": "events_abcd"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://127.0.0.1:16182"
+        },
+        {}
+        ],
+        "zzz": null
+    },
+    {
+        "name": "waveforms_display",
+        "type": "wadi",
+        "description": "On-line waveforms display",
+        "sockets": [
+        {
+            "type": "data",
+            "address": "tcp://127.0.0.1:16190",
+            "topic": "data_wadi_waveforms"
+        },
+        {}
+        ],
+        "zzz": null
+    },
+    {
         "name": "data_saver",
         "type": "dasa",
         "description": "Data saver module",
@@ -20,20 +57,6 @@
         {
             "type": "commands",
             "address": "tcp://127.0.0.1:16186"
-        },
-        {}
-        ],
-        "zzz": null
-    },
-    {
-        "name": "waveforms_display",
-        "type": "wadi",
-        "description": "On-line waveforms display",
-        "sockets": [
-        {
-            "type": "data",
-            "address": "tcp://127.0.0.1:16190",
-            "topic": "data_wadi_waveforms"
         },
         {}
         ],
