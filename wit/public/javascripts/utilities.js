@@ -1,4 +1,4 @@
-// (C) Copyright 2016,2021 Cristiano Lino Fontana
+// (C) Copyright 2016,2021 European Union, Cristiano Lino Fontana
 //
 // This file is part of ABCD.
 //
