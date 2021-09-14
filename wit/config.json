@@ -63,6 +63,34 @@
         "zzz": null
     },
     {
+        "name": "spectrum_calculator",
+        "type": "spec",
+        "description": "Spectrum calculator",
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://127.0.0.1:16187",
+            "topic": "status_pqrs"
+        },
+        {
+            "type": "events",
+            "address": "tcp://127.0.0.1:16187",
+            "topic": "events_pqrs"
+        },
+        {
+            "type": "data",
+            "address": "tcp://127.0.0.1:16188",
+            "topic": "data_pqrs_histograms"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://127.0.0.1:16189"
+        },
+        {}
+        ],
+        "zzz": null
+    },
+    {
         "name": "ToF_calculator",
         "type": "tofcalc",
         "description": "Time-of-Flight calculator",
