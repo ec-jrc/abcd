@@ -171,18 +171,18 @@
 #define defaults_lmno_extenstion_raw "adr"
 
 #define defaults_pqrs_verbosity 1
-#define defaults_pqrs_publish_timeout 3
+#define defaults_pqrs_publish_timeout 4
 #define defaults_pqrs_bins_qshort 128
-#define defaults_pqrs_bins_E 256
+#define defaults_pqrs_bins_E 512
 #define defaults_pqrs_bins_PSD 128
 #define defaults_pqrs_bins_baseline 128
 #define defaults_pqrs_bins_rate 128
 #define defaults_pqrs_min_qshort 10
 #define defaults_pqrs_max_qshort 10000
-#define defaults_pqrs_min_E 100
-#define defaults_pqrs_max_E 60000
+#define defaults_pqrs_min_E 0
+#define defaults_pqrs_max_E 40960
 #define defaults_pqrs_min_PSD -0.1
-#define defaults_pqrs_max_PSD 0.7
+#define defaults_pqrs_max_PSD 1.0
 #define defaults_pqrs_max_baseline 4096
 #define defaults_pqrs_max_rate 500000
 
