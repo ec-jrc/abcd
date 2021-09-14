@@ -21,6 +21,7 @@ function page_loaded() {
     const utf8decoder = new TextDecoder("utf8");
 
     const default_time_refresh = 4;
+    const default_plot_height = 900;
 
     var connection_checker = new ConnectionChecker();
 
@@ -69,48 +70,15 @@ function page_loaded() {
            l: 50,
            r: 10
         },
+        grid: {
+            rows: 2,
+            columns: 1,
+            subplots:[['xy'], ['xy2']],
+            roworder:'top to bottom'
+        },
         hovermode: 'closest'
     };
 
-    var updatemenus_PSD = [
-        {
-            buttons: [
-                //{
-                //    args: ['yaxis.type', 'lin'],
-                //    label:'Linear',
-                //    method:'relayout'
-                //},
-                //{
-                //    args: ['yaxis.type', 'log'],
-                //    label: 'Logarithmic',
-                //    method: 'relayout'
-                //}
-            ]
-        }
-    ]
-
-    var layout_PSD = {
-        yaxis: {
-            autorange: true,
-            showspikes: true,
-            spikemode: 'across',
-            autotick: true
-        },
-        xaxis: {
-            autorange: true,
-            showspikes: true,
-            spikemode: 'across',
-            autotick: true
-        },
-        updatemenus: updatemenus_PSD,
-        margin: {
-           t: 10,
-           l: 50,
-           r: 10
-        },
-        type: 'heatmap',
-        hovermode: 'closest'
-    };
     const config_spectrum = {
         responsive: true
     }
@@ -278,8 +246,7 @@ function page_loaded() {
     }
 
     function create_plot() {
-        Plotly.newPlot('plot_spectrum', [], layout_spectrum, config_spectrum);
-        Plotly.newPlot('plot_PSD', [], layout_PSD, config_spectrum);
+        Plotly.newPlot('plot_spectrum', [{}, {}], layout_spectrum, config_spectrum);
     }
 
     function update_plot(force) {
@@ -302,15 +269,13 @@ function page_loaded() {
             const spectrum = {
                 x: edges,
                 y: histo.data,
+                xaxis: 'x',
+                yaxis: 'y',
                 mode: 'lines',
                 line: {shape: 'hv'},
                 name: 'Spectrum',
                 type: 'scatter'
             };
-
-            const spectrum_data = [spectrum];
-
-            Plotly.react('plot_spectrum', spectrum_data, layout_spectrum);
 
             const histo2D = spectra[selected_channel()].PSD;
 
@@ -348,13 +313,17 @@ function page_loaded() {
                 x: edges_x,
                 y: edges_y,
                 z: heights,
+                xaxis: 'x',
+                yaxis: 'y2',
+                name: 'PSD vs E',
                 colorscale: 'Viridis',
+                showscale: false,
                 type: 'heatmap'
             };
 
-            const PSD_data = [PSD];
+            const spectrum_data = [spectrum, PSD];
 
-            Plotly.react('plot_PSD', PSD_data, layout_PSD);
+            Plotly.react('plot_spectrum', spectrum_data, layout_spectrum);
 
             const refresh_time = Number($("#time_refresh").val());
             next_update_plot = dayjs().add(refresh_time, "seconds");
@@ -460,6 +429,16 @@ function page_loaded() {
     $("#button_config_send").on("click", send_command(socket_io, 'reconfigure', spec_arguments_reconfigure));
     $("#button_reset_channel").on("click", send_command(socket_io, 'reset', spec_arguments_reset()));
     $("#button_reset_all").on("click", send_command(socket_io, 'reset', spec_arguments_reset("all")));
+
+    // This part is to trigger a window resize to convince plotly to resize the plot
+    var observer = new MutationObserver(function(mutations) {
+        window.dispatchEvent(new Event('resize'));
+    });
+      
+    observer.observe($("#plot_spectrum")[0], {attributes: true})
+
+    // Then force a resize...
+    $("#plot_spectrum").css("height", "" + default_plot_height + "px");
 
     create_plot();
 }
