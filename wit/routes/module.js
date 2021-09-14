@@ -16,7 +16,7 @@ var logger = null;
 
 var clean_configs = [];
 
-var zmq_sockets_sub = {};
+//var zmq_sockets_sub = {};
 var zmq_sockets_push = {};
 var modules_events = {};
 
@@ -101,7 +101,7 @@ function create_zmq_socket(module_name, socket_config) {
       }
     });
 
-    zmq_sockets_sub[module_name].push(sock);
+    //zmq_sockets_sub[module_name].push(sock);
 
   } else if (socket_type === "events") {
     var sock = zmq.socket('sub');
@@ -126,7 +126,7 @@ function create_zmq_socket(module_name, socket_config) {
       }
     });
 
-    zmq_sockets_sub[module_name].push(sock);
+    //zmq_sockets_sub[module_name].push(sock);
 
   } else if (socket_type === "commands") {
     var sock = zmq.socket('push');
@@ -151,7 +151,7 @@ function init_sockets(this_app, this_logger, modules_configs) {
 
     debug("Creating sockets for module: " + module_name + " of type: " + module_type);
 
-    zmq_sockets_sub[module_name] = [];
+    //zmq_sockets_sub[module_name] = [];
     zmq_sockets_push[module_name] = [];
     modules_events[module_name] = [];
 
