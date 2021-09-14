@@ -11,8 +11,7 @@ block content
       p
         label Show channel: #[select(id="channel_select")] 
         button(id="button_download_spectrum_data") Download spectrum data 
-    div(id="plot_spectrum")
-    div(id="plot_PSD")
+    div#plot_spectrum.plot_display
   div.display 
     h3 Channels rates
     div#channels_rates
