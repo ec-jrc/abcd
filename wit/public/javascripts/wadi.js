@@ -25,19 +25,21 @@ function page_loaded() {
     const layout_waveform = {
         yaxis: {
             autorange: true,
-            showpikes: true,
             //tick0: 0
-            autotick: true
+            autotick: true,
+            showspikes: true,
+            spikemode: 'across'
+        },
+        xaxis: {
+            autorange: true,
+            autotick: true,
+            showspikes: true,
+            spikemode: 'across'
         },
         margin: {
            t: 10,
            l: 50,
            r: 10
-        },
-        xaxis: {
-            autorange: true,
-            showpikes: true,
-            autotick: true
         },
         grid: {
             rows: 2,
@@ -124,7 +126,7 @@ function page_loaded() {
                     yaxis: 'y2',
                     mode: 'lines',
                     line: {shape: 'hv'},
-                    name: 'Gate ' + gate_index,
+                    name: 'Additional ' + gate_index,
                     type: 'scatter'
                 });
 
@@ -146,29 +148,16 @@ function page_loaded() {
         update_plot();
     }
 
-    socket_io.on("connect", socket_io_connection(socket_io, module_name, null, null, on_data));
-
-    $("#channel_select").on('change', function () {
-        console.log("Changed channel");
-        update_plot(true);
-    });
-
-    $("#time_refresh").on('change', function () {
-        const refresh_time = Number($("#time_refresh").val());
-        next_update_plot = dayjs().add(refresh_time, "seconds");
-        update_plot();
-    });
-
-    $("#download_waveform").on("click", function () {
+    function download_spectrum_data() {
         try {
             const this_selected_channel = selected_channel();
             const timestamp = waveforms[this_selected_channel].timestamp;
 
-            let csv_text = "#Waveform channel: " + this_selected_channel + " timestamp: " + timestamp + "\r\n";
+            let csv_text = "#Waveform channel: " + this_selected_channel + " timestamp: " + timestamp + " created on: " + dayjs().format() + "\r\n";
             csv_text += "#index,sample"; 
 
             for (let inner_index = 0; inner_index < waveforms[this_selected_channel].gates.length; inner_index ++) {
-                csv_text += ",gate" + inner_index;
+                csv_text += ",additional" + inner_index;
             }
 
             csv_text += "\r\n";
@@ -186,11 +175,26 @@ function page_loaded() {
                 csv_text += "\r\n";
             }
         
-            create_and_download_file(csv_text, "waveform_channel" + this_selected_channel + "_timestamp" + timestamp + ".csv", "txt");
+            create_and_download_file(csv_text, "Waveform of channel " + this_selected_channel + " with timestamp " + timestamp + ".csv", "txt");
         } catch (error) {
             console.error(error);
         }
+    }
+
+    socket_io.on("connect", socket_io_connection(socket_io, module_name, null, null, on_data));
+
+    $("#channel_select").on('change', function () {
+        console.log("Changed channel");
+        update_plot(true);
     });
+
+    $("#time_refresh").on('change', function () {
+        const refresh_time = Number($("#time_refresh").val());
+        next_update_plot = dayjs().add(refresh_time, "seconds");
+        update_plot();
+    });
+
+    $("#download_waveform").on("click", download_spectrum_data);
 
     create_plot();
     
