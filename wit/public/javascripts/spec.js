@@ -376,7 +376,9 @@ function page_loaded() {
 
             const delta = (histo.config.max - histo.config.min) / histo.config.bins;
 
-            let csv_text = "#index,counts for channel: " + this_selected_channel + "\r\n";
+            let csv_text = "#Spectrum for channel: " + this_selected_channel + " created on: " + dayjs().format() + "\r\n";
+
+            csv_text += "#left_edge,counts\r\n";
 
             for (let index = 0; index < histo.data.length; index ++) {
                 const edge = index * delta + histo.config.min;
