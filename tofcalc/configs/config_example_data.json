@@ -1,0 +1,33 @@
+{
+    "module": "tofcalc",
+    "channels": [
+    {
+        "id": 1,
+        "reference": true,
+        "note": "LaBr"
+    },
+    {
+        "id": 6,
+        "reference": false,
+        "bins_ToF": 200,
+        "min_ToF": -80,
+        "max_ToF": -30,
+        "bins_E": 500,
+        "min_E": 0,
+        "max_E": 10000,
+        "note": "CeBr"
+    },
+    {
+        "id": 7,
+        "reference": false,
+        "bins_ToF": 200,
+        "min_ToF": -80,
+        "max_ToF": -30,
+        "bins_E": 500,
+        "min_E": 0,
+        "max_E": 10000,
+        "note": "CeBr"
+    },
+    {}
+    ]
+}
