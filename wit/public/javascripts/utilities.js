@@ -210,6 +210,19 @@ function create_and_download_file (contents, file_name, file_type) {
     a.dispatchEvent(click_event);
 }
 
+function generate_slider (id, checked) {
+    var slider = $("<label>");
+    slider.addClass("custom-slider");
+    if (checked) {
+        slider.append($("<input>", {type: "checkbox", id: id, checked: "checked"}));
+    } else {
+        slider.append($("<input>", {type: "checkbox", id: id}));
+    }
+    slider.append($("<span>").addClass("cursor"));
+
+    return slider;
+}
+
 class ConnectionChecker {
     constructor() {
         this.last_timestamp = dayjs();
