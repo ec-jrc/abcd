@@ -108,7 +108,7 @@
         {
             "type": "data",
             "address": "tcp://127.0.0.1:16201",
-            "topic": "data_tofcalc"
+            "topic": "data_tofcalc_histograms"
         },
         {
             "type": "commands",
