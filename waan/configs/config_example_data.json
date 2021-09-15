@@ -1,0 +1,79 @@
+{
+    "module": "waan",
+    "forward_waveforms": true,
+    "enable_additional": true,
+    "discard_messages": false,
+    "channels": [
+        {
+            "id": 1,
+            "name": "LaBr",
+            "enabled": true,
+            "user_libraries": {
+                "timestamp": "src/libCFD.so",
+                "energy": "src/libPSD.so"
+            },
+            "user_config": {
+                "baseline_samples": 64,
+                "smooth_samples": 16,
+                "fraction": 0.75,
+                "delay": 20,
+                "zero_crossing_samples": 2,
+                "fractional_bits": 10,
+                "disable_shift": true,
+                "pregate": 40,
+                "short_gate": 30,
+                "long_gate": 90,
+                "pulse_polarity": "negative",
+                "integrals_scaling": 2
+            }
+        },
+        {
+            "id": 6,
+            "name": "CeBr",
+            "enabled": true,
+            "user_libraries": {
+                "timestamp": "src/libCFD.so",
+                "energy": "src/libPSD.so"
+            },
+            "user_config": {
+                "baseline_samples": 64,
+                "smooth_samples": 16,
+                "fraction": 0.75,
+                "delay": 20,
+                "zero_crossing_samples": 2,
+                "fractional_bits": 10,
+                "disable_shift": true,
+                "pregate": 40,
+                "short_gate": 30,
+                "long_gate": 90,
+                "pulse_polarity": "negative",
+                "integrals_scaling": 2
+            }
+        },
+        {
+            "id": 7,
+            "name": "CeBr",
+            "enabled": true,
+            "user_libraries": {
+                "timestamp": "src/libCFD.so",
+                "energy": "src/libPSD.so"
+            },
+            "user_config": {
+                "baseline_samples": 64,
+                "smooth_samples": 16,
+                "fraction": 0.75,
+                "delay": 20,
+                "zero_crossing_samples": 2,
+                "fractional_bits": 10,
+                "disable_shift": true,
+                "pregate": 40,
+                "short_gate": 30,
+                "long_gate": 90,
+                "pulse_polarity": "negative",
+                "integrals_scaling": 2
+            }
+        },
+        {}
+    ],
+    "zzz": null
+}
