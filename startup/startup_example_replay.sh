@@ -37,41 +37,41 @@ fi
 echo "Starting a new ABCD session"
 tmux new-session -d -s ABCD
 
-echo "Creating GUI windows"
-tmux new-window -d -c "$FOLDER""/efg/" -P -t ABCD -n efg 'node efg.js'
-
-tmux new-window -d -c "${FOLDER}/web_interface/" -P -t ABCD -n guispec "node web_interface.js -v -m spec -f ${FOLDER}/spec/config.json -d ${FOLDER}/spec/ -p 8081"
-tmux new-window -d -c "${FOLDER}/web_interface/" -P -t ABCD -n guitof  "node web_interface.js -v -m tofcalc -f ${FOLDER}/tofcalc/config.json -d ${FOLDER}/tofcalc/ -p 8082"
+echo "Creating the window for the GUI webserver: WebInterfaceTwo"
+tmux new-window -d -c "$FOLDER""/wit/" -P -t ABCD -n wit 'node app.js ./config.json'
 
 echo "Creating loggers window"
 tmux new-window -d -c "$FOLDER" -P -t ABCD -n loggers "./bin/read_events.py -S 'tcp://127.0.0.1:16180' -o log/abcd_events_""$TODAY"".log"
-tmux split-window -d -c "$FOLDER" -P -t ABCD:4.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16183' -o log/hivo_events_""$TODAY"".log"
-tmux split-window -d -c "$FOLDER" -P -t ABCD:4.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16185' -o log/dasa_events_""$TODAY"".log"
-tmux split-window -d -c "$FOLDER" -P -t ABCD:4.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16187' -o log/spec_events_""$TODAY"".log"
+tmux split-window -d -c "$FOLDER" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16183' -o log/hivo_events_""$TODAY"".log"
+tmux split-window -d -c "$FOLDER" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16185' -o log/dasa_events_""$TODAY"".log"
+tmux split-window -d -c "$FOLDER" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16187' -o log/spec_events_""$TODAY"".log"
 
-tmux select-layout -t ABCD:4 even-vertical
+tmux select-layout -t ABCD:2 even-vertical
 
 echo "Waiting for node.js to start"
 sleep 2
 
 echo "Creating replayer window"
-tmux new-window -d -c "$FOLDER" -P -t ABCD -n abcd "python3 ./replay/replay_raw.py -c -T 200 ${FILE_NAME}"
+tmux new-window -d -c "$FOLDER" -P -t ABCD -n abcd "python3 ./replay/replay_raw.py -c -D 'tcp://*:16207' -T 100 ${FILE_NAME}"
+
+echo "Creating WaAn window"
+tmux new-window -d -c "${FOLDER}/waan/" -P -t ABCD -n waan './waan -v -T 200 -A tcp://127.0.0.1:16207 -D tcp://*:16181 -f ./configs/config_example_data.json'
 
 echo "Creating DaSa window, folder: ""$DATA_FOLDER"
 tmux new-window -d -c "$DATA_FOLDER" -P -t ABCD -n dasa "$FOLDER"'/dasa/dasa'
 
 echo "Creating WaFi window"
-tmux new-window -d -c "$FOLDER" -P -t ABCD -n wafi './wafi/wafi -v -T 100'
+tmux new-window -d -c "$FOLDER" -P -t ABCD -n wafi './wadi/wadi -v'
 
 echo "Creating tofcalc windows"
-tmux new-window -d -c "$FOLDER" -P -t ABCD -n tofcalc "./tofcalc/tofcalc -f ./tofcalc/config.json -n 0.00195312"
+tmux new-window -d -c "$FOLDER" -P -t ABCD -n tofcalc "./tofcalc/tofcalc -f ./tofcalc/configs/config_example_data.json -n 0.00195312"
 
 echo "Creating spec windows"
 tmux new-window -d -c "$FOLDER" -P -t ABCD -n spec "./spec/spec"
 
 echo "System started!"
-echo "Connect to GUI on addresses: http://127.0.0.1:8080/ http://127.0.0.1:8081/ http://127.0.0.1:8082/"
+echo "Connect to GUI on addresses: http://127.0.0.1:8080/"
 
 # In case it is needed to start a browser as well
-#echo "Opening browser on EFG page"
-#xdg-open 'http://localhost:8080/'
+echo "Opening browser on GUI page"
+xdg-open 'http://localhost:8080/'
