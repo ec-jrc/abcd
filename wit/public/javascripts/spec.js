@@ -213,21 +213,6 @@ function page_loaded() {
         }
     }
 
-    function spec_arguments_config() {
-        try {
-            const new_text_config = abcd_config_editor.getSession().getValue();
-            const new_config = JSON.parse(new_text_config);
-            const kwargs = {"config": new_config};
-
-            return kwargs;
-
-        } catch (error) {
-            console.log("Error: " + error);
-
-            return null;
-        }
-    }
-
     function add_to_spectra(message) {
         //console.log("timestamp: " + message.timestamp);
 
