@@ -1,0 +1,44 @@
+extends layout
+
+block content
+  script(src='/static/javascripts/tofcalc.js')
+
+  h2 On-line Time-of-Flight calculator
+  div.display 
+    h3 Plot display
+    fieldset 
+      legend Controls
+      p
+        label Show channel: #[select(id="channel_select")] 
+        button(id="button_download_ToF_data") Download ToF data 
+        button(id="button_download_spectrum_data") Download spectrum data 
+    div#plot_ToF.plot_display
+  div.display 
+    h3 Channels rates
+    div#channels_rates
+  div.display 
+    h3 Status
+    fieldset 
+      legend Commands
+      p
+        button(id="button_config_send") Send configuration
+        button(id="button_reset_channel") Reset channel
+        button(id="button_reset_all") Reset all
+    div#module_status
+  div.display 
+    h3 Events log
+    div#events_log
+  div.display 
+    h3 Connection status
+    p #[strong Computer hostname:] #{hostname}
+    p #[strong Name:] #{name} of type #{type}
+    p #[strong Webserver connection:] #[span#wit_connection_status.unknown_status No connection]
+    p #[strong Module connection:] #[span#module_connection_status.unknown_status No connection]
+  div.display 
+    h3 User interface settings
+    p
+      label Expiration time [s]:
+        input(type="number" id="time_expiration" value="10")
+    p
+      label Refresh time [s]:
+        input(type="number" id="time_refresh" value="4")
