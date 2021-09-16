@@ -20,7 +20,7 @@
 function page_loaded() {
     const utf8decoder = new TextDecoder("utf8");
 
-    const default_time_refresh = 4;
+    const default_time_refresh = 5;
     const default_plot_height = 900;
 
     var connection_checker = new ConnectionChecker();
@@ -79,7 +79,7 @@ function page_loaded() {
         updatemenus: updatemenus_spectrum,
         margin: {
            t: 10,
-           l: 50,
+           l: 70,
            r: 10
         },
         grid: {
