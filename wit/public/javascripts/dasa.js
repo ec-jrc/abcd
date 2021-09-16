@@ -37,15 +37,17 @@ function page_loaded() {
         let status_list = $("<ul>");
 
         let run_time = 1;
+        let run_time_minutes = 1;
 
         if (_.has(new_status, "runtime")) {
             run_time = dayjs.duration(new_status["runtime"], "seconds");
+            run_time_minutes = run_time.asSeconds() / 60.0;
+
             $("<li>").text("Saving time: " + humanizeDuration(run_time.asMilliseconds()) + " (" + run_time.asSeconds() + " s)").appendTo(status_list);
         } else {
             $("<li>").text("Saving time: none").appendTo(status_list);
         }
 
-        const run_time_minutes = run_time.asSeconds() / 60.0;
 
         //let events_li = $("<li>").text("Run time: ");
         let events_li = $("<li>").text("Events:");
