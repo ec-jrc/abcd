@@ -9,5 +9,12 @@ html
     include scripts.pug
   body
     h1 ABCD data acquisition system
+    div
+      ul.navbar
+        li
+          a(href=`/`) #[span.material-icons home]
+        each module in modules
+          li
+            a(href=`/module/` + module.name) #{module.name}
     block content
     input(type="hidden" name=name id="module_name" value=name)

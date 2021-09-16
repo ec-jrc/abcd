@@ -176,7 +176,8 @@ function create_router() {
                  {'title': 'ABCD: ' + module_name,
                   'hostname': hostname,
                   'type': module_type,
-                  'name': module_name});
+                  'name': module_name,
+                  'modules': clean_configs});
     });
   }
 
