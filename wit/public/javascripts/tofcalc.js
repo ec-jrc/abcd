@@ -74,6 +74,7 @@ function page_loaded() {
 
     var layout_ToF = {
         xaxis: {
+            title: 'ToF [ns]',
             autorange: true,
             autotick: true,
             showspikes: true,
@@ -82,6 +83,7 @@ function page_loaded() {
             anchor: 'y2'
         },
         xaxis2: {
+            title: 'Energy [ch]',
             autorange: true,
             autotick: true,
             showspikes: true,
@@ -90,6 +92,7 @@ function page_loaded() {
             anchor: 'y3'
         },
         yaxis: {
+            title: 'Counts',
             autorange: true,
             autotick: true,
             showspikes: true,
@@ -98,6 +101,7 @@ function page_loaded() {
             //anchor: 'y1'
         },
         yaxis2: {
+            title: 'Energy [ch]',
             autorange: true,
             autotick: true,
             showspikes: true,
@@ -106,6 +110,7 @@ function page_loaded() {
             //anchor: 'y2'
         },
         yaxis3: {
+            title: 'Counts',
             autorange: true,
             autotick: true,
             showspikes: true,
@@ -312,7 +317,7 @@ function page_loaded() {
                 yaxis: 'y1',
                 mode: 'lines',
                 line: {shape: 'hv'},
-                name: 'Spectrum',
+                name: 'Time-of-Flight (calibrated)',
                 type: 'scatter'
             };
 
@@ -331,7 +336,7 @@ function page_loaded() {
                 yaxis: 'y3',
                 mode: 'lines',
                 line: {shape: 'hv'},
-                name: 'ToF',
+                name: 'Spectrum (uncalibrated)',
                 type: 'scatter'
             };
 
