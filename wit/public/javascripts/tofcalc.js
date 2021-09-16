@@ -20,7 +20,7 @@
 function page_loaded() {
     const utf8decoder = new TextDecoder("utf8");
 
-    const default_time_refresh = 4;
+    const default_time_refresh = 5;
     const default_plot_height = 900;
 
     var connection_checker = new ConnectionChecker();
@@ -121,8 +121,15 @@ function page_loaded() {
         updatemenus: updatemenus_ToF,
         margin: {
            t: 10,
-           l: 50,
+           l: 70,
            r: 10
+        },
+        showlegend: true,
+        legend: {
+            x: 1,
+            xanchor: 'right',
+            y: 1,
+            yanchor: 'top',
         },
         grid: {
             rows: 3,
@@ -384,7 +391,7 @@ function page_loaded() {
                 type: 'heatmap'
             };
 
-            const tofcalc_data = [ToF, EToF, energy];
+            const tofcalc_data = [ToF, energy, EToF];
 
             Plotly.react('plot_ToF', tofcalc_data, layout_ToF);
 
