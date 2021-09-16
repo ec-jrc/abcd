@@ -60,13 +60,13 @@ function page_loaded() {
 
             if (file_opened) {
                 const file_size = new_status["events_file_size"];
-                const file_size_per_second = Math.round(file_size / run_time_minutes);
+                const file_size_per_minute = Math.round(file_size / run_time_minutes);
 
                 li.addClass("good_status").appendTo(events_ul);
 
                 $('<li>').text("File name: " + new_status["events_file_name"]).appendTo(events_ul);
                 $('<li>').text("File size: " + filesize(file_size).human()).appendTo(events_ul);
-                $('<li>').text("File growth: " + filesize(file_size_per_second).human() + "/min").appendTo(events_ul);
+                $('<li>').text("File growth: " + filesize(file_size_per_minute).human() + "/min").appendTo(events_ul);
             } else {
                 li.addClass("bad_status").appendTo(events_ul);
             }
@@ -87,13 +87,13 @@ function page_loaded() {
 
             if (file_opened) {
                 const file_size = new_status["waveforms_file_size"];
-                const file_size_per_second = Math.round(file_size / run_time_minutes);
+                const file_size_per_minute = Math.round(file_size / run_time_minutes);
 
                 li.addClass("good_status").appendTo(waveforms_ul);
 
                 $('<li>').text("File name: " + new_status["waveforms_file_name"]).appendTo(waveforms_ul);
                 $('<li>').text("File size: " + filesize(file_size).human()).appendTo(waveforms_ul);
-                $('<li>').text("File growth: " + filesize(file_size_per_second).human() + "/min").appendTo(waveforms_ul);
+                $('<li>').text("File growth: " + filesize(file_size_per_minute).human() + "/min").appendTo(waveforms_ul);
             } else {
                 li.addClass("bad_status").appendTo(waveforms_ul);
             }
@@ -113,14 +113,14 @@ function page_loaded() {
             let li = $("<li>").text('File opened: ' + file_opened);
 
             if (file_opened) {
-                const file_size = new_status["waveforms_file_size"];
-                const file_size_per_second = Math.round(file_size / run_time_minutes);
+                const file_size = new_status["raw_file_size"];
+                const file_size_per_minute = Math.round(file_size / run_time_minutes);
 
                 li.addClass("good_status").appendTo(raw_ul);
 
                 $('<li>').text("File name: " + new_status["raw_file_name"]).appendTo(raw_ul);
                 $('<li>').text("File size: " + filesize(file_size).human()).appendTo(raw_ul);
-                $('<li>').text("File growth: " + filesize(file_size_per_second).human() + "/min").appendTo(raw_ul);
+                $('<li>').text("File growth: " + filesize(file_size_per_minute).human() + "/min").appendTo(raw_ul);
             } else {
                 li.addClass("bad_status").appendTo(raw_ul);
             }
