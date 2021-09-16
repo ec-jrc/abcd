@@ -428,17 +428,17 @@ function page_loaded() {
     function download_spectrum_data() {
         try {
             const this_selected_channel = selected_channel();
-            const histo_spectrum = spectra[this_selected_channel].energy;
+            const histo_energy = spectra[this_selected_channel].energy;
 
-            const delta = (histo_spectrum.config.max - histo_spectrum.config.min) / histo_spectrum.config.bins;
+            const delta = (histo_energy.config.max - histo_energy.config.min) / histo_energy.config.bins;
 
             let csv_text = "#Spectrum for channel: " + this_selected_channel + " created on: " + dayjs().format() + "\r\n";
 
             csv_text += "#left_edge [ch],counts\r\n";
 
-            for (let index = 0; index < histo_spectrum.data.length; index ++) {
-                const edge = index * delta + histo_spectrum.config.min;
-                const counts = histo_spectrum.data[index];
+            for (let index = 0; index < histo_energy.data.length; index ++) {
+                const edge = index * delta + histo_energy.config.min;
+                const counts = histo_energy.data[index];
 
                 csv_text += "" + edge + "," + counts + "\r\n";
             }
