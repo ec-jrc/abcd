@@ -52,7 +52,7 @@ echo "Waiting for node.js to start"
 sleep 2
 
 echo "Creating replayer window"
-tmux new-window -d -c "$FOLDER" -P -t ABCD -n abcd "python3 ./replay/replay_raw.py -c -D 'tcp://*:16207' -T 100 ${FILE_NAME}"
+tmux new-window -d -c "$FOLDER" -P -t ABCD -n abcd "python3 ./replay/replay_raw.py -c -D 'tcp://*:16207' -T 50 ${FILE_NAME}"
 
 echo "Creating WaAn window"
 tmux new-window -d -c "${FOLDER}/waan/" -P -t ABCD -n waan './waan -v -T 200 -A tcp://127.0.0.1:16207 -D tcp://*:16181 -f ./configs/config_example_data.json'
