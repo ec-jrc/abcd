@@ -45,24 +45,36 @@ function page_loaded() {
             type: 'dropdown',
             x: 0.0,
             xanchor: 'left',
-            y: 1.1,
+            y: 1.02,
             yanchor: 'bottom'
         }
     ]
 
     var layout_spectrum = {
-        yaxis: {
-            autorange: true,
-            //tick0: 0
-            autotick: true,
-            showspikes: true,
-            spikemode: 'across'
-        },
         xaxis: {
+            title: 'Energy [ch]',
             autorange: true,
             autotick: true,
             showspikes: true,
-            spikemode: 'across'
+            spikemode: 'across',
+            domain: [0.0, 1.0],
+            anchor: 'y2'
+        },
+        yaxis: {
+            title: 'Counts',
+            autorange: true,
+            autotick: true,
+            showspikes: true,
+            spikemode: 'across',
+            domain: [0.5, 1.0]
+        },
+        yaxis2: {
+            title: 'PSD parameter',
+            autorange: true,
+            autotick: true,
+            showspikes: true,
+            spikemode: 'across',
+            domain: [0.0, 0.5]
         },
         updatemenus: updatemenus_spectrum,
         margin: {
@@ -73,7 +85,6 @@ function page_loaded() {
         grid: {
             rows: 2,
             columns: 1,
-            subplots:[['xy'], ['xy2']],
             roworder:'top to bottom'
         },
         hovermode: 'closest'
@@ -243,50 +254,50 @@ function page_loaded() {
         if (difference <= 0 || force_update) {
             //console.log("Updating plot");
 
-            const histo = spectra[selected_channel()].energy;
+            const histo_energy = spectra[selected_channel()].energy;
 
-            const delta = (histo.config.max - histo.config.min) / histo.config.bins;
+            const delta_energy = (histo_energy.config.max - histo_energy.config.min) / histo_energy.config.bins;
 
-            const edges = histo.data.map(function (value, index) {
-                return index * delta + histo.config.min;
+            const edges_energy = histo_energy.data.map(function (value, index) {
+                return index * delta_energy + histo_energy.config.min;
             });
 
-            const spectrum = {
-                x: edges,
-                y: histo.data,
+            const energy = {
+                x: edges_energy,
+                y: histo_energy.data,
                 xaxis: 'x',
                 yaxis: 'y',
                 mode: 'lines',
                 line: {shape: 'hv'},
-                name: 'Spectrum',
+                name: 'Spectrum (uncalibrated)',
                 type: 'scatter'
             };
 
-            const histo2D = spectra[selected_channel()].PSD;
+            const histo_EPSD = spectra[selected_channel()].PSD;
 
-            const delta_x = (histo2D.config.max_x - histo2D.config.min_x) / histo2D.config.bins_x;
-            const delta_y = (histo2D.config.max_y - histo2D.config.min_y) / histo2D.config.bins_y;
+            const delta_x = (histo_EPSD.config.max_x - histo_EPSD.config.min_x) / histo_EPSD.config.bins_x;
+            const delta_y = (histo_EPSD.config.max_y - histo_EPSD.config.min_y) / histo_EPSD.config.bins_y;
 
             let edges_x = [];
 
-            for (let index_x = 0; index_x < histo2D.config.bins_x; index_x++) {
-                edges_x.push(index_x * delta_x + histo2D.config.min_x);
+            for (let index_x = 0; index_x < histo_EPSD.config.bins_x; index_x++) {
+                edges_x.push(index_x * delta_x + histo_EPSD.config.min_x);
             }
 
             let edges_y = [];
 
-            for (let index_y = 0; index_y < histo2D.config.bins_y; index_y++) {
-                edges_y.push(index_y * delta_y + histo2D.config.min_y);
+            for (let index_y = 0; index_y < histo_EPSD.config.bins_y; index_y++) {
+                edges_y.push(index_y * delta_y + histo_EPSD.config.min_y);
             }
 
             var heights = [];
 
-            for (let index_y = 0; index_y < histo2D.config.bins_y; index_y++) {
+            for (let index_y = 0; index_y < histo_EPSD.config.bins_y; index_y++) {
                 let row = [];
 
-                for (let index_x = 0; index_x < histo2D.config.bins_x; index_x++) {
-                    const index = (index_x + histo2D.config.bins_x * index_y);
-                    const counts = Math.log10(histo2D.data[index]);
+                for (let index_x = 0; index_x < histo_EPSD.config.bins_x; index_x++) {
+                    const index = (index_x + histo_EPSD.config.bins_x * index_y);
+                    const counts = Math.log10(histo_EPSD.data[index]);
 
                     row.push(counts);
                 }
@@ -306,7 +317,7 @@ function page_loaded() {
                 type: 'heatmap'
             };
 
-            const spectrum_data = [spectrum, PSD];
+            const spectrum_data = [energy, PSD];
 
             Plotly.react('plot_spectrum', spectrum_data, layout_spectrum);
 
@@ -326,17 +337,17 @@ function page_loaded() {
     function download_spectrum_data() {
         try {
             const this_selected_channel = selected_channel();
-            const histo = spectra[this_selected_channel].energy;
+            const histo_energy = spectra[this_selected_channel].energy;
 
-            const delta = (histo.config.max - histo.config.min) / histo.config.bins;
+            const delta = (histo_energy.config.max - histo_energy.config.min) / histo_energy.config.bins;
 
             let csv_text = "#Spectrum for channel: " + this_selected_channel + " created on: " + dayjs().format() + "\r\n";
 
             csv_text += "#left_edge,counts\r\n";
 
-            for (let index = 0; index < histo.data.length; index ++) {
-                const edge = index * delta + histo.config.min;
-                const counts = histo.data[index];
+            for (let index = 0; index < histo_energy.data.length; index ++) {
+                const edge = index * delta + histo_energy.config.min;
+                const counts = histo_energy.data[index];
 
                 csv_text += "" + edge + "," + counts + "\r\n";
             }
