@@ -142,8 +142,6 @@ function page_loaded() {
     
         var kwargs = {"file_name": $("#file_name").val(), "enable": enable};
     
-        console.log(JSON.stringify(kwargs));
-    
         return kwargs;
     }
 
