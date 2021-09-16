@@ -171,7 +171,7 @@
 #define defaults_lmno_extenstion_raw "adr"
 
 #define defaults_pqrs_verbosity 1
-#define defaults_pqrs_publish_timeout 4
+#define defaults_pqrs_publish_timeout 5
 #define defaults_pqrs_bins_qshort 128
 #define defaults_pqrs_bins_E 512
 #define defaults_pqrs_bins_PSD 128
@@ -206,13 +206,13 @@
 #define defaults_unzad_output_buffer_multiplier 4
 
 #define defaults_tofcalc_verbosity 1
-#define defaults_tofcalc_publish_timeout 3
-#define defaults_tofcalc_bins_ToF 200
+#define defaults_tofcalc_publish_timeout 5
+#define defaults_tofcalc_bins_ToF 400
 #define defaults_tofcalc_min_ToF -100
 #define defaults_tofcalc_max_ToF 100
 #define defaults_tofcalc_bins_E 512
 #define defaults_tofcalc_min_E 0
-#define defaults_tofcalc_max_E 60000
+#define defaults_tofcalc_max_E 40960
 #define defaults_tofcalc_ns_per_sample (2.0 / 1024.0)
 
 #define defaults_fifo_verbosity 1
