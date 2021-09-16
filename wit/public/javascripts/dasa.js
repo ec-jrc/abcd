@@ -36,12 +36,16 @@ function page_loaded() {
 
         let status_list = $("<ul>");
 
+        let run_time = 1;
+
         if (_.has(new_status, "runtime")) {
-            const run_time = dayjs.duration(new_status["runtime"], "seconds");
+            run_time = dayjs.duration(new_status["runtime"], "seconds");
             $("<li>").text("Saving time: " + humanizeDuration(run_time.asMilliseconds()) + " (" + run_time.asSeconds() + " s)").appendTo(status_list);
         } else {
             $("<li>").text("Saving time: none").appendTo(status_list);
         }
+
+        const run_time_minutes = run_time.asSeconds() / 60.0;
 
         //let events_li = $("<li>").text("Run time: ");
         let events_li = $("<li>").text("Events:");
@@ -53,10 +57,14 @@ function page_loaded() {
             let li = $("<li>").text('File opened: ' + file_opened);
 
             if (file_opened) {
+                const file_size = new_status["events_file_size"];
+                const file_size_per_second = Math.round(file_size / run_time_minutes);
+
                 li.addClass("good_status").appendTo(events_ul);
 
                 $('<li>').text("File name: " + new_status["events_file_name"]).appendTo(events_ul);
-                $('<li>').text("File size: " + filesize(new_status["events_file_size"]).human()).appendTo(events_ul);
+                $('<li>').text("File size: " + filesize(file_size).human()).appendTo(events_ul);
+                $('<li>').text("File growth: " + filesize(file_size_per_second).human() + "/min").appendTo(events_ul);
             } else {
                 li.addClass("bad_status").appendTo(events_ul);
             }
@@ -76,10 +84,14 @@ function page_loaded() {
             let li = $("<li>").text('File opened: ' + file_opened);
 
             if (file_opened) {
+                const file_size = new_status["waveforms_file_size"];
+                const file_size_per_second = Math.round(file_size / run_time_minutes);
+
                 li.addClass("good_status").appendTo(waveforms_ul);
 
                 $('<li>').text("File name: " + new_status["waveforms_file_name"]).appendTo(waveforms_ul);
-                $('<li>').text("File size: " + filesize(new_status["waveforms_file_size"]).human()).appendTo(waveforms_ul);
+                $('<li>').text("File size: " + filesize(file_size).human()).appendTo(waveforms_ul);
+                $('<li>').text("File growth: " + filesize(file_size_per_second).human() + "/min").appendTo(waveforms_ul);
             } else {
                 li.addClass("bad_status").appendTo(waveforms_ul);
             }
@@ -99,10 +111,14 @@ function page_loaded() {
             let li = $("<li>").text('File opened: ' + file_opened);
 
             if (file_opened) {
+                const file_size = new_status["waveforms_file_size"];
+                const file_size_per_second = Math.round(file_size / run_time_minutes);
+
                 li.addClass("good_status").appendTo(raw_ul);
 
                 $('<li>').text("File name: " + new_status["raw_file_name"]).appendTo(raw_ul);
-                $('<li>').text("File size: " + filesize(new_status["raw_file_size"]).human()).appendTo(raw_ul);
+                $('<li>').text("File size: " + filesize(file_size).human()).appendTo(raw_ul);
+                $('<li>').text("File growth: " + filesize(file_size_per_second).human() + "/min").appendTo(raw_ul);
             } else {
                 li.addClass("bad_status").appendTo(raw_ul);
             }
