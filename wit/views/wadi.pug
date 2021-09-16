@@ -13,7 +13,7 @@ block content
       button(id="download_waveform") Download waveform data 
     div
       p #[strong Timestamp:] #[span(id="timestamp_display")]
-    div(id="plot_waveform")
+    div#plot_waveform.plot_display
   div.display 
     h3 Connection status
     p #[strong Computer hostname:] #{hostname}
