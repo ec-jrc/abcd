@@ -21,30 +21,52 @@ function page_loaded() {
     const utf8decoder = new TextDecoder("utf8");
 
     const default_time_refresh = 3;
+    const default_plot_height = 900;
 
     const layout_waveform = {
-        yaxis: {
-            autorange: true,
-            //tick0: 0
-            autotick: true,
-            showspikes: true,
-            spikemode: 'across'
-        },
         xaxis: {
+            title: 'Time [ch]',
             autorange: true,
             autotick: true,
             showspikes: true,
-            spikemode: 'across'
+            spikemode: 'across',
+            //linecolor: 'black',
+            //linewidth: 1,
+            //mirror: true,
+            domain: [0.0, 1.0],
+            anchor: 'y'
+        },
+        yaxis: {
+            title: 'ADC value [ch]',
+            autorange: true,
+            autotick: true,
+            showspikes: true,
+            spikemode: 'across',
+            domain: [0.5, 1.0]
+        },
+        yaxis2: {
+            title: 'Arbitrary units',
+            autorange: true,
+            autotick: true,
+            showspikes: true,
+            spikemode: 'across',
+            domain: [0.0, 0.4]
         },
         margin: {
            t: 10,
-           l: 50,
+           l: 70,
            r: 10
+        },
+        showlegend: true,
+        legend: {
+            x: 1,
+            xanchor: 'right',
+            y: 0.75,
+            yanchor: 'middle',
         },
         grid: {
             rows: 2,
             columns: 1,
-            subplots:[['xy'], ['xy2']],
             roworder:'top to bottom'
         },
         hovermode: 'closest',
@@ -152,6 +174,7 @@ function page_loaded() {
         try {
             const this_selected_channel = selected_channel();
             const timestamp = waveforms[this_selected_channel].timestamp;
+            const wave = waveforms[this_selected_channel];
 
             let csv_text = "#Waveform channel: " + this_selected_channel + " timestamp: " + timestamp + " created on: " + dayjs().format() + "\r\n";
             csv_text += "#index,sample"; 
@@ -162,13 +185,13 @@ function page_loaded() {
 
             csv_text += "\r\n";
         
-            for (let index = 0; index < waveforms[this_selected_channel].samples.length; index ++) {
-                const sample = waveforms[this_selected_channel].samples[index];
+            for (let index = 0; index < wave.samples.length; index ++) {
+                const sample = wave.samples[index];
 
                 csv_text += "" + index + "," + sample;
 
-                for (let inner_index = 0; inner_index < waveforms[this_selected_channel].gates.length; inner_index ++) {
-                    const gate = waveforms[this_selected_channel].gates[inner_index][index];
+                for (let inner_index = 0; inner_index < wave.gates.length; inner_index ++) {
+                    const gate = wave.gates[inner_index][index];
                     csv_text += "," + gate;
                 }
 
@@ -195,6 +218,16 @@ function page_loaded() {
     });
 
     $("#download_waveform").on("click", download_spectrum_data);
+
+    // This part is to trigger a window resize to convince plotly to resize the plot
+    var observer = new MutationObserver(function(mutations) {
+        window.dispatchEvent(new Event('resize'));
+    });
+      
+    observer.observe($("#plot_waveform")[0], {attributes: true})
+
+    // Then force a resize...
+    $("#plot_waveform").css("height", "" + default_plot_height + "px");
 
     create_plot();
     
