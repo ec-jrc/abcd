@@ -515,12 +515,35 @@ function page_loaded() {
         window.dispatchEvent(new Event('resize'));
     });
       
-    observer.observe($("#plot_ToF")[0], {attributes: true})
+    observer.observe($("#plot_ToF")[0], {attributes: true});
 
     // Then force a resize...
     $("#plot_ToF").css("height", "" + default_plot_height + "px");
 
     create_plot();
+
+    document.getElementById('plot_ToF').on('plotly_relayout', function(eventdata){
+        if (Object.keys(eventdata).includes("xaxis.range[0]")) {
+            console.log("Zoom or pan on ToF or EToF");
+
+            const update = {
+                "xaxis2.range[0]": eventdata["yaxis2.range[0]"],
+                "xaxis2.range[1]": eventdata["yaxis2.range[1]"]
+            }
+            Plotly.relayout("plot_ToF", update);
+        } else if (Object.keys(eventdata).includes("xaxis2.range[0]")) {
+            console.log("Zoom or pan on energy");
+
+            const update = {
+                "yaxis2.range[0]": eventdata["xaxis2.range[0]"],
+                "yaxis2.range[1]": eventdata["xaxis2.range[1]"]
+            }
+            Plotly.relayout("plot_ToF", update);
+        } else if (Object.keys(eventdata).includes("xaxis.autorange")) {
+            console.log("Autoscaling plots, doing nothing")
+        }
+    });
+
 }
 
 $(page_loaded);
