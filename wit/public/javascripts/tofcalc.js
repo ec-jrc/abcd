@@ -24,6 +24,9 @@ function page_loaded() {
     const default_plot_height = 900;
 
     var connection_checker = new ConnectionChecker();
+    var fitters = {};
+
+    var enable_fitting = false;
 
     var updatemenus_ToF = [
         {
@@ -141,7 +144,8 @@ function page_loaded() {
     };
 
     const config_ToF = {
-        responsive: true
+        responsive: true,
+        modeBarButtonsToRemove: ['lasso2d']
     }
 
     var socket_io = io();
@@ -190,8 +194,7 @@ function page_loaded() {
 
             const new_channels_statuses = new_status["statuses"];
 
-            let rates_list = $("#channels_rates");
-            rates_list.empty();
+            let rates_list = $("<ul>");
 
             new_channels_statuses.forEach(function (channel_status) {
                 const channel = channel_status["id"];
@@ -199,6 +202,8 @@ function page_loaded() {
 
                 rates_list.append($("<li>", {text: "Ch " + channel + ": " + rate.toFixed(2)}));
             });
+
+            $("#channels_rates").empty().append(rates_list);
 
             const new_channels_configs = new_status["configs"];
 
@@ -290,6 +295,12 @@ function page_loaded() {
                 active_channels.push(active_channel);
 
                 spectra[active_channel] = _.find(message.data, v => (v.id === active_channel));
+
+                // Creating a fitter here to be sure that there already
+                // are plots available to fit.
+                if (_.isNil(fitters[active_channel])) {
+                    fitters[active_channel] = new Fitter();
+                }
             }
 
             active_channels = _.sortBy(_.uniq(active_channels));
@@ -325,7 +336,11 @@ function page_loaded() {
                 mode: 'lines',
                 line: {shape: 'hv'},
                 name: 'Time-of-Flight (calibrated)',
-                type: 'scatter'
+                type: 'scatter',
+                mode: 'lines',
+                marker: {
+                    size: 0.1
+                }
             };
 
             const histo_energy = spectra[selected_channel()].energy;
@@ -344,7 +359,11 @@ function page_loaded() {
                 mode: 'lines',
                 line: {shape: 'hv'},
                 name: 'Spectrum (uncalibrated)',
-                type: 'scatter'
+                type: 'scatter',
+                mode: 'lines',
+                marker: {
+                    size: 0.1
+                }
             };
 
             const histo_EToF = spectra[selected_channel()].EToF;
@@ -391,9 +410,23 @@ function page_loaded() {
                 type: 'heatmap'
             };
 
-            const tofcalc_data = [ToF, energy, EToF];
+            const tofcalc_data = [ToF, energy, EToF]
 
-            Plotly.react('plot_ToF', tofcalc_data, layout_ToF);
+            if (force_update) {
+                // If forced, plotting without the fits so then the
+                // data would be ready for the fit
+                Plotly.react('plot_ToF', tofcalc_data, layout_ToF);
+            }
+
+            let fitter = fitters[selected_channel()];
+            
+            fitter.fit_all();
+
+            const other_data = fitter.get_all_plots();
+
+            Plotly.react('plot_ToF', tofcalc_data.concat(other_data), layout_ToF);
+
+            $("#fits_results").empty().append(fitter.get_html_ol());
 
             const refresh_time = Number($("#time_refresh").val());
             next_update_plot = dayjs().add(refresh_time, "seconds");
@@ -406,6 +439,30 @@ function page_loaded() {
         add_to_spectra(new_spectra);
         update_selector(active_channels);
         update_plot();
+    }
+
+    function fit_ToF() {
+        if (!_.isNil(fitters[selected_channel()])) {
+            let graph_div = document.getElementById('plot_ToF')
+            const data_index = 0;
+            const range = graph_div.layout.xaxis.range;
+
+            fitters[selected_channel()].add_fit(graph_div, data_index, range);
+
+            update_plot(true);
+        }
+    }
+
+    function fit_energy() {
+        if (!_.isNil(fitters[selected_channel()])) {
+            let graph_div = document.getElementById('plot_ToF')
+            const data_index = 1;
+            const range = graph_div.layout.xaxis2.range;
+
+            fitters[selected_channel()].add_fit(graph_div, data_index, range);
+
+            update_plot(true);
+        }
     }
 
     function download_ToF_data() {
@@ -504,6 +561,14 @@ function page_loaded() {
         update_plot();
     });
 
+    $("#button_fit_ToF").on("click", fit_ToF);
+    $("#button_fit_energy").on("click", fit_energy);
+    $("#button_clear_fit").on("click", function () {
+        if (!_.isNil(fitters[selected_channel()])) {
+            fitters[selected_channel()].clear();
+            update_plot(true);
+        }
+    });
     $("#button_download_ToF_data").on("click", download_ToF_data);
     $("#button_download_spectrum_data").on("click", download_spectrum_data);
     $("#button_config_send").on("click", send_command(socket_io, 'reconfigure', tofcalc_arguments_reconfigure));
@@ -522,7 +587,9 @@ function page_loaded() {
 
     create_plot();
 
-    document.getElementById('plot_ToF').on('plotly_relayout', function(eventdata){
+    var graph_div = document.getElementById('plot_ToF');
+    
+    graph_div.on('plotly_relayout', function(eventdata){
         if (Object.keys(eventdata).includes("xaxis.range[0]")) {
             console.log("Zoom or pan on ToF or EToF");
 

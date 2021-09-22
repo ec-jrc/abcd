@@ -1,7 +1,9 @@
 extends layout
 
 block content
+  script(src='/fmin/fmin.js' type="text/javascript" charset="utf-8")
   script(src='/static/javascripts/tofcalc.js')
+  script(src='/static/javascripts/fitting.js')
 
   h2 On-line Time-of-Flight calculator
   div.display 
@@ -10,9 +12,17 @@ block content
       legend Controls
       p
         label Show channel: #[select(id="channel_select")] 
+      p
+        button(id="button_fit_ToF") Fit visible ToF
+        button(id="button_fit_energy") Fit visible spectrum
+        button(id="button_clear_fit") Clear fits
+      p
         button(id="button_download_ToF_data") Download ToF data 
         button(id="button_download_spectrum_data") Download spectrum data 
     div#plot_ToF.plot_display
+  div.display 
+    h3 Fits
+    div#fits_results
   div.display 
     h3 Channels rates
     div#channels_rates
