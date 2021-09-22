@@ -97,6 +97,7 @@ app.use('/lodash', express.static(path.join(__dirname, 'node_modules/lodash/')))
 app.use('/humanize-duration', express.static(path.join(__dirname, 'node_modules/humanize-duration/')));
 app.use('/file-size', express.static(path.join(__dirname, 'node_modules/file-size/')));
 app.use('/ace', express.static(path.join(__dirname, 'node_modules/ace-builds/src-noconflict/')));
+app.use('/fmin', express.static(path.join(__dirname, 'node_modules/fmin/build/')));
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
