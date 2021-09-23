@@ -24,6 +24,7 @@ function page_loaded() {
     const default_plot_height = 900;
 
     var connection_checker = new ConnectionChecker();
+    var fitters = {};
 
     var updatemenus_spectrum = [
         {
@@ -235,6 +236,12 @@ function page_loaded() {
                 active_channels.push(active_channel);
 
                 spectra[active_channel] = _.find(message.data, v => (v.id === active_channel));
+
+                // Creating a fitter here to be sure that there already
+                // are plots available to fit.
+                if (_.isNil(fitters[active_channel])) {
+                    fitters[active_channel] = new Fitter();
+                }
             }
 
             active_channels = _.sortBy(_.uniq(active_channels));
@@ -319,7 +326,21 @@ function page_loaded() {
 
             const spectrum_data = [energy, PSD];
 
-            Plotly.react('plot_spectrum', spectrum_data, layout_spectrum);
+            if (force_update) {
+                // If forced, plotting without the fits so then the
+                // data would be ready for the fit
+                Plotly.react('plot_spectrum', spectrum_data, layout_spectrum);
+            }
+
+            let fitter = fitters[selected_channel()];
+            
+            fitter.fit_all();
+
+            const other_data = fitter.get_all_plots();
+
+            Plotly.react('plot_spectrum', spectrum_data.concat(other_data), layout_spectrum);
+
+            $("#fits_results").empty().append(fitter.get_html_ol());
 
             const refresh_time = Number($("#time_refresh").val());
             next_update_plot = dayjs().add(refresh_time, "seconds");
@@ -332,6 +353,18 @@ function page_loaded() {
         add_to_spectra(new_spectra);
         update_selector(active_channels);
         update_plot();
+    }
+
+    function fit_energy() {
+        if (!_.isNil(fitters[selected_channel()])) {
+            let graph_div = document.getElementById('plot_spectrum')
+            const data_index = 0;
+            const range = graph_div.layout.xaxis.range;
+
+            fitters[selected_channel()].add_fit(graph_div, data_index, range);
+
+            update_plot(true);
+        }
     }
 
     function download_spectrum_data() {
@@ -421,6 +454,13 @@ function page_loaded() {
         update_plot();
     });
 
+    $("#button_fit_energy").on("click", fit_energy);
+    $("#button_clear_fit").on("click", function () {
+        if (!_.isNil(fitters[selected_channel()])) {
+            fitters[selected_channel()].clear();
+            update_plot(true);
+        }
+    });
     $("#button_download_spectrum_data").on("click", download_spectrum_data);
     $("#button_config_send").on("click", send_command(socket_io, 'reconfigure', spec_arguments_reconfigure));
     $("#button_reset_channel").on("click", send_command(socket_io, 'reset', spec_arguments_reset()));
