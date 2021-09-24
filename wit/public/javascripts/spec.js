@@ -148,8 +148,7 @@ function page_loaded() {
 
             const new_channels_statuses = new_status["statuses"];
 
-            let rates_list = $("#channels_rates");
-            rates_list.empty();
+            let rates_list = $("<ul>");
 
             new_channels_statuses.forEach(function (channel_status) {
                 const channel = channel_status["id"];
@@ -157,6 +156,8 @@ function page_loaded() {
 
                 rates_list.append($("<li>", {text: "Ch " + channel + ": " + rate.toFixed(2)}));
             });
+
+            $("#channels_rates").empty().append(rates_list);
 
             const new_channels_configs = new_status["configs"];
 
