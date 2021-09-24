@@ -185,7 +185,8 @@ class Fitter {
             const x = i * delta + x_min;
             const y = this.peak(x, fitting_region.last_params);
 
-            xs.push(x);
+            // Adding a 0.5 to display the fit aligned with the bin center and not the edge
+            xs.push(x + 0.5 * delta);
             ys.push(y);
         }
 
