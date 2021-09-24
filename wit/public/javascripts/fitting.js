@@ -219,7 +219,8 @@ class Fitter {
             "q": fitting_region.last_params[1],
             "A": fitting_region.last_params[2],
             "mu": fitting_region.last_params[3],
-            "sigma": fitting_region.last_params[4]
+            "sigma": fitting_region.last_params[4],
+            "range": fitting_region.range
         }
     }
 
@@ -244,12 +245,13 @@ class Fitter {
 
             const FWHM = 2 * Math.sqrt(2 * Math.log(2)) * p.sigma;
 
-            fit.append($("<li>", {text: "Bkg m: " + p.m.toFixed(4)}));
-            fit.append($("<li>", {text: "Bkg q: " + p.q.toFixed(2)}));
-            fit.append($("<li>", {text: "Gauss height: " + p.A.toFixed(2)}));
-            fit.append($("<li>", {text: "Gauss center: " + p.mu.toFixed(2)}));
-            fit.append($("<li>", {text: "Gauss sigma: " + p.sigma.toFixed(2)}));
-            fit.append($("<li>", {text: "FWHM: " + FWHM.toFixed(2)}));
+            fit.append($("<li>", {text: "Fit range: [" + p.range[0].toFixed(2) + " ch, " + p.range[1].toFixed(2) + " ch]"}));
+            fit.append($("<li>", {text: "Lin. background slope: " + p.m.toFixed(4) + " counts/ch"}));
+            fit.append($("<li>", {text: "Lin. background intercept: " + p.q.toFixed(2) + " counts"}));
+            fit.append($("<li>", {text: "Gaussian height: " + p.A.toFixed(2) + " counts"}));
+            fit.append($("<li>", {text: "Gaussian center: " + p.mu.toFixed(2) + " ch"}));
+            fit.append($("<li>", {text: "Gaussian sigma: " + p.sigma.toFixed(2) + " ch"}));
+            fit.append($("<li>", {text: "FWHM: " + FWHM.toFixed(2) + " counts/ch"}));
             fit.append($("<li>", {text: "Resolution: " + (FWHM / p.mu * 100).toFixed(2) + "%"}));
 
             let label = $("<strong>", {text: "Fit n." + (p.data_index + 1)});
