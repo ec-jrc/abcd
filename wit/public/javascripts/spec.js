@@ -83,6 +83,13 @@ function page_loaded() {
            l: 70,
            r: 10
         },
+        //showlegend: true,
+        legend: {
+            x: 1,
+            xanchor: 'right',
+            y: 1,
+            yanchor: 'top',
+        },
         grid: {
             rows: 2,
             columns: 1,
