@@ -5,7 +5,7 @@ CFLAGS = -std=c99 -O3 -W -Wall -pedantic
 LIBS = -lc
 LDFLAGS = $(LIBS)
 
-SOURCES = ade2ascii.c adr2ade.c
+SOURCES = ade2ascii.c adr2ade.c adw2ascii.c
 EXECS = $(SOURCES:.c=)
 
 .PHONY: all clean
