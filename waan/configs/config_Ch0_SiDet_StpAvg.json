@@ -1,0 +1,35 @@
+{
+    "module": "waan",
+    "forward_waveforms": true,
+    "enable_additional": true,
+    "channels": [
+        {
+            "id": 0,
+            "name": "Si detector",
+            "enabled": true,
+            "user_libraries": {
+                "timestamp": "src/libTFACFD.so",
+                "energy": "src/libStpAvg.so"
+            },
+            "user_config": {
+                "baseline_samples": 29000,
+                "highpass_time": 150,
+                "lowpass_time": 1500,
+                "smooth_samples": 128,
+                "fraction": 0.5,
+                "delay": 600,
+                "zero_crossing_samples": 4,
+                "fractional_bits": 10,
+                "disable_shift": false,
+                "disable_CFD_gates": true,
+                "decay_time": 36400,
+                "topline_samples": 29000,
+                "rise_samples": 2000,
+                "pulse_polarity": "negative",
+                "height_scaling": 10
+            }
+        },
+        {}
+    ],
+    "zzz": null
+}
