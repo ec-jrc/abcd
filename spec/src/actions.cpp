@@ -386,9 +386,11 @@ bool actions::generic::read_socket(status &global_status)
                 const event_PSD this_event = events[i];
 
                 const unsigned int channel = this_event.channel;
-                const unsigned int qshort = this_event.qshort;
-                const unsigned int qlong = this_event.qlong;
-                const double psd = static_cast<double>(qlong - qshort) / qlong;
+                // We can directly convert these to double because we only do
+                // calculations using doubles anyways.
+                const double qshort = this_event.qshort;
+                const double qlong = this_event.qlong;
+                const double psd = (qlong - qshort) / qlong;
 
                 if (std::find(global_status.active_channels.begin(),
                               global_status.active_channels.end(),
