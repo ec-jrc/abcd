@@ -76,3 +76,8 @@ The user may compile the custom library with the provided Makefile:
 user@host$ make libuser.so
 ```
 Where the source code of the library would be `libuser.c`.
+
+## Example libraries
+These example libraries are provided:
+
+- `libStpAvg.c`: Calculates the energy information of a exponentially decaying pulse, by compensating the decay and determining its height with simple averages.
