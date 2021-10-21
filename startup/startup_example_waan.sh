@@ -3,9 +3,9 @@
 # Example of startup script
 
 # Folder in which ABCD is installed
-FOLDER="$HOME""/abcd/"
+ABCD_FOLDER="$HOME""/abcd/"
 # Folder in which data should be saved
-DATA_FOLDER="$FOLDER""/data/"
+DATA_FOLDER="$ABCD_FOLDER""/data/"
 
 TODAY="`date "+%Y%m%d"`"
 echo 'Today is '"$TODAY"
@@ -14,8 +14,8 @@ echo 'Today is '"$TODAY"
 unset TMUX
 
 #This is needed only on older versions of tmux, if the -c option does not work
-#echo "Changing folder to: ""$FOLDER"
-#cd "$FOLDER"
+#echo "Changing folder to: ""$ABCD_FOLDER"
+#cd "$ABCD_FOLDER"
 
 # Checking if another ABCD session is running
 if [ "`tmux ls 2> /dev/null | grep ABCD | wc -l`" -gt 0 ]
@@ -29,16 +29,16 @@ echo "Starting a new ABCD session"
 tmux new-session -d -s ABCD
 
 echo "Creating GUI windows"
-tmux new-window -d -c "$FOLDER""/efg/" -P -t ABCD -n efg 'node efg.js'
+tmux new-window -d -c "$ABCD_FOLDER""/efg/" -P -t ABCD -n efg 'node efg.js'
 
-tmux new-window -d -c "${FOLDER}/web_interface/" -P -t ABCD -n guispec "node web_interface.js -v -m spec -f ${FOLDER}/spec/config.json -d ${FOLDER}/spec/ -p 8081"
-tmux new-window -d -c "${FOLDER}/web_interface/" -P -t ABCD -n guitof  "node web_interface.js -v -m tofcalc -f ${FOLDER}/tofcalc/config.json -d ${FOLDER}/tofcalc/ -p 8082"
+tmux new-window -d -c "${ABCD_FOLDER}/web_interface/" -P -t ABCD -n guispec "node web_interface.js -v -m spec -f ${ABCD_FOLDER}/spec/config.json -d ${ABCD_FOLDER}/spec/ -p 8081"
+tmux new-window -d -c "${ABCD_FOLDER}/web_interface/" -P -t ABCD -n guitof  "node web_interface.js -v -m tofcalc -f ${ABCD_FOLDER}/tofcalc/config.json -d ${ABCD_FOLDER}/tofcalc/ -p 8082"
 
 echo "Creating loggers window"
-tmux new-window -d -c "$FOLDER" -P -t ABCD -n loggers "./bin/read_events.py -S 'tcp://127.0.0.1:16180' -o log/abcd_events_""$TODAY"".log"
-tmux split-window -d -c "$FOLDER" -P -t ABCD:4.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16183' -o log/hivo_events_""$TODAY"".log"
-tmux split-window -d -c "$FOLDER" -P -t ABCD:4.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16185' -o log/dasa_events_""$TODAY"".log"
-tmux split-window -d -c "$FOLDER" -P -t ABCD:4.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16187' -o log/spec_events_""$TODAY"".log"
+tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n loggers "./bin/read_events.py -S 'tcp://127.0.0.1:16180' -o log/abcd_events_""$TODAY"".log"
+tmux split-window -d -c "$ABCD_FOLDER" -P -t ABCD:4.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16183' -o log/hivo_events_""$TODAY"".log"
+tmux split-window -d -c "$ABCD_FOLDER" -P -t ABCD:4.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16185' -o log/dasa_events_""$TODAY"".log"
+tmux split-window -d -c "$ABCD_FOLDER" -P -t ABCD:4.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16187' -o log/spec_events_""$TODAY"".log"
 
 tmux select-layout -t ABCD:4 even-vertical
 
@@ -46,22 +46,22 @@ echo "Waiting for node.js to start"
 sleep 2
 
 echo "Creating ABCD window"
-tmux new-window -d -c "$FOLDER" -P -t ABCD -n abcd './abad2/abad2 -T 1 -D "tcp://*:16197" -f abad2/configs/AD2_SiPM.json'
+tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n abcd './abad2/abad2 -T 1 -D "tcp://*:16197" -f abad2/configs/AD2_SiPM.json'
 
 echo "Creating WaAn window"
-tmux new-window -d -c "${FOLDER}/waan/" -P -t ABCD -n waan './waan -v -T 200 -A tcp://127.0.0.1:16207 -D tcp://*:16181 -f ./config.json'
+tmux new-window -d -c "${ABCD_FOLDER}/waan/" -P -t ABCD -n waan './waan -v -T 200 -A tcp://127.0.0.1:16207 -D tcp://*:16181 -f ./config.json'
 
 echo "Creating DaSa window, folder: ""$DATA_FOLDER"
-tmux new-window -d -c "$DATA_FOLDER" -P -t ABCD -n dasa "$FOLDER"'/dasa/dasa -A tcp://127.0.0.1:16207'
+tmux new-window -d -c "$DATA_FOLDER" -P -t ABCD -n dasa "$ABCD_FOLDER"'/dasa/dasa -A tcp://127.0.0.1:16207'
 
 echo "Creating WaFi window"
-tmux new-window -d -c "$FOLDER" -P -t ABCD -n wafi './wafi/wafi -v -T 100'
+tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n wafi './wafi/wafi -v -T 100'
 
 echo "Creating tofcalc windows"
-tmux new-window -d -c "$FOLDER" -P -t ABCD -n tofcalc "./tofcalc/tofcalc -f ./tofcalc/config.json -n 0.00195312"
+tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n tofcalc "./tofcalc/tofcalc -f ./tofcalc/config.json -n 0.00195312"
 
 echo "Creating spec windows"
-tmux new-window -d -c "$FOLDER" -P -t ABCD -n spec "./spec/spec"
+tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n spec "./spec/spec"
 
 echo "System started!"
 echo "Connect to GUI on addresses: http://127.0.0.1:8080/ http://127.0.0.1:8081/ http://127.0.0.1:8082/"
