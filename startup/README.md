@@ -3,10 +3,10 @@
 ## Introduction
 This folder contains some example scripts for starting up an ABCD instance.
 New users are suggested to start with [`startup_example_replay.sh`](./startup_example_replay.sh), so they can see a working system with the example data.
-**Warning**: All the scripts require to know where ABCD is installed. Modify the variable `$FOLDER` accordingly in the scripts.
+**Warning**: All the scripts require to know where ABCD is installed. Modify the variable `$ABCD_FOLDER` accordingly in the scripts.
 
 ## Scripts description
- - [`startup_example_replay.sh`](./startup_example_replay.sh) shows a standard startup for a replay of previously acquired data. The script uses the example data in the [`data/`](../data/) folder. Optionally, the script may accept a data file as argument:
+ - [`startup_example_replay.sh`](./startup_example_replay.sh) shows a standard startup for a replay of previously acquired data. The script uses the example data in the [`data/`](../data/) folder. `waan` is used to process the waveforms. Optionally, the script may accept a data file as argument:
  ```
  user@daq:~/abcd/startup$ ./startup_example_replay.sh ~/abcd/data/example_data_DT5730_Ch2_LaBr3_Ch4_LYSO_Ch6_YAP_raw.adr.bz2
  ```
