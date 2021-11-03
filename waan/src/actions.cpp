@@ -948,6 +948,7 @@ state actions::publish_status(status &global_status)
 
     json_object_set_new_nocheck(status_message, "statuses", channels_statuses);
     json_object_set_new_nocheck(status_message, "active_channels", active_channels);
+    json_object_set_new_nocheck(status_message, "config", json_deep_copy(global_status.config));
 
     actions::generic::publish_message(global_status, defaults_waan_status_topic, status_message);
 
