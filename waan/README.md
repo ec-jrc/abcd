@@ -80,4 +80,5 @@ Where the source code of the library would be `libuser.c`.
 ## Example libraries
 These example libraries are provided:
 
+- `libNull.c`: Simply forwards the waveform to the energy analysis without doing anything. It is useful if the user is not interested in determining timing information from the pulse or if the user wants to perform all the analysis in the energy analysis step.
 - `libStpAvg.c`: Calculates the energy information of a exponentially decaying pulse, by compensating the decay and determining its height with simple averages.
