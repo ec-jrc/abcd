@@ -167,9 +167,14 @@ void energy_analysis(const uint16_t *samples,
 
     to_double(samples, samples_number, &config->curve_samples);
 
-    double baseline = 0;
+    // Preventing segfaults by checking the boundaries
+    const uint32_t bottomline_start = 0;
+    const uint32_t bottomline_end = (config->baseline_samples < samples_number) ? config->baseline_samples : samples_number;
+    const uint32_t topline_start = ((config->baseline_samples + config->rise_samples) < samples_number) ? config->baseline_samples + config->rise_samples : samples_number;
+    const uint32_t topline_end = samples_number;
 
-    calculate_average(config->curve_samples, 0, config->baseline_samples, &baseline);
+    double baseline = 0;
+    calculate_average(config->curve_samples, bottomline_start, bottomline_end, &baseline);
 
     if (config->pulse_polarity == POLARITY_POSITIVE) {
         add_and_multiply_constant(config->curve_samples, samples_number, -1 * baseline, 1.0, &config->curve_offset);
@@ -184,10 +189,10 @@ void energy_analysis(const uint16_t *samples,
     // The curve after the compensation sometimes does not have a zero baseline
     // so we correct again for the new baseline.
     double bottomline = 0;
-    calculate_average(config->curve_compensated, 0, config->baseline_samples, &bottomline);
+    calculate_average(config->curve_compensated, bottomline_start, bottomline_end, &bottomline);
 
     double topline = 0;
-    calculate_average(config->curve_compensated, config->baseline_samples + config->rise_samples, samples_number, &topline);
+    calculate_average(config->curve_compensated, topline_start, topline_end, &topline);
 
     const uint64_t long_delta = (uint64_t)round((topline - bottomline) * config->height_scaling);
     const uint64_t long_topline = (uint64_t)round(topline * config->height_scaling);
