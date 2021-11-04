@@ -40,6 +40,29 @@
         "zzz": null
     },
     {
+        "name": "waveforms_analysis",
+        "type": "waan",
+        "description": "On-line waveforms analysis",
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://127.0.0.1:16206",
+            "topic": "status_waan"
+        },
+        {
+            "type": "events",
+            "address": "tcp://127.0.0.1:16206",
+            "topic": "events_waan"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://127.0.0.1:16208"
+        },
+        {}
+        ],
+        "zzz": null
+    },
+    {
         "name": "data_saver",
         "type": "dasa",
         "description": "Data saver module",
