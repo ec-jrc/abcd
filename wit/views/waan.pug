@@ -5,9 +5,19 @@ block content
   script(src='/ace/ace.js' type="text/javascript" charset="utf-8")
 
   h2 Waveforms analysis
-  div.display 
-    h3 Channels rates
-    div#channels_rates
+  div.columns
+    div.column
+      div.display 
+        h3 Channels rates
+        div#channels_rates
+    div.column
+      div.display 
+        h3 Active channels
+        div#active_channels
+    div.column
+      div.display 
+        h3 Channels that are not analyzed
+        div#disabled_channels
   div.display 
     h3 Analysis configuration
     fieldset

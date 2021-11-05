@@ -70,6 +70,26 @@ function page_loaded() {
             });
 
             $("#channels_rates").empty().append(rates_list);
+
+            const new_channels_active = new_status["active_channels"];
+
+            let active_list = $("<ul>");
+
+            new_channels_active.forEach(function (channel) {
+                active_list.append($("<li>", {text: "Ch " + channel}).addClass("good_status"));
+            });
+
+            $("#active_channels").empty().append(active_list);
+
+            const new_channels_disabled = new_status["disabled_channels"];
+
+            let disabled_list = $("<ul>");
+
+            new_channels_disabled.forEach(function (channel) {
+                disabled_list.append($("<li>", {text: "Ch " + channel}).addClass("bad_status"));
+            });
+
+            $("#disabled_channels").empty().append(disabled_list);
         }
     }
 
