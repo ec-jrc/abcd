@@ -51,6 +51,7 @@ struct status
     bool enable_additional;
 
     std::set<unsigned int> active_channels;
+    std::set<unsigned int> disabled_channels;
 
     std::map<unsigned int, void*> dl_timestamp_handles;
     std::map<unsigned int, union WA_init_union> channels_timestamp_init;

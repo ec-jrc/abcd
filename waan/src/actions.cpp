@@ -159,6 +159,7 @@ void actions::generic::clear_memory(status &global_status)
     global_status.dl_energy_handles.clear();
 
     global_status.active_channels.clear();
+    global_status.disabled_channels.clear();
 }
 
 bool actions::generic::configure(status &global_status)
@@ -900,6 +901,22 @@ state actions::publish_status(status &global_status)
         //return false;
     }
 
+    json_t *disabled_channels = json_array();
+    if (disabled_channels == NULL)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "ERROR: Unable to create disabled_channels json; ";
+        std::cout << std::endl;
+
+        json_decref(status_message);
+        json_decref(active_channels);
+
+        // I am not sure what to do here...
+        //return false;
+    }
+
     json_t *channels_statuses = json_array();
     if (channels_statuses == NULL)
     {
@@ -911,6 +928,7 @@ state actions::publish_status(status &global_status)
 
         json_decref(status_message);
         json_decref(active_channels);
+        json_decref(disabled_channels);
 
         // I am not sure what to do here...
         //return false;
@@ -946,8 +964,13 @@ state actions::publish_status(status &global_status)
         json_array_append_new(active_channels, json_integer(channel));
     }
 
+    for (const unsigned int &channel: global_status.disabled_channels)
+    {
+        json_array_append_new(disabled_channels, json_integer(channel));
+    }
     json_object_set_new_nocheck(status_message, "statuses", channels_statuses);
     json_object_set_new_nocheck(status_message, "active_channels", active_channels);
+    json_object_set_new_nocheck(status_message, "disabled_channels", disabled_channels);
     json_object_set_new_nocheck(status_message, "config", json_deep_copy(global_status.config));
 
     actions::generic::publish_message(global_status, defaults_waan_status_topic, status_message);
@@ -1137,12 +1160,39 @@ state actions::read_socket(status &global_status)
                     std::cout << std::endl;
                 }
 
-                if ((std::find(global_status.active_channels.begin(),
-                               global_status.active_channels.end(),
-                               this_channel) != global_status.active_channels.end()) &&
-                    (input_offset + 14
-                                  + (samples_number * sizeof(uint16_t))
-                                  + (samples_number * gates_number * sizeof(uint8_t)) < size)) {
+                const bool is_active = std::find(global_status.active_channels.begin(),
+                                                 global_status.active_channels.end(),
+                                                 this_channel) != global_status.active_channels.end();
+                const size_t needed_offset = input_offset + 14
+                                           + (samples_number * sizeof(uint16_t))
+                                           + (samples_number * gates_number * sizeof(uint8_t));
+
+                if (!is_active) {
+                    if (verbosity > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "Channel " << (unsigned int)this_channel << " is disabled; ";
+                        std::cout << std::endl;
+                    }
+
+                    global_status.disabled_channels.insert(this_channel);
+                }
+
+                if  (needed_offset > size) {
+                    if (verbosity > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "WARNING: Uncomplete waveform in buffer; ";
+                        std::cout << "needed offset: " << needed_offset << "; size:" << size << "; ";
+                        std::cout << std::endl;
+                    }
+                }
+
+                if (is_active && (needed_offset <= size)) {
 
                     if (verbosity > 1)
                     {
