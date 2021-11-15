@@ -83,6 +83,14 @@ A bash [installation script](./install_dependencies.sh) is available:
 The script tries to identify the Linux distribution, if it detects Fedora, Ubuntu or Debian it is able to update the distribution and install the required packages.
 If necessary, it will download and execute the installer for Node.js 10, from the Node.js official web page.
 
+The Graphical User Interface (GUI) modules must be installed independently:
+
+    cd wit/
+    npm install
+
+These will download all the required packages for the Node.js server and install them locally.
+Once all the packages have been installed the system is ready to be run from the local folder.
+
 ### Compilation
 The default compiler is `clang`. It is possible to change the compiler to `gcc` modifying the file [`common_definitions.mk`](./common_definitions.mk).
 The global Makefile compiles the whole system just by running in the global directory:
@@ -91,18 +99,7 @@ The global Makefile compiles the whole system just by running in the global dire
 
 The hardware interfacing modules will not be compiled, as they depend on specific libraries that might not be installed.
 The user should compile the suitable modules for the hardware (_e.g._ `abcd`, `abad2`, `abps5000a`, ` abrp`, or ` hivo`).
-The Graphical User Interface (GUI) modules must be installed independently:
 
-    cd efg/
-    make
-
-And, separately,
-
-    cd web_interface/
-    ./install.sh
-
-These will download all the required packages for the Node.js server and install them locally.
-Once all the packages have been installed the system is ready to be run from the local folder.
 Update the location in the startup scripts.
 
 ### Kernel updates
@@ -140,8 +137,9 @@ The list of all the servers available so far follows.
 * [abad2](./abad2/) - Data acquisition module, that interfaces with the Digilent Analog Discovery 2.
 * [abps5000a](./abps5000a/) - Data acquisition module, that interfaces with the Picoscope 5000A.
 * [abrp](./abrp/) - Data acquisition module, that interfaces with the Red Pitaya.
-* [efg](./efg/) - Graphical user interface module, that hosts the web-service.
-* [web_interface](./web_interface/) - Second graphical user interface module, that hosts the web-service for tofcalc and spec.
+* [efg](./efg/) - **Deprecated** Graphical user interface module, that hosts the web-service.
+* [web_interface](./web_interface/) - **Deprecated** Second graphical user interface module, that hosts the web-service for tofcalc and spec.
+* [wit](./wit/) - New Graphical user interface module, that hosts the web-service.
 * [hivo](./hivo/) - High-voltages management module, that interfaces with CAEN high-voltage power supplies.
 * [dasa](./dasa/) - Data logging module, that saves data to disk.
 * [spec](./spec/) - Histogramming module, that calculates the energy histograms on-line.
