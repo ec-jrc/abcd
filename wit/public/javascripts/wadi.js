@@ -204,6 +204,13 @@ function page_loaded() {
         }
     }
 
+    function reset_channels() {
+        waveforms = {};
+        active_channels = [];
+        update_selector(active_channels);
+        Plotly.react('plot_waveform', [], layout_waveform);
+    }
+
     socket_io.on("connect", socket_io_connection(socket_io, module_name, null, null, on_data));
 
     $("#channel_select").on('change', function () {
@@ -218,6 +225,7 @@ function page_loaded() {
     });
 
     $("#download_waveform").on("click", download_spectrum_data);
+    $("#reset_all").on("click", reset_channels);
 
     // This part is to trigger a window resize to convince plotly to resize the plot
     var observer = new MutationObserver(function(mutations) {

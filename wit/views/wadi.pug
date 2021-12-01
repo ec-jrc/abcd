@@ -11,6 +11,7 @@ block content
       label Show channel: #[select(id="channel_select")] 
       label Enable update: #[span.custom-slider #[input(type="checkbox" id="update_plot" checked="checked")] #[span.cursor]] 
       button(id="download_waveform") Download waveform data 
+      button(id="reset_all") Reset all
     div
       p #[strong Timestamp:] #[span(id="timestamp_display")]
     div#plot_waveform.plot_display
