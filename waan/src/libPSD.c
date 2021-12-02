@@ -1,3 +1,40 @@
+/*! \brief Determination of the energy information from an exponentially
+ *         decaying pulse, by compensating its decay and then applying a CR-RC4
+ *         filter to the waveforms.
+ *
+ * Calculation procedure:
+ *  1. The baseline is determined averaging the first N samples.
+ *  2. The pulse is offset by the baseline to center it around zero.
+ *  3. The pulse is integrated over a short and a long integration domains.
+ *
+ * In the event_PSD structure the energy information is stored in the qlong,
+ * while the qshort stores the value of the shorter integral.
+ *
+ * The configuration parameters that are searched in a `json_t` object are:
+ *
+ * - `baseline_samples`: the number of samples to average to determine the
+ *   baseline. The average starts from the beginning of the waveform.
+ * - `pulse_polarity`: a string describing the expected pulse polarity, it
+ *   can be `positive` or `negative`.
+ * - `pregate`: the number of samples before the `trigger_position` that define
+ *   the beginning of the integration windows. If this setting is found both
+ *   integration windows will start from this point.
+ * - `short_pregate`: the number of samples before the `trigger_position` that
+ *   define the beginning of the short integration window. This setting has the
+ *   precedence over `pregate`.
+ * - `long_pregate`: the number of samples before the `trigger_position` that
+ *   define the beginning of the long integration window. This setting has the
+ *   precedence over `pregate`.
+ * - `short_gate`: the number of samples of the width of the short integration
+ *   window.
+ * - `long_gate`: the number of samples of the width of the long integration
+ *   window.
+ * - `integrals_scaling`: a scaling factor multiplied to both the integrals.
+ *   Optional, default value: 1
+ * - `energy_threshold`: pulses with an energy lower than the threshold are
+ *   discared. Optional, default value: 0
+ */
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -13,9 +50,6 @@
 #define max(x,y) ((x) > (y)) ? (x) : (y)
 
 /*! \brief Sctructure that holds the configuration for the `energy_analysis` function.
- *
- * This function parses a JSON object determining the configuration for the
- * `energy_analysis` function.
  */
 struct PSD_config
 {
@@ -26,6 +60,7 @@ struct PSD_config
     int64_t long_gate;
     enum pulse_polarity_t pulse_polarity;
     double integrals_scaling;
+    double energy_threshold;
 
     bool is_error;
 
@@ -44,26 +79,6 @@ void reallocate_curves(uint32_t samples_number, struct PSD_config **user_config)
  * This function parses a JSON object determining the configuration for the
  * `energy_analysis()` function. The configuration is returned as an
  * allocated `struct PSD_config`.
- *
- * The parameters that are searched in the json_t object are:
- *
- * - "pulse_polarity": a string describing the expected pulse polarity, it
- *   can be "positive" or "negative".
- * - "pregate": the number of samples before the trigger_position that define
- *   the beginning of the integration windows. If this setting is found both
- *   integration windows will start from this point.
- * - "short_pregate": the number of samples before the trigger_position that
- *   define the beginning of the short integration window. This setting has the
- *   precedence over "pregate".
- * - "long_pregate": the number of samples before the trigger_position that
- *   define the beginning of the long integration window. This setting has the
- *   precedence over "pregate".
- * - "short_gate": the number of samples of the width of the short integration
- *   window.
- * - "long_gate": the number of samples of the width of the long integration
- *   window.
- * - "integrals_scaling": a scaling factor multiplied to both the integrals.
- *   Optional, default value: 1
  */
 void energy_init(json_t *json_config, void **user_config)
 {
@@ -162,9 +177,6 @@ void energy_analysis(const uint16_t *samples,
 
     reallocate_curves(samples_number, &config);
 
-    // N.B. That '-1' is to have the right integration window since,
-    // having a discrete domain, the integrals should be considered
-    // calculated always up to the right edge of the intervals.
     //const int64_t baseline_end = trigger_position - config->pregate;
     const int64_t baseline_end = config->baseline_samples;
 
@@ -203,6 +215,9 @@ void energy_analysis(const uint16_t *samples,
         long_gate_start = samples_number - 1;
     }
 
+    // N.B. That '-1' is to have the right integration window since,
+    // having a discrete domain, the integrals should be considered
+    // calculated always up to the right edge of the intervals.
     int64_t short_gate_end = short_gate_start + config->short_gate - 1;
     int64_t long_gate_end = long_gate_start + config->long_gate - 1;
 

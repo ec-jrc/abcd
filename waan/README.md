@@ -83,3 +83,4 @@ These example libraries are provided:
 - `libNull.c`: Simple `timestamp_analysis()` function that forwards the waveform to the energy analysis without doing anything. It is useful if the user is not interested in determining timing information from the pulse or if the user wants to perform all the analysis in the energy analysis step.
 - `libStpAvg.c`: Calculates the energy information of a exponentially decaying pulse, by compensating the decay and determining its height with simple averages.
 - `libCRRC4.c`: Calculates the energy information of a exponentially decaying pulse, by compensating the decay and then applying a recursive CR-RC^4 filter.
+- `libPSD.c`: Calculates the energy and Pulse Shape information of a short pulse, by applying the double integration method.
