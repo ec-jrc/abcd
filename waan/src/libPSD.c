@@ -300,30 +300,30 @@ void energy_analysis(const uint16_t *samples,
     event->pur = PUR;
 
     const uint8_t initial_additional_number = waveform_additional_get_number(waveform);
-    const uint8_t new_additional_number = initial_additional_number + 2;
+    const uint8_t new_additional_number = initial_additional_number + 3;
 
     waveform_additional_set_number(waveform, new_additional_number);
 
     uint8_t *additional_gate_short = waveform_additional_get(waveform, initial_additional_number + 0);
     uint8_t *additional_gate_long = waveform_additional_get(waveform, initial_additional_number + 1);
-    //uint8_t *additional_integral = waveform_additional_get(waveform, initial_additional_number + 2);
+    uint8_t *additional_integral = waveform_additional_get(waveform, initial_additional_number + 2);
 
-    //double integral_min = 0;
-    //double integral_max = 0;
-    //size_t integral_index_min = 0;
-    //size_t integral_index_max = 0;
+    double integral_min = 0;
+    double integral_max = 0;
+    size_t integral_index_min = 0;
+    size_t integral_index_max = 0;
 
-    //find_extrema(config->curve_integral, 0, samples_number,
-    //             &integral_index_min, &integral_index_max,
-    //             &integral_min, &integral_max);
+    find_extrema(config->curve_integral, 0, samples_number,
+                 &integral_index_min, &integral_index_max,
+                 &integral_min, &integral_max);
 
-    //const double integral_abs_max = (fabs(integral_max) > fabs(integral_min)) ? fabs(integral_max) : fabs(integral_min);
+    const double integral_abs_max = (fabs(integral_max) > fabs(integral_min)) ? fabs(integral_max) : fabs(integral_min);
 
     const uint8_t ZERO = UINT8_MAX / 2;
     const uint8_t MAX = UINT8_MAX / 2;
 
     for (uint32_t i = 0; i < samples_number; i++) {
-        //additional_integral[i] = (config->curve_integral[i] / integral_abs_max) * MAX + ZERO;
+        additional_integral[i] = (config->curve_integral[i] / integral_abs_max) * MAX + ZERO;
 
         if (short_gate_start <= i && i < short_gate_end)
         {
