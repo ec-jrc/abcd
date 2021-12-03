@@ -33,7 +33,7 @@ BUFFER_SIZE = 16 * 10 * 1024 * 1024
 def exponential(t, A, tau):
     return A * np.exp(-t / tau)
 
-parser = argparse.ArgumentParser(description='Plots multiple time normalized spectra from ABCD events data files.')
+parser = argparse.ArgumentParser(description='Plots multiple timestamps sequences and distributions of time differences from ABCD events data files.')
 parser.add_argument('file_names',
                     type = str,
                     nargs = '+',
