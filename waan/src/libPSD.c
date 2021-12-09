@@ -89,7 +89,7 @@ void energy_init(json_t *json_config, void **user_config)
 
         (*user_config) = NULL;
     } else {
-	struct PSD_config *config = malloc(1 * sizeof(struct PSD_config));
+        struct PSD_config *config = malloc(1 * sizeof(struct PSD_config));
 
         if (!config) {
             printf("ERROR: libPSD energy_init(): Unable to allocate config memory\n");
@@ -116,6 +116,12 @@ void energy_init(json_t *json_config, void **user_config)
             config->integrals_scaling = json_number_value(json_object_get(json_config, "integrals_scaling"));
         } else {
             config->integrals_scaling = 1;
+        }
+
+        if (json_is_number(json_object_get(json_config, "energy_threshold"))) {
+            config->energy_threshold = json_number_value(json_object_get(json_config, "energy_threshold"));
+        } else {
+            config->energy_threshold = 0;
         }
 
         config->pulse_polarity = POLARITY_NEGATIVE;
@@ -299,48 +305,52 @@ void energy_analysis(const uint16_t *samples,
     event->channel = waveform->channel;
     event->pur = PUR;
 
-    const uint8_t initial_additional_number = waveform_additional_get_number(waveform);
-    const uint8_t new_additional_number = initial_additional_number + 3;
+    if (scaled_qlong < config->energy_threshold) {
+        (*select_event) = SELECT_FALSE;
+    } else {
+        const uint8_t initial_additional_number = waveform_additional_get_number(waveform);
+        const uint8_t new_additional_number = initial_additional_number + 3;
 
-    waveform_additional_set_number(waveform, new_additional_number);
+        waveform_additional_set_number(waveform, new_additional_number);
 
-    uint8_t *additional_gate_short = waveform_additional_get(waveform, initial_additional_number + 0);
-    uint8_t *additional_gate_long = waveform_additional_get(waveform, initial_additional_number + 1);
-    uint8_t *additional_integral = waveform_additional_get(waveform, initial_additional_number + 2);
+        uint8_t *additional_gate_short = waveform_additional_get(waveform, initial_additional_number + 0);
+        uint8_t *additional_gate_long = waveform_additional_get(waveform, initial_additional_number + 1);
+        uint8_t *additional_integral = waveform_additional_get(waveform, initial_additional_number + 2);
 
-    double integral_min = 0;
-    double integral_max = 0;
-    size_t integral_index_min = 0;
-    size_t integral_index_max = 0;
+        double integral_min = 0;
+        double integral_max = 0;
+        size_t integral_index_min = 0;
+        size_t integral_index_max = 0;
 
-    find_extrema(config->curve_integral, 0, samples_number,
-                 &integral_index_min, &integral_index_max,
-                 &integral_min, &integral_max);
+        find_extrema(config->curve_integral, 0, samples_number,
+                     &integral_index_min, &integral_index_max,
+                     &integral_min, &integral_max);
 
-    const double integral_abs_max = (fabs(integral_max) > fabs(integral_min)) ? fabs(integral_max) : fabs(integral_min);
+        const double integral_abs_max = (fabs(integral_max) > fabs(integral_min)) ? fabs(integral_max) : fabs(integral_min);
 
-    const uint8_t ZERO = UINT8_MAX / 2;
-    const uint8_t MAX = UINT8_MAX / 2;
+        const uint8_t ZERO = UINT8_MAX / 2;
+        const uint8_t MAX = UINT8_MAX / 2;
 
-    for (uint32_t i = 0; i < samples_number; i++) {
-        additional_integral[i] = (config->curve_integral[i] / integral_abs_max) * MAX + ZERO;
+        for (uint32_t i = 0; i < samples_number; i++) {
+            additional_integral[i] = (config->curve_integral[i] / integral_abs_max) * MAX + ZERO;
 
-        if (short_gate_start <= i && i < short_gate_end)
-        {
-            additional_gate_short[i] = ZERO + MAX;
-        } else {
-            additional_gate_short[i] = ZERO;
+            if (short_gate_start <= i && i < short_gate_end)
+            {
+                additional_gate_short[i] = ZERO + MAX;
+            } else {
+                additional_gate_short[i] = ZERO;
+            }
+
+            if (long_gate_start <= i && i < long_gate_end)
+            {
+                additional_gate_long[i] = ZERO + MAX;
+            } else {
+                additional_gate_long[i] = ZERO;
+            }
         }
 
-        if (long_gate_start <= i && i < long_gate_end)
-        {
-            additional_gate_long[i] = ZERO + MAX;
-        } else {
-            additional_gate_long[i] = ZERO;
-        }
+        (*select_event) = SELECT_TRUE;
     }
-
-    (*select_event) = SELECT_TRUE;
 }
 
 void reallocate_curves(uint32_t samples_number, struct PSD_config **user_config)
@@ -348,7 +358,7 @@ void reallocate_curves(uint32_t samples_number, struct PSD_config **user_config)
     struct PSD_config *config = (*user_config);
 
     if (samples_number != config->previous_samples_number) {
-	config->previous_samples_number = samples_number;
+        config->previous_samples_number = samples_number;
 
         config->is_error = false;
 

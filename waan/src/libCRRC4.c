@@ -21,7 +21,7 @@
  * - `baseline_samples`: the number of samples to average to determine the
  *   baseline. The average starts from the beginning of the waveform.
  * - `pulse_polarity`: a string describing the expected pulse polarity, it
- *   can be "positive` or "negative".
+ *   can be `positive` or `negative`.
  * - `decay_time`: the pulse decay time in terms of clock samples, for the
  *   compensation.
  * - `highpass_time`: the decay time of the high-pass filter (CR filter), in
