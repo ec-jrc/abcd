@@ -305,7 +305,7 @@ void energy_analysis(const uint16_t *samples,
     event->channel = waveform->channel;
     event->pur = PUR;
 
-    if (qlong < config->energy_threshold) {
+    if (scaled_qlong < config->energy_threshold) {
         (*select_event) = SELECT_FALSE;
     } else {
         const uint8_t initial_additional_number = waveform_additional_get_number(waveform);
