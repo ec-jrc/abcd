@@ -58,6 +58,10 @@ extern "C" {
 
 #define BUFFER_SIZE 32
 
+#define RED_COLOR "\x1b[0;31m"
+#define YELLOW_COLOR "\x1b[0;33m"
+#define NO_COLOR "\x1b[0m"
+
 /******************************************************************************/
 /* Generic actions                                                            */
 /******************************************************************************/
@@ -296,15 +300,20 @@ bool actions::generic::configure(status &global_status)
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
                     std::cout << '[' << time_buffer << "] ";
-                    std::cout << "ERROR: user_libraries is not an object; ";
+                    std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": user_libraries is not an object; ";
                     std::cout << std::endl;
 
                     dl_loading_error = true;
                 } else {
-                    const std::string lib_timestamp =
+                    const char *json_timestamp = 
                         json_string_value(json_object_get(libraries_json, "timestamp"));
-                    const std::string lib_energy =
+                    const char *json_energy = 
                         json_string_value(json_object_get(libraries_json, "energy"));
+
+                    const std::string lib_timestamp =
+                        json_timestamp ? json_timestamp : "";
+                    const std::string lib_energy =
+                        json_energy ? json_energy : "";
 
                     if (verbosity > 0)
                     {
@@ -327,11 +336,13 @@ bool actions::generic::configure(status &global_status)
                             char time_buffer[BUFFER_SIZE];
                             time_string(time_buffer, BUFFER_SIZE, NULL);
                             std::cout << '[' << time_buffer << "] ";
-                            std::cout << "ERROR: Empty timestamp library; ";
+                            std::cout << "WARNING: Empty timestamp library, using dummy_timestamp_analysis(); ";
                             std::cout << std::endl;
                         }
 
-                        dl_loading_error = true;
+                        global_status.channels_timestamp_init[id].fn = dummy_init;
+                        global_status.channels_timestamp_close[id].fn = dummy_close;
+                        global_status.channels_timestamp_analysis[id].fn = dummy_timestamp_analysis;
                     } else {
                         if (verbosity > 0)
                         {
@@ -348,7 +359,7 @@ bool actions::generic::configure(status &global_status)
                             char time_buffer[BUFFER_SIZE];
                             time_string(time_buffer, BUFFER_SIZE, NULL);
                             std::cout << '[' << time_buffer << "] ";
-                            std::cout << "ERROR: Unable to load timestamp library: " << dlerror() << "; ";
+                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load timestamp library: " << dlerror() << "; ";
                             std::cout << std::endl;
 
                             dl_loading_error = true;
@@ -368,7 +379,7 @@ bool actions::generic::configure(status &global_status)
                                 char time_buffer[BUFFER_SIZE];
                                 time_string(time_buffer, BUFFER_SIZE, NULL);
                                 std::cout << '[' << time_buffer << "] ";
-                                std::cout << "ERROR: Unable to load timestamp init function: " << dlerror() << "; ";
+                                std::cout << "WARNING: Unable to load timestamp init function: " << dlerror() << "; ";
                                 std::cout << std::endl;
 
                                 global_status.channels_timestamp_init[id].fn = dummy_init;
@@ -391,7 +402,7 @@ bool actions::generic::configure(status &global_status)
                                 char time_buffer[BUFFER_SIZE];
                                 time_string(time_buffer, BUFFER_SIZE, NULL);
                                 std::cout << '[' << time_buffer << "] ";
-                                std::cout << "ERROR: Unable to load timestamp close function: " << dlerror() << "; ";
+                                std::cout << "WARNING: Unable to load timestamp close function: " << dlerror() << "; ";
                                 std::cout << std::endl;
 
                                 global_status.channels_timestamp_close[id].fn = dummy_close;
@@ -414,7 +425,7 @@ bool actions::generic::configure(status &global_status)
                                 char time_buffer[BUFFER_SIZE];
                                 time_string(time_buffer, BUFFER_SIZE, NULL);
                                 std::cout << '[' << time_buffer << "] ";
-                                std::cout << "ERROR: Unable to load timestamp function: " << dlerror() << "; ";
+                                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load timestamp function: " << dlerror() << "; ";
                                 std::cout << std::endl;
 
                                 dl_loading_error = true;
@@ -438,7 +449,7 @@ bool actions::generic::configure(status &global_status)
                                     char time_buffer[BUFFER_SIZE];
                                     time_string(time_buffer, BUFFER_SIZE, NULL);
                                     std::cout << '[' << time_buffer << "] ";
-                                    std::cout << "ERROR: unable to load the functions; ";
+                                    std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": unable to load the functions; ";
                                     std::cout << std::endl;
                                 }
                             }
@@ -454,7 +465,7 @@ bool actions::generic::configure(status &global_status)
                             char time_buffer[BUFFER_SIZE];
                             time_string(time_buffer, BUFFER_SIZE, NULL);
                             std::cout << '[' << time_buffer << "] ";
-                            std::cout << "ERROR: Empty energy library; ";
+                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Empty energy library; ";
                             std::cout << std::endl;
                         }
 
@@ -475,7 +486,7 @@ bool actions::generic::configure(status &global_status)
                             char time_buffer[BUFFER_SIZE];
                             time_string(time_buffer, BUFFER_SIZE, NULL);
                             std::cout << '[' << time_buffer << "] ";
-                            std::cout << "ERROR: Unable to load energy library: " << dlerror() << "; ";
+                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy library: " << dlerror() << "; ";
                             std::cout << std::endl;
 
                             dl_loading_error = true;
@@ -495,7 +506,7 @@ bool actions::generic::configure(status &global_status)
                                 char time_buffer[BUFFER_SIZE];
                                 time_string(time_buffer, BUFFER_SIZE, NULL);
                                 std::cout << '[' << time_buffer << "] ";
-                                std::cout << "ERROR: Unable to load energy init function: " << dlerror() << "; ";
+                                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy init function: " << dlerror() << "; ";
                                 std::cout << std::endl;
 
                                 global_status.channels_energy_init[id].fn = dummy_init;
@@ -518,7 +529,7 @@ bool actions::generic::configure(status &global_status)
                                 char time_buffer[BUFFER_SIZE];
                                 time_string(time_buffer, BUFFER_SIZE, NULL);
                                 std::cout << '[' << time_buffer << "] ";
-                                std::cout << "ERROR: Unable to load energy close function: " << dlerror() << "; ";
+                                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy close function: " << dlerror() << "; ";
                                 std::cout << std::endl;
 
                                 global_status.channels_energy_close[id].fn = dummy_close;
@@ -541,7 +552,7 @@ bool actions::generic::configure(status &global_status)
                                 char time_buffer[BUFFER_SIZE];
                                 time_string(time_buffer, BUFFER_SIZE, NULL);
                                 std::cout << '[' << time_buffer << "] ";
-                                std::cout << "ERROR: Unable to load energy function: " << dlerror() << "; ";
+                                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy function: " << dlerror() << "; ";
                                 std::cout << std::endl;
 
                                 dl_loading_error = true;
@@ -565,7 +576,7 @@ bool actions::generic::configure(status &global_status)
                                     char time_buffer[BUFFER_SIZE];
                                     time_string(time_buffer, BUFFER_SIZE, NULL);
                                     std::cout << '[' << time_buffer << "] ";
-                                    std::cout << "ERROR: unable to load the functions; ";
+                                    std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": unable to load the functions; ";
                                     std::cout << std::endl;
                                 }
                             }
@@ -645,7 +656,7 @@ state actions::create_context(status &global_status)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: ZeroMQ Error on context creation";
+        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on context creation";
         std::cout << std::endl;
 
         return states::COMMUNICATION_ERROR;
@@ -668,7 +679,7 @@ state actions::create_sockets(status &global_status)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: ZeroMQ Error on status socket creation: ";
+        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on status socket creation: ";
         std::cout << zmq_strerror(errno);
         std::cout << std::endl;
 
@@ -681,7 +692,7 @@ state actions::create_sockets(status &global_status)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: ZeroMQ Error on output data socket creation: ";
+        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on output data socket creation: ";
         std::cout << zmq_strerror(errno);
         std::cout << std::endl;
 
@@ -693,7 +704,7 @@ state actions::create_sockets(status &global_status)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: ZeroMQ Error on input data socket creation: ";
+        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on input data socket creation: ";
         std::cout << zmq_strerror(errno);
         std::cout << std::endl;
 
@@ -706,7 +717,7 @@ state actions::create_sockets(status &global_status)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: ZeroMQ Error on commands socket creation: ";
+        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on commands socket creation: ";
         std::cout << zmq_strerror(errno);
         std::cout << std::endl;
 
@@ -736,7 +747,7 @@ state actions::bind_sockets(status &global_status)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: ZeroMQ Error on status socket binding: ";
+        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on status socket binding: ";
         std::cout << zmq_strerror(errno);
         std::cout << std::endl;
 
@@ -749,7 +760,7 @@ state actions::bind_sockets(status &global_status)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: ZeroMQ Error on data socket binding: ";
+        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on data socket binding: ";
         std::cout << zmq_strerror(errno);
         std::cout << std::endl;
 
@@ -762,7 +773,7 @@ state actions::bind_sockets(status &global_status)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: ZeroMQ Error on data socket binding: ";
+        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on data socket binding: ";
         std::cout << zmq_strerror(errno);
         std::cout << std::endl;
 
@@ -775,7 +786,7 @@ state actions::bind_sockets(status &global_status)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: ZeroMQ Error on commands socket binding: ";
+        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on commands socket binding: ";
         std::cout << zmq_strerror(errno);
         std::cout << std::endl;
 
@@ -814,7 +825,7 @@ state actions::read_config(status &global_status)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: Parse error while reading config file: ";
+        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Parse error while reading config file: ";
         std::cout << error.text;
         std::cout << " (source: ";
         std::cout << error.source;
@@ -879,7 +890,7 @@ state actions::publish_status(status &global_status)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: Unable to create status_message json; ";
+        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to create status_message json; ";
         std::cout << std::endl;
 
         // I am not sure what to do here...
@@ -892,7 +903,7 @@ state actions::publish_status(status &global_status)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: Unable to create active_channels json; ";
+        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to create active_channels json; ";
         std::cout << std::endl;
 
         json_decref(status_message);
@@ -907,7 +918,7 @@ state actions::publish_status(status &global_status)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: Unable to create disabled_channels json; ";
+        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to create disabled_channels json; ";
         std::cout << std::endl;
 
         json_decref(status_message);
@@ -923,7 +934,7 @@ state actions::publish_status(status &global_status)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: Unable to create active_channels json; ";
+        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to create active_channels json; ";
         std::cout << std::endl;
 
         json_decref(status_message);
@@ -1004,7 +1015,7 @@ state actions::receive_commands(status &global_status)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: Error on receiving JSON commands message";
+        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Error on receiving JSON commands message";
         std::cout << std::endl;
     }
     else
@@ -1225,8 +1236,8 @@ state actions::read_socket(status &global_status)
                     //}
 
                     uint32_t trigger_position = 0;
-                    int8_t timestamp_is_selected = SELECT_FALSE;
-                    int8_t energy_is_selected = SELECT_FALSE;
+                    int8_t timestamp_is_selected = SELECT_TRUE;
+                    int8_t energy_is_selected = SELECT_TRUE;
 
                     if (verbosity > 1)
                     {

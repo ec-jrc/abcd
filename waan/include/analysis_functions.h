@@ -1,8 +1,8 @@
 /*! \file      analysis_functions.h
  *  \brief     Definition file for the user-functions used by waan for waveforms analysis.
  *  \author    Cristiano L. Fontana
- *  \version   0.1
- *  \date      April 2021
+ *  \version   0.2
+ *  \date      December 2021
  *  \copyright MIT
  *
  * This header file contains the prototypes of the functions used by waan for
@@ -153,6 +153,33 @@ typedef void (*WA_timestamp_fn)(const uint16_t *samples,
                                 struct event_PSD *event,
                                 int8_t *select_event,
                                 void *user_config);
+
+/*! \brief Function that is used in place of the \ref `timestamp_analysis`
+ *         user-supplied function. It simply forwards the waveforms to the
+ *         \ref `energy_analysis` function without doing anything. It is used
+ *         in case the user is not interested in determining timing information
+ *         or if the user wants to perform all the analysis in the
+ *         \ref `energy_analysis` function.
+ *
+ * The function parameters are the same of \ref `WA_timestamp_fn`.
+ */
+inline void dummy_timestamp_analysis(const uint16_t *samples,
+                                     uint32_t samples_number,
+                                     uint32_t *trigger_position,
+                                     struct event_waveform *waveform,
+                                     struct event_PSD *event,
+                                     int8_t *select_event,
+                                     void *user_config)
+{
+    UNUSED(samples);
+    UNUSED(samples_number);
+    UNUSED(trigger_position);
+    UNUSED(waveform);
+    UNUSED(event);
+    UNUSED(select_event);
+    UNUSED(user_config);
+}
+
 /*! \brief Type of a function used to determine energy information
  *
  * The function described by this type is used to analyze waveform samples, in
@@ -191,7 +218,7 @@ typedef void (*WA_energy_fn)(const uint16_t *samples,
                              void *user_config);
 
 // We define these unions in order to convert the data pointer from `dlsym()`
-// to a function pointer, that might not be compatible see:
+// to a function pointer, that might not be compatible, see:
 // https://en.wikipedia.org/wiki/Dynamic_loading#UNIX_(POSIX)
 union WA_init_union
 {

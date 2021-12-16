@@ -52,13 +52,14 @@ Two analysis functions are foreseen in the structure:
 2. `energy_analysis()` that determines the energy information of the pulse;
 
 The two analyses were separated in order to simplify code reuse.
-The user might want to perform both analyses in either one of the two functions, in order to optimize the computational time.
+The user might want to perform both analyses in the `energy_analysis()` function, in order to optimize the computational time.
 The functions may be different for each acquisition channel, allowing the coexistence of different detectors on the same digitizer.
 A pulse may also be discarded by the user functions, in order to eliminate unwanted/noise events.
 
 ## Configuration
 The configuration file is in the [JSON](http://www.json.org/) format.
 For each channel the user shall provide the filename of the libraries.
+The timestamp analysis may be omitted without putting a name on the relative library.
 The filenames shall follow the conventions of the UNIX dynamic linking functions; thus if the filename contains a slash (`/`) then the file is searched on the given path, if there is no slash then the library is searched in the standard system library folders.
 If the user wants to use a local file in the current directory the filename shall start with `./` (_e.g._ `./libCFD.so`).
 The libraries may be modified and reloaded at runtime.
