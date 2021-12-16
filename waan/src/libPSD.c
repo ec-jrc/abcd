@@ -265,20 +265,13 @@ void energy_analysis(const uint16_t *samples,
     const double qlong  = config->curve_integral[long_gate_end]
                           - config->curve_integral[long_gate_start - 2];
 
-    const double scaled_qshort = qshort * config->integrals_scaling;
-    const double scaled_qlong = qlong * config->integrals_scaling;
+    const double scaled_qshort = qshort * config->integrals_scaling
+                                 * (config->pulse_polarity == POLARITY_POSITIVE ? 1.0 : -1.0);
+    const double scaled_qlong  = qlong * config->integrals_scaling
+                                 * (config->pulse_polarity == POLARITY_POSITIVE ? 1.0 : -1.0);
 
-    uint64_t long_qshort = 0;
-    uint64_t long_qlong = 0;
-
-    if (config->pulse_polarity == POLARITY_POSITIVE)
-    {
-        long_qshort = (uint64_t)round(scaled_qshort);
-        long_qlong = (uint64_t)round(scaled_qlong);
-    } else {
-        long_qshort = (uint64_t)round(scaled_qshort * -1);
-        long_qlong = (uint64_t)round(scaled_qlong * -1);
-    }
+    const uint64_t long_qshort = (uint64_t)round(scaled_qshort);
+    const uint64_t long_qlong = (uint64_t)round(scaled_qlong);
 
     // We convert the 64 bit integers to 16 bit to simulate the digitizer data
     uint16_t int_qshort = long_qshort & UINT16_MAX;
@@ -306,6 +299,7 @@ void energy_analysis(const uint16_t *samples,
     event->pur = PUR;
 
     if (scaled_qlong < config->energy_threshold) {
+
         (*select_event) = SELECT_FALSE;
     } else {
         const uint8_t initial_additional_number = waveform_additional_get_number(waveform);
