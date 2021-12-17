@@ -179,7 +179,8 @@ inline extern int add_and_multiply_constant(const double *samples, size_t sample
     return EXIT_SUCCESS;
 }
 
-/*! \brief Function that applies a recursive running mean, as described in the DSP book, chapter 15, eq. (15-3)
+/*! \brief Function that applies a recursive running mean, as described in the
+ *         DSP book, chapter 15, eq. (15-3)
  *
  * \param[in] samples an array with the input samples.
  * \param[in] samples_number the number of samples in the array.
@@ -189,7 +190,7 @@ inline extern int add_and_multiply_constant(const double *samples, size_t sample
  *
  * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
  */
-inline extern int running_mean(const uint16_t *samples, size_t samples_number, \
+inline extern int running_mean(const double *samples, size_t samples_number, \
                                unsigned int smooth_samples, \
                                double **smoothed_samples)
 {
@@ -207,23 +208,23 @@ inline extern int running_mean(const uint16_t *samples, size_t samples_number, \
 
     // Calculating the average of the first M numbers and then storing that on
     // the first P numbers.
-    uint32_t accumulator = 0;
-    for (uint32_t i = 0; i < smooth_samples; i++) {
+    double accumulator = 0;
+    for (size_t i = 0; i < smooth_samples; i++) {
         accumulator += samples[i];
     }
 
     const double beginning_average = accumulator / M;
-    for (uint32_t i = 0; i < (P + 1); i++) {
+    for (size_t i = 0; i < (P + 1); i++) {
         (*smoothed_samples)[i] = beginning_average;
     }
 
-    for (uint32_t i = (P + 1); i < (samples_number - P); i++) {
+    for (size_t i = (P + 1); i < (samples_number - P); i++) {
         (*smoothed_samples)[i] = (*smoothed_samples)[i - 1]
                                  + (((int32_t)samples[i + P]) - ((int32_t)samples[i - (P + 1)])) / M;
     }
 
     // The last (P + 1) numbers will be all identical.
-    for (uint32_t i = (samples_number - P); i < samples_number; i++) {
+    for (size_t i = (samples_number - P); i < samples_number; i++) {
         (*smoothed_samples)[i] = (*smoothed_samples)[samples_number - P - 1];
     }
 
