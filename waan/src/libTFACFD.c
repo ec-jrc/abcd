@@ -1,7 +1,44 @@
+/*! \brief Determination of the trigger position by employing a Timing Filter
+ *         Amplifier and then a Constant Fraction Discriminator algorithm.
+ *
+ * Calculation procedure:
+ *  1. A recursive high-pass filter (CR filter) is applied.
+ *  2. A recursive low-pass filter (RC filter) is applied.
+ *  3. The CFD algorithm is applied to the resulting pulse.
+ *
+ * The trigger position is added to time timestamp provided by the digitizer
+ * in order to determine the pulse absolute time. The trigger position is
+ * determined with a resolution better than the clock step, the fractional part
+ * is added to the timestamp by shifting it by a user-configurable number of
+ * bits.
+ *
+ * The configuration parameters that are searched in a `json_t` object are:
+ *
+ * - `highpass_time`: the decay time of the high-pass filter, in terms of clock
+ *   samples.
+ * - `lowpass_time`: the decay time of the low-pass filter, in terms of clock
+ *   samples.
+ * - `fraction`: the multiplication factor of the signal that is to be summed
+ *   to the delayed version of the signal itself.
+ * - `delay`: the delay of the signal in terms of clock samples.
+ * - `zero_crossing_samples`: the number of samples to be used in the linear
+ *   interpolation of the zero-crossing region. Optional, default value: 2
+ * - `smooth_samples`: the number of samples to be averaged in the running
+ *   mean, rounded to the next odd number. Optional, default value: 1
+ * - `fractional_bits`: the number of fractional bits of the timestamp.
+ *   Optional, default value: 10
+ * - `disable_shift`: disable the bit shift of the timestamp, in order to
+ *   recalculate fine timestamps of previously analyzed data.
+ *   Optional, default value: false
+ * - `disable_CFD_gates`: disable the display of the additional waveforms of
+ *   the CFD calculation.
+ *   Optional, default value: false
+ */
+
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include <math.h>
 
@@ -42,25 +79,6 @@ void reallocate_curves(uint32_t samples_number, struct TFACFD_config **user_conf
  * `timestamp_analysis()` function. The configuration is returned as an
  * allocated `struct TFACFD_config`.
  *
- * The parameters that are searched in the json_t object are:
- *
- * - "highpass_time": the decay time of the high-pass filter, in terms of clock
- *   samples.
- * - "lowpass_time": the decay time of the low-pass filter, in terms of clock
- *   samples.
- * - "fraction": the multiplication factor of the signal that is to be summed
- *   to the delayed version of the signal itself.
- * - "delay": the delay of the signal in terms of clock samples.
- * - "zero_crossing_samples": the number of samples to be used in the linear
- *   interpolation of the zero-crossing region. Optional, default value: 2
- * - "fractional_bits": the number of fractional bits of the timestamp.
- *   Optional, default value: 10
- * - "disable_shift": disable the bit shift of the timestamp, in order to
- *   recalculate fine timestamps of previously analyzed data.
- *   Optional, default value: false
- * - "disable_CFD_gates": disable the display of the additional waveforms of
- *   the CFD calculation.
- *   Optional, default value: false
  */
 void timestamp_init(json_t *json_config, void **user_config)
 {
@@ -148,17 +166,27 @@ void timestamp_close(void *user_config)
  */
 void timestamp_analysis(const uint16_t *samples,
                         uint32_t samples_number,
-                        uint32_t *trigger_position,
                         struct event_waveform *waveform,
-                        struct event_PSD *event,
-                        int8_t *select_event,
+                        uint32_t **trigger_positions,
+                        struct event_PSD **events_buffer,
+                        size_t *events_number,
                         void *user_config)
 {
     struct TFACFD_config *config = (struct TFACFD_config*)user_config;
 
     reallocate_curves(samples_number, &config);
 
-    if (config->is_error) {
+    bool is_error = false;
+
+    if ((*events_number) != 1) {
+        printf("WARNING: libTFACFD timestamp_analysis(): Reallocating buffers\n");
+
+        // Assuring that there is one event_PSD and discarding others
+        is_error = reallocate_buffers(trigger_positions, events_buffer, 1);
+        (*events_number) = is_error ? 0 : 1;
+    }
+
+    if (is_error || config->is_error) {
         printf("ERROR: libTFACFD timestamp_analysis(): Error status detected\n");
 
         return;
@@ -220,11 +248,14 @@ void timestamp_analysis(const uint16_t *samples,
     }
 
     // Output
-    waveform->timestamp = new_timestamp;
-    event->timestamp = new_timestamp;
-    event->baseline = 0;
+    (*events_buffer)[0].timestamp = new_timestamp;
+    (*events_buffer)[0].qshort = 0;
+    (*events_buffer)[0].qlong = 0;
+    (*events_buffer)[0].baseline = 0;
+    (*events_buffer)[0].channel = waveform->channel;
+    (*events_buffer)[0].pur = 0;
 
-    (*trigger_position) = zero_crossing_index;
+    (*trigger_positions)[0] = zero_crossing_index;
 
     if (!config->disable_CFD_gates) {
         double CR_min = 0;
@@ -277,8 +308,6 @@ void timestamp_analysis(const uint16_t *samples,
             }
         }
     }
-
-    (*select_event) = SELECT_TRUE;
 }
 
 void reallocate_curves(uint32_t samples_number, struct TFACFD_config **user_config)
