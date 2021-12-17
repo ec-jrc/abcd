@@ -32,6 +32,8 @@
  *   Optional, default value: 1
  * - `energy_threshold`: pulses with an energy lower than the threshold are
  *   discared. Optional, default value: 0
+ *
+ * This function determines only one event_PSD and will discard the others.
  */
 
 #include <stdio.h>
@@ -169,23 +171,44 @@ void energy_close(void *user_config)
     }
 }
 
-/*! \brief Function that determines the energy and CRRC4 information with the double integration method.
+/*! \brief Function that determines the energy information.
  */
 void energy_analysis(const uint16_t *samples,
                      uint32_t samples_number,
-                     uint32_t trigger_position,
                      struct event_waveform *waveform,
-                     struct event_PSD *event,
-                     int8_t *select_event,
+                     uint32_t **trigger_positions,
+                     struct event_PSD **events_buffer,
+                     size_t *events_number,
                      void *user_config)
 {
-    UNUSED(trigger_position);
+    UNUSED(trigger_positions);
 
     struct CRRC4_config *config = (struct CRRC4_config*)user_config;
 
     reallocate_curves(samples_number, &config);
 
-    if (config->is_error) {
+    bool is_error = false;
+
+    if ((*events_number) != 1) {
+        printf("WARNING: libPSD energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
+
+        // Assuring that there is one event_PSD and discarding others
+        is_error = !reallocate_buffers(trigger_positions, events_buffer, 1);
+
+        if (is_error) {
+            printf("ERROR: libPSD energy_analysis(): Unable to reallocate buffers\n");
+        } else {
+            // If there were no events before, we make sure that the trigger
+            // position is initialized.
+            if ((*events_number) == 0) {
+                (*trigger_positions)[0] = 0;
+            }
+
+            (*events_number) = 1;
+        }
+    }
+
+    if (is_error || config->is_error) {
         printf("ERROR: libCRRC4 energy_analysis(): Error status detected\n");
 
         return;
@@ -271,17 +294,20 @@ void energy_analysis(const uint16_t *samples,
 
     const bool PUR = false;
 
-    // Output
-    event->timestamp = waveform->timestamp;
-    event->qshort = int_CR_maximum;
-    event->qlong = int_energy;
-    event->baseline = int_baseline;
-    event->channel = waveform->channel;
-    event->pur = PUR;
-
     if (energy < config->energy_threshold) {
-        (*select_event) = SELECT_FALSE;
+        // Discard the event
+        reallocate_buffers(trigger_positions, events_buffer, 0);
+        (*events_number) = 0;
     } else {
+        // Output
+        // We have to assume that this was taken care earlier
+        //(*events_buffer)[0].timestamp = waveform->timestamp;
+        (*events_buffer)[0].qshort = int_CR_maximum;
+        (*events_buffer)[0].qlong = int_energy;
+        (*events_buffer)[0].baseline = int_baseline;
+        (*events_buffer)[0].channel = waveform->channel;
+        (*events_buffer)[0].pur = PUR;
+
         const uint8_t initial_additional_number = waveform_additional_get_number(waveform);
         const uint8_t new_additional_number = initial_additional_number + 3;
 
@@ -304,8 +330,6 @@ void energy_analysis(const uint16_t *samples,
             additional_CR[i] = (config->curve_CR[i] / CR_abs_max) * MAX + ZERO;
             additional_RC[i] = (config->curve_RC[i] / RC_abs_max) * MAX + ZERO;
         }
-
-        (*select_event) = SELECT_TRUE;
     }
 }
 
