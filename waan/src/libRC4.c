@@ -24,9 +24,10 @@
  *   Optional, default value: 1
  * - `energy_threshold`: pulses with an energy lower than the threshold are
  *   discared. Optional, default value: 0
- * - `analysis_start`: the first bin of the analysis. Optional, default value: 0
- * - `analysis_end`: the last bin of the analysis.
- *   Optional, default value: samples_number
+ * - `analysis_start`: the first bin of the analysis relative to the trigger
+ *   position. It can be negative. Optional, default value: 0
+ * - `analysis_end`: the last bin of the analysis relative to the trigger
+ *   position. Optional, default value: samples_number
  */
 
 #include <stdio.h>
@@ -45,8 +46,8 @@
 struct RC4_config
 {
     uint32_t baseline_samples;
-    uint32_t analysis_start;
-    uint32_t analysis_end;
+    int64_t analysis_start;
+    int64_t analysis_end;
     double lowpass_time;
     enum pulse_polarity_t pulse_polarity;
     double height_scaling;
@@ -208,8 +209,15 @@ void energy_analysis(const uint16_t *samples,
     to_double(samples, samples_number, &config->curve_samples);
 
     // Preventing segfaults by checking the boundaries
-    const uint32_t analysis_start = (config->analysis_start < samples_number) ? config->analysis_start : samples_number;
-    const uint32_t analysis_end = (config->analysis_end < samples_number) ? config->analysis_end : samples_number;
+    const int64_t raw_analysis_start = config->analysis_start + (*trigger_positions)[0];
+    const int64_t raw_analysis_end = config->analysis_end + (*trigger_positions)[0];
+    uint32_t analysis_start = raw_analysis_start;
+    if (raw_analysis_start < 0) {
+        analysis_start = 0;
+    } else if (raw_analysis_start > samples_number) {
+        analysis_start = samples_number;
+    }
+    const uint32_t analysis_end = (raw_analysis_end < samples_number) ? raw_analysis_end : samples_number;
     const uint32_t analysis_width = analysis_end - analysis_start;
 
     const uint32_t baseline_start = analysis_start;
