@@ -318,21 +318,38 @@ void energy_close(void *user_config)
     }
 }
 
-/*! \brief Function that determines the energy and GeP information with the double integration method.
+/*! \brief Function that determines the energy information.
  */
 void energy_analysis(const uint16_t *samples,
                      uint32_t samples_number,
-                     uint32_t trigger_position,
                      struct event_waveform *waveform,
-                     struct event_PSD *event,
-                     int8_t *select_event,
+                     uint32_t **trigger_positions,
+                     struct event_PSD **events_buffer,
+                     size_t *events_number,
                      void *user_config)
 {
-    (*select_event) = SELECT_TRUE;
-
     struct GeP_config *config = (struct GeP_config*)user_config;
 
     bool is_error = false;
+
+    if ((*events_number) != 1) {
+        printf("WARNING: libGeP energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
+
+        // Assuring that there is one event_PSD and discarding others
+        is_error = !reallocate_buffers(trigger_positions, events_buffer, 1);
+
+        if (is_error) {
+            printf("ERROR: libGeP energy_analysis(): Unable to reallocate buffers\n");
+        } else {
+            // If there were no events before, we make sure that the trigger
+            // position is initialized.
+            if ((*events_number) == 0) {
+                (*trigger_positions)[0] = 0;
+            }
+
+            (*events_number) = 1;
+        }
+    }
 
     gsl_vector *fit_variables = gsl_vector_alloc(PARAMETERS_NUMBER);
 
@@ -351,7 +368,7 @@ void energy_analysis(const uint16_t *samples,
     }
 
     if (config->verbosity > 0) {
-        printf("GeP: samples_number: %" PRIu32 "; trigger_position: %" PRIu32 ";\n", samples_number, trigger_position);
+        printf("GeP: samples_number: %" PRIu32 "; trigger_position: %" PRIu32 ";\n", samples_number, (*trigger_positions)[0]);
     }
 
     // Storing the waveform pointer in the config to the func_f may access it
@@ -451,13 +468,15 @@ void energy_analysis(const uint16_t *samples,
 
     const bool PUR = false;
 
+
     // Output
-    event->timestamp = timestamp;
-    event->qshort = int_qshort;
-    event->qlong = int_qlong;
-    event->baseline = int_baseline;
-    event->channel = waveform->channel;
-    event->pur = PUR;
+    (*events_buffer)[0].timestamp = timestamp;
+    (*events_buffer)[0].qshort = int_qshort;
+    (*events_buffer)[0].qlong = int_qlong;
+    (*events_buffer)[0].baseline = int_baseline;
+    (*events_buffer)[0].channel = waveform->channel;
+    (*events_buffer)[0].pur = PUR;
+
 
     const uint8_t initial_additional_number = waveform_additional_get_number(waveform);
     const uint8_t new_additional_number = initial_additional_number + 1;
