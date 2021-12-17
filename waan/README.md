@@ -2,7 +2,7 @@
 
 `waan` is a general purpose waveforms analysis software.
 It allows users to define their own pulses analysis routines, without worrying about the inner workings of the ABCD data acquisition system (DAQ).
-The user is responsible to write two libraries in C99, that take a waveform as input and outputs a processed event.
+The user is responsible to write two libraries in C99, that take a waveform as input and outputs one or more processed event.
 The user functions can be modified and reloaded at runtime, simplifying the development phase.
 
 ## Structure
@@ -81,7 +81,9 @@ Where the source code of the library would be `libuser.c`.
 ## Example libraries
 These example libraries are provided:
 
-- `libNull.c`: Simple `timestamp_analysis()` function that forwards the waveform to the energy analysis without doing anything. It is useful if the user is not interested in determining timing information from the pulse or if the user wants to perform all the analysis in the energy analysis step.
+- `libCFD.c`: Calculates the timing information of a pulse by applying a Constant Fraction Discriminator algorithm.
+- `libRT.c`: Calculates the timing information of a pulse by looking at a threshold crossing point, where the threshold is relative to the pulse maximum. This shows an example of an algorithm that can generate multiple processed events.
+- `libPSD.c`: Calculates the energy and Pulse Shape information of a short pulse, by applying the double integration method.
 - `libStpAvg.c`: Calculates the energy information of a exponentially decaying pulse, by compensating the decay and determining its height with simple averages.
 - `libCRRC4.c`: Calculates the energy information of a exponentially decaying pulse, by compensating the decay and then applying a recursive CR-RC^4 filter.
-- `libPSD.c`: Calculates the energy and Pulse Shape information of a short pulse, by applying the double integration method.
+- `libRC4.c`: Calculates the energy information of a short pulse, by applying a recursive RC^4 filter and determining the maximum.
