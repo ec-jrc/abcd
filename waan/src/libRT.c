@@ -262,20 +262,15 @@ void timestamp_analysis(const uint16_t *samples,
                 state = STATE_ABOVE_THRESHOLD;
                 config->triggers_rising[triggers_rising_counter] = index - 1;
                 triggers_rising_counter += 1;
-                printf("Rising: %" PRIu32 "\n", index - 1);
             }
         } else if (state == STATE_ABOVE_THRESHOLD) {
             if (config->curve_RT[index] < 0) {
                 state = STATE_BELOW_THRESHOLD;
                 config->triggers_falling[triggers_falling_counter] = index - 1;
                 triggers_falling_counter += 1;
-                printf("Falling: %" PRIu32 "\n", index - 1);
             }
         }
     }
-
-    printf("Rising counter: %" PRIu32 "\n", triggers_rising_counter);
-    printf("Falling counter: %" PRIu32 "\n", triggers_falling_counter);
 
     if ((*events_number) != triggers_rising_counter) {
         reallocate_buffers(trigger_positions, events_buffer, triggers_rising_counter);
