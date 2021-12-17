@@ -37,10 +37,13 @@
 #ifndef __ANALYSIS_FUNCTIONS_H__
 #define __ANALYSIS_FUNCTIONS_H__ 1
 
+// For size_t
+#include <stddef.h>
 // For the fixed width integer numbers
 #include <stdint.h>
 // For the dynamic load of libraries
 #include <dlfcn.h>
+#include <stdbool.h>
 // For the JSON parsing and managing
 #include <jansson.h>
 
@@ -118,27 +121,31 @@ inline void dummy_close(void *user_config)
  *
  * \param[in]     samples           pointer to the raw samples.
  * \param[in]     samples_number    the number of samples in the waveform.
- * \param[out]    trigger_position  pointer to an `uint32_t` variable in which
- *                                  the user can store the trigger posistion as
- *                                  the index of the waveform samples. This
- *                                  value is then passed to the subsequent
- *                                  `energy_analysis()` function.
  * \param[in,out] waveform          pointer to an `event_waveform` in which the
  *                                  user can store additional waveforms and the
  *                                  timestamp information. This object is going
- *                                  to be forwarded to the next modules.
+ *                                  to be forwarded to the next ABCD modules.
  *                                  This pointer holds also the information
  *                                  gathered from the digitizer, such as the
  *                                  event timestamp.
- * \param[in,out] event             pointer to an `event_PSD` in which the user
- *                                  can store the timestamp information. This
- *                                  object is going to be forwarded to the next
- *                                  modules.
- * \param[out]    select_event      pointer to an `int8_t` variable with which
- *                                  the user signals whether this event should
- *                                  be discarded. For portability reasons
- *                                  between C and C++ an `int8_t` variable was
- *                                  chosen. 0 corresponds to false and 1 to true
+ * \param[out]    trigger_positions pointer to an array of `uint32_t` in which
+ *                                  the user can store the trigger posistions as
+ *                                  the index of the waveform samples. This
+ *                                  array shall be of the same size of the
+ *                                  `events_buffer`, thus `events_number`. This
+ *                                  array is then passed to the subsequent
+ *                                  `energy_analysis()` function.
+ * \param[in,out] events_buffer     pointer to an array of `struct event_PSD` in
+ *                                  which the user can store the processed
+ *                                  events. These selected events are going to
+ *                                  be forwarded to the `energy_analysis()`.
+ *                                  For convenience the input buffer already
+ *                                  has one allocated `struct event_PSD`.
+ * \param[in,out] events_number     pointer to a `size_t` variable with which
+ *                                  the user signals how many events are in the
+ *                                  `events_buffer`. A zero means that the user
+ *                                  is discarding this waveform from the
+ *                                  processing.
  * \param[in]     user_config       pointer to a user-defined buffer in which
  *                                  the user might have stored some
  *                                  configuration in the init function.
@@ -148,10 +155,10 @@ inline void dummy_close(void *user_config)
  */
 typedef void (*WA_timestamp_fn)(const uint16_t *samples,
                                 uint32_t samples_number,
-                                uint32_t *trigger_position,
                                 struct event_waveform *waveform,
-                                struct event_PSD *event,
-                                int8_t *select_event,
+                                uint32_t **trigger_positions,
+                                struct event_PSD **events_buffer,
+                                size_t *events_number,
                                 void *user_config);
 
 /*! \brief Function that is used in place of the \ref `timestamp_analysis`
@@ -165,18 +172,18 @@ typedef void (*WA_timestamp_fn)(const uint16_t *samples,
  */
 inline void dummy_timestamp_analysis(const uint16_t *samples,
                                      uint32_t samples_number,
-                                     uint32_t *trigger_position,
                                      struct event_waveform *waveform,
-                                     struct event_PSD *event,
-                                     int8_t *select_event,
+                                     uint32_t **trigger_positions,
+                                     struct event_PSD **events_buffer,
+                                     size_t *events_number,
                                      void *user_config)
 {
     UNUSED(samples);
     UNUSED(samples_number);
-    UNUSED(trigger_position);
     UNUSED(waveform);
-    UNUSED(event);
-    UNUSED(select_event);
+    UNUSED(trigger_positions);
+    UNUSED(events_buffer);
+    UNUSED(events_number);
     UNUSED(user_config);
 }
 
@@ -187,21 +194,24 @@ inline void dummy_timestamp_analysis(const uint16_t *samples,
  *
  * \param[in]     samples           pointer to the raw samples.
  * \param[in]     samples_number    the number of samples in the waveform.
- * \param[in]     trigger_position  index of the waveform samples where the
- *                                  trigger was determined.
  * \param[in,out] waveform          pointer to an `event_waveform` in which the
  *                                  user can store additional waveforms and the
  *                                  energy information. This object is going to
  *                                  be forwarded to the next modules.
- * \param[in,out] event             pointer to an `event_PSD` in which the user
- *                                  can store the energy information. This
- *                                  object is going to be forwarded to the next
- *                                  modules.
- * \param[in,out] select_event      pointer to an `int8_t` variable with which
- *                                  the user signals whether this event should
- *                                  be discarded. For portability reasons
- *                                  between C and C++ an `int8_t` variable was
- *                                  chosen. 0 corresponds to false and 1 to true
+ * \param[in]     trigger_positions pointer to an array of `uint32_t` in which
+ *                                  the user stored the trigger posistions as
+ *                                  the index of the waveform samples. This
+ *                                  array shall be of the same size of the
+ *                                  `events_buffer`, thus `events_number`.
+ * \param[in,out] events_buffer     pointer to an array of `struct event_PSD` in
+ *                                  which the user can store the processed
+ *                                  events. These selected events are going to
+ *                                  be forwarded to the next ABCD modules.
+ * \param[in,out] events_number     pointer to a `size_t` variable with which
+ *                                  the user signals how many events are in the
+ *                                  `events_buffer`. A zero means that the user
+ *                                  is discarding this waveform from the
+ *                                  processing.
  * \param[in]     user_config       pointer to a user-defined buffer in which
  *                                  the user might have stored some
  *                                  configuration in the init function.
@@ -211,10 +221,10 @@ inline void dummy_timestamp_analysis(const uint16_t *samples,
  */
 typedef void (*WA_energy_fn)(const uint16_t *samples,
                              uint32_t samples_number,
-                             uint32_t trigger_position,
                              struct event_waveform *waveform,
-                             struct event_PSD *event,
-                             int8_t *select_event,
+                             uint32_t **trigger_positions,
+                             struct event_PSD **events_buffer,
+                             size_t *events_number,
                              void *user_config);
 
 // We define these unions in order to convert the data pointer from `dlsym()`
@@ -240,5 +250,47 @@ union WA_energy_union
     WA_energy_fn fn;
     void *obj;
 };
+
+/*! \brief Function to reallocate the memory required for the events buffer.
+ *
+ * The `events_number` may also be zero, signaling that no `event_PSD` shall be
+ * selected.
+ *
+ * \param[in,out] trigger_positions  pointer to the array that is to be reallocated
+ * \param[in,out] events_buffer      pointer to the array that is to be reallocated
+ * \param[in]     events_number      the new size of the buffer in terms of events.
+ *
+ * \return `true` if success, `false` otherwise
+ */
+inline bool reallocate_buffers(uint32_t **trigger_positions,
+                               struct event_PSD **events_buffer,
+                               size_t events_number)
+{
+    uint32_t *new_positions = (uint32_t*)realloc((*trigger_positions),
+                              events_number * sizeof(uint32_t));
+
+    // It is allowed to have a zero size, but the result is implementation specific.
+    // It could be a NULL pointer or a non-NULL pointer.
+    if (!new_positions && (events_number > 0)) {
+        printf("ERROR: reallocate_buffers(): Unable to allocate trigger_positions memory\n");
+
+        return false;
+    } else {
+        (*trigger_positions) = new_positions;
+    }
+
+    struct event_PSD *new_buffer = (struct event_PSD*)realloc((*events_buffer),
+                                   events_number * sizeof(struct event_PSD));
+
+    if (!new_buffer && (events_number > 0)) {
+        printf("ERROR: reallocate_buffers(): Unable to allocate events_buffer memory\n");
+
+        return false;
+    } else {
+        (*events_buffer) = new_buffer;
+    }
+
+    return true;
+}
 
 #endif

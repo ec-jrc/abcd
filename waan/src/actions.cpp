@@ -284,7 +284,7 @@ bool actions::generic::configure(status &global_status)
                 bool dl_loading_error = false;
 
                 json_t *libraries_json = json_object_get(value, "user_libraries");
-            
+
                 ////////////////////////////////////////////////////////////////
                 // Libraries loading                                          //
                 ////////////////////////////////////////////////////////////////
@@ -305,9 +305,9 @@ bool actions::generic::configure(status &global_status)
 
                     dl_loading_error = true;
                 } else {
-                    const char *json_timestamp = 
+                    const char *json_timestamp =
                         json_string_value(json_object_get(libraries_json, "timestamp"));
-                    const char *json_energy = 
+                    const char *json_energy =
                         json_string_value(json_object_get(libraries_json, "energy"));
 
                     const std::string lib_timestamp =
@@ -592,7 +592,7 @@ bool actions::generic::configure(status &global_status)
                     void *energy_user_config = NULL;
 
                     json_t *user_config = json_object_get(value, "user_config");
-            
+
                     if (!json_is_object(user_config)) {
                         char time_buffer[BUFFER_SIZE];
                         time_string(time_buffer, BUFFER_SIZE, NULL);
@@ -1127,7 +1127,7 @@ state actions::read_socket(status &global_status)
             }
 
             const clock_t event_start = clock();
-            size_t events_number = 0;
+            size_t waveforms_number = 0;
 
             std::vector<struct event_PSD> output_events;
             std::vector<uint8_t> output_waveforms;
@@ -1214,14 +1214,13 @@ state actions::read_socket(status &global_status)
                         std::cout << std::endl;
                     }
 
-                    events_number += 1;
+                    waveforms_number += 1;
 
                     const uint16_t *samples = (uint16_t *)(input_buffer + input_offset + 14);
                     // Should I store the digitizer gates to the waveform?
                     // They are not standard and not quantitative, let's not bother
                     //const uint8_t *gates = (uint8_t *)(input_buffer + input_offset + 14 + samples_number * sizeof(uint16_t));
 
-                    struct event_PSD this_event = {timestamp, 0, 0, 0, this_channel, 0};
                     struct event_waveform this_waveform = waveform_create(timestamp,
                                                                           this_channel,
                                                                           samples_number,
@@ -1235,9 +1234,21 @@ state actions::read_socket(status &global_status)
                     //                            gates + samples_number * i * sizeof(uint8_t));
                     //}
 
-                    uint32_t trigger_position = 0;
-                    int8_t timestamp_is_selected = SELECT_TRUE;
-                    int8_t energy_is_selected = SELECT_TRUE;
+                    if (verbosity > 1)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "Allocating events buffer; ";
+                        std::cout << std::endl;
+                    }
+
+                    struct event_PSD *events_buffer = (struct event_PSD *)calloc(1, sizeof(struct event_PSD));
+                    uint32_t *trigger_positions = (uint32_t*)calloc(1, sizeof(uint32_t));
+                    size_t events_number = 1;
+
+                    events_buffer[0].timestamp = timestamp;
+                    events_buffer[0].channel = this_channel;
 
                     if (verbosity > 1)
                     {
@@ -1251,10 +1262,10 @@ state actions::read_socket(status &global_status)
                     global_status.channels_timestamp_analysis[this_channel].
                         fn(samples,
                            samples_number,
-                           &trigger_position,
                            &this_waveform,
-                           &this_event,
-                           &timestamp_is_selected,
+                           &trigger_positions,
+                           &events_buffer,
+                           &events_number,
                            global_status.channels_timestamp_user_config[this_channel]);
 
                     if (verbosity > 1)
@@ -1262,9 +1273,8 @@ state actions::read_socket(status &global_status)
                         char time_buffer[BUFFER_SIZE];
                         time_string(time_buffer, BUFFER_SIZE, NULL);
                         std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Trigger position: " << (unsigned long)trigger_position << "; ";
                         std::cout << "Samples number: " << (unsigned int)samples_number << "; ";
-                        std::cout << "selected: " << ((timestamp_is_selected > 0) ? "true" : "false") << "; ";
+                        std::cout << "Events number: " << (unsigned int)events_number << "; ";
                         std::cout << std::endl;
                         std::cout << '[' << time_buffer << "] ";
                         std::cout << "Energy analysis; ";
@@ -1274,13 +1284,13 @@ state actions::read_socket(status &global_status)
                     global_status.channels_energy_analysis[this_channel].
                         fn(samples,
                            samples_number,
-                           trigger_position,
                            &this_waveform,
-                           &this_event,
-                           &energy_is_selected,
+                           &trigger_positions,
+                           &events_buffer,
+                           &events_number,
                            global_status.channels_energy_user_config[this_channel]);
 
-                    if (timestamp_is_selected && energy_is_selected && global_status.forward_waveforms) {
+                    if (events_number > 0 && global_status.forward_waveforms) {
                         if (!global_status.enable_additional) {
                             waveform_additional_set_number(&this_waveform, 0);
                         }
@@ -1295,10 +1305,34 @@ state actions::read_socket(status &global_status)
                                this_waveform_size);
                     }
 
-                    if (timestamp_is_selected && energy_is_selected) {
-                        global_status.partial_counts[this_channel] += 1;
+                    if (events_number > 0) {
+                        global_status.partial_counts[this_channel] += events_number;
 
-                        output_events.push_back(this_event);
+                        const size_t current_events_buffer_size = output_events.size();
+
+                        output_events.resize(current_events_buffer_size + events_number);
+
+                        memcpy(output_events.data() + current_events_buffer_size,
+                               events_buffer,
+                               events_number * sizeof(struct event_PSD));
+                    }
+
+                    if (verbosity > 1)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "Events number: " << (unsigned int)events_number << "; ";
+                        std::cout << std::endl;
+                    }
+
+                    if (trigger_positions) {
+                        free(trigger_positions);
+                        trigger_positions = NULL;
+                    }
+                    if (events_buffer) {
+                        free(events_buffer);
+                        events_buffer = NULL;
                     }
 
                     waveform_destroy_samples(&this_waveform);
@@ -1391,9 +1425,9 @@ state actions::read_socket(status &global_status)
             {
                 const float elaboration_time = (float)(event_stop - event_start) / CLOCKS_PER_SEC * 1000;
                 const float elaboration_speed = size / elaboration_time * 1000.0 / 1024.0 / 1024.0;
-                const float elaboration_rate = events_number / elaboration_time * 1000.0;
-                            
-                printf("size: %zu; events_number: %zu; elaboration_time: %f ms; elaboration_speed: %f MBi/s, %f evts/s\n", size, events_number, elaboration_time, elaboration_speed, elaboration_rate);
+                const float elaboration_rate = waveforms_number / elaboration_time * 1000.0;
+
+                printf("size: %zu; waveforms_number: %zu; elaboration_time: %f ms; elaboration_speed: %f MBi/s, %f evts/s\n", size, waveforms_number, elaboration_time, elaboration_speed, elaboration_rate);
             }
         }
 
