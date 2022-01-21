@@ -27,8 +27,9 @@ import zmq
 import time
 
 BASE_PERIOD = 100
-ADDRESS_STATUS = "tcp://*:16180"
-ADDRESS_DATA = "tcp://*:16181"
+ADDRESS_ABCD_STATUS = "tcp://*:16180"
+ADDRESS_ABCD_DATA = "tcp://*:16181"
+ADDRESS_WAAN_STATUS = "tcp://*:16206"
 
 parser = argparse.ArgumentParser(description='System simulator that uses ABCD raw files, supporting also compressed files.')
 parser.add_argument('file_name',
@@ -40,15 +41,24 @@ parser.add_argument('-T',
                     default = BASE_PERIOD,
                     help = 'Set base period in milliseconds (default: {:f} ms)'.format(BASE_PERIOD))
 parser.add_argument('-S',
-                    '--status_address',
+                    '--abcd_status_address',
                     type = str,
-                    default = ADDRESS_STATUS,
-                    help = 'Status socket address (default: {})'.format(ADDRESS_STATUS))
+                    default = ADDRESS_ABCD_STATUS,
+                    help = 'abcd status socket address (default: {})'.format(ADDRESS_ABCD_STATUS))
 parser.add_argument('-D',
-                    '--data_address',
+                    '--abcd_data_address',
                     type = str,
-                    default = ADDRESS_DATA,
-                    help = 'Data socket address (default: {})'.format(ADDRESS_DATA))
+                    default = ADDRESS_ABCD_DATA,
+                    help = 'Data socket address (default: {})'.format(ADDRESS_ABCD_DATA))
+parser.add_argument('-W',
+                    '--waan_status_address',
+                    type = str,
+                    default = ADDRESS_WAAN_STATUS,
+                    help = 'waan status socket address (default: {})'.format(ADDRESS_WAAN_STATUS))
+parser.add_argument('-w',
+                    '--enable_waan_status',
+                    action = "store_true",
+                    help = 'Enable the publication of waan status messages')
 parser.add_argument('-s',
                     '--skip_packets',
                     type = int,
@@ -91,11 +101,15 @@ else:
     file_open = open
 
 with zmq.Context() as context:
-    socket_status = context.socket(zmq.PUB)
-    socket_data = context.socket(zmq.PUB)
+    socket_abcd_status = context.socket(zmq.PUB)
+    socket_abcd_data = context.socket(zmq.PUB)
 
-    socket_status.bind(args.status_address)
-    socket_data.bind(args.data_address)
+    socket_abcd_status.bind(args.abcd_status_address)
+    socket_abcd_data.bind(args.abcd_data_address)
+
+    if args.enable_waan_status:
+        socket_waan_status = context.socket(zmq.PUB)
+        socket_waan_status.bind(args.waan_status_address)
 
     # Wait a bit to prevent the slow-joiner syndrome
     time.sleep(0.3)
@@ -114,10 +128,11 @@ with zmq.Context() as context:
             with file_open(args.file_name, "rb") as input_file:
                 counter_bytes = 0
                 counter_topics = 0
-                counter_status_packets = 0
-                counter_data_packets = 0
-                counter_zipped_packets = 0
-                counter_unknown_packets = 0
+                counter_packets_abcd_status = 0
+                counter_packets_abcd_data = 0
+                counter_packets_waan_status = 0
+                counter_packets_zipped = 0
+                counter_packets_unknown = 0
         
                 byte = input_file.read(1)
     
@@ -152,43 +167,64 @@ with zmq.Context() as context:
                             if len(message_buffer) != message_size:
                                 logging.error("Unable to read all the requested bytes: read: {:d}, requested: {:d}".format(len(message_buffer), message_size))
     
-                            compared_status = topic.find("status_abcd", 0, len("status_abcd"))
-                            compared_events = topic.find("events_abcd", 0, len("events_abcd"))
-                            compared_data = topic.find("data_abcd", 0, len("data_abcd"))
+                            compared_abcd_status = topic.find("status_abcd", 0, len("status_abcd"))
+                            compared_abcd_events = topic.find("events_abcd", 0, len("events_abcd"))
+                            compared_abcd_data = topic.find("data_abcd", 0, len("data_abcd"))
+                            compared_waan_status = topic.find("status_waan", 0, len("status_waan"))
+                            compared_waan_events = topic.find("events_waan", 0, len("events_waan"))
                             compared_zipped = topic.find("compressed", 0, len("compressed"))
     
-                            logging.debug("compared_status: {:d}; compared_events: {:d}; compared_data: {:d}; compared_zipped: {:d}".format(compared_status, compared_events, compared_data, compared_zipped))
+                            logging.debug("compared_abcd_status: {:d}; compared_abcd_events: {:d}; compared_abcd_data: {:d}; compared_zipped: {:d}".format(compared_abcd_status, compared_abcd_events, compared_abcd_data, compared_zipped))
     
                             # If it is a status-like packet send it through the status socket...
-                            if (compared_status == 0 or compared_events == 0) and compared_data != 0 and compared_zipped != 0:
-                                counter_status_packets += 1
+                            if (compared_abcd_status == 0 or compared_abcd_events == 0) and \
+                                compared_waan_status != 0 and compared_waan_events != 0 and \
+                                compared_abcd_data != 0 and compared_zipped != 0:
+
+                                counter_packets_abcd_status += 1
     
                                 if counter_topics < args.skip_packets:
                                     logging.debug("Skipping packet")
                                 else:
-                                    socket_status.send(topic_buffer + b" " + message_buffer)
+                                    socket_abcd_status.send(topic_buffer + b" " + message_buffer)
+                            elif compared_abcd_status != 0 and compared_abcd_events != 0 and \
+                                (compared_waan_status == 0 or compared_waan_events == 0) and \
+                                 compared_abcd_data != 0 and compared_zipped != 0:
+
+                                counter_packets_waan_status += 1
+    
+                                if counter_topics < args.skip_packets:
+                                    logging.debug("Skipping packet")
+                                elif args.enable_waan_status:
+                                    socket_waan_status.send(topic_buffer + b" " + message_buffer)
                             # If it is a data packet send it through the data socket...
-                            elif compared_status != 0 and compared_events != 0 and compared_data == 0 and compared_zipped != 0:
-                                counter_data_packets += 1
+                            elif compared_abcd_status != 0 and compared_abcd_events != 0 and \
+                                 compared_waan_status != 0 and compared_waan_events != 0 and \
+                                 compared_abcd_data == 0 and compared_zipped != 0:
+
+                                counter_packets_abcd_data += 1
     
                                 if counter_topics < args.skip_packets:
                                     logging.debug("Skipping packet")
                                 else:
-                                    socket_data.send(topic_buffer + b" " + message_buffer)
+                                    socket_abcd_data.send(topic_buffer + b" " + message_buffer)
                             # If it is a compressed packet send it through the data socket...
-                            elif compared_status != 0 and compared_events != 0 and compared_data != 0 and compared_zipped == 0:
-                                counter_zipped_packets += 1
+                            elif compared_abcd_status != 0 and compared_abcd_events != 0 and \
+                                 compared_waan_status != 0 and compared_waan_events != 0 and \
+                                 compared_abcd_data != 0 and compared_zipped == 0:
+
+                                counter_packets_zipped += 1
 
                                 if counter_topics < args.skip_packets:
                                     logging.debug("Skipping packet")
                                 else:
-                                    socket_data.send(topic_buffer + b" " + message_buffer)
+                                    socket_abcd_data.send(topic_buffer + b" " + message_buffer)
                             else:
-                                counter_unknown_packets += 1
+                                counter_packets_unknown += 1
     
                                 logging.warning("Unknown packet type, skipping it.")
     
-                            logging.debug("packets: {:d}; status packets: {:d}; data packets: {:d}; compressed packets: {:d}; unknown packets: {:d}".format(counter_topics, counter_status_packets, counter_data_packets, counter_zipped_packets, counter_unknown_packets))
+                            logging.debug("packets: {:d}; status packets: {:d}; data packets: {:d}; compressed packets: {:d}; unknown packets: {:d}".format(counter_topics, counter_packets_abcd_status, counter_packets_abcd_data, counter_packets_zipped, counter_packets_unknown))
 
                             # We do not use greater than equal because we already have incremented the counter
                             if counter_topics > args.skip_packets:
@@ -200,5 +236,5 @@ with zmq.Context() as context:
     except KeyboardInterrupt:
         pass
 
-    socket_status.close()
-    socket_data.close()
+    socket_abcd_status.close()
+    socket_abcd_data.close()
