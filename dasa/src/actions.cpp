@@ -32,6 +32,7 @@
 extern "C" {
 #include "utilities_functions.h"
 #include "socket_functions.h"
+#include "jansson_socket_functions.h"
 }
 
 #include "typedefs.hpp"
@@ -62,24 +63,7 @@ void actions::generic::publish_message(status &global_status,
     json_object_set_new(status_message, "timestamp", json_string(time_buffer));
     json_object_set_new(status_message, "msg_ID", json_integer(status_msg_ID));
 
-    char *output_buffer = json_dumps(status_message, JSON_COMPACT);
-
-    if (output_buffer != NULL)
-    {
-        if (global_status.verbosity > 1)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Status buffer: ";
-            std::cout << output_buffer;
-            std::cout << std::endl;
-        }
-
-        send_byte_message(status_socket, topic.c_str(), output_buffer, strlen(output_buffer), 1);
-
-        free(output_buffer);
-    }
+    send_json_message(status_socket, const_cast<char*>(topic.c_str()), status_message, 1);
 
     global_status.status_msg_ID += 1;
 }
@@ -401,137 +385,126 @@ state actions::receive_commands(status &global_status)
 {
     void *commands_socket = global_status.commands_socket;
 
-    char *buffer;
-    size_t size;
+    json_t *json_message = NULL;
 
-    const int result = receive_byte_message(commands_socket, nullptr, (void **)(&buffer), &size, 0, 0);
+    const int result = receive_json_message(commands_socket, NULL, &json_message, false, global_status.verbosity);
 
-    if (size > 0 && result == EXIT_SUCCESS)
+    if (!json_message || result == EXIT_FAILURE)
     {
-        if (global_status.verbosity > 0)
-        {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "ERROR: Error on receiving JSON commands message";
+        std::cout << std::endl;
+    }
+    else
+    {
+        const size_t command_ID = json_integer_value(json_object_get(json_message, "msg_ID"));
+
+        if (global_status.verbosity > 1) {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
             std::cout << '[' << time_buffer << "] ";
-            std::cout << "Message buffer: ";
-            std::cout << (char*)buffer;
-            std::cout << "; ";
+            std::cout << "Received command; ";
+            std::cout << "Command ID: " << command_ID << "; ";
             std::cout << std::endl;
         }
 
-        json_error_t error;
+        json_t *json_command = json_object_get(json_message, "command");
+        json_t *json_arguments = json_object_get(json_message, "arguments");
 
-        json_t *json_message = json_loadb(buffer, size, 0, &error);
-
-        free(buffer);
-
-        if (!json_message)
+        if (json_command != NULL && json_is_string(json_command))
         {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "ERROR: ";
-            std::cout << error.text;
-            std::cout << " (source: ";
-            std::cout << error.source;
-            std::cout << ", line: ";
-            std::cout << error.line;
-            std::cout << ", column: ";
-            std::cout << error.column;
-            std::cout << ", position: ";
-            std::cout << error.position;
-            std::cout << "); ";
-            std::cout << std::endl;
-        }
-        else
-        {
-            json_t *json_command = json_object_get(json_message, "command");
-            json_t *json_arguments = json_object_get(json_message, "arguments");
+            const std::string command = json_string_value(json_command);
 
-            if (json_command != NULL)
+            if (global_status.verbosity > 0)
             {
-                const std::string command = json_string_value(json_command);
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << "Received command: " << command << "; ";
+                std::cout << std::endl;
+            }
 
-                if (command == std::string("start") && json_arguments != NULL)
+            if (command == std::string("start") && json_arguments != NULL)
+            {
+                json_t *json_file_name = json_object_get(json_arguments, "file_name");
+                json_t *json_enable = json_object_get(json_arguments, "enable");
+
+                if (json_file_name != NULL && json_enable != NULL)
                 {
-                    json_t *json_file_name = json_object_get(json_arguments, "file_name");
-                    json_t *json_enable = json_object_get(json_arguments, "enable");
+                    const std::string file_name = json_string_value(json_file_name);
 
-                    if (json_file_name != NULL && json_enable != NULL)
+                    if (file_name.length() > 0)
                     {
-                        const std::string file_name = json_string_value(json_file_name);
+                        const std::size_t found = file_name.find_last_of(".");
 
-                        if (file_name.length() > 0)
+                        std::string root_file_name;
+
+                        if (found != 0 && found != std::string::npos)
                         {
-                            const std::size_t found = file_name.find_last_of(".");
+                            root_file_name = file_name.substr(0, found);
+                        }
+                        else
+                        {
+                            root_file_name = file_name;
+                        }
 
-                            std::string root_file_name;
+                        bool events_enabled = json_is_true(json_object_get(json_enable, "events"));
 
-                            if (found != 0 && found != std::string::npos)
-                            {
-                                root_file_name = file_name.substr(0, found);
-                            }
-                            else
-                            {
-                                root_file_name = file_name;
-                            }
+                        bool waveforms_enabled = json_is_true(json_object_get(json_enable, "waveforms"));
+                        bool raw_enabled = json_is_true(json_object_get(json_enable, "raw"));
 
-                            bool events_enabled = json_is_true(json_object_get(json_enable, "events"));
+                        global_status.events_file_name.clear();
+                        if (events_enabled)
+                        {
+                            global_status.events_file_name = root_file_name;
+                            global_status.events_file_name.append("_events.");
+                            global_status.events_file_name.append(defaults_lmno_extenstion_events);
+                        }
 
-                            bool waveforms_enabled = json_is_true(json_object_get(json_enable, "waveforms"));
-                            bool raw_enabled = json_is_true(json_object_get(json_enable, "raw"));
+                        global_status.waveforms_file_name.clear();
+                        if (waveforms_enabled)
+                        {
+                            global_status.waveforms_file_name = root_file_name;
+                            global_status.waveforms_file_name.append("_waveforms.");
+                            global_status.waveforms_file_name.append(defaults_lmno_extenstion_waveforms);
+                        }
 
-                            global_status.events_file_name.clear();
-                            if (events_enabled)
-                            {
-                                global_status.events_file_name = root_file_name;
-                                global_status.events_file_name.append("_events.");
-                                global_status.events_file_name.append(defaults_lmno_extenstion_events);
-                            }
+                        global_status.raw_file_name.clear();
+                        if (raw_enabled)
+                        {
+                            global_status.raw_file_name = root_file_name;
+                            global_status.raw_file_name.append("_raw.");
+                            global_status.raw_file_name.append(defaults_lmno_extenstion_raw);
+                        }
 
-                            global_status.waveforms_file_name.clear();
-                            if (waveforms_enabled)
-                            {
-                                global_status.waveforms_file_name = root_file_name;
-                                global_status.waveforms_file_name.append("_waveforms.");
-                                global_status.waveforms_file_name.append(defaults_lmno_extenstion_waveforms);
-                            }
+                        if (global_status.verbosity > 0)
+                        {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "Received file name: " << file_name << "; ";
+                            std::cout << "root: " << root_file_name << "; ";
+                            std::cout << "events_enabled: " << events_enabled << "; ";
+                            std::cout << "events_file_name: " << global_status.events_file_name << "; ";
+                            std::cout << "waveforms_enabled: " << waveforms_enabled << "; ";
+                            std::cout << "waveforms_file_name: " << global_status.waveforms_file_name << "; ";
+                            std::cout << "raw_enabled: " << raw_enabled << "; ";
+                            std::cout << "raw_file_name: " << global_status.raw_file_name << "; ";
+                            std::cout << std::endl;
+                        }
 
-                            global_status.raw_file_name.clear();
-                            if (raw_enabled)
-                            {
-                                global_status.raw_file_name = root_file_name;
-                                global_status.raw_file_name.append("_raw.");
-                                global_status.raw_file_name.append(defaults_lmno_extenstion_raw);
-                            }
-
-                            if (global_status.verbosity > 0)
-                            {
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << "Received file name: " << file_name << "; ";
-                                std::cout << "root: " << root_file_name << "; ";
-                                std::cout << "events_enabled: " << events_enabled << "; ";
-                                std::cout << "events_file_name: " << global_status.events_file_name << "; ";
-                                std::cout << "waveforms_enabled: " << waveforms_enabled << "; ";
-                                std::cout << "waveforms_file_name: " << global_status.waveforms_file_name << "; ";
-                                std::cout << "raw_enabled: " << raw_enabled << "; ";
-                                std::cout << "raw_file_name: " << global_status.raw_file_name << "; ";
-                                std::cout << std::endl;
-                            }
-
-                            if (events_enabled || waveforms_enabled || raw_enabled)
-                            {
-                                return states::OPEN_FILE;
-                            }
+                        if (events_enabled || waveforms_enabled || raw_enabled)
+                        {
+                            return states::OPEN_FILE;
                         }
                     }
                 }
-                else if (command == std::string("quit"))
-                {
-                    return states::STOP_CLOSE_FILE;
-                }
+            }
+            else if (command == std::string("quit"))
+            {
+                return states::STOP_CLOSE_FILE;
             }
         }
     }
@@ -977,60 +950,49 @@ state actions::saving_receive_commands(status &global_status)
 {
     void *commands_socket = global_status.commands_socket;
 
-    char *buffer;
-    size_t size;
+    json_t *json_message = NULL;
 
-    const int result = receive_byte_message(commands_socket, nullptr, (void **)(&buffer), &size, 0, 0);
+    const int result = receive_json_message(commands_socket, NULL, &json_message, false, global_status.verbosity);
 
-    if (size > 0 && result == EXIT_SUCCESS)
+    if (!json_message || result == EXIT_FAILURE)
     {
-        if (global_status.verbosity > 0)
-        {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "ERROR: Error on receiving JSON commands message";
+        std::cout << std::endl;
+    }
+    else
+    {
+        const size_t command_ID = json_integer_value(json_object_get(json_message, "msg_ID"));
+
+        if (global_status.verbosity > 1) {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
             std::cout << '[' << time_buffer << "] ";
-            std::cout << "Message buffer: ";
-            std::cout << (char*)buffer;
-            std::cout << "; ";
+            std::cout << "Received command; ";
+            std::cout << "Command ID: " << command_ID << "; ";
             std::cout << std::endl;
         }
 
-        json_error_t error;
+        json_t *json_command = json_object_get(json_message, "command");
 
-        json_t *json_message = json_loadb(buffer, size, 0, &error);
-
-        free(buffer);
-
-        if (!json_message)
+        if (json_command != NULL && json_is_string(json_command))
         {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "ERROR: ";
-            std::cout << error.text;
-            std::cout << " (source: ";
-            std::cout << error.source;
-            std::cout << ", line: ";
-            std::cout << error.line;
-            std::cout << ", column: ";
-            std::cout << error.column;
-            std::cout << ", position: ";
-            std::cout << error.position;
-            std::cout << "); ";
-            std::cout << std::endl;
-        }
-        else
-        {
-            json_t *json_command = json_object_get(json_message, "command");
+            const std::string command = json_string_value(json_command);
 
-            if (json_command != NULL)
+            if (global_status.verbosity > 0)
             {
-                const std::string command = json_string_value(json_command);
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << "Received command: " << command << "; ";
+                std::cout << std::endl;
+            }
 
-                if (command == std::string("stop"))
-                {
-                    return states::CLOSE_FILE;
-                }
+            if (command == std::string("stop"))
+            {
+                return states::CLOSE_FILE;
             }
         }
     }
