@@ -70,7 +70,7 @@ else
     tmux new-window -d -c "${ABCD_FOLDER}/waan/" -P -t ABCD -n waan './waan -v -T 200 -A tcp://127.0.0.1:16207 -D tcp://*:16181 -f ./configs/config_example_data.json'
     
     echo "Creating DaSa window, folder: ${DATA_FOLDER}"
-    tmux new-window -d -c "$DATA_FOLDER" -P -t ABCD -n dasa "${ABCD_FOLDER}/dasa/dasa -V"
+    tmux new-window -d -c "$DATA_FOLDER" -P -t ABCD -n dasa "${ABCD_FOLDER}/dasa/dasa -v"
     
     echo "Creating WaFi window"
     tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n wafi './wadi/wadi -v'
