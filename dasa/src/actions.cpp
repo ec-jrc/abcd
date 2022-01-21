@@ -58,7 +58,7 @@ void actions::generic::publish_message(status &global_status,
     char time_buffer[BUFFER_SIZE];
     time_string(time_buffer, BUFFER_SIZE, NULL);
 
-    json_object_set_new(status_message, "module", json_string("hijk"));
+    json_object_set_new(status_message, "module", json_string("dasa"));
     json_object_set_new(status_message, "timestamp", json_string(time_buffer));
     json_object_set_new(status_message, "msg_ID", json_integer(status_msg_ID));
 
@@ -66,7 +66,7 @@ void actions::generic::publish_message(status &global_status,
 
     if (output_buffer != NULL)
     {
-        if (global_status.verbosity > 0)
+        if (global_status.verbosity > 1)
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
@@ -195,9 +195,24 @@ state actions::create_sockets(status &global_status)
         return states::COMMUNICATION_ERROR;
     }
 
+    // Creates the SUB status socket
+    void *waan_status_socket = zmq_socket(context, ZMQ_SUB);
+    if (!waan_status_socket)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "ERROR: ZeroMQ Error on waan status socket creation: ";
+        std::cout << zmq_strerror(errno);
+        std::cout << std::endl;
+
+        return states::COMMUNICATION_ERROR;
+    }
+
     global_status.status_socket = status_socket;
     global_status.abcd_data_socket = abcd_data_socket;
     global_status.abcd_status_socket = abcd_status_socket;
+    global_status.waan_status_socket = waan_status_socket;
     global_status.commands_socket = commands_socket;
 
     return states::BIND_SOCKETS;
@@ -209,6 +224,7 @@ state actions::bind_sockets(status &global_status)
     std::string commands_address = global_status.commands_address;
     std::string abcd_data_address = global_status.abcd_data_address;
     std::string abcd_status_address = global_status.abcd_status_address;
+    std::string waan_status_address = global_status.waan_status_address;
 
     // Binds the status socket to its address
     const int s = zmq_bind(global_status.status_socket, status_address.c_str());
@@ -266,6 +282,20 @@ state actions::bind_sockets(status &global_status)
         return states::COMMUNICATION_ERROR;
     }
 
+    // Connects the waan status socket to its address
+    const int ws = zmq_connect(global_status.waan_status_socket, waan_status_address.c_str());
+    if (ws != 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "ERROR: ZeroMQ Error on waan status socket connection: ";
+        std::cout << zmq_strerror(errno);
+        std::cout << std::endl;
+
+        return states::COMMUNICATION_ERROR;
+    }
+
     // Subscribe to all topics for the data stream
     std::string abcd_data_topic("");
     zmq_setsockopt(global_status.abcd_data_socket, ZMQ_SUBSCRIBE, abcd_data_topic.c_str(), abcd_data_topic.size());
@@ -273,6 +303,10 @@ state actions::bind_sockets(status &global_status)
     // Subscribe to abcd status and events topics
     std::string abcd_status_topic("");
     zmq_setsockopt(global_status.abcd_status_socket, ZMQ_SUBSCRIBE, abcd_status_topic.c_str(), abcd_status_topic.size());
+
+    // Subscribe to waan status and events topics
+    std::string waan_status_topic("");
+    zmq_setsockopt(global_status.waan_status_socket, ZMQ_SUBSCRIBE, waan_status_topic.c_str(), waan_status_topic.size());
 
     return states::PUBLISH_STATUS;
 }
@@ -299,24 +333,65 @@ state actions::empty_queue(status &global_status)
     char *buffer;
     size_t size;
 
-    receive_byte_message(abcd_data_socket, nullptr, (void **)(&buffer), &size, 0, global_status.verbosity);
+    receive_byte_message(abcd_data_socket, nullptr, (void **)(&buffer), &size, 0, 0);
 
     while (size > 0)
     {
+        if (global_status.verbosity > 1)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "abcd data message; ";
+            std::cout << "Size: " << size << "; ";
+            std::cout << std::endl;
+        }
+
         free(buffer);
 
-        receive_byte_message(abcd_data_socket, nullptr, (void **)(&buffer), &size, 0, global_status.verbosity);
+        receive_byte_message(abcd_data_socket, nullptr, (void **)(&buffer), &size, 0, 0);
     }
 
     void *abcd_status_socket = global_status.abcd_status_socket;
 
-    receive_byte_message(abcd_status_socket, nullptr, (void **)(&buffer), &size, 0, global_status.verbosity);
+    receive_byte_message(abcd_status_socket, nullptr, (void **)(&buffer), &size, 0, 0);
 
     while (size > 0)
     {
+        if (global_status.verbosity > 1)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "abcd status message; ";
+            std::cout << "Size: " << size << "; ";
+            std::cout << std::endl;
+        }
+
         free(buffer);
 
-        receive_byte_message(abcd_data_socket, nullptr, (void **)(&buffer), &size, 0, global_status.verbosity);
+        receive_byte_message(abcd_status_socket, nullptr, (void **)(&buffer), &size, 0, 0);
+    }
+
+    void *waan_status_socket = global_status.waan_status_socket;
+
+    receive_byte_message(waan_status_socket, nullptr, (void **)(&buffer), &size, 0, 0);
+
+    while (size > 0)
+    {
+        if (global_status.verbosity > 1)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "waan status message; ";
+            std::cout << "Size: " << size << "; ";
+            std::cout << std::endl;
+        }
+
+        free(buffer);
+
+        receive_byte_message(waan_status_socket, nullptr, (void **)(&buffer), &size, 0, 0);
     }
 
     return states::RECEIVE_COMMANDS;
@@ -329,7 +404,7 @@ state actions::receive_commands(status &global_status)
     char *buffer;
     size_t size;
 
-    const int result = receive_byte_message(commands_socket, nullptr, (void **)(&buffer), &size, 0, global_status.verbosity);
+    const int result = receive_byte_message(commands_socket, nullptr, (void **)(&buffer), &size, 0, 0);
 
     if (size > 0 && result == EXIT_SUCCESS)
     {
@@ -648,11 +723,12 @@ state actions::write_data(status &global_status)
 {
     void *abcd_data_socket = global_status.abcd_data_socket;
     void *abcd_status_socket = global_status.abcd_status_socket;
+    void *waan_status_socket = global_status.waan_status_socket;
 
     char *buffer;
     size_t size;
 
-    receive_byte_message(abcd_status_socket, nullptr, (void **)(&buffer), &size, 0, global_status.verbosity);
+    receive_byte_message(abcd_status_socket, nullptr, (void **)(&buffer), &size, 0, 0);
 
     while (size > 0)
     {
@@ -661,7 +737,7 @@ state actions::write_data(status &global_status)
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
             std::cout << '[' << time_buffer << "] ";
-            std::cout << "Status message; ";
+            std::cout << "abcd status message; ";
             std::cout << "Size: " << size << "; ";
             std::cout << std::endl;
         }
@@ -673,7 +749,7 @@ state actions::write_data(status &global_status)
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
                 std::cout << '[' << time_buffer << "] ";
-                std::cout << "Saving status message to raw file: " << global_status.raw_file_name << "; ";
+                std::cout << "Saving abcd status message to raw file: " << global_status.raw_file_name << "; ";
                 std::cout << "Data size: " << size << "; ";
                 std::cout << std::endl;
             }
@@ -684,10 +760,45 @@ state actions::write_data(status &global_status)
 
         free(buffer);
 
-        receive_byte_message(abcd_status_socket, nullptr, (void **)(&buffer), &size, 0, global_status.verbosity);
+        receive_byte_message(abcd_status_socket, nullptr, (void **)(&buffer), &size, 0, 0);
     }
 
-    receive_byte_message(abcd_data_socket, nullptr, (void **)(&buffer), &size, 0, global_status.verbosity);
+    receive_byte_message(waan_status_socket, nullptr, (void **)(&buffer), &size, 0, 0);
+
+    while (size > 0)
+    {
+        if (global_status.verbosity > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "waan status message; ";
+            std::cout << "Size: " << size << "; ";
+            std::cout << std::endl;
+        }
+
+        if (global_status.raw_output_file.good())
+        {
+            if (global_status.verbosity > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << "Saving waan status message to raw file: " << global_status.raw_file_name << "; ";
+                std::cout << "Data size: " << size << "; ";
+                std::cout << std::endl;
+            }
+
+            global_status.raw_output_file.write(reinterpret_cast<const char*>(buffer), size);
+            global_status.raw_file_size += size;
+        }
+
+        free(buffer);
+
+        receive_byte_message(waan_status_socket, nullptr, (void **)(&buffer), &size, 0, 0);
+    }
+
+    receive_byte_message(abcd_data_socket, nullptr, (void **)(&buffer), &size, 0, 0);
 
     while (size > 0)
     {
@@ -778,7 +889,7 @@ state actions::write_data(status &global_status)
 
         free(buffer);
 
-        receive_byte_message(abcd_data_socket, nullptr, (void **)(&buffer), &size, 0, global_status.verbosity);
+        receive_byte_message(abcd_data_socket, nullptr, (void **)(&buffer), &size, 0, 0);
     }
 
     const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
@@ -869,7 +980,7 @@ state actions::saving_receive_commands(status &global_status)
     char *buffer;
     size_t size;
 
-    const int result = receive_byte_message(commands_socket, nullptr, (void **)(&buffer), &size, 0, global_status.verbosity);
+    const int result = receive_byte_message(commands_socket, nullptr, (void **)(&buffer), &size, 0, 0);
 
     if (size > 0 && result == EXIT_SUCCESS)
     {
@@ -1027,6 +1138,17 @@ state actions::close_sockets(status &global_status)
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
         std::cout << "ZeroMQ Error on abcd status socket close: ";
+        std::cout << zmq_strerror(errno);
+        std::cout << std::endl;
+    }
+
+    const int ws = zmq_close(global_status.waan_status_socket);
+    if (ws != 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "ZeroMQ Error on waan status socket close: ";
         std::cout << zmq_strerror(errno);
         std::cout << std::endl;
     }
