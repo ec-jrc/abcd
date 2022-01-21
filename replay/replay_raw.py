@@ -152,9 +152,9 @@ with zmq.Context() as context:
                             if len(message_buffer) != message_size:
                                 logging.error("Unable to read all the requested bytes: read: {:d}, requested: {:d}".format(len(message_buffer), message_size))
     
-                            compared_status = topic.find("status", 0, len("status"))
-                            compared_events = topic.find("events", 0, len("events"))
-                            compared_data = topic.find("data", 0, len("data"))
+                            compared_status = topic.find("status_abcd", 0, len("status_abcd"))
+                            compared_events = topic.find("events_abcd", 0, len("events_abcd"))
+                            compared_data = topic.find("data_abcd", 0, len("data_abcd"))
                             compared_zipped = topic.find("compressed", 0, len("compressed"))
     
                             logging.debug("compared_status: {:d}; compared_events: {:d}; compared_data: {:d}; compared_zipped: {:d}".format(compared_status, compared_events, compared_data, compared_zipped))
