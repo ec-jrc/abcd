@@ -273,8 +273,7 @@ void timestamp_analysis(const uint16_t *samples,
     }
 
     if ((*events_number) != triggers_rising_counter) {
-        reallocate_buffers(trigger_positions, events_buffer, triggers_rising_counter);
-        (*events_number) = triggers_rising_counter;
+        reallocate_buffers(trigger_positions, events_buffer, events_number, triggers_rising_counter);
     }
 
     memcpy((*trigger_positions), config->triggers_rising, triggers_rising_counter * sizeof(uint32_t));

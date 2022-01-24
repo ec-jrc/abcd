@@ -188,8 +188,7 @@ void timestamp_analysis(const uint16_t *samples,
         printf("WARNING: libCFD timestamp_analysis(): Reallocating buffers\n");
 
         // Assuring that there is one event_PSD and discarding others
-        is_error = reallocate_buffers(trigger_positions, events_buffer, 1);
-        (*events_number) = is_error ? 0 : 1;
+        is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
     }
 
     if (is_error || config->is_error) {
@@ -197,6 +196,10 @@ void timestamp_analysis(const uint16_t *samples,
 
         return;
     }
+
+    // Get pointers to the first elements in the buffers
+    struct event_PSD *this_event = (*events_buffer);
+    uint32_t *this_position = (*trigger_positions);
 
     to_double(samples, samples_number, &config->curve_samples);
 
@@ -255,14 +258,14 @@ void timestamp_analysis(const uint16_t *samples,
 
     // Output
 
-    (*events_buffer)[0].timestamp = new_timestamp;
-    (*events_buffer)[0].qshort = 0;
-    (*events_buffer)[0].qlong = 0;
-    (*events_buffer)[0].baseline = baseline;
-    (*events_buffer)[0].channel = waveform->channel;
-    (*events_buffer)[0].pur = 0;
+    this_event->timestamp = new_timestamp;
+    this_event->qshort = 0;
+    this_event->qlong = 0;
+    this_event->baseline = baseline;
+    this_event->channel = waveform->channel;
+    this_event->pur = 0;
 
-    (*trigger_positions)[0] = zero_crossing_index;
+    (*this_position) = zero_crossing_index;
 
     if (!config->disable_CFD_gates) {
         waveform_additional_set_number(waveform, 2);

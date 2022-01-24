@@ -336,18 +336,10 @@ void energy_analysis(const uint16_t *samples,
         printf("WARNING: libGeP energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
 
         // Assuring that there is one event_PSD and discarding others
-        is_error = !reallocate_buffers(trigger_positions, events_buffer, 1);
+        is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
 
         if (is_error) {
             printf("ERROR: libGeP energy_analysis(): Unable to reallocate buffers\n");
-        } else {
-            // If there were no events before, we make sure that the trigger
-            // position is initialized.
-            if ((*events_number) == 0) {
-                (*trigger_positions)[0] = 0;
-            }
-
-            (*events_number) = 1;
         }
     }
 
