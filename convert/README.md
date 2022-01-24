@@ -15,3 +15,5 @@ The [`ade2ascii.m`](./ade2ascii.m) script shows how to read the data files in Oc
 The [`adw2ascii`](./ade2ascii.c) C99 program converts the waveforms files to an ASCII file in which the waveforms samples are written line by line.
 
 The [`adr2adeadw.py`](./adr2adeadw.py) python script extracts from raw files the events and the waveforms files.
+
+The [`adr2configs.py`](./adr2configs.py) python script extracts from raw files the configurations.

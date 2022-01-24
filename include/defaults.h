@@ -164,7 +164,7 @@
 #define defaults_hijk_verbosity 1
 #define defaults_hijk_model 6533
 
-#define defaults_lmno_verbosity 1
+#define defaults_lmno_verbosity 0
 #define defaults_lmno_publish_timeout 3
 #define defaults_lmno_extenstion_events "ade"
 #define defaults_lmno_extenstion_waveforms "adw"

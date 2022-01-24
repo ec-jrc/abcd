@@ -36,12 +36,14 @@ struct status
     std::string commands_address = defaults_lmno_commands_address;
     std::string abcd_data_address = defaults_abcd_data_address;
     std::string abcd_status_address = defaults_abcd_status_address;
+    std::string waan_status_address = defaults_waan_status_address;
 
     void *context = nullptr;
     void *status_socket = nullptr;
     void *commands_socket = nullptr;
     void *abcd_data_socket = nullptr;
     void *abcd_status_socket = nullptr;
+    void *waan_status_socket = nullptr;
 
     unsigned int verbosity = 0;
     unsigned long int status_msg_ID = 0;

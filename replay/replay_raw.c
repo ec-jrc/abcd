@@ -277,9 +277,9 @@ int main(int argc, char *argv[])
                     }
     
     
-                    const int status_compared = strncmp(topic_buffer, "status", strlen("status"));
-                    const int events_compared = strncmp(topic_buffer, "events", strlen("events"));
-                    const int data_compared = strncmp(topic_buffer, "data", strlen("data"));
+                    const int status_compared = strncmp(topic_buffer, "status_abcd", strlen("status_abcd"));
+                    const int events_compared = strncmp(topic_buffer, "events_abcd", strlen("events_abcd"));
+                    const int data_compared = strncmp(topic_buffer, "data_abcd", strlen("data_abcd"));
                     const int zipped_compared = strncmp(topic_buffer, "compressed", strlen("compressed"));
     
                     if (verbosity > 1)
