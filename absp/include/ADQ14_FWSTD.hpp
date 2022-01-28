@@ -120,7 +120,7 @@ public:
     unsigned int timestamp_overflows;
 
     ADQ14_FWSTD(int verbosity = 0);
-    ~ADQ14_FWSTD();
+    virtual ~ADQ14_FWSTD();
 
     int Initialize(void* adq_cu_ptr, int adq_num);
     int ReadConfig(json_t* config);

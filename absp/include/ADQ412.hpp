@@ -104,7 +104,7 @@ public:
 
 
     ADQ412(int verbosity = 0);
-    ~ADQ412();
+    virtual ~ADQ412();
 
     int Initialize(void* adq_cu_ptr, int adq_num);
     int ReadConfig(json_t* config);

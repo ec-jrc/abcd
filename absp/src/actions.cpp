@@ -289,14 +289,14 @@ void actions::generic::destroy_digitizer(status &global_status)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "Destroying digitizer ";
+        std::cout << "Destroying digitizers; ";
         std::cout << std::endl;
     }
 
     json_t *json_event_message = json_object();
 
     json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
-    json_object_set_new_nocheck(json_event_message, "event", json_string("Digitizer deactivation"));
+    json_object_set_new_nocheck(json_event_message, "event", json_string("Digitizers deactivation"));
 
     actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
 
@@ -304,7 +304,7 @@ void actions::generic::destroy_digitizer(status &global_status)
 
     for (unsigned int index = 0; index < global_status.digitizers.size(); index++)
     {
-        auto digitizer = global_status.digitizers[index];
+        Digitizer *digitizer = global_status.digitizers[index];
 
         if (global_status.verbosity > 0)
         {
@@ -318,20 +318,26 @@ void actions::generic::destroy_digitizer(status &global_status)
         delete digitizer;
     }
 
-    // TODO: Reset USB3 devices with ADQControlUnit_ResetDevice() and reset level 18
-}
+    global_status.digitizers.clear();
+    
 
-bool actions::generic::create_digitizer(status &global_status)
-{
+    // TODO: Reset USB3 devices with ADQControlUnit_ResetDevice() and reset level 18
+
     if (global_status.verbosity > 0)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "Initializing digitizers; ";
+        std::cout << "Deleting the ADQ control unit; ";
         std::cout << std::endl;
     }
 
+    DeleteADQControlUnit(global_status.adq_cu_ptr);
+    global_status.adq_cu_ptr = NULL;
+}
+
+bool actions::generic::create_digitizer(status &global_status)
+{
     const int API_revision = ADQAPI_GetRevision();
 
     if (global_status.verbosity > 0)
@@ -343,7 +349,25 @@ bool actions::generic::create_digitizer(status &global_status)
         std::cout << std::endl;
     }
     
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Creating the ADQ control unit; ";
+        std::cout << std::endl;
+    }
+
     global_status.adq_cu_ptr = CreateADQControlUnit();
+
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Initializing digitizers; ";
+        std::cout << std::endl;
+    }
 
     const int number_of_devices = ADQControlUnit_FindDevices(global_status.adq_cu_ptr);
     const int number_of_failed_devices = ADQControlUnit_GetFailedDeviceCount(global_status.adq_cu_ptr);
@@ -1209,6 +1233,24 @@ state actions::acquisition_receive_commands(status &global_status)
                 std::cout << std::endl;
 
                 return states::stop_publish_events;
+            } else if (command == std::string("simulate_error")) {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << "########################################################### SIMULATED ERROR! ###";
+                std::cout << std::endl;
+
+                json_t *json_event_message = json_object();
+
+                json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+                json_object_set_new_nocheck(json_event_message, "event", json_string("Simulated error"));
+
+                actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+                json_decref(json_event_message);
+
+
+                return states::acquisition_error;
             }
         }
 
