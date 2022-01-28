@@ -66,7 +66,8 @@ void actions::generic::clear_memory(status &global_status)
     }
 
     global_status.histos_E.clear();
-    global_status.partial_counts.clear();
+    global_status.counts_partial.clear();
+    global_status.counts_total.clear();
 }
 
 void actions::generic::publish_message(status &global_status,
@@ -172,8 +173,9 @@ bool actions::generic::publish_status(status &global_status)
     {
         histogram_t *const histo_E = global_status.histos_E[channel];
         histogram2D_t *const histo_PSD = global_status.histos_PSD[channel];
-        const unsigned int channel_counts = global_status.partial_counts[channel];
-        const double channel_rate = channel_counts / pubtime;
+        const unsigned int channel_total_counts = global_status.counts_total[channel];
+        const unsigned int channel_partial_counts = global_status.counts_partial[channel];
+        const double channel_rate = channel_partial_counts / pubtime;
 
         if (histo_E != NULL && histo_PSD) {
             if (global_status.verbosity > 0)
@@ -201,6 +203,7 @@ bool actions::generic::publish_status(status &global_status)
             json_object_set_new_nocheck(channel_status, "id", json_integer(channel));
             json_object_set_new_nocheck(channel_status, "enabled", json_true());
             json_object_set_new_nocheck(channel_status, "rate", json_real(channel_rate));
+            json_object_set_new_nocheck(channel_status, "counts", json_real(channel_total_counts));
             json_array_append_new(channels_statuses, channel_status);
 
             json_array_append_new(active_channels, json_integer(channel));
@@ -216,7 +219,7 @@ bool actions::generic::publish_status(status &global_status)
     json_decref(status_message);
 
     // Resetting counts
-    for (auto &pair: global_status.partial_counts)
+    for (auto &pair: global_status.counts_partial)
     {
         // FIXME: Check if this works
         pair.second = 0;
@@ -279,8 +282,9 @@ bool actions::generic::publish_data(status &global_status)
     {
         histogram_t *const histo_E = global_status.histos_E[channel];
         histogram2D_t *const histo_PSD = global_status.histos_PSD[channel];
-        const unsigned int channel_counts = global_status.partial_counts[channel];
-        const double channel_rate = channel_counts / pubtime;
+        const unsigned int channel_total_counts = global_status.counts_total[channel];
+        const unsigned int channel_partial_counts = global_status.counts_partial[channel];
+        const double channel_rate = channel_partial_counts / pubtime;
 
         if (histo_E != NULL && histo_PSD) {
             if (global_status.verbosity > 0)
@@ -302,6 +306,7 @@ bool actions::generic::publish_data(status &global_status)
             json_object_set_new_nocheck(channel_config, "energy", histo_E_config);
             json_object_set_new_nocheck(channel_config, "PSD", histo_PSD_config);
             json_object_set_new_nocheck(channel_config, "rate", json_real(channel_rate));
+            json_object_set_new_nocheck(channel_config, "counts", json_real(channel_total_counts));
             json_array_append_new(channels_configs, channel_config);
 
             json_array_append_new(active_channels, json_integer(channel));
@@ -422,7 +427,8 @@ bool actions::generic::read_socket(status &global_status)
                                                                           defaults_pqrs_min_PSD,
                                                                           defaults_pqrs_max_PSD,
                                                                           global_status.verbosity);
-                    global_status.partial_counts[channel] = 0;
+                    global_status.counts_partial[channel] = 0;
+                    global_status.counts_total[channel] = 0;
                 }
 
                 if (global_status.verbosity > 1)
@@ -440,7 +446,8 @@ bool actions::generic::read_socket(status &global_status)
 
                 histogram_fill(global_status.histos_E[channel], qlong);
                 histogram2D_fill(global_status.histos_PSD[channel], qlong, psd);
-                global_status.partial_counts[channel] += 1;
+                global_status.counts_partial[channel] += 1;
+                global_status.counts_total[channel] += 1;
             }
 
             const clock_t event_stop = clock();
@@ -752,7 +759,12 @@ state actions::receive_commands(status &global_status)
                                 histogram2D_reset(histo_PSD);
                             }
                         }
-                        for (auto &pair: global_status.partial_counts)
+                        for (auto &pair: global_status.counts_partial)
+                        {
+                            // FIXME: Check if this works
+                            pair.second = 0;
+                        }
+                        for (auto &pair: global_status.counts_total)
                         {
                             // FIXME: Check if this works
                             pair.second = 0;
@@ -795,7 +807,8 @@ state actions::receive_commands(status &global_status)
                         histogram2D_reset(histo_PSD);
                     }
 
-                    global_status.partial_counts[channel] = 0;
+                    global_status.counts_partial[channel] = 0;
+                    global_status.counts_total[channel] = 0;
 
                     std::string event_message = "Reset of channel: " + std::to_string(channel);
 
@@ -835,7 +848,8 @@ state actions::receive_commands(status &global_status)
                     {
                         const int channel = json_integer_value(json_channel);
                         const std::string type = json_string_value(json_type);
-                        global_status.partial_counts[channel] = 0;
+                        global_status.counts_partial[channel] = 0;
+                        global_status.counts_total[channel] = 0;
 
                         if (type == std::string("energy"))
                         {

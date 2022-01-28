@@ -159,6 +159,17 @@ function page_loaded() {
 
             $("#channels_rates").empty().append(rates_list);
 
+            let counts_list = $("<ul>");
+
+            new_channels_statuses.forEach(function (channel_status) {
+                const channel = channel_status["id"];
+                const counts = channel_status["counts"];
+
+                counts_list.append($("<li>", {text: "Ch " + channel + ": " + counts.toFixed(0)}));
+            });
+
+            $("#channels_counts").empty().append(counts_list);
+
             const new_channels_configs = new_status["configs"];
 
             if ((!_.isEqual(new_channels_configs, old_channels_configs))
