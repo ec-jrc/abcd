@@ -203,7 +203,7 @@ bool actions::generic::publish_status(status &global_status)
             json_object_set_new_nocheck(channel_status, "id", json_integer(channel));
             json_object_set_new_nocheck(channel_status, "enabled", json_true());
             json_object_set_new_nocheck(channel_status, "rate", json_real(channel_rate));
-            json_object_set_new_nocheck(channel_status, "counts", json_real(channel_total_counts));
+            json_object_set_new_nocheck(channel_status, "counts", json_integer(channel_total_counts));
             json_array_append_new(channels_statuses, channel_status);
 
             json_array_append_new(active_channels, json_integer(channel));
@@ -306,7 +306,7 @@ bool actions::generic::publish_data(status &global_status)
             json_object_set_new_nocheck(channel_config, "energy", histo_E_config);
             json_object_set_new_nocheck(channel_config, "PSD", histo_PSD_config);
             json_object_set_new_nocheck(channel_config, "rate", json_real(channel_rate));
-            json_object_set_new_nocheck(channel_config, "counts", json_real(channel_total_counts));
+            json_object_set_new_nocheck(channel_config, "counts", json_integer(channel_total_counts));
             json_array_append_new(channels_configs, channel_config);
 
             json_array_append_new(active_channels, json_integer(channel));
