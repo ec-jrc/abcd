@@ -20,12 +20,19 @@ block content
         button(id="button_download_ToF_data") Download ToF data 
         button(id="button_download_spectrum_data") Download spectrum data 
     div#plot_ToF.plot_display
-  div.display 
-    h3 Fits
-    div#fits_results
-  div.display 
-    h3 Channels rates
-    div#channels_rates
+  div.columns
+    div.column
+      div.display 
+        h3 Fits
+        div#fits_results
+    div.column
+      div.display 
+        h3 Channels rates
+        div#channels_rates
+    div.column
+      div.display 
+        h3 Channels counts
+        div#channels_counts
   div.display 
     h3 Status
     fieldset 
