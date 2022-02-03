@@ -244,6 +244,7 @@ class Fitter {
         this.get_all_params().forEach(function (p) {
             let fit = $("<ul>");
 
+            const integral = Math.sqrt(2 * Math.PI) * p.sigma * p.A;
             const FWHM = 2 * Math.sqrt(2 * Math.log(2)) * p.sigma;
 
             fit.append($("<li>", {text: "Fit range: [" + p.range[0].toFixed(2) + " ch, " + p.range[1].toFixed(2) + " ch]"}));
@@ -252,7 +253,8 @@ class Fitter {
             fit.append($("<li>", {text: "Gaussian height: " + p.A.toFixed(2) + " counts"}));
             fit.append($("<li>", {text: "Gaussian center: " + p.mu.toFixed(2) + " ch"}));
             fit.append($("<li>", {text: "Gaussian sigma: " + p.sigma.toFixed(2) + " ch"}));
-            fit.append($("<li>", {text: "FWHM: " + FWHM.toFixed(2) + " counts/ch"}));
+            fit.append($("<li>", {text: "Gaussian area: " + integral.toFixed(2) + " counts * ch"}));
+            fit.append($("<li>", {text: "FWHM: " + FWHM.toFixed(2) + " ch"}));
             fit.append($("<li>", {text: "Resolution: " + (FWHM / p.mu * 100).toFixed(2) + "%"}));
 
             let label = $("<strong>", {text: "Fit n." + (p.data_index + 1)});
