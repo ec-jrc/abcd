@@ -54,6 +54,8 @@ echo "Creating ABCD window"
 #tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n abcd './abcd/abcd -c 1 -l 0 -n 0 -V "0x210000" -B 8192 -T 50 -f abcd/v1730_NaI_Coincidence_DCFD.json'
 # Example for a VME digitizer with direct optical link
 #tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n abcd './abcd/abcd -c 1 -l 0 -n 0 -B 8192 -T 10 -f abcd/v1730_NaI_Coincidence_DCFD.json'
+# Example for a digitizer with optical link through A4818 the link number (-l) shall be the PID of the A4818
+#tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n abcd './abcd/abcd -c 5 -l 0 -n 0 -B 8192 -T 10 -f abcd/v1730_NaI_Coincidence_DCFD.json'
 
 echo "Creating DaSa window, folder: ""$DATA_FOLDER"
 tmux new-window -d -c "$DATA_FOLDER" -P -t ABCD -n dasa "$ABCD_FOLDER"'/dasa/dasa'
