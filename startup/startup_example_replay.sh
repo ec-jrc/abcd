@@ -9,7 +9,7 @@ if [[ -z "${ABCD_FOLDER}" ]]; then
 fi
 
 # Folder in which data should be saved
-DATA_FOLDER="$ABCD_FOLDER""/data/"
+DATA_FOLDER="${ABCD_FOLDER}""/data/"
 
 CURRENT_FOLDER="$PWD"
 
@@ -33,8 +33,8 @@ then
     printf '             Is the $ABCD_FOLDER variable set correctly in the environment or in the script?\n'
 else
     #This is needed only on older versions of tmux, if the -c option does not work
-    #echo "Changing folder to: ""$ABCD_FOLDER"
-    #cd "$ABCD_FOLDER"
+    #echo "Changing folder to: ""${ABCD_FOLDER}"
+    #cd "${ABCD_FOLDER}"
     
     echo "Replaying data file: ${FILE_NAME}"
 
@@ -53,10 +53,10 @@ else
     tmux new-window -d -c "${ABCD_FOLDER}/wit/" -P -t ABCD -n wit 'node app.js ./config.json'
     
     echo "Creating loggers window"
-    tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n loggers "./bin/read_events.py -S 'tcp://127.0.0.1:16180' -o log/abcd_events_""$TODAY"".log"
-    tmux split-window -d -c "$ABCD_FOLDER" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16183' -o log/hivo_events_""$TODAY"".log"
-    tmux split-window -d -c "$ABCD_FOLDER" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16185' -o log/dasa_events_""$TODAY"".log"
-    tmux split-window -d -c "$ABCD_FOLDER" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16187' -o log/spec_events_""$TODAY"".log"
+    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n loggers "./bin/read_events.py -S 'tcp://127.0.0.1:16180' -o log/abcd_events_""$TODAY"".log"
+    tmux split-window -d -c "${ABCD_FOLDER}" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16183' -o log/hivo_events_""$TODAY"".log"
+    tmux split-window -d -c "${ABCD_FOLDER}" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16185' -o log/dasa_events_""$TODAY"".log"
+    tmux split-window -d -c "${ABCD_FOLDER}" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16187' -o log/spec_events_""$TODAY"".log"
     
     tmux select-layout -t ABCD:2 even-vertical
     
@@ -70,16 +70,16 @@ else
     tmux new-window -d -c "${ABCD_FOLDER}/waan/" -P -t ABCD -n waan './waan -v -T 200 -A tcp://127.0.0.1:16207 -D tcp://*:16181 -f ./configs/config_example_data.json'
     
     echo "Creating DaSa window, folder: ${DATA_FOLDER}"
-    tmux new-window -d -c "$DATA_FOLDER" -P -t ABCD -n dasa "${ABCD_FOLDER}/dasa/dasa -v"
+    tmux new-window -d -c "${DATA_FOLDER}" -P -t ABCD -n dasa "${ABCD_FOLDER}/dasa/dasa -v"
     
-    echo "Creating WaFi window"
-    tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n wafi './wadi/wadi -v'
+    echo "Creating WaDi window"
+    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n wadi './wadi/wadi -v'
     
     echo "Creating tofcalc windows"
-    tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n tofcalc "./tofcalc/tofcalc -f ./tofcalc/configs/config_example_data.json -n 0.00195312"
+    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n tofcalc "./tofcalc/tofcalc -f ./tofcalc/configs/config_example_data.json -n 0.00195312"
     
     echo "Creating spec windows"
-    tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n spec "./spec/spec"
+    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n spec "./spec/spec"
     
     echo "System started!"
     echo "Connect to GUI on addresses: http://127.0.0.1:8080/"
