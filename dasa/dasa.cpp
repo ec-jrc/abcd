@@ -94,11 +94,14 @@ void signal_handler(int signum)
 }
 
 void print_usage(const std::string &name = std::string("lmno")) {
-    char data_address[sizeof("[wxyz://255.255.255.255:65535]")];
-    address_bind_to_connect(data_address, sizeof(data_address), defaults_abcd_data_address, defaults_abcd_ip);
+    char abcd_data_address[sizeof("[wxyz://255.255.255.255:65535]")];
+    address_bind_to_connect(abcd_data_address, sizeof(abcd_data_address), defaults_abcd_data_address, defaults_abcd_ip);
     
-    char status_address[sizeof("[wxyz://255.255.255.255:65535]")];
-    address_bind_to_connect(status_address, sizeof(status_address), defaults_abcd_status_address, defaults_abcd_ip);
+    char abcd_status_address[sizeof("[wxyz://255.255.255.255:65535]")];
+    address_bind_to_connect(abcd_status_address, sizeof(abcd_status_address), defaults_abcd_status_address, defaults_abcd_ip);
+    
+    char waan_status_address[sizeof("[wxyz://255.255.255.255:65535]")];
+    address_bind_to_connect(waan_status_address, sizeof(waan_status_address), defaults_waan_status_address, defaults_abcd_ip);
     
     std::cout << "Usage: " << name << " [options]" << std::endl;
     std::cout << std::endl;
@@ -106,8 +109,9 @@ void print_usage(const std::string &name = std::string("lmno")) {
     std::cout << std::endl;
     std::cout << "Optional arguments:" << std::endl;
     std::cout << "\t-h: Display this message" << std::endl;
-    std::cout << "\t-A <address>: ABCD data socket address, default: " << data_address << std::endl;
-    std::cout << "\t-s <address>: ABCD status socket address, default: " << status_address << std::endl;
+    std::cout << "\t-A <address>: abcd data socket address, default: " << abcd_data_address << std::endl;
+    std::cout << "\t-s <address>: abcd status socket address, default: " << abcd_status_address << std::endl;
+    std::cout << "\t-w <address>: waan status socket address, default: " << waan_status_address << std::endl;
     std::cout << "\t-S <address>: Status socket address, default: ";
     std::cout << defaults_lmno_status_address << std::endl;
     std::cout << "\t-C <address>: Commands socket address, default: ";
@@ -115,6 +119,7 @@ void print_usage(const std::string &name = std::string("lmno")) {
     std::cout << "\t-T <period>: Set base period in milliseconds, default: ";
     std::cout << defaults_lmno_base_period << std::endl;
     std::cout << "\t-v: Set verbose execution" << std::endl;
+    std::cout << "\t-V: Set verbose execution with more output" << std::endl;
 
     return;
 }
@@ -138,21 +143,25 @@ int main(int argc, char *argv[])
     signal(SIGINFO, signal_handler);  
     #endif
 
-    char str_data_address[sizeof("[wxyz://255.255.255.255:65535]")];
-    address_bind_to_connect(str_data_address, sizeof(str_data_address), defaults_abcd_data_address, defaults_abcd_ip);
+    char str_abcd_data_address[sizeof("[wxyz://255.255.255.255:65535]")];
+    address_bind_to_connect(str_abcd_data_address, sizeof(str_abcd_data_address), defaults_abcd_data_address, defaults_abcd_ip);
     
-    char str_status_address[sizeof("[wxyz://255.255.255.255:65535]")];
-    address_bind_to_connect(str_status_address, sizeof(str_status_address), defaults_abcd_status_address, defaults_abcd_ip);
+    char str_abcd_status_address[sizeof("[wxyz://255.255.255.255:65535]")];
+    address_bind_to_connect(str_abcd_status_address, sizeof(str_abcd_status_address), defaults_abcd_status_address, defaults_abcd_ip);
     
-    std::string abcd_data_address = str_data_address;
-    std::string abcd_status_address = str_status_address;
+    char str_waan_status_address[sizeof("[wxyz://255.255.255.255:65535]")];
+    address_bind_to_connect(str_waan_status_address, sizeof(str_waan_status_address), defaults_waan_status_address, defaults_abcd_ip);
+    
+    std::string abcd_data_address = str_abcd_data_address;
+    std::string abcd_status_address = str_abcd_status_address;
+    std::string waan_status_address = str_waan_status_address;
 
     std::string status_address = defaults_lmno_status_address;
     std::string commands_address = defaults_lmno_commands_address;
     unsigned int base_period = defaults_lmno_base_period;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hA:s:S:C:T:v")) != -1) {
+    while ((c = getopt(argc, argv, "hA:s:w:S:C:T:vV")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(std::string(argv[0]));
@@ -162,6 +171,9 @@ int main(int argc, char *argv[])
                 break;
             case 's':
                 abcd_status_address = optarg;
+                break;
+            case 'w':
+                waan_status_address = optarg;
                 break;
             case 'S':
                 status_address = optarg;
@@ -180,6 +192,9 @@ int main(int argc, char *argv[])
             case 'v':
                 verbosity = 1;
                 break;
+            case 'V':
+                verbosity = 2;
+                break;
             default:
                 std::cout << "Unknown command: " << c << std::endl;
                 break;
@@ -191,12 +206,14 @@ int main(int argc, char *argv[])
     global_status.verbosity = verbosity;
     global_status.abcd_data_address = abcd_data_address;
     global_status.abcd_status_address = abcd_status_address;
+    global_status.waan_status_address = waan_status_address;
     global_status.status_address = status_address;
     global_status.commands_address = commands_address;
 
     if (global_status.verbosity > 0) {
-        std::cout << "ABCD data socket address: " << abcd_data_address << std::endl;
-        std::cout << "ABCD status socket address: " << abcd_status_address << std::endl;
+        std::cout << "abcd data socket address: " << abcd_data_address << std::endl;
+        std::cout << "abcd status socket address: " << abcd_status_address << std::endl;
+        std::cout << "waan status socket address: " << waan_status_address << std::endl;
         std::cout << "Status socket address: " << status_address << std::endl;
         std::cout << "Commands socket address: " << commands_address << std::endl;
         std::cout << "Verbosity: " << verbosity << std::endl;

@@ -1,0 +1,33 @@
+{
+    "module": "waan",
+    "forward_waveforms": true,
+    "enable_additional": true,
+    "discard_messages": false,
+    "channels": [
+        {
+            "id": 0,
+            "name": "CeBr",
+            "enabled": true,
+            "user_libraries": {
+                "timestamp": "src/libRT.so",
+                "energy": "src/libPSD.so"
+            },
+            "user_config": {
+                "baseline_samples": 25,
+                "smooth_samples": 16,
+                "fraction": 0.50,
+                "zero_crossing_samples": 4,
+                "fractional_bits": 10,
+                "disable_shift": false,
+                "pregate": -2,
+                "short_gate": 10,
+                "long_gate": 30,
+                "pulse_polarity": "negative",
+                "integrals_scaling": 5,
+                "energy_threshold": 60
+            }
+        },
+        {}
+    ],
+    "zzz": null
+}

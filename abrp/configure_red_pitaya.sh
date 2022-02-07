@@ -6,4 +6,4 @@ systemctl stop redpitaya_scpi
 systemctl stop jupyter
 
 # Configure the FPGA with the proper firmware
-cat /opt/redpitaya/fpga/fpga_classic.bit > /dev/xdevcfg
+cat /opt/redpitaya/fpga/fpga_0.94.bit > /dev/xdevcfg

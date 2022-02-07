@@ -35,7 +35,7 @@
 #include <jansson.h>
 
 extern "C" {
-#include "redpitaya/rp.h"
+#include "rp.h"
 
 #include "defaults.h"
 #include "utilities_functions.h"
@@ -669,13 +669,13 @@ bool actions::generic::configure_digitizer(status &global_status)
 
     const int trigger_channel = json_integer_value(json_object_get(trigger_config, "channel"));
 
-    rp_channel_t parsed_trigger_channel = RP_CH_1;
+    rp_channel_trigger_t parsed_trigger_channel = RP_T_CH_1;
 
     if (parsed_trigger_source == "analog" && 0 <= trigger_channel && trigger_channel < 2) {
         if (trigger_channel == 0) {
-            parsed_trigger_channel = RP_CH_1;
+            parsed_trigger_channel = RP_T_CH_1;
         } else if (trigger_channel == 1) {
-            parsed_trigger_channel = RP_CH_2;
+            parsed_trigger_channel = RP_T_CH_2;
         }
     } else {
         char time_buffer[BUFFER_SIZE];
@@ -730,25 +730,25 @@ bool actions::generic::configure_digitizer(status &global_status)
     global_status.trigger_source = RP_TRIG_SRC_CHA_NE;
 
     if (parsed_trigger_source == "analog"
-        && parsed_trigger_channel == RP_CH_1
+        && parsed_trigger_channel == RP_T_CH_1
         && parsed_trigger_slope == "falling")
     {
         global_status.trigger_source = RP_TRIG_SRC_CHA_NE;
     }
     else if (parsed_trigger_source == "analog"
-             && parsed_trigger_channel == RP_CH_1
+             && parsed_trigger_channel == RP_T_CH_1
              && parsed_trigger_slope == "rising")
     {
         global_status.trigger_source = RP_TRIG_SRC_CHA_PE;
     }
     else if (parsed_trigger_source == "analog"
-             && parsed_trigger_channel == RP_CH_2
+             && parsed_trigger_channel == RP_T_CH_2
              && parsed_trigger_slope == "falling")
     {
         global_status.trigger_source = RP_TRIG_SRC_CHB_NE;
     }
     else if (parsed_trigger_source == "analog"
-             && parsed_trigger_channel == RP_CH_2
+             && parsed_trigger_channel == RP_T_CH_2
              && parsed_trigger_slope == "rising")
     {
         global_status.trigger_source = RP_TRIG_SRC_CHB_PE;
@@ -826,11 +826,19 @@ bool actions::generic::configure_digitizer(status &global_status)
 
     float trigger_level = json_number_value(json_object_get(trigger_config, "level"));
 
+    rp_channel_t parsed_trigger_channel_to_channel = RP_CH_1;
+
+    if (parsed_trigger_channel == RP_T_CH_1) {
+        parsed_trigger_channel_to_channel = RP_CH_1;
+    } else if (parsed_trigger_channel == RP_T_CH_2) {
+        parsed_trigger_channel_to_channel = RP_CH_2;
+    }
+
     rp_pinState_t trigger_channel_gain;
     float trigger_channel_max;
 
-    const int gain_result = rp_AcqGetGain(parsed_trigger_channel, &trigger_channel_gain);
-    const int gnvl_result = rp_AcqGetGainV(parsed_trigger_channel, &trigger_channel_max);
+    const int gain_result = rp_AcqGetGain(parsed_trigger_channel_to_channel, &trigger_channel_gain);
+    const int gnvl_result = rp_AcqGetGainV(parsed_trigger_channel_to_channel, &trigger_channel_max);
 
     if (gain_result != RP_OK)
     {
@@ -877,7 +885,7 @@ bool actions::generic::configure_digitizer(status &global_status)
     if (global_status.verbosity > 0) {
         float trigger_level = 0;
 
-        const int trglvl_result = rp_AcqGetTriggerLevel(&trigger_level);
+        const int trglvl_result = rp_AcqGetTriggerLevel(parsed_trigger_channel, &trigger_level);
 
         if (trglvl_result != RP_OK)
         {
