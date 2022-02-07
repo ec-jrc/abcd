@@ -105,7 +105,7 @@ public:
 #endif
     virtual ~CAENDgtz();
     // general methods
-    void        Activate(int interface = 0, int linknum = 0, int conetnode = 0, uint32_t address = 0x32100000);
+    void        Activate(int connection_type = 0, int linknum = 0, int conetnode = 0, uint32_t address = 0x32100000);
     void        Deactivate();
     void        SetVerboseDebug(int mode);
     void        SetExternalErrorCode(int *ext_errc);
@@ -134,7 +134,7 @@ public:
     void        SetRegisterSpecificBits(uint32_t reg_add, uint8_t bit_lower, uint8_t bit_upper, uint32_t value, const char *reference = "SetRegisterSpecificBits");
     void        WriteRegister(uint32_t address, uint32_t data, const char *reference = "WriteRegister");
     uint32_t    ReadRegister(uint32_t address, const char *reference = "unknown function");
-    const char* DumpRegister(uint32_t address, int print = 1);
+    std::string DumpRegister(uint32_t address, int print = 1);
     void        SetFanSpeed(int value);
     int         GetFanSpeed();
     // operations

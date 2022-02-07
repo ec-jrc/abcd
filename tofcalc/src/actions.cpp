@@ -241,8 +241,9 @@ bool actions::generic::publish_status(status &global_status)
         histogram_t *const histo_ToF = global_status.histos_ToF[channel];
         histogram_t *const histo_E = global_status.histos_E[channel];
         histogram2D_t *const histo_EToF = global_status.histos_EToF[channel];
-        const unsigned int channel_counts = global_status.partial_counts[channel];
-        const double channel_rate = channel_counts / pubtime;
+        const unsigned int channel_total_counts = global_status.counts_total[channel];
+        const unsigned int channel_partial_counts = global_status.counts_partial[channel];
+        const double channel_rate = channel_partial_counts / pubtime;
 
         if (histo_ToF && histo_E && histo_EToF) {
             if (global_status.verbosity > 0)
@@ -273,6 +274,7 @@ bool actions::generic::publish_status(status &global_status)
             json_object_set_new_nocheck(channel_status, "id", json_integer(channel));
             json_object_set_new_nocheck(channel_status, "enabled", json_true());
             json_object_set_new_nocheck(channel_status, "rate", json_real(channel_rate));
+            json_object_set_new_nocheck(channel_status, "counts", json_integer(channel_total_counts));
             json_array_append_new(channels_statuses, channel_status);
 
             json_array_append_new(active_channels, json_integer(channel));
@@ -289,9 +291,8 @@ bool actions::generic::publish_status(status &global_status)
     json_decref(status_message);
 
     // Resetting counts
-    for (auto &pair: global_status.partial_counts)
+    for (auto &pair: global_status.counts_partial)
     {
-        // FIXME: Check if this works
         pair.second = 0;
     }
 
@@ -392,8 +393,9 @@ bool actions::generic::publish_data(status &global_status)
         histogram_t *const histo_ToF = global_status.histos_ToF[channel];
         histogram_t *const histo_E = global_status.histos_E[channel];
         histogram2D_t *const histo_EToF = global_status.histos_EToF[channel];
-        const unsigned int channel_counts = global_status.partial_counts[channel];
-        const double channel_rate = channel_counts / pubtime;
+        const unsigned int channel_total_counts = global_status.counts_total[channel];
+        const unsigned int channel_partial_counts = global_status.counts_partial[channel];
+        const double channel_rate = channel_partial_counts / pubtime;
 
         if (histo_ToF && histo_E && histo_EToF) {
             if (global_status.verbosity > 0)
@@ -415,6 +417,7 @@ bool actions::generic::publish_data(status &global_status)
             json_object_set_new_nocheck(channel_config, "enabled", json_true());
             json_object_set_new_nocheck(channel_config, "reference", json_false());
             json_object_set_new_nocheck(channel_config, "rate", json_real(channel_rate));
+            json_object_set_new_nocheck(channel_config, "counts", json_integer(channel_total_counts));
             json_object_set_new_nocheck(channel_config, "ToF", histo_ToF_config);
             json_object_set_new_nocheck(channel_config, "energy", histo_E_config);
             json_object_set_new_nocheck(channel_config, "EToF", histo_EToF_config);
@@ -643,7 +646,8 @@ bool actions::generic::read_socket(status &global_status)
                                         histogram_fill(histo_ToF, time_of_flight);
                                         histogram_fill(histo_E, that_event.qlong);
                                         histogram2D_fill(histo_EToF, time_of_flight, that_event.qlong);
-                                        global_status.partial_counts[that_event.channel] += 1;
+                                        global_status.counts_partial[that_event.channel] += 1;
+                                        global_status.counts_total[that_event.channel] += 1;
     
                                         found_coincidences += 1;
                                     }
@@ -725,7 +729,8 @@ bool actions::generic::read_socket(status &global_status)
                                         histogram_fill(histo_ToF, time_of_flight);
                                         histogram_fill(histo_E, that_event.qlong);
                                         histogram2D_fill(histo_EToF, time_of_flight, that_event.qlong);
-                                        global_status.partial_counts[that_event.channel] += 1;
+                                        global_status.counts_partial[that_event.channel] += 1;
+                                        global_status.counts_total[that_event.channel] += 1;
     
                                         found_coincidences += 1;
                                     }
@@ -1127,7 +1132,8 @@ state actions::apply_config(status &global_status)
                                                                        max_E,
                                                                        global_status.verbosity);
 
-                    global_status.partial_counts[id] = 0;
+                    global_status.counts_partial[id] = 0;
+                    global_status.counts_total[id] = 0;
 
                     const std::string event_message = "Configuration of histogram for channel: " + std::to_string(id);
 
@@ -1276,9 +1282,12 @@ state actions::receive_commands(status &global_status)
                                 }
                             }
 
-                            for (auto &pair: global_status.partial_counts)
+                            for (auto &pair: global_status.counts_partial)
                             {
-                                // FIXME: Check if this works
+                                pair.second = 0;
+                            }
+                            for (auto &pair: global_status.counts_total)
+                            {
                                 pair.second = 0;
                             }
 
@@ -1328,7 +1337,8 @@ state actions::receive_commands(status &global_status)
                             histogram2D_reset(histo_EToF);
                         }
 
-                        global_status.partial_counts[channel] = 0;
+                        global_status.counts_partial[channel] = 0;
+                        global_status.counts_total[channel] = 0;
 
                         actions::generic::publish_message(global_status, defaults_tofcalc_events_topic, json_event_message);
 
@@ -1396,7 +1406,8 @@ state actions::receive_commands(status &global_status)
                                         global_status.reference_channels.erase(iter);
                                     }
 
-                                    global_status.partial_counts[id] = 0;
+                                    global_status.counts_partial[id] = 0;
+                                    global_status.counts_total[id] = 0;
 
                                     unsigned int bins_ToF = defaults_tofcalc_bins_ToF;
                                     double min_ToF = defaults_tofcalc_min_ToF;

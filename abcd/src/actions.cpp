@@ -378,11 +378,11 @@ bool actions::generic::create_digitizer(status &global_status)
 bool actions::generic::configure_digitizer(status &global_status)
 {
     CAENDgtz *digitizer = global_status.digitizer;
-    unsigned int connection_type = global_status.connection_type;
-    unsigned int link_number = global_status.link_number;
-    unsigned int CONET_node = global_status.CONET_node;
-    unsigned int VME_address = global_status.VME_address;
-    unsigned int verbosity = global_status.verbosity;
+    const unsigned int connection_type = global_status.connection_type;
+    const int link_number = global_status.link_number;
+    const unsigned int CONET_node = global_status.CONET_node;
+    const unsigned int VME_address = global_status.VME_address;
+    const unsigned int verbosity = global_status.verbosity;
 
     if (!digitizer)
     {
