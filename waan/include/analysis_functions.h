@@ -253,41 +253,61 @@ union WA_energy_union
 
 /*! \brief Function to reallocate the memory required for the events buffer.
  *
- * The `events_number` may also be zero, signaling that no `event_PSD` shall be
- * selected.
+ * The `new_events_number` may also be zero, signaling that no `event_PSD` shall
+ * be selected.
+ * In case of success, the function will store in `old_events_number` the value
+ * of `new_events_number`; in case of failure, the function will store zero in
+ * `old_events_number`. If the value of `old_events_number` is zero and the
+ * value of `new_events_number` is non-zero, the function will initialize to
+ * zero all the values of `trigger_positions`.
  *
  * \param[in,out] trigger_positions  pointer to the array that is to be reallocated
  * \param[in,out] events_buffer      pointer to the array that is to be reallocated
- * \param[in]     events_number      the new size of the buffer in terms of events.
+ * \param[in,out] old_events_number  the old size of the buffer in terms of events.
+ * \param[in]     new_events_number  the new size of the buffer in terms of events.
  *
  * \return `true` if success, `false` otherwise
  */
 inline bool reallocate_buffers(uint32_t **trigger_positions,
                                struct event_PSD **events_buffer,
-                               size_t events_number)
+                               size_t *old_events_number,
+                               size_t new_events_number)
 {
-    uint32_t *new_positions = (uint32_t*)realloc((*trigger_positions),
-                              events_number * sizeof(uint32_t));
+    if ((*old_events_number) != new_events_number) {
+        uint32_t *new_positions = (uint32_t*)realloc((*trigger_positions),
+                                  new_events_number * sizeof(uint32_t));
 
-    // It is allowed to have a zero size, but the result is implementation specific.
-    // It could be a NULL pointer or a non-NULL pointer.
-    if (!new_positions && (events_number > 0)) {
-        printf("ERROR: reallocate_buffers(): Unable to allocate trigger_positions memory\n");
+        // It is allowed to have a zero size, but the result is implementation specific.
+        // It could be a NULL pointer or a non-NULL pointer.
+        if (!new_positions && (new_events_number > 0)) {
+            printf("ERROR: reallocate_buffers(): Unable to allocate trigger_positions memory\n");
 
-        return false;
-    } else {
-        (*trigger_positions) = new_positions;
-    }
+            (*old_events_number) = 0;
 
-    struct event_PSD *new_buffer = (struct event_PSD*)realloc((*events_buffer),
-                                   events_number * sizeof(struct event_PSD));
+            return false;
+        } else {
+            (*trigger_positions) = new_positions;
+        }
 
-    if (!new_buffer && (events_number > 0)) {
-        printf("ERROR: reallocate_buffers(): Unable to allocate events_buffer memory\n");
+        struct event_PSD *new_buffer = (struct event_PSD*)realloc((*events_buffer),
+                                       new_events_number * sizeof(struct event_PSD));
 
-        return false;
-    } else {
-        (*events_buffer) = new_buffer;
+        if (!new_buffer && (new_events_number > 0)) {
+            printf("ERROR: reallocate_buffers(): Unable to allocate events_buffer memory\n");
+
+            (*old_events_number) = 0;
+
+            return false;
+        } else {
+            (*events_buffer) = new_buffer;
+        }
+
+        // Initialize the new trigger_positions if there were none before
+        if ((*old_events_number) == 0 && new_events_number > 0) {
+            memset((*trigger_positions), 0, new_events_number * sizeof(uint32_t));
+        }
+
+        (*old_events_number) = new_events_number;
     }
 
     return true;

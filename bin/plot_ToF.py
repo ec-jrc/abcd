@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-#  (C) Copyright 2016 Cristiano Lino Fontana
+#  (C) Copyright 2022, European Union, Cristiano Lino Fontana
 #
 #  This file is part of ABCD.
 #
@@ -22,6 +22,7 @@ import os
 import datetime
 
 import math
+import functools
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -34,7 +35,8 @@ TIME_MAX = 200
 ENERGY_RESOLUTION = 20
 ENERGY_MIN = 0
 ENERGY_MAX = 20000
-EVENTS_COUNT = -1
+# This should be 8 MB
+BUFFER_SIZE = 8 * 1024 * 1024
 
 parser = argparse.ArgumentParser(description='Reads an ABCD events file and plots the ToF between two channels')
 parser.add_argument('file_name',
@@ -51,11 +53,6 @@ parser.add_argument('-n',
                     type = float,
                     default = NS_PER_SAMPLE,
                     help = 'Nanoseconds per sample (default: {:f})'.format(NS_PER_SAMPLE))
-parser.add_argument('-N',
-                    '--events_count',
-                    type = int,
-                    default = EVENTS_COUNT,
-                    help = 'Max events to be read from file (default: {:f})'.format(EVENTS_COUNT))
 parser.add_argument('-r',
                     '--time_resolution',
                     type = float,
@@ -86,39 +83,17 @@ parser.add_argument('-E',
                     type = float,
                     default = ENERGY_MAX,
                     help = 'Energy max (default: {:f})'.format(ENERGY_MAX))
+parser.add_argument('-B',
+                    '--buffer_size',
+                    type = int,
+                    default = BUFFER_SIZE,
+                    help = 'Buffer size for file reading (default: {:f})'.format(BUFFER_SIZE))
 parser.add_argument('-s',
                     '--save_data',
                     action = "store_true",
                     help = 'Save histograms to file')
 
 args = parser.parse_args()
-
-start_time = datetime.datetime.now()
-
-channel_a = args.channel_a
-channel_b = args.channel_b
-
-time_min = args.time_min
-time_max = args.time_max
-
-print("Time min: {:f}".format(time_min))
-print("Time max: {:f}".format(time_max))
-
-time_resolution = args.time_resolution
-N_t = math.ceil((time_max - time_min)/ time_resolution)
-
-print("N_t: {:d}".format(N_t))
-
-energy_min = args.energy_min
-energy_max = args.energy_max
-
-print("Energy min: {:f}".format(energy_min))
-print("Energy max: {:f}".format(energy_max))
-
-energy_resolution = args.energy_resolution
-N_E = math.ceil((energy_max - energy_min)/ energy_resolution)
-
-print("N_E: {:d}".format(N_E))
 
 event_PSD_dtype = np.dtype([('timestamp', np.uint64),
                             ('qshort', np.uint16),
@@ -128,117 +103,207 @@ event_PSD_dtype = np.dtype([('timestamp', np.uint64),
                             ('pur', np.uint8),
                             ])
 
-print("### ### Reading: {}".format(args.file_name))
-data = np.fromfile(args.file_name, dtype = event_PSD_dtype, count = args.events_count)
+spectra = list()
+spectra_derivatives = list()
 
-print("Selecting channels...")
-channels_selection = np.logical_or(data['channel'] == args.channel_a, data['channel'] == args.channel_b)
-selected_data = data[channels_selection]
+buffer_size = args.buffer_size - (args.buffer_size % 16)
+print("Using buffer size: {:d}".format(buffer_size))
 
-print("Sorting data...")
-sorted_data = np.sort(selected_data, order = 'timestamp')
+energy_min = args.energy_min
+energy_max = args.energy_max
+energy_resolution = args.energy_resolution
+N_E = math.floor((energy_max - energy_min)/ energy_resolution)
 
-channels = sorted_data['channel']
-timestamps = sorted_data['timestamp'] * args.ns_per_sample
-energies = sorted_data['qlong']
+print("Energy min: {:f}".format(energy_min))
+print("Energy max: {:f}".format(energy_max))
+print("N_E: {:d}".format(N_E))
 
-total_events = len(timestamps)
+time_min = args.time_min
+time_max = args.time_max
+time_resolution = args.time_resolution
+N_t = math.floor((time_max - time_min)/ time_resolution)
 
-min_time = min(timestamps)
-max_time = max(timestamps)
+print("Time min: {:f}".format(time_min))
+print("Time max: {:f}".format(time_max))
+print("N_t: {:d}".format(N_t))
+
+channel_a = args.channel_a
+channel_b = args.channel_b
+
+partial_ToF_histo = list()
+partial_E_histo_a = list()
+partial_E_histo_b = list()
+partial_EvsToF_histo_a = list()
+partial_EvsToF_histo_b = list()
+partial_EvsE_histo = list()
+min_times = list()
+max_times = list()
+ToF_edges = None
+E_edges_a = None
+E_edges_b = None
+E_edges_a = None
+ToF_edges = None
+E_edges_b = None
+ToF_edges = None
+E_edges_a = None
+E_edges_b = None
+counter = 0
+events_counter = 0
+
+# We will read the file in chunks so we can process also very big files
+# This means that we will lose the coincidences between chunks
+with open(args.file_name, "rb") as input_file:
+    while True:
+        start_time = datetime.datetime.now()
+
+        try:
+            print("### ### Reading chunk: {:d}".format(counter))
+
+            file_chunk = input_file.read(buffer_size)
+
+            data = np.frombuffer(file_chunk, dtype = event_PSD_dtype)
+
+            print("Selecting channels...")
+            channels_selection = np.logical_or(data['channel'] == args.channel_a, \
+                                               data['channel'] == args.channel_b)
+            selected_data = data[channels_selection]
+
+            print("Sorting data...")
+            sorted_data = np.sort(selected_data, order = 'timestamp')
+
+            channels = sorted_data['channel']
+            timestamps = sorted_data['timestamp'] * args.ns_per_sample
+            energies = sorted_data['qlong']
+
+            total_events = len(timestamps)
+
+            events_counter += total_events
+
+            min_time = min(timestamps)
+            max_time = max(timestamps)
+
+            min_times.append(min_time)
+            max_times.append(max_time)
+
+            Delta_time = (max_time - min_time) * args.ns_per_sample * 1e-9
+
+            print("Number of events: {:d}".format(total_events))
+            print("Time delta: {:f} s".format(Delta_time))
+            print("Average rate: {:f} Hz".format(total_events / Delta_time))
+
+            print("Starting the main loop for {:d} events...".format(total_events))
+
+            selected_events = 0
+
+            time_differences = list()
+            coincidence_energies_a = list()
+            coincidence_energies_a_with_repetitions = list()
+            coincidence_energies_b = list()
+
+            for this_index, (this_channel, this_timestamp, this_energy) in enumerate(zip(channels, timestamps, energies)):
+
+                if this_channel == channel_a:
+                    select_energy_a = False
+
+                    left_edge = time_min + this_timestamp
+                    right_edge = time_max + this_timestamp
+
+                    for that_index in range(this_index + 1, total_events):
+                        that_channel = channels[that_index]
+                        that_timestamp = timestamps[that_index]
+                        that_energy = energies[that_index]
+
+                        if left_edge < that_timestamp and that_timestamp < right_edge and \
+                           energy_min < this_energy and this_energy < energy_max and \
+                           energy_min < that_energy and that_energy < energy_max:
+                            if that_channel == channel_b:
+                                selected_events += 1
+                                time_differences.append(that_timestamp - this_timestamp)
+                                coincidence_energies_b.append(that_energy)
+                                coincidence_energies_a_with_repetitions.append(this_energy)
+                                select_energy_a = True
+
+                                print("difference: {:6.1f}; selected_events: {:d} / {:d} ({:.2f}%); index: {:d}/{:d} ({:.2f}%)".format(that_timestamp - this_timestamp, selected_events, total_events, selected_events / float(this_index + 1) * 100, this_index, total_events, this_index / float(total_events) * 100))
+                        else:
+                            break
+
+                    for that_index in range(this_index - 1, -1, -1):
+                        that_timestamp = timestamps[that_index]
+                        that_channel = channels[that_index]
+                        that_energy = energies[that_index]
+
+                        if left_edge < that_timestamp and that_timestamp < right_edge and \
+                           energy_min < this_energy and this_energy < energy_max and \
+                           energy_min < that_energy and that_energy < energy_max:
+                            if that_channel == channel_b:
+                                selected_events += 1
+                                time_differences.append(that_timestamp - this_timestamp)
+                                coincidence_energies_b.append(that_energy)
+                                coincidence_energies_a_with_repetitions.append(this_energy)
+                                select_energy_a = True
+
+                                print("difference: {:6.1f}; selected_events: {:d} / {:d} ({:.2f}%); index: {:d}/{:d} ({:.2f}%)".format(that_timestamp - this_timestamp, selected_events, total_events, selected_events / float(this_index + 1) * 100, this_index, total_events, this_index / float(total_events) * 100))
+                        else:
+                            break
+
+                    if select_energy_a:
+                        # Also the event from the reference channel is selected and needs to be counted
+                        selected_events += 1
+                        coincidence_energies_a.append(this_energy)
+
+            stop_time = datetime.datetime.now()
+
+            print("Total time: {}; time per event: {:f} µs".format(stop_time - start_time, (stop_time - start_time).total_seconds() * 1e6 / total_events))
+
+            ToF_histo, ToF_edges = \
+                np.histogram(time_differences, bins = N_t, range = (time_min, time_max))
+            E_histo_a, E_edges_a = \
+                np.histogram(coincidence_energies_a, bins = N_E, range = (energy_min, energy_max))
+            E_histo_b, E_edges_b = \
+                np.histogram(coincidence_energies_b, bins = N_E, range = (energy_min, energy_max))
+            EvsToF_histo_a, E_edges_a, ToF_edges = \
+                np.histogram2d(coincidence_energies_a, time_differences,
+                               bins = (N_E, N_t),
+                               range = ((energy_min, energy_max), (time_min, time_max)))
+            EvsToF_histo_b, E_edges_b, ToF_edges = \
+                np.histogram2d(coincidence_energies_b, time_differences,
+                               bins = (N_E, N_t),
+                               range = ((energy_min, energy_max), (time_min, time_max)))
+            EvsE_histo, E_edges_a, E_edges_b = \
+                np.histogram2d(coincidence_energies_a_with_repetitions,
+                               coincidence_energies_b,
+                               bins = (N_E, N_E),
+                               range = ((energy_min, energy_max), (energy_min, energy_max)))
+
+            partial_ToF_histo.append(ToF_histo)
+            partial_E_histo_a.append(E_histo_a)
+            partial_E_histo_b.append(E_histo_b)
+            partial_EvsToF_histo_a.append(EvsToF_histo_a)
+            partial_EvsToF_histo_b.append(EvsToF_histo_b)
+            partial_EvsE_histo.append(EvsE_histo)
+
+            counter += 1
+
+        except KeyboardInterrupt:
+            break
+        except Exception as error:
+            break
+
+min_time = min(min_times)
+max_time = max(max_times)
 
 Delta_time = (max_time - min_time) * args.ns_per_sample * 1e-9
 
-print("Number of events: {:d}".format(total_events))
-print("Time delta: {:f} s".format(Delta_time))
-print("Average rate: {:f} Hz".format(total_events / Delta_time))
-                                                
+print("    Number of events: {:d}".format(events_counter))
+print("    Time delta: {:f} s".format(Delta_time))
+print("    Average rate: {:f} Hz".format(events_counter / Delta_time))
 
-print("Starting the main loop for {:d} events...".format(total_events))
-
-selected_events = 0
-
-time_differences = list()
-coincidence_energies_a = list()
-coincidence_energies_a_with_repetitions = list()
-coincidence_energies_b = list()
-
-try:
-    for this_index, (this_channel, this_timestamp, this_energy) in enumerate(zip(channels, timestamps, energies)):
-
-        if this_channel == channel_a:
-            select_energy_a = False
-
-            left_edge = time_min + this_timestamp
-            right_edge = time_max + this_timestamp
-
-            for that_index in range(this_index + 1, total_events):
-                that_channel = channels[that_index]
-                that_timestamp = timestamps[that_index]
-                that_energy = energies[that_index]
-
-                if left_edge < that_timestamp and that_timestamp < right_edge and \
-                   energy_min < this_energy and this_energy < energy_max and \
-                   energy_min < that_energy and that_energy < energy_max:
-                    if that_channel == channel_b:
-                        selected_events += 1
-                        time_differences.append(that_timestamp - this_timestamp)
-                        coincidence_energies_b.append(that_energy)
-                        coincidence_energies_a_with_repetitions.append(this_energy)
-                        select_energy_a = True
-
-                        print("difference: {:6.1f}; selected_events: {:d} / {:d} ({:.2f}%); index: {:d}/{:d} ({:.2f}%)".format(that_timestamp - this_timestamp, selected_events, total_events, selected_events / float(this_index + 1) * 100, this_index, total_events, this_index / float(total_events) * 100))
-                else:
-                    break
-
-            for that_index in range(this_index - 1, -1, -1):
-                that_timestamp = timestamps[that_index]
-                that_channel = channels[that_index]
-                that_energy = energies[that_index]
-
-                if left_edge < that_timestamp and that_timestamp < right_edge and \
-                   energy_min < this_energy and this_energy < energy_max and \
-                   energy_min < that_energy and that_energy < energy_max:
-                    if that_channel == channel_b:
-                        selected_events += 1
-                        time_differences.append(that_timestamp - this_timestamp)
-                        coincidence_energies_b.append(that_energy)
-                        coincidence_energies_a_with_repetitions.append(this_energy)
-                        select_energy_a = True
-
-                        print("difference: {:6.1f}; selected_events: {:d} / {:d} ({:.2f}%); index: {:d}/{:d} ({:.2f}%)".format(that_timestamp - this_timestamp, selected_events, total_events, selected_events / float(this_index + 1) * 100, this_index, total_events, this_index / float(total_events) * 100))
-                else:
-                    break
-
-            if select_energy_a:
-                # Also the event from the reference channel is selected and needs to be counted
-                selected_events += 1
-                coincidence_energies_a.append(this_energy)
-except KeyboardInterrupt:
-    pass
-
-stop_time = datetime.datetime.now()
-
-print("Total time: {}; time per event: {:f} µs".format(stop_time - start_time, (stop_time - start_time).total_seconds() * 1e6 / total_events))
-
-ToF_histo, ToF_edges = np.histogram(time_differences, bins = N_t, range = (time_min, time_max))
-E_histo_a, E_edges_a = np.histogram(coincidence_energies_a, bins = N_E, range = (energy_min, energy_max))
-E_histo_b, E_edges_b = np.histogram(coincidence_energies_b, bins = N_E, range = (energy_min, energy_max))
-EvsToF_histo_a, E_edges_a, ToF_edges = np.histogram2d(coincidence_energies_a, time_differences,
-                                                      bins = (N_E, N_t),
-                                                      range = ((energy_min, energy_max), (time_min, time_max)))
-EvsToF_histo_b, E_edges_b, ToF_edges = np.histogram2d(coincidence_energies_b, time_differences,
-                                                      bins = (N_E, N_t),
-                                                      range = ((energy_min, energy_max), (time_min, time_max)))
-EvsE_histo, E_edges_a, E_edges_b = np.histogram2d(coincidence_energies_a_with_repetitions,
-                                                  coincidence_energies_b,
-                                                  bins = (N_E, N_E),
-                                                  range = ((energy_min, energy_max), (energy_min, energy_max)))
-
-# Normalizing histograms to counts per second
-ToF_histo = ToF_histo / Delta_time
-E_histo_a = E_histo_a / Delta_time
-E_histo_b = E_histo_b / Delta_time
+ToF_histo = functools.reduce(np.add, partial_ToF_histo)
+E_histo_a = functools.reduce(np.add, partial_E_histo_a)
+E_histo_b = functools.reduce(np.add, partial_E_histo_b)
+EvsToF_histo_a = functools.reduce(np.add, partial_EvsToF_histo_a)
+EvsToF_histo_b = functools.reduce(np.add, partial_EvsToF_histo_b)
+EvsE_histo = functools.reduce(np.add, partial_EvsE_histo)
 
 if args.save_data:
     basename, extension = os.path.splitext(args.file_name)
@@ -276,6 +341,7 @@ else:
     #plt.ion()
 
     fig = plt.figure()
+    fig.suptitle("Time of Flight histogram")
 
     histo_t_ax = fig.add_subplot(111)
 
@@ -285,6 +351,7 @@ else:
 
     fig = plt.figure()
     fig.subplots_adjust(hspace = 0.5)
+    fig.suptitle("Energy spectra")
 
     histo_E_ax_a = fig.add_subplot(211)
 
@@ -302,9 +369,19 @@ else:
 
     fig_width, fig_height = fig.get_size_inches()
 
-    fig = plt.figure(figsize = (fig_height * 2, fig_height))
+    fig = plt.figure(figsize = (fig_width, fig_height / 2 * 3))
+    fig.subplots_adjust(bottom = 0.08, top = 0.92, hspace = 0.3)
+    fig.suptitle("Energy vs Time of Flight spectra")
 
-    bihistos_ax_a = fig.add_subplot(121)
+    histo_t_ax = fig.add_subplot(311)
+
+    histo_t_ax.step(ToF_edges[:-1], ToF_histo)
+    histo_t_ax.set_ylabel('Counts')
+    #histo_t_ax.set_xlabel('Time [ns]')
+    histo_t_ax.set_title('Time of Flight histogram')
+    histo_t_ax.grid()
+
+    bihistos_ax_a = fig.add_subplot(312, sharex = histo_t_ax)
 
     cax = bihistos_ax_a.imshow(EvsToF_histo_a,
                                origin = 'lower',
@@ -314,12 +391,12 @@ else:
                                aspect = 'auto')
     #cbar = fig.colorbar(cax)
 
-    bihistos_ax_a.set_xlabel('Time [ns]')
+    #bihistos_ax_a.set_xlabel('Time [ns]')
     bihistos_ax_a.set_ylabel('Energy [ch]')
     bihistos_ax_a.grid()
     bihistos_ax_a.set_title("Reference channel: {}".format(channel_a))
 
-    bihistos_ax_b = fig.add_subplot(122, sharex = bihistos_ax_a, sharey = bihistos_ax_a)
+    bihistos_ax_b = fig.add_subplot(313, sharex = histo_t_ax)
 
     cax = bihistos_ax_b.imshow(EvsToF_histo_b,
                                origin = 'lower',
@@ -330,12 +407,13 @@ else:
     #cbar = fig.colorbar(cax)
 
     bihistos_ax_b.set_xlabel('Time [ns]')
-    #bihistos_ax_b.set_ylabel('Energy [ch]')
+    bihistos_ax_b.set_ylabel('Energy [ch]')
     bihistos_ax_b.grid()
     bihistos_ax_b.set_title("Channel: {}".format(channel_b))
 
     fig = plt.figure(figsize = (fig_height, fig_height))
     fig.subplots_adjust(left = 0.18)
+    fig.suptitle("Energy of ch {} vs energy of ch {}".format(channel_a, channel_b))
 
     bihisto_ax = fig.add_subplot(111)
 

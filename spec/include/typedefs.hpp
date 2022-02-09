@@ -44,7 +44,8 @@ struct status
 
     std::map<unsigned int, histogram_t*> histos_E;
     std::map<unsigned int, histogram2D_t*> histos_PSD;
-    std::map<unsigned int, unsigned int> partial_counts;
+    std::map<unsigned int, unsigned int> counts_partial;
+    std::map<unsigned int, unsigned int> counts_total;
 
     unsigned int publish_timeout = defaults_pqrs_publish_timeout;
 };

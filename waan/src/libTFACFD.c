@@ -182,8 +182,7 @@ void timestamp_analysis(const uint16_t *samples,
         printf("WARNING: libTFACFD timestamp_analysis(): Reallocating buffers\n");
 
         // Assuring that there is one event_PSD and discarding others
-        is_error = reallocate_buffers(trigger_positions, events_buffer, 1);
-        (*events_number) = is_error ? 0 : 1;
+        is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
     }
 
     if (is_error || config->is_error) {

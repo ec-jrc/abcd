@@ -117,9 +117,16 @@ void CAENDgtz::Activate(int connection_type,
         board_base_address = address;
         CAEN_DGTZ_ConnectionType conntype;
 
+        std::cout << "Connection type:\t" << connection_type << std::endl;
+
         switch (connection_type) {
         case 0:
             conntype = CAEN_DGTZ_USB;
+            std::cout << "Connection type:\tusing USB" << std::endl;
+            break;
+        case 5:
+            conntype = CAEN_DGTZ_USB_A4818;
+            std::cout << "Connection type:\tusing A4818" << std::endl;
             break;
 
         // The followings are deprecated, they were all substituted by
@@ -131,16 +138,25 @@ void CAENDgtz::Activate(int connection_type,
         //case 3:  {conntype = CAEN_DGTZ_PCIE_EmbeddedDigitizer;} break;
         default:
             conntype = CAEN_DGTZ_OpticalLink;
+            std::cout << "Connection type:\tusing OpticalLink" << std::endl;
         }
 
-        //       1         2         3         4         5         6         7         8
-        //345678901234567890123456789012345678901234567890123456789012345678901234567890
-        error = (int)CAEN_DGTZ_OpenDigitizer(conntype,
-            link_number,
-            connection_node,
-            board_base_address,
-            &handle);
-        if (error == 0) {
+        std::cout << "Link number:\t" << link_number << std::endl;
+
+//       1         2         3         4         5         6         7         8
+//345678901234567890123456789012345678901234567890123456789012345678901234567890
+        CAEN_DGTZ_ErrorCode retval = CAEN_DGTZ_OpenDigitizer2(conntype,
+                                                              (void*)&link_number,
+                                                              connection_node,
+                                                              board_base_address,
+                                                              &handle);
+
+        error = (int)retval;
+
+        if (retval != 0) {
+            std::cout << "ERROR: Unable to activate digitizier, error: " << retval;
+            std::cout << std::endl;
+        } else {
             if (boardName.compare("DGTZ") == 0) {
                 boardName.append(" #" + std::to_string(handle));
             }
@@ -605,7 +621,7 @@ uint32_t CAENDgtz::ReadRegister(uint32_t address, const char* reference)
     return data;
 }
 
-const char* CAENDgtz::DumpRegister(uint32_t address, int print)
+std::string CAENDgtz::DumpRegister(uint32_t address, int print)
 {
     std::stringstream ss;
 
@@ -629,7 +645,7 @@ const char* CAENDgtz::DumpRegister(uint32_t address, int print)
         std::cout << ss.str().data() << std::endl;
     }
 
-    return ss.str().data();
+    return ss.str();
 }
 
 uint32_t CAENDgtz::GetRegisterSpecificBits(uint32_t reg_add,

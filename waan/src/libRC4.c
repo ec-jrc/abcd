@@ -182,21 +182,13 @@ void energy_analysis(const uint16_t *samples,
     bool is_error = false;
 
     if ((*events_number) != 1) {
-        printf("WARNING: libPSD energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
+        printf("WARNING: libRC4 energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
 
         // Assuring that there is one event_PSD and discarding others
-        is_error = !reallocate_buffers(trigger_positions, events_buffer, 1);
+        is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
 
         if (is_error) {
-            printf("ERROR: libPSD energy_analysis(): Unable to reallocate buffers\n");
-        } else {
-            // If there were no events before, we make sure that the trigger
-            // position is initialized.
-            if ((*events_number) == 0) {
-                (*trigger_positions)[0] = 0;
-            }
-
-            (*events_number) = 1;
+            printf("ERROR: libRC4 energy_analysis(): Unable to reallocate buffers\n");
         }
     }
 
@@ -270,8 +262,7 @@ void energy_analysis(const uint16_t *samples,
 
     if (energy < config->energy_threshold) {
         // Discard the event
-        reallocate_buffers(trigger_positions, events_buffer, 0);
-        (*events_number) = 0;
+        reallocate_buffers(trigger_positions, events_buffer, events_number, 0);
     } else {
         // Output
         // We have to assume that this was taken care earlier

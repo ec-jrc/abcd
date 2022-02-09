@@ -1,0 +1,50 @@
+{
+    "module": "waan",
+    "forward_waveforms": true,
+    "enable_additional": true,
+    "discard_messages": false,
+    "channels": [
+        {
+            "id": 0,
+            "name": "Pulser",
+            "enabled": true,
+            "user_libraries": {
+                "timestamp": "src/libRT.so",
+                "energy": "src/libCRRC4.so"
+            },
+            "user_config": {
+                "baseline_samples": 200,
+                "pulse_polarity": "negative",
+                "fraction": 0.1,
+                "smooth_samples": 10,
+                "decay_time": 2200,
+                "highpass_time": 200,
+                "lowpass_time": 200,
+                "height_scaling": 100,
+                "energy_threshold": 1000
+            }
+        },
+        {
+            "id": 1,
+            "name": "LaBr",
+            "enabled": true,
+            "user_libraries": {
+                "timestamp": "src/libRT.so",
+                "energy": "src/libPSD.so"
+            },
+            "user_config": {
+                "baseline_samples": 200,
+                "pulse_polarity": "negative",
+                "fraction": 0.1,
+                "smooth_samples": 7,
+                "pregate": 10,
+                "short_gate": 40,
+                "long_gate": 140,
+                "integrals_scaling": 0.1,
+                "energy_threshold": 300
+            }
+        },
+        {}
+    ],
+    "zzz": null
+}

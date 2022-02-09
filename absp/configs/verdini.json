@@ -1,0 +1,43 @@
+{
+    "cards": [
+        {
+            "id": 0,
+            "serial": "SPD-00858",
+            "enable": true,
+            "scope_samples": 60000,
+            "records_number": 2,
+            "sampling_frequency": 1800,
+            "clock_source": "internal",
+            "clock_source0": "internal",
+            "clock_source1": "external_10MHz",
+            "clock_source2": "external",
+            "clock_source3": "external_PXI",
+            "channels": [
+                {
+                    "id": 0,
+                    "enable": true,
+                    "triggering": true
+                },
+                {
+                    "id": 1,
+                    "enable": false,
+                    "triggering": false
+                },
+                {}
+            ],
+            "trigger": {
+                "source": "channels",
+                "source0": "external",
+                "source1": "channels",
+                "slope": "falling",
+                "slope0": "rising",
+                "slope1": "falling",
+                "level": 34000,
+                "pretrigger": 30000
+            },
+            "zzz": null
+        },
+        {}
+    ],
+    "zzz": null
+}
