@@ -91,6 +91,9 @@ parser.add_argument('-s',
                     '--save_data',
                     action = "store_true",
                     help = 'Save histograms to file')
+parser.add_argument('--save_plot',
+                    action = "store_true",
+                    help = 'Save plot to file')
 
 args = parser.parse_args()
 
@@ -196,7 +199,9 @@ if args.save_data:
     for spectrum, spectrum_derivative, file_name in zip(spectra, spectra_derivatives, args.file_names):
         basename, extension = os.path.splitext(file_name)
 
-        output_file_name = basename + '_ch{}_qlong.csv'.format(channel)
+        basename += '_ch{}'.format(channel)
+
+        output_file_name = basename + '_energy.csv'
         output_array = np.vstack((energy_edges[:-1], spectrum)).T
 
         print("    Writing qlong histogram to: {}".format(output_file_name))
@@ -236,5 +241,19 @@ else:
     spect_ax.set_xlabel('Energy [ch]')
     spect_ax.grid()
     spect_ax.legend()
+
+    if args.save_plot:
+        figure_name = ""
+
+        for file_name in args.file_names:
+            basename, extension = os.path.splitext(file_name)
+            figure_name += basename
+
+        figure_name += '_ch{}'.format(channel)
+        figure_name += '.png'
+
+        print("Saving figure to: {}".format(figure_name))
+
+        fig.savefig(figure_name)
 
     plt.show()
