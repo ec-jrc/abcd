@@ -38,6 +38,7 @@ ENERGY_MAX = 66000
 ToF_OFFSET = 0
 # This should be 8 MB
 BUFFER_SIZE = 8 * 1024 * 1024
+IMAGES_EXTENSION = 'pdf'
 
 parser = argparse.ArgumentParser(description='Reads an ABCD events file and plots the ToF between two channels')
 parser.add_argument('file_name',
@@ -113,6 +114,10 @@ parser.add_argument('-o',
                     type = float,
                     default = ToF_OFFSET,
                     help = 'If a modulo is set, an offset added to the ToF in ns (default: {:f})'.format(ToF_OFFSET))
+parser.add_argument('--images_extension',
+                    type = str,
+                    default = IMAGES_EXTENSION,
+                    help = 'Define the extension of the image files (default: {})'.format(IMAGES_EXTENSION))
 
 args = parser.parse_args()
 
@@ -169,25 +174,26 @@ print("Time offset: {:f}".format(args.ToF_offset))
 channel_a = args.channel_a
 channel_b = args.channel_b
 
-partial_ToF_histo = list()
-partial_E_histo_a = list()
-partial_E_histo_b = list()
-partial_EvsToF_histo_a = list()
-partial_EvsToF_histo_b = list()
-partial_EvsE_histo = list()
+partial_ToF_histo = np.zeros(N_t)
+partial_E_histo_a = np.zeros(N_rE)
+partial_E_histo_b = np.zeros(N_E)
+partial_EvsToF_histo_a = np.zeros((N_rE, N_t))
+partial_EvsToF_histo_b = np.zeros((N_E, N_t))
+partial_EvsE_histo = np.zeros((N_rE, N_E))
+
 min_times = list()
 max_times = list()
 ToF_edges = None
 E_edges_a = None
 E_edges_b = None
-E_edges_a = None
-ToF_edges = None
-E_edges_b = None
-ToF_edges = None
-E_edges_a = None
-E_edges_b = None
 counter = 0
 events_counter = 0
+
+time_differences = list()
+coincidence_energies_a = list()
+coincidence_energies_a_with_repetitions = list()
+coincidence_energies_b = list()
+
 
 # We will read the file in chunks so we can process also very big files
 # This means that we will lose the coincidences between chunks
@@ -234,14 +240,10 @@ with open(args.file_name, "rb") as input_file:
 
             selected_events = 0
 
-            time_differences = list()
-            coincidence_energies_a = list()
-            coincidence_energies_a_with_repetitions = list()
-            coincidence_energies_b = list()
-
             for this_index, (this_channel, this_timestamp, this_energy) in enumerate(zip(channels, timestamps, energies)):
 
-                if this_channel == channel_a and reference_energy_min < this_energy and this_energy < reference_energy_max:
+                if this_channel == channel_a and \
+                   reference_energy_min < this_energy and this_energy < reference_energy_max:
                     select_energy_a = False
 
                     left_edge = time_min + this_timestamp
@@ -253,7 +255,9 @@ with open(args.file_name, "rb") as input_file:
                         that_energy = energies[that_index]
 
                         if left_edge < that_timestamp and that_timestamp < right_edge:
-                            if energy_min < that_energy and that_energy < energy_max and that_channel == channel_b:
+                            if energy_min < that_energy and that_energy < energy_max and \
+                               that_channel == channel_b:
+
                                 selected_events += 1
                                 if args.ToF_modulo is None:
                                     time_difference = that_timestamp - this_timestamp
@@ -265,7 +269,7 @@ with open(args.file_name, "rb") as input_file:
                                 coincidence_energies_a_with_repetitions.append(this_energy)
                                 select_energy_a = True
 
-                                print("difference: {:6.1f}; selected_events: {:d} / {:d} ({:.2f}%); index: {:d}/{:d} ({:.2f}%)".format(time_difference, selected_events, total_events, selected_events / float(this_index + 1) * 100, this_index, total_events, this_index / float(total_events) * 100))
+                                print("difference: {:6.1f}; selected_events: {:d} / {:d} ({:.2f}%); index: {:d}/{:d} ({:.2f}%)".format(time_difference, selected_events, this_index, selected_events / float(this_index + 1) * 100, this_index, total_events, this_index / float(total_events) * 100))
                         else:
                             break
 
@@ -275,7 +279,9 @@ with open(args.file_name, "rb") as input_file:
                         that_energy = energies[that_index]
 
                         if left_edge < that_timestamp and that_timestamp < right_edge:
-                            if energy_min < that_energy and that_energy < energy_max and that_channel == channel_b:
+                            if energy_min < that_energy and that_energy < energy_max and \
+                               that_channel == channel_b:
+
                                 selected_events += 1
                                 if args.ToF_modulo is None:
                                     time_difference = that_timestamp - this_timestamp
@@ -287,7 +293,7 @@ with open(args.file_name, "rb") as input_file:
                                 coincidence_energies_a_with_repetitions.append(this_energy)
                                 select_energy_a = True
 
-                                print("difference: {:6.1f}; selected_events: {:d} / {:d} ({:.2f}%); index: {:d}/{:d} ({:.2f}%)".format(time_difference, selected_events, total_events, selected_events / float(this_index + 1) * 100, this_index, total_events, this_index / float(total_events) * 100))
+                                print("difference: {:6.1f}; selected_events: {:d} / {:d} ({:.2f}%); index: {:d}/{:d} ({:.2f}%)".format(time_difference, selected_events, this_index, selected_events / float(this_index + 1) * 100, this_index, total_events, this_index / float(total_events) * 100))
                         else:
                             break
 
@@ -307,7 +313,7 @@ with open(args.file_name, "rb") as input_file:
             E_histo_b, E_edges_b = \
                 np.histogram(coincidence_energies_b, bins = N_E, range = (energy_min, energy_max))
             EvsToF_histo_a, E_edges_a, ToF_edges = \
-                np.histogram2d(coincidence_energies_a, time_differences,
+                np.histogram2d(coincidence_energies_a_with_repetitions, time_differences,
                                bins = (N_rE, N_t),
                                range = ((reference_energy_min, reference_energy_max), (time_min, time_max)))
             EvsToF_histo_b, E_edges_b, ToF_edges = \
@@ -320,12 +326,12 @@ with open(args.file_name, "rb") as input_file:
                                bins = (N_rE, N_E),
                                range = ((reference_energy_min, reference_energy_max), (energy_min, energy_max)))
 
-            partial_ToF_histo.append(ToF_histo)
-            partial_E_histo_a.append(E_histo_a)
-            partial_E_histo_b.append(E_histo_b)
-            partial_EvsToF_histo_a.append(EvsToF_histo_a)
-            partial_EvsToF_histo_b.append(EvsToF_histo_b)
-            partial_EvsE_histo.append(EvsE_histo)
+            partial_ToF_histo += ToF_histo
+            partial_E_histo_a += E_histo_a
+            partial_E_histo_b += E_histo_b
+            partial_EvsToF_histo_a += EvsToF_histo_a
+            partial_EvsToF_histo_b += EvsToF_histo_b
+            partial_EvsE_histo += EvsE_histo
 
             counter += 1
 
@@ -343,16 +349,16 @@ print("    Number of events: {:d}".format(events_counter))
 print("    Time delta: {:f} s".format(Delta_time))
 print("    Average rate: {:f} Hz".format(events_counter / Delta_time))
 
-ToF_histo = functools.reduce(np.add, partial_ToF_histo, np.zeros(N_t))
-E_histo_a = functools.reduce(np.add, partial_E_histo_a, np.zeros(N_rE))
-E_histo_b = functools.reduce(np.add, partial_E_histo_b, np.zeros(N_E))
-EvsToF_histo_a = functools.reduce(np.add, partial_EvsToF_histo_a, np.zeros((N_rE, N_t)))
-EvsToF_histo_b = functools.reduce(np.add, partial_EvsToF_histo_b, np.zeros((N_E, N_t)))
-EvsE_histo = functools.reduce(np.add, partial_EvsE_histo, np.zeros((N_rE, N_E)))
+ToF_histo = partial_ToF_histo
+E_histo_a = partial_E_histo_a
+E_histo_b = partial_E_histo_b
+EvsToF_histo_a = partial_EvsToF_histo_a
+EvsToF_histo_b = partial_EvsToF_histo_b
+EvsE_histo = partial_EvsE_histo
 
 basename, extension = os.path.splitext(args.file_name)
 
-basename += '_Ch{}andCh{}'.format(channel_a, channel_b) + extension
+basename += '_Ch{}andCh{}'.format(channel_a, channel_b)
 
 if args.save_data:
     extension = '.csv'
@@ -418,7 +424,7 @@ else:
     fig_width, fig_height = fig.get_size_inches()
 
     if args.save_plots:
-    	output_file_name = basename + '_E-histos.pdf'
+    	output_file_name = basename + '_E-histos.' + args.images_extension
 
     	print("Saving plot to: {}".format(output_file_name))
     	fig.savefig(output_file_name)
@@ -435,22 +441,7 @@ else:
     histo_t_ax.set_title('Time of Flight histogram')
     histo_t_ax.grid()
 
-    bihistos_ax_a = fig.add_subplot(312, sharex = histo_t_ax)
-
-    cax = bihistos_ax_a.imshow(EvsToF_histo_a,
-                               origin = 'lower',
-                               norm = LogNorm(),
-                               interpolation = 'none',
-                               extent = (time_min, time_max, reference_energy_min, reference_energy_max),
-                               aspect = 'auto')
-    #cbar = fig.colorbar(cax)
-
-    #bihistos_ax_a.set_xlabel('Time [ns]')
-    bihistos_ax_a.set_ylabel('Energy [ch]')
-    bihistos_ax_a.grid()
-    bihistos_ax_a.set_title("Reference channel: {}".format(channel_a))
-
-    bihistos_ax_b = fig.add_subplot(313, sharex = histo_t_ax)
+    bihistos_ax_b = fig.add_subplot(312, sharex = histo_t_ax)
 
     cax = bihistos_ax_b.imshow(EvsToF_histo_b,
                                origin = 'lower',
@@ -460,13 +451,28 @@ else:
                                aspect = 'auto')
     #cbar = fig.colorbar(cax)
 
-    bihistos_ax_b.set_xlabel('Time [ns]')
+    #bihistos_ax_b.set_xlabel('Time [ns]')
     bihistos_ax_b.set_ylabel('Energy [ch]')
     bihistos_ax_b.grid()
     bihistos_ax_b.set_title("Channel: {}".format(channel_b))
 
+
+    bihistos_ax_a = fig.add_subplot(313, sharex = histo_t_ax)
+
+    cax = bihistos_ax_a.imshow(EvsToF_histo_a,
+                               origin = 'lower',
+                               norm = LogNorm(),
+                               interpolation = 'none',
+                               extent = (time_min, time_max, reference_energy_min, reference_energy_max),
+                               aspect = 'auto')
+    #cbar = fig.colorbar(cax)
+
+    bihistos_ax_a.set_xlabel('Time [ns]')
+    bihistos_ax_a.set_ylabel('Energy [ch]')
+    bihistos_ax_a.grid()
+    bihistos_ax_a.set_title("Reference channel: {}".format(channel_a))
     if args.save_plots:
-    	output_file_name = basename + '_E-ToF-histos.pdf'
+    	output_file_name = basename + '_E-ToF-histos.' + args.images_extension
 
     	print("Saving plot to: {}".format(output_file_name))
     	fig.savefig(output_file_name)
