@@ -33,6 +33,7 @@ ENERGY_MAX = 20000
 SMOOTH_WINDOW = 1
 # This should be 160 MB
 BUFFER_SIZE = 16 * 10 * 1024 * 1024
+IMAGES_EXTENSION = 'pdf'
 
 def running_mean(x, N):
     Np = (N // 2) * 2 + 1
@@ -94,6 +95,10 @@ parser.add_argument('-s',
 parser.add_argument('--save_plot',
                     action = "store_true",
                     help = 'Save plot to file')
+parser.add_argument('--images_extension',
+                    type = str,
+                    default = IMAGES_EXTENSION,
+                    help = 'Define the extension of the image files (default: {})'.format(IMAGES_EXTENSION))
 
 args = parser.parse_args()
 
@@ -205,14 +210,14 @@ if args.save_data:
         output_array = np.vstack((energy_edges[:-1], spectrum)).T
 
         print("    Writing qlong histogram to: {}".format(output_file_name))
-        np.savetxt(output_file_name, output_array, delimiter = ',', header = 'energy,counts')
+        np.savetxt(output_file_name, output_array, delimiter = ',', header = '#energy,counts')
 
         if args.enable_derivatives:
             output_file_name = basename + '_deriv.csv'
             output_array = np.vstack((energy_edges[:-1], spectrum_derivative)).T
 
             print("    Writing derivative of qlong histogram to: {}".format(output_file_name))
-            np.savetxt(output_file_name, output_array, delimiter = ',', header = 'energy,counts')
+            np.savetxt(output_file_name, output_array, delimiter = ',', header = '#energy,counts derivative')
 else:
     fig = plt.figure()
 
@@ -249,8 +254,7 @@ else:
             basename, extension = os.path.splitext(file_name)
             figure_name += basename
 
-        figure_name += '_ch{}'.format(channel)
-        figure_name += '.png'
+        figure_name += '_ch{}'.format(channel) + '.' + args.images_extension
 
         print("Saving figure to: {}".format(figure_name))
 
