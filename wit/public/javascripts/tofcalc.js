@@ -21,7 +21,7 @@ function page_loaded() {
     const utf8decoder = new TextDecoder("utf8");
 
     const default_time_refresh = 5;
-    const default_plot_height = 900;
+    const default_plot_height = 1200;
 
     var connection_checker = new ConnectionChecker();
     var fitters = {};
@@ -70,7 +70,7 @@ function page_loaded() {
             type: 'dropdown',
             x: 0.0,
             xanchor: 'left',
-            y: 0.32,
+            y: 0.42,
             yanchor: 'bottom'
         }
     ]
@@ -92,7 +92,7 @@ function page_loaded() {
             showspikes: true,
             spikemode: 'across',
             domain: [0.0, 1.0],
-            anchor: 'y3'
+            anchor: 'y4'
         },
         yaxis: {
             title: 'Counts',
@@ -100,7 +100,7 @@ function page_loaded() {
             autotick: true,
             showspikes: true,
             spikemode: 'across',
-            domain: [0.7, 1.0]
+            domain: [0.75, 1.0]
             //anchor: 'y1'
         },
         yaxis2: {
@@ -109,7 +109,7 @@ function page_loaded() {
             autotick: true,
             showspikes: true,
             spikemode: 'across',
-            domain: [0.4, 0.7]
+            domain: [0.5, 0.75]
             //anchor: 'y2'
         },
         yaxis3: {
@@ -118,7 +118,16 @@ function page_loaded() {
             autotick: true,
             showspikes: true,
             spikemode: 'across',
-            domain: [0.0, 0.3]
+            domain: [0.25, 0.4]
+            //anchor: 'y3'
+        },
+        yaxis4: {
+            title: 'Energy [ch]',
+            autorange: true,
+            autotick: true,
+            showspikes: true,
+            spikemode: 'across',
+            domain: [0.0, 0.25]
             //anchor: 'y3'
         },
         updatemenus: updatemenus_ToF,
@@ -135,7 +144,7 @@ function page_loaded() {
             yanchor: 'top',
         },
         grid: {
-            rows: 3,
+            rows: 4,
             columns: 1,
             //pattern: 'independent',
             roworder:'top to bottom'
@@ -178,7 +187,7 @@ function page_loaded() {
 
             old_status = new_status;
 
-            //console.log("Updating Speccalc status");
+            //console.log("Updating tofcalc status");
 
             old_status = new_status;
 
@@ -231,7 +240,8 @@ function page_loaded() {
                 new_channels_configs.forEach(function (channel_config) {
                     const channel = channel_config.id || 0;
                     const histo_ToF_config = channel_config.ToF || {"min": 0, "max": 0, "bins": 0};
-                    const histo_EToF_config = channel_config.EToF || {"min_x": 0, "max_x": 0, "bins_x": 0, "min_y": 0, "max_y": 0, "bins_y": 0};
+                    const histo_EvsToF_config = channel_config.EvsToF || {"min_x": 0, "max_x": 0, "bins_x": 0, "min_y": 0, "max_y": 0, "bins_y": 0};
+                    //const histo_EvsE_config = channel_config.EvsE || {"min_x": 0, "max_x": 0, "bins_x": 0, "min_y": 0, "max_y": 0, "bins_y": 0};
 
                     var channel_display = $("<fieldset>");
 
@@ -267,21 +277,21 @@ function page_loaded() {
                     channel_display.append($("<label>", {text: "Energy min: ", "for": "E_min"}));
                     channel_display.append($("<input>", {
                                                         type: "number",
-                                                        value: histo_EToF_config.min_y,
+                                                        value: histo_EvsToF_config.min_y,
                                                         name: "E_min",
                                                         id: "E_min_" + channel}));
                     channel_display.append($("<br>"));
                     channel_display.append($("<label>", {text: "Energy max: ", "for": "E_max"}));
                     channel_display.append($("<input>", {
                                                         type: "number",
-                                                        value: histo_EToF_config.max_y,
+                                                        value: histo_EvsToF_config.max_y,
                                                         name: "E_max",
                                                         id: "E_max_" + channel}));
                     channel_display.append($("<br>"));
                     channel_display.append($("<label>", {text: "Energy bins: ", "for": "E_bins"}));
                     channel_display.append($("<input>", {
                                                         type: "number",
-                                                        value: histo_EToF_config.bins_y,
+                                                        value: histo_EvsToF_config.bins_y,
                                                         name: "E_bins",
                                                         id: "E_bins_" + channel}));
                     channel_display.append($("<br>"));
@@ -319,7 +329,7 @@ function page_loaded() {
     }
 
     function create_plot() {
-        Plotly.newPlot('plot_ToF', [{}, {}, {}], layout_ToF, config_ToF);
+        Plotly.newPlot('plot_ToF', [{}, {}, {}, {}], layout_ToF, config_ToF);
     }
 
     function update_plot(force) {
@@ -377,42 +387,44 @@ function page_loaded() {
                 }
             };
 
-            const histo_EToF = spectra[selected_channel()].EToF;
+            const histo_EvsToF = spectra[selected_channel()].EvsToF;
 
-            const delta_x = (histo_EToF.config.max_x - histo_EToF.config.min_x) / histo_EToF.config.bins_x;
-            const delta_y = (histo_EToF.config.max_y - histo_EToF.config.min_y) / histo_EToF.config.bins_y;
+            const EvsToF_delta_x = (histo_EvsToF.config.max_x - histo_EvsToF.config.min_x) / histo_EvsToF.config.bins_x;
+            const EvsToF_delta_y = (histo_EvsToF.config.max_y - histo_EvsToF.config.min_y) / histo_EvsToF.config.bins_y;
 
-            let edges_x = [];
+            let EvsToF_edges_x = [];
 
-            for (let index_x = 0; index_x < histo_EToF.config.bins_x; index_x++) {
-                edges_x.push(index_x * delta_x + histo_EToF.config.min_x);
+            for (let index_x = 0; index_x < histo_EvsToF.config.bins_x; index_x++) {
+                EvsToF_edges_x.push(index_x * EvsToF_delta_x + histo_EvsToF.config.min_x);
             }
 
-            let edges_y = [];
+            let EvsToF_edges_y = [];
 
-            for (let index_y = 0; index_y < histo_EToF.config.bins_y; index_y++) {
-                edges_y.push(index_y * delta_y + histo_EToF.config.min_y);
+            for (let index_y = 0; index_y < histo_EvsToF.config.bins_y; index_y++) {
+                EvsToF_edges_y.push(index_y * EvsToF_delta_y + histo_EvsToF.config.min_y);
             }
 
-            var heights = [];
+            var EvsToF_heights = [];
 
-            for (let index_y = 0; index_y < histo_EToF.config.bins_y; index_y++) {
-                let row = [];
+            for (let index_y = 0; index_y < histo_EvsToF.config.bins_y; index_y++) {
+                let EvsToF_row = [];
 
-                for (let index_x = 0; index_x < histo_EToF.config.bins_x; index_x++) {
-                    const index = (index_x + histo_EToF.config.bins_x * index_y);
-                    const counts = Math.log10(histo_EToF.data[index]);
+                for (let index_x = 0; index_x < histo_EvsToF.config.bins_x; index_x++) {
+                    const index = (index_x + histo_EvsToF.config.bins_x * index_y);
+                    const counts = Math.log10(histo_EvsToF.data[index]);
 
-                    row.push(counts);
+                    EvsToF_row.push(counts);
                 }
 
-                heights.push(row);
+                EvsToF_heights.push(EvsToF_row);
             }
 
-            const EToF = {
-                x: edges_x,
-                y: edges_y,
-                z: heights,
+            //console.log("Updated EvsToF; edges x: " + EvsToF_edges_x.length + "; edges y: " + EvsToF_edges_y.length + ";");
+
+            const EvsToF = {
+                x: EvsToF_edges_x,
+                y: EvsToF_edges_y,
+                z: EvsToF_heights,
                 xaxis: 'x1',
                 yaxis: 'y2',
                 name: 'E vs ToF',
@@ -421,7 +433,53 @@ function page_loaded() {
                 type: 'heatmap'
             };
 
-            const tofcalc_data = [ToF, energy, EToF]
+            const histo_EvsE = spectra[selected_channel()].EvsE;
+
+            const EvsE_delta_x = (histo_EvsE.config.max_x - histo_EvsE.config.min_x) / histo_EvsE.config.bins_x;
+            const EvsE_delta_y = (histo_EvsE.config.max_y - histo_EvsE.config.min_y) / histo_EvsE.config.bins_y;
+
+            let EvsE_edges_x = [];
+
+            for (let index_x = 0; index_x < histo_EvsE.config.bins_x; index_x++) {
+                EvsE_edges_x.push(index_x * EvsE_delta_x + histo_EvsE.config.min_x);
+            }
+
+            let EvsE_edges_y = [];
+
+            for (let index_y = 0; index_y < histo_EvsE.config.bins_y; index_y++) {
+                EvsE_edges_y.push(index_y * EvsE_delta_y + histo_EvsE.config.min_y);
+            }
+
+            var EvsE_heights = [];
+
+            for (let index_y = 0; index_y < histo_EvsE.config.bins_y; index_y++) {
+                let EvsE_row = [];
+
+                for (let index_x = 0; index_x < histo_EvsE.config.bins_x; index_x++) {
+                    const index = (index_x + histo_EvsE.config.bins_x * index_y);
+                    const counts = Math.log10(histo_EvsE.data[index]);
+
+                    EvsE_row.push(counts);
+                }
+
+                EvsE_heights.push(EvsE_row);
+            }
+
+            //console.log("Updated EvsE; edges x: " + EvsE_edges_x.length + "; edges y: " + EvsE_edges_y.length + ";");
+
+            const EvsE = {
+                x: EvsE_edges_x,
+                y: EvsE_edges_y,
+                z: EvsE_heights,
+                xaxis: 'x2',
+                yaxis: 'y4',
+                name: 'E vs E',
+                colorscale: 'Viridis',
+                showscale: false,
+                type: 'heatmap'
+            };
+
+            const tofcalc_data = [ToF, energy, EvsToF, EvsE];
 
             if (force_update) {
                 // If forced, plotting without the fits so then the
@@ -602,7 +660,7 @@ function page_loaded() {
     
     graph_div.on('plotly_relayout', function(eventdata){
         if (Object.keys(eventdata).includes("xaxis.range[0]")) {
-            console.log("Zoom or pan on ToF or EToF");
+            console.log("Zoom or pan on ToF or EvsToF");
 
             const update = {
                 "xaxis2.range[0]": eventdata["yaxis2.range[0]"],

@@ -240,12 +240,13 @@ bool actions::generic::publish_status(status &global_status)
     {
         histogram_t *const histo_ToF = global_status.histos_ToF[channel];
         histogram_t *const histo_E = global_status.histos_E[channel];
-        histogram2D_t *const histo_EToF = global_status.histos_EToF[channel];
+        histogram2D_t *const histo_EvsToF = global_status.histos_EvsToF[channel];
+        histogram2D_t *const histo_EvsE = global_status.histos_EvsE[channel];
         const unsigned int channel_total_counts = global_status.counts_total[channel];
         const unsigned int channel_partial_counts = global_status.counts_partial[channel];
         const double channel_rate = channel_partial_counts / pubtime;
 
-        if (histo_ToF && histo_E && histo_EToF) {
+        if (histo_ToF && histo_E && histo_EvsToF && histo_EvsE) {
             if (global_status.verbosity > 0)
             {
                 char time_buffer[BUFFER_SIZE];
@@ -257,7 +258,8 @@ bool actions::generic::publish_status(status &global_status)
 
             json_t *histo_ToF_config = histogram_config_to_json(histo_ToF);
             json_t *histo_E_config = histogram_config_to_json(histo_E);
-            json_t *histo_EToF_config = histogram2D_config_to_json(histo_EToF);
+            json_t *histo_EvsToF_config = histogram2D_config_to_json(histo_EvsToF);
+            json_t *histo_EvsE_config = histogram2D_config_to_json(histo_EvsE);
 
             json_t *channel_config = json_object();
 
@@ -266,7 +268,8 @@ bool actions::generic::publish_status(status &global_status)
             json_object_set_new_nocheck(channel_config, "reference", json_false());
             json_object_set_new_nocheck(channel_config, "ToF", histo_ToF_config);
             json_object_set_new_nocheck(channel_config, "energy", histo_E_config);
-            json_object_set_new_nocheck(channel_config, "EToF", histo_EToF_config);
+            json_object_set_new_nocheck(channel_config, "EvsToF", histo_EvsToF_config);
+            json_object_set_new_nocheck(channel_config, "EvsE", histo_EvsE_config);
             json_array_append_new(channels_configs, channel_config);
 
             json_t *channel_status = json_object();
@@ -392,12 +395,13 @@ bool actions::generic::publish_data(status &global_status)
     {
         histogram_t *const histo_ToF = global_status.histos_ToF[channel];
         histogram_t *const histo_E = global_status.histos_E[channel];
-        histogram2D_t *const histo_EToF = global_status.histos_EToF[channel];
+        histogram2D_t *const histo_EvsToF = global_status.histos_EvsToF[channel];
+        histogram2D_t *const histo_EvsE = global_status.histos_EvsE[channel];
         const unsigned int channel_total_counts = global_status.counts_total[channel];
         const unsigned int channel_partial_counts = global_status.counts_partial[channel];
         const double channel_rate = channel_partial_counts / pubtime;
 
-        if (histo_ToF && histo_E && histo_EToF) {
+        if (histo_ToF && histo_E && histo_EvsToF && histo_EvsE) {
             if (global_status.verbosity > 0)
             {
                 char time_buffer[BUFFER_SIZE];
@@ -409,7 +413,8 @@ bool actions::generic::publish_data(status &global_status)
 
             json_t *histo_ToF_config = histogram_to_json(histo_ToF);
             json_t *histo_E_config = histogram_to_json(histo_E);
-            json_t *histo_EToF_config = histogram2D_to_json(histo_EToF);
+            json_t *histo_EvsToF_config = histogram2D_to_json(histo_EvsToF);
+            json_t *histo_EvsE_config = histogram2D_to_json(histo_EvsE);
 
             json_t *channel_config = json_object();
 
@@ -420,7 +425,8 @@ bool actions::generic::publish_data(status &global_status)
             json_object_set_new_nocheck(channel_config, "counts", json_integer(channel_total_counts));
             json_object_set_new_nocheck(channel_config, "ToF", histo_ToF_config);
             json_object_set_new_nocheck(channel_config, "energy", histo_E_config);
-            json_object_set_new_nocheck(channel_config, "EToF", histo_EToF_config);
+            json_object_set_new_nocheck(channel_config, "EvsToF", histo_EvsToF_config);
+            json_object_set_new_nocheck(channel_config, "EvsE", histo_EvsE_config);
 
             json_array_append_new(channels_configs, channel_config);
 
@@ -626,11 +632,12 @@ bool actions::generic::read_socket(status &global_status)
 
                                 histogram_t *const histo_ToF = global_status.histos_ToF[that_event.channel];
                                 histogram_t *const histo_E = global_status.histos_E[that_event.channel];
-                                histogram2D_t *const histo_EToF = global_status.histos_EToF[that_event.channel];
+                                histogram2D_t *const histo_EvsToF = global_status.histos_EvsToF[that_event.channel];
+                                histogram2D_t *const histo_EvsE = global_status.histos_EvsE[that_event.channel];
 
                                 // This is not really an error as a user might not be interested on
                                 // the ToF of this channel
-                                if (!histo_ToF || !histo_E || !histo_EToF) {
+                                if (!histo_ToF || !histo_E || !histo_EvsToF || !histo_EvsE) {
                                     if (global_status.verbosity > 1) {
                                         char time_buffer[BUFFER_SIZE];
                                         time_string(time_buffer, BUFFER_SIZE, NULL);
@@ -641,11 +648,12 @@ bool actions::generic::read_socket(status &global_status)
                                 }
                                 else
                                 {
-                                    if (histo_EToF->min_x <= time_of_flight && time_of_flight < histo_EToF->max_x &&
-                                        histo_EToF->min_y <= that_event.qlong && that_event.qlong < histo_EToF->max_y) {
+                                    if (histo_EvsToF->min_x <= time_of_flight && time_of_flight < histo_EvsToF->max_x &&
+                                        histo_EvsToF->min_y <= that_event.qlong && that_event.qlong < histo_EvsToF->max_y) {
                                         histogram_fill(histo_ToF, time_of_flight);
                                         histogram_fill(histo_E, that_event.qlong);
-                                        histogram2D_fill(histo_EToF, time_of_flight, that_event.qlong);
+                                        histogram2D_fill(histo_EvsToF, time_of_flight, that_event.qlong);
+                                        histogram2D_fill(histo_EvsE, that_event.qlong, this_event.qlong);
                                         global_status.counts_partial[that_event.channel] += 1;
                                         global_status.counts_total[that_event.channel] += 1;
     
@@ -709,11 +717,12 @@ bool actions::generic::read_socket(status &global_status)
 
                                 histogram_t *const histo_ToF = global_status.histos_ToF[that_event.channel];
                                 histogram_t *const histo_E = global_status.histos_E[that_event.channel];
-                                histogram2D_t *const histo_EToF = global_status.histos_EToF[that_event.channel];
+                                histogram2D_t *const histo_EvsToF = global_status.histos_EvsToF[that_event.channel];
+                                histogram2D_t *const histo_EvsE = global_status.histos_EvsE[that_event.channel];
     
                                 // This is not really an error as a user might not be interested on
                                 // the ToF of this channel
-                                if (!histo_ToF || !histo_E || !histo_EToF) {
+                                if (!histo_ToF || !histo_E || !histo_EvsToF) {
                                     if (global_status.verbosity > 1) {
                                         char time_buffer[BUFFER_SIZE];
                                         time_string(time_buffer, BUFFER_SIZE, NULL);
@@ -724,11 +733,12 @@ bool actions::generic::read_socket(status &global_status)
                                 }
                                 else
                                 {
-                                    if (histo_EToF->min_x <= time_of_flight && time_of_flight < histo_EToF->max_x &&
-                                        histo_EToF->min_y <= that_event.qlong && that_event.qlong < histo_EToF->max_y) {
+                                    if (histo_EvsToF->min_x <= time_of_flight && time_of_flight < histo_EvsToF->max_x &&
+                                        histo_EvsToF->min_y <= that_event.qlong && that_event.qlong < histo_EvsToF->max_y) {
                                         histogram_fill(histo_ToF, time_of_flight);
                                         histogram_fill(histo_E, that_event.qlong);
-                                        histogram2D_fill(histo_EToF, time_of_flight, that_event.qlong);
+                                        histogram2D_fill(histo_EvsToF, time_of_flight, that_event.qlong);
+                                        histogram2D_fill(histo_EvsE, that_event.qlong, this_event.qlong);
                                         global_status.counts_partial[that_event.channel] += 1;
                                         global_status.counts_total[that_event.channel] += 1;
     
@@ -1026,16 +1036,27 @@ state actions::apply_config(status &global_status)
         }
         global_status.histos_E.clear();
 
-        for (auto &pair: global_status.histos_EToF)
+        for (auto &pair: global_status.histos_EvsToF)
         {
-            histogram2D_t *const histo_EToF = pair.second;
+            histogram2D_t *const histo_EvsToF = pair.second;
 
-            if (histo_EToF != NULL)
+            if (histo_EvsToF != NULL)
             {
-                histogram2D_destroy(histo_EToF);
+                histogram2D_destroy(histo_EvsToF);
             }
         }
-        global_status.histos_EToF.clear();
+        global_status.histos_EvsToF.clear();
+
+        for (auto &pair: global_status.histos_EvsE)
+        {
+            histogram2D_t *const histo_EvsE = pair.second;
+
+            if (histo_EvsE != NULL)
+            {
+                histogram2D_destroy(histo_EvsE);
+            }
+        }
+        global_status.histos_EvsE.clear();
 
         size_t index;
         json_t *value;
@@ -1124,9 +1145,17 @@ state actions::apply_config(status &global_status)
                                                                   max_E,
                                                                   global_status.verbosity);
 
-                    global_status.histos_EToF[id] = histogram2D_create(bins_ToF,
-                                                                       min_ToF,
-                                                                       max_ToF,
+                    global_status.histos_EvsToF[id] = histogram2D_create(bins_ToF,
+                                                                         min_ToF,
+                                                                         max_ToF,
+                                                                         bins_E,
+                                                                         min_E,
+                                                                         max_E,
+                                                                         global_status.verbosity);
+
+                    global_status.histos_EvsE[id] = histogram2D_create(bins_E,
+                                                                       min_E,
+                                                                       max_E,
                                                                        bins_E,
                                                                        min_E,
                                                                        max_E,
@@ -1272,13 +1301,23 @@ state actions::receive_commands(status &global_status)
                                 }
                             }
 
-                            for (auto &pair: global_status.histos_EToF)
+                            for (auto &pair: global_status.histos_EvsToF)
                             {
-                                histogram2D_t *const histo_EToF = pair.second;
+                                histogram2D_t *const histo_EvsToF = pair.second;
 
-                                if (histo_EToF != NULL)
+                                if (histo_EvsToF != NULL)
                                 {
-                                    histogram2D_reset(histo_EToF);
+                                    histogram2D_reset(histo_EvsToF);
+                                }
+                            }
+
+                            for (auto &pair: global_status.histos_EvsE)
+                            {
+                                histogram2D_t *const histo_EvsE = pair.second;
+
+                                if (histo_EvsE != NULL)
+                                {
+                                    histogram2D_reset(histo_EvsE);
                                 }
                             }
 
@@ -1330,11 +1369,18 @@ state actions::receive_commands(status &global_status)
                             histogram_reset(histo_E);
                         }
 
-                        histogram2D_t *const histo_EToF = global_status.histos_EToF[channel];
+                        histogram2D_t *const histo_EvsToF = global_status.histos_EvsToF[channel];
 
-                        if (histo_EToF != NULL)
+                        if (histo_EvsToF != NULL)
                         {
-                            histogram2D_reset(histo_EToF);
+                            histogram2D_reset(histo_EvsToF);
+                        }
+
+                        histogram2D_t *const histo_EvsE = global_status.histos_EvsE[channel];
+
+                        if (histo_EvsE != NULL)
+                        {
+                            histogram2D_reset(histo_EvsE);
                         }
 
                         global_status.counts_partial[channel] = 0;
@@ -1453,10 +1499,15 @@ state actions::receive_commands(status &global_status)
                                     {
                                         histogram_destroy(histo_E);
                                     }
-                                    histogram2D_t *histo_EToF = global_status.histos_EToF[id];
-                                    if (histo_EToF)
+                                    histogram2D_t *histo_EvsToF = global_status.histos_EvsToF[id];
+                                    if (histo_EvsToF)
                                     {
-                                        histogram2D_destroy(histo_EToF);
+                                        histogram2D_destroy(histo_EvsToF);
+                                    }
+                                    histogram2D_t *histo_EvsE = global_status.histos_EvsE[id];
+                                    if (histo_EvsE)
+                                    {
+                                        histogram2D_destroy(histo_EvsE);
                                     }
 
                                     global_status.histos_ToF[id] = histogram_create(bins_ToF,
@@ -1467,9 +1518,16 @@ state actions::receive_commands(status &global_status)
                                                                                   min_E,
                                                                                   max_E,
                                                                                   global_status.verbosity);
-                                    global_status.histos_EToF[id] = histogram2D_create(bins_ToF,
-                                                                                       min_ToF,
-                                                                                       max_ToF,
+                                    global_status.histos_EvsToF[id] = histogram2D_create(bins_ToF,
+                                                                                         min_ToF,
+                                                                                         max_ToF,
+                                                                                         bins_E,
+                                                                                         min_E,
+                                                                                         max_E,
+                                                                                         global_status.verbosity);
+                                    global_status.histos_EvsE[id] = histogram2D_create(bins_E,
+                                                                                       min_E,
+                                                                                       max_E,
                                                                                        bins_E,
                                                                                        min_E,
                                                                                        max_E,
