@@ -2,6 +2,9 @@
 # 
 # Example of startup script
 
+# In order to run abrp we need to inform where the Red Pitaya libraries are
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/redpitaya/lib/
+
 # Check if the ABCD_FOLDER variable is set in the environment, otherwise set it here
 if [[ -z "${ABCD_FOLDER}" ]]; then
     # The variable is not set, thus set it to the folder in which ABCD is installed
