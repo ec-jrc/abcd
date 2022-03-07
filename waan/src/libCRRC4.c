@@ -28,6 +28,10 @@
  *   terms of clock samples.
  * - `lowpass_time`: the decay time of the low-pass filter (RC4 filter), in
  *   terms of clock samples.
+ * - `extension_samples`: the number of samples to extend the compensated
+ *   waveform after the waveform end. In the extended part the waveform is
+ *   constituted by the average of the last `baseline_samples` of the compensated
+ *   waveform. Optional, default value: 0
  * - `height_scaling`: a scaling factor multiplied to both the integrals.
  *   Optional, default value: 1
  * - `energy_threshold`: pulses with an energy lower than the threshold are
@@ -52,6 +56,7 @@
 struct CRRC4_config
 {
     uint32_t baseline_samples;
+    uint32_t extension_samples;
     double decay_time;
     double highpass_time;
     double lowpass_time;
@@ -101,6 +106,12 @@ void energy_init(json_t *json_config, void **user_config)
         config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
         config->highpass_time = json_integer_value(json_object_get(json_config, "highpass_time"));
         config->lowpass_time = json_integer_value(json_object_get(json_config, "lowpass_time"));
+
+        if (json_is_number(json_object_get(json_config, "extension_samples"))) {
+            config->extension_samples = json_number_value(json_object_get(json_config, "extension_samples"));
+        } else {
+            config->extension_samples = 0;
+        }
 
         if (json_is_number(json_object_get(json_config, "height_scaling"))) {
             config->height_scaling = json_number_value(json_object_get(json_config, "height_scaling"));
@@ -185,7 +196,9 @@ void energy_analysis(const uint16_t *samples,
 
     struct CRRC4_config *config = (struct CRRC4_config*)user_config;
 
-    reallocate_curves(samples_number, &config);
+    const uint32_t extended_samples_number = samples_number + config->extension_samples;
+
+    reallocate_curves(extended_samples_number, &config);
 
     bool is_error = false;
 
@@ -225,11 +238,22 @@ void energy_analysis(const uint16_t *samples,
                        config->decay_time, \
                        &config->curve_compensated);
 
-    CR_filter(config->curve_compensated, samples_number, \
+    const uint32_t topline_start = (samples_number - config->baseline_samples) >= 0 ? (samples_number - config->baseline_samples) : 0;
+    const uint32_t topline_end = samples_number;
+
+    double topline = 0;
+    calculate_average(config->curve_compensated, topline_start, topline_end, &topline);
+
+    // Extending the waveform with the average of the end part
+    for (uint32_t i = samples_number; i < extended_samples_number; i += 1) {
+        config->curve_compensated[i] = topline;
+    }
+
+    CR_filter(config->curve_compensated, extended_samples_number, \
               config->highpass_time, \
               &config->curve_CR);
 
-    RC4_filter(config->curve_CR, samples_number, \
+    RC4_filter(config->curve_CR, extended_samples_number, \
                config->lowpass_time, \
                &config->curve_RC);
 
@@ -238,7 +262,7 @@ void energy_analysis(const uint16_t *samples,
     size_t compensated_index_min = 0;
     size_t compensated_index_max = 0;
 
-    find_extrema(config->curve_compensated, 0, samples_number,
+    find_extrema(config->curve_compensated, 0, extended_samples_number,
                  &compensated_index_min, &compensated_index_max,
                  &compensated_min, &compensated_max);
 
@@ -247,7 +271,7 @@ void energy_analysis(const uint16_t *samples,
     size_t CR_index_min = 0;
     size_t CR_index_max = 0;
 
-    find_extrema(config->curve_CR, 0, samples_number,
+    find_extrema(config->curve_CR, 0, extended_samples_number,
                  &CR_index_min, &CR_index_max,
                  &CR_min, &CR_max);
 
@@ -267,7 +291,7 @@ void energy_analysis(const uint16_t *samples,
     size_t RC_index_min = 0;
     size_t RC_index_max = 0;
 
-    find_extrema(config->curve_RC, 0, samples_number,
+    find_extrema(config->curve_RC, 0, extended_samples_number,
                  &RC_index_min, &RC_index_max,
                  &RC_min, &RC_max);
 
@@ -299,27 +323,43 @@ void energy_analysis(const uint16_t *samples,
         (*events_buffer)[0].channel = waveform->channel;
         (*events_buffer)[0].pur = PUR;
 
+        const uint8_t extended_number = extended_samples_number / samples_number + ((extended_samples_number % samples_number > 0) ? 1 : 0);
+
         const uint8_t initial_additional_number = waveform_additional_get_number(waveform);
-        const uint8_t new_additional_number = initial_additional_number + 3;
+        const uint8_t new_additional_number = initial_additional_number + 1 + 2 * extended_number;
 
         waveform_additional_set_number(waveform, new_additional_number);
 
         uint8_t *additional_compensated = waveform_additional_get(waveform, initial_additional_number + 0);
-        uint8_t *additional_CR = waveform_additional_get(waveform, initial_additional_number + 1);
-        uint8_t *additional_RC = waveform_additional_get(waveform, initial_additional_number + 2);
 
         const double compensated_abs_max = (fabs(compensated_max) > fabs(compensated_min)) ? fabs(compensated_max) : fabs(compensated_min);
-        const double CR_abs_max = (fabs(CR_max) > fabs(CR_min)) ? fabs(CR_max) : fabs(CR_min);
-        const double RC_abs_max = (fabs(RC_max) > fabs(RC_min)) ? fabs(RC_max) : fabs(RC_min);
-        //const double CRRC_abs_max = (RC_abs_max > CR_abs_max) ? RC_abs_max : CR_abs_max;
 
         const uint8_t ZERO = UINT8_MAX / 2;
         const uint8_t MAX = UINT8_MAX / 2;
 
         for (uint32_t i = 0; i < samples_number; i++) {
             additional_compensated[i] = (config->curve_compensated[i] / compensated_abs_max) * MAX + ZERO;
-            additional_CR[i] = (config->curve_CR[i] / CR_abs_max) * MAX + ZERO;
-            additional_RC[i] = (config->curve_RC[i] / RC_abs_max) * MAX + ZERO;
+        }
+
+        const double CR_abs_max = (fabs(CR_max) > fabs(CR_min)) ? fabs(CR_max) : fabs(CR_min);
+        const double RC_abs_max = (fabs(RC_max) > fabs(RC_min)) ? fabs(RC_max) : fabs(RC_min);
+        //const double CRRC_abs_max = (RC_abs_max > CR_abs_max) ? RC_abs_max : CR_abs_max;
+
+        for (uint8_t j = 0; j < extended_number; j++) {
+            uint8_t *additional_CR = waveform_additional_get(waveform, initial_additional_number + 1 + j);
+            uint8_t *additional_RC = waveform_additional_get(waveform, initial_additional_number + 1 + extended_number + j);
+
+            for (uint32_t i = 0; i < samples_number; i++) {
+                const uint32_t I = i + j * samples_number;
+
+                if (I < extended_samples_number) {
+                    additional_CR[i] = (config->curve_CR[I] / CR_abs_max) * MAX + ZERO;
+                    additional_RC[i] = (config->curve_RC[I] / RC_abs_max) * MAX + ZERO;
+                } else {
+                    additional_CR[i] = ZERO;
+                    additional_RC[i] = ZERO;
+                }
+            }
         }
     }
 }
@@ -328,7 +368,7 @@ void reallocate_curves(uint32_t samples_number, struct CRRC4_config **user_confi
 {
     struct CRRC4_config *config = (*user_config);
 
-    if (samples_number != config->previous_samples_number) {
+    if (samples_number > config->previous_samples_number) {
         config->previous_samples_number = samples_number;
 
         config->is_error = false;
