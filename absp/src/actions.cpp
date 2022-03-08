@@ -322,7 +322,7 @@ void actions::generic::destroy_digitizer(status &global_status)
     }
 
     global_status.digitizers.clear();
-    
+
 
     // TODO: Reset USB3 devices with ADQControlUnit_ResetDevice() and reset level 18
 
@@ -351,7 +351,7 @@ bool actions::generic::create_digitizer(status &global_status)
         std::cout << "API revision: " << API_revision << "; ";
         std::cout << std::endl;
     }
-    
+
     if (global_status.verbosity > 0)
     {
         char time_buffer[BUFFER_SIZE];
@@ -366,7 +366,7 @@ bool actions::generic::create_digitizer(status &global_status)
     {
         std::cout << "Failed to create adq_cu!" << std::endl;
         return 0;
-    } 
+    }
 
     //if (global_status.verbosity > 0)
     //{
@@ -434,7 +434,7 @@ bool actions::generic::create_digitizer(status &global_status)
     }
 
     const unsigned int number_of_ADQs = number_of_ADQ214 + number_of_ADQ412 + number_of_ADQ14;
-  
+
     if (global_status.verbosity > 0)
     {
         char time_buffer[BUFFER_SIZE];
@@ -506,7 +506,7 @@ bool actions::generic::create_digitizer(status &global_status)
         }
 
         CHECKZERO(ADQControlUnit_OpenDeviceInterface(global_status.adq_cu_ptr, device_index));
-        
+
         if (global_status.verbosity > 0)
         {
             char time_buffer[BUFFER_SIZE];
@@ -614,7 +614,7 @@ bool actions::generic::create_digitizer(status &global_status)
         error_string += std::to_string(error_code);
         error_string += ", description: ";
         error_string += error_cstring;
-        
+
 
         json_t *json_event_message = json_object();
 
@@ -1376,7 +1376,7 @@ state actions::acquisition_receive_commands(status &global_status)
         }
 
         json_decref(json_message);
-        
+
     }
 
     return states::read_data;
@@ -1413,7 +1413,7 @@ state actions::read_data(status &global_status)
 
             std::string error_string = "Data overflow in digitizer: ";
             error_string += digitizer->GetName();
-        
+
             json_t *json_event_message = json_object();
 
             json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
@@ -1464,7 +1464,7 @@ state actions::read_data(status &global_status)
             if (retval == DIGITIZER_FAILURE) {
                 std::string error_string = "Data fetch failure in digitizer: ";
                 error_string += digitizer->GetName();
-        
+
                 json_t *json_event_message = json_object();
 
                 json_object_set_new_nocheck(json_event_message, "type", json_string("error"));

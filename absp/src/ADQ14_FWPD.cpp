@@ -914,7 +914,7 @@ int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &wavefor
                             std::cout << "Icomplete record at end; ";
                             std::cout << std::endl;
                         }
-    
+
                         added_headers[channel] -= 1;
                     }
 
@@ -924,7 +924,7 @@ int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &wavefor
                         const uint32_t record_number = target_headers[channel][index].RecordNumber;
                         const uint32_t samples_per_record = target_headers[channel][index].RecordLength;
                         const uint64_t timestamp = target_headers[channel][index].Timestamp;
-                        
+
                         if (GetVerbosity() > 1)
                         {
                             char time_buffer[BUFFER_SIZE];
@@ -954,7 +954,7 @@ int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &wavefor
                                 std::cout << "Negative difference: " << (long long)timestamp_negative_difference << "; ";
                                 std::cout << std::endl;
                             }
-        
+
                             timestamp_offset += TIMESTAMP_MAX;
                             timestamp_overflows += 1;
                         }
@@ -1026,7 +1026,7 @@ int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &wavefor
                     std::cout << "Negative difference: " << (long long)timestamp_negative_difference << "; ";
                     std::cout << std::endl;
                 }
-        
+
                 timestamp_offset += TIMESTAMP_MAX;
                 timestamp_overflows += 1;
             }
@@ -1074,7 +1074,7 @@ int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &wavefor
             std::cout << std::endl;
         }
     }
-    
+
     return DIGITIZER_SUCCESS;
 }
 
