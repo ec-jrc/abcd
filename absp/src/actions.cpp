@@ -51,9 +51,12 @@ extern "C" {
 // The ADQAPI needs this macro, otherwise it assumes that it is running in windows
 #define LINUX
 #include "ADQAPI.h"
+#include "ADQ_utilities.hpp"
+
 #include "Digitizer.hpp"
 #include "ADQ412.hpp"
-#include "ADQ14_FWSTD.hpp"
+//#include "ADQ214.hpp"
+#include "ADQ14_FWDAQ.hpp"
 #include "ADQ14_FWPD.hpp"
 
 #define WRITE_RED "\033[0;31m"
@@ -359,6 +362,22 @@ bool actions::generic::create_digitizer(status &global_status)
     }
 
     global_status.adq_cu_ptr = CreateADQControlUnit();
+    if(!global_status.adq_cu_ptr)
+    {
+        std::cout << "Failed to create adq_cu!" << std::endl;
+        return 0;
+    } 
+
+    //if (global_status.verbosity > 0)
+    //{
+    //    char time_buffer[BUFFER_SIZE];
+    //    time_string(time_buffer, BUFFER_SIZE, NULL);
+    //    std::cout << '[' << time_buffer << "] ";
+    //    std::cout << "Enabling error trace; ";
+    //    std::cout << std::endl;
+    //}
+
+    //ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, LOG_LEVEL_INFO, ".");
 
     if (global_status.verbosity > 0)
     {
@@ -369,25 +388,64 @@ bool actions::generic::create_digitizer(status &global_status)
         std::cout << std::endl;
     }
 
-    const int number_of_devices = ADQControlUnit_FindDevices(global_status.adq_cu_ptr);
-    const int number_of_failed_devices = ADQControlUnit_GetFailedDeviceCount(global_status.adq_cu_ptr);
-    
-    const int number_of_ADQs = ADQControlUnit_NofADQ(global_status.adq_cu_ptr);
-    const int number_of_ADQ214 = ADQControlUnit_NofADQ214(global_status.adq_cu_ptr);
-    const int number_of_ADQ412 = ADQControlUnit_NofADQ412(global_status.adq_cu_ptr);
-    const int number_of_ADQ14 = ADQControlUnit_NofADQ14(global_status.adq_cu_ptr);
-    
+    //const int number_of_found_devices = ADQControlUnit_FindDevices(global_status.adq_cu_ptr);
+
+    //const int number_of_ADQs = ADQControlUnit_NofADQ(global_status.adq_cu_ptr);
+    //const int number_of_ADQ412 = ADQControlUnit_NofADQ412(global_status.adq_cu_ptr);
+    //const int number_of_ADQ214 = ADQControlUnit_NofADQ214(global_status.adq_cu_ptr);
+    //const int number_of_ADQ14 = ADQControlUnit_NofADQ14(global_status.adq_cu_ptr);
+
+    struct ADQInfoListEntry* ADQlist;
+    unsigned int number_of_devices = 256;
+
+    if(!ADQControlUnit_ListDevices(global_status.adq_cu_ptr, &ADQlist, &number_of_devices))
+    {
+        const unsigned int error_code = ADQControlUnit_GetLastFailedDeviceError(global_status.adq_cu_ptr);
+        if (error_code == 0x00000001)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": ADQAPI error: " << error_code << ", ";
+            std::cout << "  description: " << WRITE_RED << "ListDevices failed! The linked ADQAPI is not for the correct OS, please select correct x86/x64 platform when building." << WRITE_NC << "; ";
+            std::cout << std::endl;
+        }
+    }
+
+    unsigned int number_of_ADQ214 = 0;
+    unsigned int number_of_ADQ412 = 0;
+    unsigned int number_of_ADQ14 = 0;
+    unsigned int number_of_other = 0;
+
+    for (unsigned int device_index = 0; device_index < number_of_devices; device_index++) {
+        switch (ADQlist[device_index].ProductID) {
+            case PID_ADQ214:
+                number_of_ADQ214 += 1;
+                break;
+            case PID_ADQ412:
+                number_of_ADQ412 += 1;
+                break;
+            case PID_ADQ14:
+                number_of_ADQ14 += 1;
+                break;
+            default:
+                number_of_other += 1;
+        }
+    }
+
+    const unsigned int number_of_ADQs = number_of_ADQ214 + number_of_ADQ412 + number_of_ADQ14;
+  
     if (global_status.verbosity > 0)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
         std::cout << "Number of devices: " << number_of_devices << "; ";
-        std::cout << "Number of failed devices: " << number_of_failed_devices << "; ";
         std::cout << "Number of ADQs: " << number_of_ADQs << "; ";
         std::cout << "Number of ADQ214: " << number_of_ADQ214 << "; ";
         std::cout << "Number of ADQ412: " << number_of_ADQ412 << "; ";
         std::cout << "Number of ADQ14: " << number_of_ADQ14 << "; ";
+        std::cout << "Number of other devices: " << number_of_other << "; ";
         std::cout << std::endl;
     }
 
@@ -396,6 +454,9 @@ bool actions::generic::create_digitizer(status &global_status)
 
     if (number_of_ADQ412 > 0) {
         initialization_string += "Number of ADQ412: " + std::to_string(number_of_ADQ412) + "; ";
+    }
+    if (number_of_ADQ214 > 0) {
+        initialization_string += "Number of ADQ214: " + std::to_string(number_of_ADQ214) + "; ";
     }
     if (number_of_ADQ14 > 0) {
         initialization_string += "Number of ADQ14: " + std::to_string(number_of_ADQ14) + "; ";
@@ -409,6 +470,132 @@ bool actions::generic::create_digitizer(status &global_status)
     actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
 
     json_decref(json_event_message);
+
+    for (unsigned int device_index = 0; device_index < number_of_devices; device_index++) {
+        if (global_status.verbosity > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Device index: " << device_index << "; ";
+            std::cout << std::endl;
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Product id: " << ADQlist[device_index].ProductID << "; ";
+            std::cout << std::endl;
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Address: "  << ADQlist[device_index].AddressField1 << " " << ADQlist[device_index].AddressField2 << "; ";
+            std::cout << std::endl;
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Device file: "  << ADQlist[device_index].DevFile << "; ";
+            std::cout << std::endl;
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Opened interface: "  << ADQlist[device_index].DeviceInterfaceOpened << "; ";
+            std::cout << std::endl;
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Set-up completed: "  << ADQlist[device_index].DeviceSetupCompleted << "; ";
+            std::cout << std::endl;
+        }
+
+        if (global_status.verbosity > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Opening device interface establishing a communication channel for device: " << device_index << "; ";
+            std::cout << std::endl;
+        }
+
+        CHECKZERO(ADQControlUnit_OpenDeviceInterface(global_status.adq_cu_ptr, device_index));
+        
+        if (global_status.verbosity > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Setting-up device: " << device_index << "; ";
+            std::cout << std::endl;
+        }
+
+        CHECKZERO(ADQControlUnit_SetupDevice(global_status.adq_cu_ptr, device_index));
+
+        if (ADQlist[device_index].ProductID == PID_ADQ214) {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Refusing to use ADQ214!!!!!!!!!!!!; ";
+            std::cout << std::endl;
+
+            // WARNING: boards numbering start from 1 in the next functions
+            //const int adq214_index = device_index + 1;
+
+            //ADQ214 *adq214_ptr = new ADQ214(global_status.verbosity);
+
+            //adq214_ptr->Initialize(global_status.adq_cu_ptr, adq214_index);
+
+            //global_status.digitizers.push_back(adq214_ptr);
+        } else if (ADQlist[device_index].ProductID == PID_ADQ412) {
+            // WARNING: boards numbering start from 1 in the next functions
+            const int adq412_index = device_index + 1;
+
+            ADQ412 *adq412_ptr = new ADQ412(global_status.verbosity);
+
+            adq412_ptr->Initialize(global_status.adq_cu_ptr, adq412_index);
+
+            global_status.digitizers.push_back(adq412_ptr);
+        } else if (ADQlist[device_index].ProductID == PID_ADQ14) {
+            // WARNING: boards numbering start from 1 in the next functions
+            const int adq14_index = device_index + 1;
+
+            // Check that the Pulse Detect firmware is enabled on this device.
+            const int has_FWPD = ADQ_HasFeature(global_status.adq_cu_ptr, adq14_index, "FWPD");
+
+            // These are just for information
+            if (has_FWPD == 1) {
+                if (global_status.verbosity > 0)
+                {
+                    char time_buffer[BUFFER_SIZE];
+                    time_string(time_buffer, BUFFER_SIZE, NULL);
+                    std::cout << '[' << time_buffer << "] ";
+                    std::cout << "ADQ14 (index " << adq14_index << ") Has the Pulse detect firmware; ";
+                    std::cout << std::endl;
+                }
+            } else if (has_FWPD == -1) {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") Does not have the Pulse Detect firmware; ";
+                std::cout << std::endl;
+            } else if (has_FWPD == 0) {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") Did not respond to the firmware request; ";
+                std::cout << std::endl;
+            } else {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") Unexpected value from the firmware request: " << has_FWPD << "; ";
+                std::cout << std::endl;
+            }
+
+            if (has_FWPD == 1 ) {
+                ADQ14_FWPD *adq14_ptr = new ADQ14_FWPD(global_status.verbosity);
+
+                adq14_ptr->Initialize(global_status.adq_cu_ptr, adq14_index);
+
+                global_status.digitizers.push_back(adq14_ptr);
+            } else {
+                ADQ14_FWDAQ *adq14_ptr = new ADQ14_FWDAQ(global_status.verbosity);
+
+                adq14_ptr->Initialize(global_status.adq_cu_ptr, adq14_index);
+
+                global_status.digitizers.push_back(adq14_ptr);
+            }
+        }
+    }
+
+    const int number_of_failed_devices = ADQControlUnit_GetFailedDeviceCount(global_status.adq_cu_ptr);
 
     if (number_of_failed_devices > 0) {
         char error_cstring[512];
@@ -437,72 +624,6 @@ bool actions::generic::create_digitizer(status &global_status)
         actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
 
         json_decref(json_event_message);
-    }
-    
-    // WARNING: ADQ412 boards numbering starts from 1
-    for (int adq412_index = 1; adq412_index <= number_of_ADQ412 ; adq412_index++) {
-        ADQ412 *adq412_ptr = new ADQ412(global_status.verbosity);
-
-        adq412_ptr->Initialize(global_status.adq_cu_ptr, adq412_index);
-
-        global_status.digitizers.push_back(adq412_ptr);
-    }
-
-    // WARNING: ADQ14 boards numbering starts from 1
-    for (int adq14_index = 1; adq14_index <= number_of_ADQ14 ; adq14_index++) {
-        // Check that the Pulse Detect firmware is enabled on this device.
-        const int has_FWPD = ADQ_HasFeature(global_status.adq_cu_ptr, adq14_index, "FWPD");
-
-        // These are just for information
-        if (has_FWPD == 1) {
-            if (global_status.verbosity > 0)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "ADQ14 (index " << adq14_index << ") Has the Pulse detect firmware; ";
-                std::cout << std::endl;
-            }
-        } else if (has_FWPD == -1) {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") Does not have the Pulse Detect firmware; ";
-            std::cout << std::endl;
-        } else if (has_FWPD == 0) {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") Did not respond to the firmware request; ";
-            std::cout << std::endl;
-        } else {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") Unexpected value from the firmware request: " << has_FWPD << "; ";
-            std::cout << std::endl;
-        }
-
-        if (has_FWPD == 1 ) {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Refusing to use ADQ14-FWPD!!!!!!!!!!!!; ";
-            std::cout << std::endl;
-
-            // TODO: Test this configuration
-            //ADQ14_FWPD *adq14_ptr = new ADQ14_FWPD(global_status.verbosity);
-
-            //adq14_ptr->Initialize(global_status.adq_cu_ptr, adq14_index);
-
-            //global_status.digitizers.push_back(adq14_ptr);
-        } else {
-            ADQ14_FWSTD *adq14_ptr = new ADQ14_FWSTD(global_status.verbosity);
-
-            adq14_ptr->Initialize(global_status.adq_cu_ptr, adq14_index);
-
-            global_status.digitizers.push_back(adq14_ptr);
-        }
     }
 
     return true;
@@ -1555,6 +1676,9 @@ state actions::stop_acquisition(status &global_status)
 state actions::clear_memory(status &global_status)
 {
     actions::generic::clear_memory(global_status);
+
+    // Remember to clean up the json configuration
+    json_decref(global_status.config);
 
     return states::destroy_digitizer;
 }
