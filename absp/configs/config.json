@@ -3,7 +3,8 @@
         {
             "id": 0,
             "model": "ADQ14",
-            "serial": "SPD-06845",
+            "model_note": "This model has the FWDAQ",
+            "serial": "SPD-10089",
             "enable": true,
             "scope_samples": 4800,
             "records_number": 3,
@@ -22,6 +23,7 @@
                 "slope0": "rising",
                 "slope1": "falling",
                 "level": 34000,
+                "level_note": "in absolute ADC channels as seen in the waveforms display",
                 "zzz": null
             },
             "channels": [
@@ -32,31 +34,20 @@
                     "input_range": 1000.0,
                     "input_range_note": "in mV units, it is adapted by the firwmware to the closest possible value",
                     "DC_offset": 0,
+                    "DC_offset_note": "in ADC channels",
                     "DBS_disable": false
                 },
                 {
                     "id": 1,
-                    "enable": true,
-                    "triggering": true,
-                    "input_range": 1000.0,
-                    "DC_offset": 0,
-                    "DBS_disable": false
+                    "enable": false
                 },
                 {
                     "id": 2,
-                    "enable": true,
-                    "triggering": true,
-                    "input_range": 1000.0,
-                    "DC_offset": 0,
-                    "DBS_disable": false
+                    "enable": false
                 },
                 {
                     "id": 3,
-                    "enable": true,
-                    "triggering": true,
-                    "input_range": 1000.0,
-                    "DC_offset": 0,
-                    "DBS_disable": false
+                    "enable": false
                 },
                 {}
             ],
@@ -65,6 +56,7 @@
         {
             "id": 1,
             "model": "ADQ14",
+            "model_note": "This model has the FWPD generation 1",
             "serial": "SPD-07720",
             "enable": true,
             "clock_source": "internal",
@@ -94,33 +86,25 @@
                     "enable": true,
                     "input_range": 1000.0,
                     "input_range_note": "in mV units, it is adapted by the firwmware to the closest possible value",
-                    "DC_offset": 0,
+                    "DC_offset": 31100,
+                    "DC_offset_note": "in ADC channels, this will set also the DBS target to the same value",
                     "DBS_disable": false,
-                    "trigger_level": 33000,
-                    "trigger_slope": "rising",
+                    "trigger_level": -300,
+                    "trigger_level_note": "relative to the baseline of the signal, in ADC channels",
+                    "trigger_slope": "falling",
                     "trigger_slope1": "rising",
                     "trigger_slope2": "falling",
-                    "pretrigger": 1000,
-                    "baseline_samples": 100,
+                    "pretrigger": 32,
+                    "baseline_samples": 25,
                     "baseline_samples_note": "this must be between 1 and 100",
-                    "scope_samples": 4800,
+                    "scope_samples": 128,
                     "records_number": 0,
-                    "records_number_note": "if set to zero it should start an infinite acquisition",
+                    "records_number_note": "if set to zero it should start an infinite acquisition, otherwise the acquisition stops after that number of records",
                     "zzz": null
                 },
                 {
                     "id": 1,
-                    "enable": true,
-                    "input_range": 1000.0,
-                    "DC_offset": 0,
-                    "DBS_disable": false,
-                    "trigger_level": 33000,
-                    "trigger_slope": "rising",
-                    "pretrigger": 1000,
-                    "baseline_samples": 100,
-                    "scope_samples": 4800,
-                    "records_number": 0,
-                    "zzz": null
+                    "enable": false
                 },
                 {
                     "id": 2,
