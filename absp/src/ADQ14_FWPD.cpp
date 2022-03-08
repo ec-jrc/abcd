@@ -25,8 +25,6 @@ extern "C" {
 
 #define BUFFER_SIZE 32
 
-const int ADQ14_FWPD::streaming_generation = 2;
-
 #define CHANNELS_NUMBER 4
 
 #define MAX_BASELINE_SAMPLES 100
@@ -43,10 +41,12 @@ const float ADQ14_FWPD::default_input_range = 1000;
 // Defined in ADC samples
 const int ADQ14_FWPD::default_DC_offset = 0;
 // Defined in ADC samples
-const int ADQ14_FWPD::default_DBS_target = 0;
+const int ADQ14_FWPD::default_DBS_target = 31000;
 // If left at zero the FWPD will use its default values
 const int ADQ14_FWPD::default_DBS_saturation_level_lower = 0;
 const int ADQ14_FWPD::default_DBS_saturation_level_upper = 0;
+
+const unsigned int ADQ14_FWPD::DMA_flush_timeout = 100;
 
 ADQ14_FWPD::ADQ14_FWPD(int Verbosity) : Digitizer(Verbosity)
 {
@@ -62,6 +62,8 @@ ADQ14_FWPD::ADQ14_FWPD(int Verbosity) : Digitizer(Verbosity)
 
     adq_cu_ptr = NULL;
     adq14_num = 0;
+
+    streaming_generation = 1;
 
     SetEnabled(false);
 
@@ -111,6 +113,14 @@ int ADQ14_FWPD::Initialize(void* adq, int num)
     SetChannelsNumber(number_of_channels);
 
     CHECKZERO(ADQ_PDGetGeneration(adq_cu_ptr, adq14_num, &FWPD_generation));
+
+    // For the first generation of the FWPD we could not get the other streaming
+    // approaches working... We force then the triggered streaming.
+    if (FWPD_generation == 1) {
+        streaming_generation = 1;
+    } else {
+        streaming_generation = 2;
+    }
 
     unsigned int adc_cores = 0;
     CHECKZERO(ADQ_GetNofAdcCores(adq_cu_ptr, adq14_num, &adc_cores));
@@ -293,6 +303,8 @@ int ADQ14_FWPD::Configure()
 
     for (unsigned int instance = 0; instance < GetDBSInstancesNumber(); instance++) {
         const bool DBS_disabled = DBS_disableds[instance];
+        // We are assuming that the channels correspond to the DBS instances
+        const int offset = DC_offsets[instance];
 
         if (GetVerbosity() > 0)
         {
@@ -307,7 +319,7 @@ int ADQ14_FWPD::Configure()
         // TODO: Enable these features
         CHECKZERO(ADQ_SetupDBS(adq_cu_ptr, adq14_num, instance,
                                                      DBS_disabled,
-                                                     default_DBS_target,
+                                                     offset,
                                                      default_DBS_saturation_level_lower,
                                                      default_DBS_saturation_level_upper));
     }
@@ -366,6 +378,9 @@ int ADQ14_FWPD::Configure()
     // -------------------------------------------------------------------------
 
     channel_mask = 0;
+    uint32_t max_scope_samples = 0;
+    int32_t max_pretrigger = 0;
+    int32_t max_records_number = 0;
 
     // These are always set in any case in the example, even with an external trigger
     for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
@@ -381,6 +396,16 @@ int ADQ14_FWPD::Configure()
 
         if (IsChannelEnabled(channel)) {
             channel_mask += (1 << channel);
+
+            if (max_pretrigger < pretriggers[channel]) {
+                max_pretrigger = pretriggers[channel];
+            }
+            if (max_scope_samples < scope_samples[channel]) {
+                max_scope_samples = scope_samples[channel];
+            }
+            if (max_records_number < records_numbers[channel]) {
+                max_records_number = records_numbers[channel];
+            }
 
             // TODO: Enable these features
             const int reset_hysteresis = 0;
@@ -398,7 +423,7 @@ int ADQ14_FWPD::Configure()
 
 
             // TODO: Enable these features
-            const unsigned int moving_average_delay = 0;
+            const unsigned int moving_average_delay = 8;
             const unsigned int record_variable_length = false ? 1 : 0;
 
             CHECKZERO(ADQ_PDSetupTiming(adq_cu_ptr, adq14_num, channel + 1,
@@ -406,8 +431,7 @@ int ADQ14_FWPD::Configure()
                                        baseline_samples[channel],
                                        moving_average_delay,
                                        scope_samples[channel],
-                                       //records_numbers[channel],
-                                       ADQ_INFINITE_NOF_RECORDS,
+                                       records_numbers[channel],
                                        record_variable_length));
 
             // Since this gives an error with the generation 1, I am assuming that
@@ -432,6 +456,17 @@ int ADQ14_FWPD::Configure()
             }
         }
     }
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+        std::cout << "Enabling PD level trigger; ";
+        std::cout << std::endl;
+    }
+
+    CHECKZERO(ADQ_PDEnableLevelTrig(adq_cu_ptr, adq14_num, 1));
 
     // -------------------------------------------------------------------------
     //  Transfer settings
@@ -458,18 +493,7 @@ int ADQ14_FWPD::Configure()
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
-        std::cout << "Enabling PD level trigger; ";
-        std::cout << std::endl;
-    }
-
-    CHECKZERO(ADQ_PDEnableLevelTrig(adq_cu_ptr, adq14_num, 1));
-
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
-        std::cout << "Setting up PD streaming with channel mask: " << channel_mask << "; ";
+        std::cout << "Setting up PD streaming with channel mask: 0x" << std::hex << (unsigned int)channel_mask << std::dec << "; ";
         std::cout << std::endl;
     }
 
@@ -484,7 +508,7 @@ int ADQ14_FWPD::Configure()
         std::cout << std::endl;
     }
 
-    if (streaming_generation == 2) {
+    if (streaming_generation == 1) {
         if (GetVerbosity() > 0)
         {
             char time_buffer[BUFFER_SIZE];
@@ -507,6 +531,39 @@ int ADQ14_FWPD::Configure()
             // I do not know why is it 28...
             target_headers[channel] = new StreamingHeader_t[transfer_buffer_size / 28 * sizeof(StreamingHeader_t)];
         }
+
+        // Sets the flag enabling infinite records
+        //const unsigned int number_of_records = 1 << 31;
+
+        // With this set-up we have to acquire the same number of samples for
+        // all channels thus we use the maxima
+
+        //if (GetVerbosity() > 0)
+        //{
+        //    char time_buffer[BUFFER_SIZE];
+        //    time_string(time_buffer, BUFFER_SIZE, NULL);
+        //    std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+        //    std::cout << "Triggered streaming setup; ";
+        //    std::cout << "number_of_records: 0x" << std::hex << max_records_number << std::dec << ", " << max_records_number << "; ";
+        //    std::cout << "scope_samples: " << (unsigned int)max_scope_samples << "; ";
+        //    std::cout << "pretrigger: " << (int)max_pretrigger << "; ";
+        //    std::cout << "channel_mask: 0x" << std::hex << (unsigned int)channel_mask << std::dec << "; ";
+        //    std::cout << std::endl;
+        //}
+        // This gives an error when used with the FWPD generation 1
+        //CHECKZERO(ADQ_TriggeredStreamingSetup(adq_cu_ptr, adq14_num,
+        //                                      max_records_number,
+        //                                      max_scope_samples,
+        //                                      max_pretrigger,
+        //                                      0,
+        //                                      channel_mask));
+
+        // This also gives an error when used with the FWPD generation 1
+        //CHECKZERO(ADQ_SetStreamStatus(adq_cu_ptr, adq14_num, 1));
+        //CHECKZERO(ADQ_SetStreamConfig(adq_cu_ptr, adq14_num, 1, 0));
+        //CHECKZERO(ADQ_SetStreamConfig(adq_cu_ptr, adq14_num, 2, 0));
+        //CHECKZERO(ADQ_SetStreamConfig(adq_cu_ptr, adq14_num, 3, channel_mask));
+        //CHECKZERO(ADQ_SetTriggerMode(adq_cu_ptr, adq14_num, trig_mode));
     } else {
         if (GetVerbosity() > 0)
         {
@@ -603,7 +660,10 @@ int ADQ14_FWPD::StartAcquisition()
         std::cout << std::endl;
     }
 
-    if (streaming_generation == 2) {
+    last_buffer_ready = std::chrono::system_clock::now();
+
+    if (streaming_generation == 1) {
+        //CHECKZERO(ADQ_TriggeredStreamingArm(adq_cu_ptr, adq14_num));
         CHECKZERO(ADQ_StopStreaming(adq_cu_ptr, adq14_num));
         CHECKZERO(ADQ_StartStreaming(adq_cu_ptr, adq14_num));
     } else {
@@ -659,6 +719,15 @@ int ADQ14_FWPD::RearmTrigger()
     }
 
     if (trig_mode == ADQ_SW_TRIGGER_MODE) {
+        if (GetVerbosity() > 1)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ADQ14_FWPD::RearmTrigger() ";
+            std::cout << "Forcing software trigger; ";
+            std::cout << std::endl;
+        }
+
         ForceSoftwareTrigger();
     }
 
@@ -679,10 +748,13 @@ bool ADQ14_FWPD::AcquisitionReady()
         std::cout << std::endl;
     }
 
-    if (streaming_generation == 2) {
+    if (streaming_generation == 1) {
         unsigned int filled_buffers = 0;
 
         CHECKZERO(ADQ_GetTransferBufferStatus(adq_cu_ptr, adq14_num, &filled_buffers));
+
+        const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+        auto delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_buffer_ready);
 
         if (GetVerbosity() > 1)
         {
@@ -690,10 +762,31 @@ bool ADQ14_FWPD::AcquisitionReady()
             time_string(time_buffer, BUFFER_SIZE, NULL);
             std::cout << '[' << time_buffer << "] ADQ14_FWPD::AcquisitionReady() ";
             std::cout << "Filled buffers: " << filled_buffers << "; ";
+            std::cout << "Time since the last buffer ready: " << delta_time.count() << " ms; ";
             std::cout << std::endl;
         }
 
-        return (filled_buffers > 0) ? true : false;
+        if (filled_buffers <= 0) {
+            if (delta_time > std::chrono::milliseconds(DMA_flush_timeout))
+            {
+                if (GetVerbosity() > 0)
+                {
+                    char time_buffer[BUFFER_SIZE];
+                    time_string(time_buffer, BUFFER_SIZE, NULL);
+                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::AcquisitionReady() ";
+                    std::cout << "Issuing a flush of the DMA; ";
+                    std::cout << std::endl;
+                }
+
+                CHECKZERO(ADQ_FlushDMA(adq_cu_ptr, adq14_num));
+            }
+
+            return false;
+        } else {
+            last_buffer_ready = std::chrono::system_clock::now();
+
+            return true;
+        }
     } else {
         // If the acquired buffer is true then we have acquired the data buffer and
         // thus they are still available.
@@ -702,7 +795,7 @@ bool ADQ14_FWPD::AcquisitionReady()
         } else {
             available_channel = ADQ_ANY_CHANNEL;
             // Using a zero here should make the function return immediately
-            const int timeout = 0;
+            const int timeout = 10000;
 
             available_bytes = ADQ_WaitForRecordBuffer(adq_cu_ptr, adq14_num,
                                                                   &available_channel,
@@ -767,7 +860,18 @@ int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &wavefor
             std::cout << std::endl;
         }
 
-        if (streaming_generation == 2) {
+        if (streaming_generation == 1) {
+            if (GetVerbosity() > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ADQ14_FWPD::AcquisitionReady() ";
+                std::cout << "Issuing a flush of the DMA; ";
+                std::cout << std::endl;
+            }
+
+            CHECKZERO(ADQ_FlushDMA(adq_cu_ptr, adq14_num));
+
             CHECKZERO(ADQ_GetDataStreaming(adq_cu_ptr, adq14_num,
                                            (void**)target_buffers.data(),
                                            (void**)target_headers.data(),
@@ -777,6 +881,18 @@ int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &wavefor
                                            status_headers.data()));
 
             for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
+                if (GetVerbosity() > 1)
+                {
+                    char time_buffer[BUFFER_SIZE];
+                    time_string(time_buffer, BUFFER_SIZE, NULL);
+                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::GetWaveformsFromCard() ";
+                    std::cout << "Channel: " << channel << " (enabled: " << IsChannelEnabled(channel) << "); ";
+                    std::cout << "Added samples: " << added_samples[channel] << "; ";
+                    std::cout << "Added headers: " << added_headers[channel] << "; ";
+                    std::cout << "Status headers: " << status_headers[channel] << "; ";
+                    std::cout << std::endl;
+                }
+
                 if (IsChannelEnabled(channel) && added_headers[channel] > 0) {
                     if (GetVerbosity() > 1)
                     {
@@ -974,7 +1090,7 @@ int ADQ14_FWPD::StopAcquisition()
         std::cout << std::endl;
     }
 
-    if (streaming_generation == 2) {
+    if (streaming_generation == 1) {
         CHECKZERO(ADQ_StopStreaming(adq_cu_ptr, adq14_num));
     } else {
         const int retval = ADQ_StopDataAcquisition(adq_cu_ptr, adq14_num);
@@ -1009,7 +1125,6 @@ int ADQ14_FWPD::ForceSoftwareTrigger()
         std::cout << "Forcing a software trigger; ";
         std::cout << std::endl;
     }
-
 
     CHECKZERO(ADQ_SWTrig(adq_cu_ptr, adq14_num));
 
@@ -1265,15 +1380,8 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
                     std::cout << std::endl;
                 }
 
-                // This level should be the absolute trigger level.
-                // In the rest of ABCD the waveforms' samples are treated as uint16_t and we
-                // are offsetting what we read from the ADQ14_FWPD to convert from int16_t.
-                // The user should be able to set a trigger level according to what it is
-                // shown in the waveforms display, thus we should expect a uin16_t number
-                // that we convert to a int16_t.
-                const int level = json_number_value(json_object_get(value, "trigger_level"));
-
-                const int trig_level = (level - 0x7FFF);
+                // This level should be the relative to the baseline in the FWPD
+                const int trig_level = json_number_value(json_object_get(value, "trigger_level"));
 
                 if (GetVerbosity() > 0) {
                     char time_buffer[BUFFER_SIZE];
