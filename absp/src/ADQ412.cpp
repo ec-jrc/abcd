@@ -222,7 +222,7 @@ int ADQ412::Configure()
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ14_FWSTD::Configure() ";
+            std::cout << '[' << time_buffer << "] ADQ412::Configure() ";
             std::cout << "Channel: " << channel << "; ";
             std::cout << "Enabled: " << (IsChannelEnabled(channel) ? "true" : "false") << "; ";
             std::cout << "Triggering: " << (IsChannelTriggering(channel) ? "true" : "false") << "; ";
@@ -242,7 +242,7 @@ int ADQ412::Configure()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWSTD::Configure() ";
+        std::cout << '[' << time_buffer << "] ADQ412::Configure() ";
         std::cout << "Channels acquisition mask: " << (unsigned int)channels_acquisition_mask << "; ";
         std::cout << "Channels triggering mask: " << channels_triggering_mask << "; ";
         std::cout << std::endl;
@@ -445,7 +445,7 @@ bool ADQ412::DataOverflow()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWSTD::DataOverflow() ";
+        std::cout << '[' << time_buffer << "] ADQ412::DataOverflow() ";
         std::cout << "Overflow: " << retval << "; ";
         std::cout << std::endl;
     }
@@ -589,7 +589,7 @@ int ADQ412::ResetOverflow()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWSTD::ResetOverflow() ";
+        std::cout << '[' << time_buffer << "] ADQ412::ResetOverflow() ";
         std::cout << "Resetting a data overflow; ";
         std::cout << std::endl;
     }
