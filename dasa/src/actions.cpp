@@ -428,77 +428,75 @@ state actions::receive_commands(status &global_status)
 
             if (command == std::string("start") && json_arguments != NULL)
             {
-                json_t *json_file_name = json_object_get(json_arguments, "file_name");
                 json_t *json_enable = json_object_get(json_arguments, "enable");
 
-                if (json_file_name != NULL && json_enable != NULL)
+                if (json_enable != NULL)
                 {
-                    const std::string file_name = json_string_value(json_file_name);
+                    bool events_enabled = json_is_true(json_object_get(json_enable, "events"));
+                    bool waveforms_enabled = json_is_true(json_object_get(json_enable, "waveforms"));
+                    bool raw_enabled = json_is_true(json_object_get(json_enable, "raw"));
 
-                    if (file_name.length() > 0)
+                    const char *cstr_file_name = json_string_value(json_object_get(json_arguments, "file_name"));
+                    const std::string file_name = (cstr_file_name) ? std::string(cstr_file_name) : std::string();
+
+                    char time_buffer[BUFFER_SIZE];
+                    time_string(time_buffer, BUFFER_SIZE, NULL);
+
+                    std::string root_file_name;
+
+                    if (file_name.length() > 0) {
+                        root_file_name = file_name;
+                    } else {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+
+                        root_file_name += "abcd_data_";
+                        root_file_name += time_buffer;
+                    }
+
+                    global_status.events_file_name.clear();
+                    if (events_enabled)
                     {
-                        const std::size_t found = file_name.find_last_of(".");
+                        global_status.events_file_name = root_file_name;
+                        global_status.events_file_name.append("_events.");
+                        global_status.events_file_name.append(defaults_lmno_extenstion_events);
+                    }
 
-                        std::string root_file_name;
+                    global_status.waveforms_file_name.clear();
+                    if (waveforms_enabled)
+                    {
+                        global_status.waveforms_file_name = root_file_name;
+                        global_status.waveforms_file_name.append("_waveforms.");
+                        global_status.waveforms_file_name.append(defaults_lmno_extenstion_waveforms);
+                    }
 
-                        if (found != 0 && found != std::string::npos)
-                        {
-                            root_file_name = file_name.substr(0, found);
-                        }
-                        else
-                        {
-                            root_file_name = file_name;
-                        }
+                    global_status.raw_file_name.clear();
+                    if (raw_enabled)
+                    {
+                        global_status.raw_file_name = root_file_name;
+                        global_status.raw_file_name.append("_raw.");
+                        global_status.raw_file_name.append(defaults_lmno_extenstion_raw);
+                    }
 
-                        bool events_enabled = json_is_true(json_object_get(json_enable, "events"));
+                    if (global_status.verbosity > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "Received file name: '" << file_name << "'; ";
+                        std::cout << "root: " << root_file_name << "; ";
+                        std::cout << "events_enabled: " << events_enabled << "; ";
+                        std::cout << "events_file_name: " << global_status.events_file_name << "; ";
+                        std::cout << "waveforms_enabled: " << waveforms_enabled << "; ";
+                        std::cout << "waveforms_file_name: " << global_status.waveforms_file_name << "; ";
+                        std::cout << "raw_enabled: " << raw_enabled << "; ";
+                        std::cout << "raw_file_name: " << global_status.raw_file_name << "; ";
+                        std::cout << std::endl;
+                    }
 
-                        bool waveforms_enabled = json_is_true(json_object_get(json_enable, "waveforms"));
-                        bool raw_enabled = json_is_true(json_object_get(json_enable, "raw"));
-
-                        global_status.events_file_name.clear();
-                        if (events_enabled)
-                        {
-                            global_status.events_file_name = root_file_name;
-                            global_status.events_file_name.append("_events.");
-                            global_status.events_file_name.append(defaults_lmno_extenstion_events);
-                        }
-
-                        global_status.waveforms_file_name.clear();
-                        if (waveforms_enabled)
-                        {
-                            global_status.waveforms_file_name = root_file_name;
-                            global_status.waveforms_file_name.append("_waveforms.");
-                            global_status.waveforms_file_name.append(defaults_lmno_extenstion_waveforms);
-                        }
-
-                        global_status.raw_file_name.clear();
-                        if (raw_enabled)
-                        {
-                            global_status.raw_file_name = root_file_name;
-                            global_status.raw_file_name.append("_raw.");
-                            global_status.raw_file_name.append(defaults_lmno_extenstion_raw);
-                        }
-
-                        if (global_status.verbosity > 0)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Received file name: " << file_name << "; ";
-                            std::cout << "root: " << root_file_name << "; ";
-                            std::cout << "events_enabled: " << events_enabled << "; ";
-                            std::cout << "events_file_name: " << global_status.events_file_name << "; ";
-                            std::cout << "waveforms_enabled: " << waveforms_enabled << "; ";
-                            std::cout << "waveforms_file_name: " << global_status.waveforms_file_name << "; ";
-                            std::cout << "raw_enabled: " << raw_enabled << "; ";
-                            std::cout << "raw_file_name: " << global_status.raw_file_name << "; ";
-                            std::cout << std::endl;
-                        }
-
-                        if (events_enabled || waveforms_enabled || raw_enabled)
-                        {
-                            return states::OPEN_FILE;
-                        }
+                    if (events_enabled || waveforms_enabled || raw_enabled)
+                    {
+                        return states::OPEN_FILE;
                     }
                 }
             }
