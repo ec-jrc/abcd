@@ -1,5 +1,5 @@
-#ifndef __ADQ14_FWSTD_HPP__
-#define __ADQ14_FWSTD_HPP__
+#ifndef __ADQ14_FWDAQ_HPP__
+#define __ADQ14_FWDAQ_HPP__
 
 #include <map>
 
@@ -9,19 +9,19 @@ extern "C" {
 
 #include "Digitizer.hpp"
 
-#define ADQ14_FWSTD_MAX_CHANNELS_NUMBER 8
+#define ADQ14_FWDAQ_MAX_CHANNELS_NUMBER 8
 
-#define ADQ14_FWSTD_RECORD_HEADER_SIZE 40
-#define ADQ14_FWSTD_RECORD_HEADER_MASK_LOST_RECORD (1 << 0)
-#define ADQ14_FWSTD_RECORD_HEADER_MASK_LOST_DATA ((1 << 1) + (1 << 2) + (1 << 3))
-#define ADQ14_FWSTD_RECORD_HEADER_MASK_FIFO_FILL ((1 << 4) + (1 << 5) + (1 << 6))
-#define ADQ14_FWSTD_RECORD_HEADER_MASK_OVER_RANGE (1 << 7)
+#define ADQ14_FWDAQ_RECORD_HEADER_SIZE 40
+#define ADQ14_FWDAQ_RECORD_HEADER_MASK_LOST_RECORD (1 << 0)
+#define ADQ14_FWDAQ_RECORD_HEADER_MASK_LOST_DATA ((1 << 1) + (1 << 2) + (1 << 3))
+#define ADQ14_FWDAQ_RECORD_HEADER_MASK_FIFO_FILL ((1 << 4) + (1 << 5) + (1 << 6))
+#define ADQ14_FWDAQ_RECORD_HEADER_MASK_OVER_RANGE (1 << 7)
 
-#define ADQ14_FWSTD_TIMESTAMP_BITS 63
-#define ADQ14_FWSTD_TIMESTAMP_MAX (1UL << ADQ14_FWSTD_TIMESTAMP_BITS)
-#define ADQ14_FWSTD_TIMESTAMP_THRESHOLD (1L << (ADQ14_FWSTD_TIMESTAMP_BITS - 1))
+#define ADQ14_FWDAQ_TIMESTAMP_BITS 63
+#define ADQ14_FWDAQ_TIMESTAMP_MAX (1UL << ADQ14_FWDAQ_TIMESTAMP_BITS)
+#define ADQ14_FWDAQ_TIMESTAMP_THRESHOLD (1L << (ADQ14_FWDAQ_TIMESTAMP_BITS - 1))
 
-class ADQ14_FWSTD : public Digitizer {
+class ADQ14_FWDAQ : public Digitizer {
 private:
     // Putting this to notify the compiler that we do intend to replace the
     // method but we do not want the user to call the base method.
@@ -35,7 +35,7 @@ public:
     // Pointer to the control unit of the ADQ cards
     void* adq_cu_ptr;
 
-    // Number of the ADQ14_FWSTD card
+    // Number of the ADQ14_FWDAQ card
     int adq_num;
 
     // Flag to select the clock source of the digitizer
@@ -98,8 +98,8 @@ public:
     // Create a pointer array containing the data buffer pointers
     // GetData allows for a digitizer with max 8 channels,
     // the unused pointers should be null pointers
-    void* target_buffers[ADQ14_FWSTD_MAX_CHANNELS_NUMBER];
-    std::vector<int16_t> buffers[ADQ14_FWSTD_MAX_CHANNELS_NUMBER];
+    void* target_buffers[ADQ14_FWDAQ_MAX_CHANNELS_NUMBER];
+    std::vector<int16_t> buffers[ADQ14_FWDAQ_MAX_CHANNELS_NUMBER];
     std::vector<uint8_t> target_headers;
     std::vector<int64_t> target_timestamps;
 
@@ -119,8 +119,8 @@ public:
     // Counter of overflows, used only for debugging
     unsigned int timestamp_overflows;
 
-    ADQ14_FWSTD(int verbosity = 0);
-    virtual ~ADQ14_FWSTD();
+    ADQ14_FWDAQ(int verbosity = 0);
+    virtual ~ADQ14_FWDAQ();
 
     int Initialize(void* adq_cu_ptr, int adq_num);
     int ReadConfig(json_t* config);

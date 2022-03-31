@@ -51,7 +51,8 @@ struct status
 
     std::map<unsigned int, histogram_t*> histos_ToF;
     std::map<unsigned int, histogram_t*> histos_E;
-    std::map<unsigned int, histogram2D_t*> histos_EToF;
+    std::map<unsigned int, histogram2D_t*> histos_EvsToF;
+    std::map<unsigned int, histogram2D_t*> histos_EvsE;
     std::map<unsigned int, unsigned int> counts_partial;
     std::map<unsigned int, unsigned int> counts_total;
 

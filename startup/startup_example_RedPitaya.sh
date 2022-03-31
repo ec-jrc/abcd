@@ -2,6 +2,9 @@
 # 
 # Example of startup script
 
+# In order to run abrp we need to inform where the Red Pitaya libraries are
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/redpitaya/lib/
+
 # Check if the ABCD_FOLDER variable is set in the environment, otherwise set it here
 if [[ -z "${ABCD_FOLDER}" ]]; then
     # The variable is not set, thus set it to the folder in which ABCD is installed
@@ -9,20 +12,9 @@ if [[ -z "${ABCD_FOLDER}" ]]; then
 fi
 
 # Folder in which data should be saved
-# Check if the DATA_FOLDER variable is set in the environment, otherwise set it here
-if [[ -z "${DATA_FOLDER}" ]]; then
-    # The variable is not set, thus set it to the folder in which ABCD is installed
-    DATA_FOLDER="${ABCD_FOLDER}""/data/"
-fi
+DATA_FOLDER="${ABCD_FOLDER}""/data/"
 
 CURRENT_FOLDER="$PWD"
-
-if [[ -z "$1" ]]
-then
-    FILE_NAME="${ABCD_FOLDER}/data/example_data_DT5730_Ch1_LaBr3_Ch6_CeBr3_Ch7_CeBr3_coincidence_raw.adr.bz2"
-else
-    FILE_NAME="$1"
-fi
 
 TODAY="`date "+%Y%m%d"`"
 echo 'Today is '"$TODAY"
@@ -34,7 +26,7 @@ if [[ ! -x "${ABCD_FOLDER}/waan/waan" ]]
 then
     printf '\e[1m\e[31mERROR:\e[0m waan is not executable.\n'
     printf '\e[1m\e[32mSuggestions:\e[0m Was ABCD correctly compiled?\n'
-    printf '             Is the $ABCD_FOLDER variable set correctly in the environment or in the script?\n'
+    printf '             Is the ${ABCD_FOLDER} variable set correctly in the environment or in the script?\n'
 else
     #This is needed only on older versions of tmux, if the -c option does not work
     #echo "Changing folder to: ""${ABCD_FOLDER}"
@@ -67,11 +59,11 @@ else
     echo "Waiting for node.js to start"
     sleep 2
     
-    echo "Creating replayer window, file: ${FILE_NAME}"
-    tmux new-window -d -c "${CURRENT_FOLDER}" -P -t ABCD -n replay "python3 ${ABCD_FOLDER}/replay/replay_raw.py -c -D 'tcp://*:16207' -T 100 ${FILE_NAME}"
+    echo "Creating abrp window"
+    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n abrp "./abrp/abrp -f abrp/configs/config_CeBr.json -D 'tcp://*:16207' -T 50"
     
     echo "Creating WaAn window"
-    tmux new-window -d -c "${ABCD_FOLDER}/waan/" -P -t ABCD -n waan './waan -v -T 100 -A tcp://127.0.0.1:16207 -D tcp://*:16181 -f ./configs/config_example_data.json'
+    tmux new-window -d -c "${ABCD_FOLDER}/waan/" -P -t ABCD -n waan './waan -v -T 100 -A tcp://127.0.0.1:16207 -D tcp://*:16181 -f ./configs/config_RedPitaya_CeBr.json'
     
     echo "Creating DaSa window, folder: ${DATA_FOLDER}"
     tmux new-window -d -c "${DATA_FOLDER}" -P -t ABCD -n dasa "${ABCD_FOLDER}/dasa/dasa -v"
@@ -80,7 +72,7 @@ else
     tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n wadi './wadi/wadi -v'
     
     echo "Creating tofcalc windows"
-    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n tofcalc "./tofcalc/tofcalc -f ./tofcalc/configs/config_example_data.json -n 0.00195312"
+    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n tofcalc "./tofcalc/tofcalc -f ./tofcalc/configs/config_RedPitaya.json -n 0.0078"
     
     echo "Creating spec windows"
     tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n spec "./spec/spec"

@@ -2,6 +2,7 @@
 #define __ADQ14_FWPD_HPP__
 
 #include <map>
+#include <chrono>
 
 extern "C" {
 #include <jansson.h>
@@ -19,8 +20,8 @@ extern "C" {
 #define ADQ14_FWPD_RECORD_HEADER_MASK_OVER_RANGE (1 << 7)
 
 #define ADQ14_FWPD_TIMESTAMP_BITS 63
-#define ADQ14_FWPD_TIMESTAMP_MAX (1UL << ADQ14_FWSTD_TIMESTAMP_BITS)
-#define ADQ14_FWPD_TIMESTAMP_THRESHOLD (1L << (ADQ14_FWSTD_TIMESTAMP_BITS - 1))
+#define ADQ14_FWPD_TIMESTAMP_MAX (1UL << ADQ14_FWDAQ_TIMESTAMP_BITS)
+#define ADQ14_FWPD_TIMESTAMP_THRESHOLD (1L << (ADQ14_FWDAQ_TIMESTAMP_BITS - 1))
 
 class ADQ14_FWPD : public Digitizer {
 private:
@@ -29,8 +30,6 @@ private:
     using Digitizer::Initialize;
 
 public:
-    static const int streaming_generation;
-
     // Descriptions of the flag values
     static const std::map<int, std::string> description_errors;
     static const std::map<unsigned int, std::string> description_clock_source;
@@ -46,6 +45,7 @@ public:
 
     // Variable storing the generation of the firmware to disable some features
     unsigned int FWPD_generation;
+    int streaming_generation;
 
     // Enable channels self triggering flag
     // TODO: Check if this works
@@ -101,6 +101,10 @@ public:
     uint64_t timestamp_offset;
     // Counter of overflows, used only for debugging
     unsigned int timestamp_overflows;
+
+    // The timeout between buffer reads in ms
+    static const unsigned int DMA_flush_timeout;
+    std::chrono::time_point<std::chrono::system_clock> last_buffer_ready;
 
     // These variables are used to propagate state between calls of data
     // transfer APIs

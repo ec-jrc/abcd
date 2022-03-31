@@ -49,6 +49,11 @@
 #define ADQ_ADQ412_TEMPERATURE_FPGA 3
 #define ADQ_ADQ412_TEMPERATURE_PCB 4
 
+#define ADQ_ADQ214_TEMPERATURE_ADC0 1
+#define ADQ_ADQ214_TEMPERATURE_ADC1 2
+#define ADQ_ADQ214_TEMPERATURE_FPGA 3
+#define ADQ_ADQ214_TEMPERATURE_PCB 4
+
 class ADQ_descriptions {
 public:
     // Descriptions of the flag values
@@ -59,6 +64,7 @@ public:
     static const std::map<unsigned int, std::string> collection_mode;
     static const std::map<unsigned int, std::string> ADQ14_temperatures;
     static const std::map<unsigned int, std::string> ADQ412_temperatures;
+    static const std::map<unsigned int, std::string> ADQ214_temperatures;
 };
 
 #endif

@@ -14,7 +14,7 @@
     if (!(retval)) { \
         char time_buffer[BUFFER_SIZE]; \
         time_string(time_buffer, BUFFER_SIZE, NULL); \
-        std::cout << '[' << time_buffer << "] ADQ14_FWSTD "; \
+        std::cout << '[' << time_buffer << "] ADQSDK "; \
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << " in: " << (#f); \
         std::cout << " (code: " << WRITE_YELLOW << retval << WRITE_NC << "); "; \
         std::cout << std::endl; \

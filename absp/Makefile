@@ -3,11 +3,9 @@ include ../common_definitions.mk
 # File names
 EXEC = absp
 
-SOURCES = $(SRC_DIR)/actions.cpp $(SRC_DIR)/states.cpp $(SRC_DIR)/ADQ_descriptions.cpp $(SRC_DIR)/ADQ412.cpp $(SRC_DIR)/ADQ14_FWSTD.cpp $(SRC_DIR)/ADQ14_FWPD.cpp
+SOURCES = $(SRC_DIR)/actions.cpp $(SRC_DIR)/states.cpp $(SRC_DIR)/ADQ_descriptions.cpp $(SRC_DIR)/ADQ412.cpp $(SRC_DIR)/ADQ14_FWDAQ.cpp $(SRC_DIR)/ADQ14_FWPD.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
-#CXXFLAGS += -D_SPD -std=gnu++0x
-#CXXFLAGS += -std=gnu++0x
 CXXFLAGS += -std=c++11
 LDFLAGS += -L /usr/lib -ljansson -ladq
 

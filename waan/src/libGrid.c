@@ -1,15 +1,17 @@
 /*! \brief Determination of the energy information from an exponentially
  *         decaying pulse, by compensating its decay and then applying a CR-RC4
- *         filter to the waveforms.
+ *         filter to the waveforms. Only the positive part of the signal is
+ *         treated, in order to analyze signals from fission chamber grids.
  *
  * Calculation procedure:
  *  1. The baseline is determined averaging the first N samples.
  *  2. The pulse is offset by the baseline to center it around zero.
  *  3. The decay is compensated with a recursive filter, obtaining a step
  *     function.
- *  4. A recursive high-pass filter (CR filter) is applied.
- *  5. A recursive low-pass filter (RC4 filter) is applied.
- *  6. The energy information is obtained by determining the absolute maximum
+ *  4. The negative part of the signal is put to zero.
+ *  5. A recursive high-pass filter (CR filter) is applied.
+ *  6. A recursive low-pass filter (RC4 filter) is applied.
+ *  7. The energy information is obtained by determining the absolute maximum
  *     of the resulting waveform.
  *
  * In the event_PSD structure the energy information is stored in the qlong,
@@ -20,7 +22,7 @@
  *
  * - `baseline_samples`: the number of samples to average to determine the
  *   baseline. The average starts from the beginning of the waveform.
- * - `pulse_polarity`: a string describing the expected pulse polarity, it
+ * - `pulse_polarity_grid`: a string describing the expected pulse polarity, it
  *   can be `positive` or `negative`.
  * - `decay_time`: the pulse decay time in terms of clock samples, for the
  *   compensation.
@@ -53,7 +55,7 @@
 
 /*! \brief Sctructure that holds the configuration for the `energy_analysis()` function.
  */
-struct CRRC4_config
+struct Grid_config
 {
     uint32_t baseline_samples;
     uint32_t extension_samples;
@@ -77,27 +79,27 @@ struct CRRC4_config
 
 /*! \brief Function that allocates the necessary memory for the calculations.
  */
-void reallocate_curves(uint32_t samples_number, struct CRRC4_config **user_config);
+void reallocate_curves(uint32_t samples_number, struct Grid_config **user_config);
 
 /*! \brief Function that reads the json_t configuration for the `energy_analysis()` function.
  *
  * This function parses a JSON object determining the configuration for the
  * `energy_analysis()` function. The configuration is returned as an
- * allocated `struct CRRC4_config`.
+ * allocated `struct Grid_config`.
  */
 void energy_init(json_t *json_config, void **user_config)
 {
     (*user_config) = NULL;
 
     if (!json_is_object(json_config)) {
-        printf("ERROR: libCRRC4 energy_init(): json_config is not a json_t object\n");
+        printf("ERROR: libGrid energy_init(): json_config is not a json_t object\n");
 
         (*user_config) = NULL;
     } else {
-        struct CRRC4_config *config = malloc(1 * sizeof(struct CRRC4_config));
+        struct Grid_config *config = malloc(1 * sizeof(struct Grid_config));
 
         if (!config) {
-            printf("ERROR: libCRRC4 energy_init(): Unable to allocate config memory\n");
+            printf("ERROR: libGrid energy_init(): Unable to allocate config memory\n");
 
             (*user_config) = NULL;
         }
@@ -127,8 +129,8 @@ void energy_init(json_t *json_config, void **user_config)
 
         config->pulse_polarity = POLARITY_NEGATIVE;
 
-        if (json_is_string(json_object_get(json_config, "pulse_polarity"))) {
-            const char *pulse_polarity = json_string_value(json_object_get(json_config, "pulse_polarity"));
+        if (json_is_string(json_object_get(json_config, "pulse_polarity_grid"))) {
+            const char *pulse_polarity = json_string_value(json_object_get(json_config, "pulse_polarity_grid"));
 
             if (strstr(pulse_polarity, "Negative") ||
                 strstr(pulse_polarity, "negative"))
@@ -159,7 +161,7 @@ void energy_init(json_t *json_config, void **user_config)
  */
 void energy_close(void *user_config)
 {
-    struct CRRC4_config *config = (struct CRRC4_config*)user_config;
+    struct Grid_config *config = (struct Grid_config*)user_config;
 
     if (config->curve_samples) {
         free(config->curve_samples);
@@ -194,7 +196,7 @@ void energy_analysis(const uint16_t *samples,
 {
     UNUSED(trigger_positions);
 
-    struct CRRC4_config *config = (struct CRRC4_config*)user_config;
+    struct Grid_config *config = (struct Grid_config*)user_config;
 
     const uint32_t extended_samples_number = samples_number + config->extension_samples;
 
@@ -203,18 +205,18 @@ void energy_analysis(const uint16_t *samples,
     bool is_error = false;
 
     if ((*events_number) != 1) {
-        printf("WARNING: libCRRC4 energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
+        printf("WARNING: libGrid energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
 
         // Assuring that there is one event_PSD and discarding others
         is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
 
         if (is_error) {
-            printf("ERROR: libCRRC4 energy_analysis(): Unable to reallocate buffers\n");
+            printf("ERROR: libGrid energy_analysis(): Unable to reallocate buffers\n");
         }
     }
 
     if (is_error || config->is_error) {
-        printf("ERROR: libCRRC4 energy_analysis(): Error status detected\n");
+        printf("ERROR: libGrid energy_analysis(): Error status detected\n");
 
         return;
     }
@@ -232,6 +234,13 @@ void energy_analysis(const uint16_t *samples,
         add_and_multiply_constant(config->curve_samples, samples_number, -1 * baseline, 1.0, &config->curve_offset);
     } else {
         add_and_multiply_constant(config->curve_samples, samples_number, -1 * baseline, -1.0, &config->curve_offset);
+    }
+
+    // Eliminate the negative part of the signal
+    for (uint32_t i = 0; i < samples_number; i += 1) {
+        if (config->curve_offset[i] < 0) {
+            config->curve_offset[i] = 0;
+        }
     }
 
     decay_compensation(config->curve_offset, samples_number, \
@@ -364,9 +373,9 @@ void energy_analysis(const uint16_t *samples,
     }
 }
 
-void reallocate_curves(uint32_t samples_number, struct CRRC4_config **user_config)
+void reallocate_curves(uint32_t samples_number, struct Grid_config **user_config)
 {
-    struct CRRC4_config *config = (*user_config);
+    struct Grid_config *config = (*user_config);
 
     if (samples_number > config->previous_samples_number) {
         config->previous_samples_number = samples_number;
@@ -385,35 +394,35 @@ void reallocate_curves(uint32_t samples_number, struct CRRC4_config **user_confi
                                        samples_number * sizeof(double));
 
         if (!new_curve_samples) {
-            printf("ERROR: libCRRC4 reallocate_curves(): Unable to allocate curve_samples memory\n");
+            printf("ERROR: libGrid reallocate_curves(): Unable to allocate curve_samples memory\n");
 
             config->is_error = true;
         } else {
             config->curve_samples = new_curve_samples;
         }
         if (!new_curve_compensated) {
-            printf("ERROR: libCRRC4 reallocate_curves(): Unable to allocate curve_compensated memory\n");
+            printf("ERROR: libGrid reallocate_curves(): Unable to allocate curve_compensated memory\n");
 
             config->is_error = true;
         } else {
             config->curve_compensated = new_curve_compensated;
         }
         if (!new_curve_offset) {
-            printf("ERROR: libCRRC4 reallocate_curves(): Unable to allocate curve_offset memory\n");
+            printf("ERROR: libGrid reallocate_curves(): Unable to allocate curve_offset memory\n");
 
             config->is_error = true;
         } else {
             config->curve_offset = new_curve_offset;
         }
         if (!new_curve_CR) {
-            printf("ERROR: libCRRC4 reallocate_curves(): Unable to allocate curve_CR memory\n");
+            printf("ERROR: libGrid reallocate_curves(): Unable to allocate curve_CR memory\n");
 
             config->is_error = true;
         } else {
             config->curve_CR = new_curve_CR;
         }
         if (!new_curve_RC) {
-            printf("ERROR: libCRRC4 reallocate_curves(): Unable to allocate curve_RC memory\n");
+            printf("ERROR: libGrid reallocate_curves(): Unable to allocate curve_RC memory\n");
 
             config->is_error = true;
         } else {

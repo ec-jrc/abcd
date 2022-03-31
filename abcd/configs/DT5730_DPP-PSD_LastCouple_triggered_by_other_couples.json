@@ -1,0 +1,259 @@
+{
+    "abcd": {
+        "registers": [
+            {
+                "address": "0x8004",
+                "note": "Enable extra word on x730, x725 and x751",
+                "value": 131072
+            },
+            {
+                "address": "0x8004",
+                "note": "Enable auto-flush of data on x730, x725 and x751",
+                "value": 1
+            },
+            {
+                "address": "0x8004",
+                "note": "Set trigger out bidirectional",
+                "value": 4
+            },
+            {
+                "address": "0x1680",
+                "n": 1,
+                "note": "Disable self trigger on channel 6",
+                "start": 24,
+                "value": 1
+            },
+            {
+                "address": "0x1084",
+                "n": 1,
+                "note": "Enable trigger out from channel 0",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1184",
+                "n": 1,
+                "note": "Enable trigger out from channel 1",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1284",
+                "n": 1,
+                "note": "Enable trigger out from channel 2",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1384",
+                "n": 1,
+                "note": "Enable trigger out from channel 3",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1070",
+                "n": 1,
+                "note": "Trigger out width of channel 0, 8 ns steps",
+                "start": 2,
+                "value": 50
+            },
+            {
+                "address": "0x1170",
+                "n": 1,
+                "note": "Trigger out width of channel 1, 8 ns steps",
+                "start": 2,
+                "value": 50
+            },
+            {
+                "address": "0x1270",
+                "n": 1,
+                "note": "Trigger out width of channel 2, 8 ns steps",
+                "start": 2,
+                "value": 50
+            },
+            {
+                "address": "0x1370",
+                "n": 1,
+                "note": "Trigger out width of channel 3, 8 ns steps",
+                "start": 2,
+                "value": 50
+            },
+            {
+                "address": "0x1684",
+                "n": 1,
+                "note": "Enable validation input from main board for channel 6",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1784",
+                "n": 1,
+                "note": "Enable validation input from main board for channel 7",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1684",
+                "n": 2,
+                "note": "Validation signal interpretation for channel 6 (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 0
+            },
+            {
+                "address": "0x1784",
+                "n": 2,
+                "note": "Validation signal interpretation for channel 7 (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 0
+            },
+            {
+                "address": "0x1684",
+                "n": 2,
+                "note": "Validation input calculation for channel 6 (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x1784",
+                "n": 2,
+                "note": "Validation input calculation for channel 7 (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x1084",
+                "n": 2,
+                "note": "Trigger out calculation from couple 0 triggers (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x1184",
+                "n": 2,
+                "note": "Trigger out calculation from couple 0 triggers (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x818C",
+                "note": "Validation output calculation for couple 3, or of all the detectors (value: 0x3)",
+                "value": 3
+            },
+            {}
+        ]
+    },
+    "dgtzs": {
+        "BoardName": "DT5730",
+        "ChannelEnableMask": 223,
+        "DPPAcquisitionMode": 2,
+        "MaxNumAggregatesBLT": 1023,
+        "ShowGates": 1,
+        "ch0": {
+            "BSLSamples": 64,
+            "ChannelName": "He-4 Segment 0",
+            "ChargeSensitivity": 3,
+            "DCOffsetPercent": 49,
+            "LongGate": 80,
+            "PreGate": 10,
+            "PreTrigger": 300,
+            "PulsePolarity": 0,
+            "ScopeSamples": 1000,
+            "ShortGate": 20,
+            "Threshold": 170,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch1": {
+            "BSLSamples": 64,
+            "ChannelName": "He-4 Segment 1",
+            "ChargeSensitivity": 3,
+            "DCOffsetPercent": 49,
+            "LongGate": 80,
+            "PreGate": 10,
+            "PreTrigger": 300,
+            "PulsePolarity": 0,
+            "ScopeSamples": 1000,
+            "ShortGate": 20,
+            "Threshold": 185,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch2": {
+            "BSLSamples": 64,
+            "ChannelName": "He-4 Segment 2",
+            "ChargeSensitivity": 3,
+            "DCOffsetPercent": 49,
+            "LongGate": 80,
+            "PreGate": 10,
+            "PreTrigger": 300,
+            "PulsePolarity": 0,
+            "ScopeSamples": 1000,
+            "ShortGate": 20,
+            "Threshold": 170,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch3": {
+            "BSLSamples": 64,
+            "ChannelName": "EJ-301",
+            "ChargeSensitivity": 1,
+            "DCOffsetPercent": -30,
+            "LongGate": 130,
+            "PreGate": 85,
+            "PreTrigger": 200,
+            "PulsePolarity": 1,
+            "ScopeSamples": 1000,
+            "ShortGate": 38,
+            "Threshold": 60,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch4": {
+            "BSLSamples": 64,
+            "ChannelName": "LongCounter",
+            "ChargeSensitivity": 1,
+            "DCOffsetPercent": 40,
+            "LongGate": 140,
+            "PreGate": 85,
+            "PreTrigger": 500,
+            "PulsePolarity": 0,
+            "ScopeSamples": 1200,
+            "ShortGate": 30,
+            "Threshold": 200,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch6": {
+            "BSLSamples": 64,
+            "ChannelName": "Accelerator Pulse",
+            "ChargeSensitivity": 1,
+            "DCOffset14bit": 1000,
+            "LongGate": 60,
+            "PreGate": 20,
+            "PreTrigger": 250,
+            "PulsePolarity": 0,
+            "ScopeSamples": 300,
+            "ShortGate": 20,
+            "Threshold": 1000,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch7": {
+            "BSLSamples": 64,
+            "ChannelName": "Accelerator Pick up",
+            "ChargeSensitivity": 1,
+            "DCOffset14bit": 1000,
+            "LongGate": 60,
+            "PreGate": 20,
+            "PreTrigger": 250,
+            "PulsePolarity": 0,
+            "ScopeSamples": 300,
+            "ShortGate": 20,
+            "Threshold": 1000,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "zzz": false
+    }
+}

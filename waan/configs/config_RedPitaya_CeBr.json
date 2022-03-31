@@ -9,6 +9,21 @@
             "name": "CeBr",
             "enabled": true,
             "user_libraries": {
+                "energy": "src/libRC4.so"
+            },
+            "user_config": {
+                "baseline_samples": 25,
+                "pulse_polarity": "negative",
+                "lowpass_time": 7,
+                "height_scaling": 5,
+                "energy_threshold": 60
+            }
+        },
+        {
+            "id": 1,
+            "name": "CeBr other",
+            "enabled": false,
+            "user_libraries": {
                 "timestamp": "src/libRT.so",
                 "energy": "src/libPSD.so"
             },

@@ -61,3 +61,11 @@ const std::map<unsigned int, std::string> ADQ_descriptions::ADQ412_temperatures 
     {ADQ_ADQ412_TEMPERATURE_FPGA, "FPGA"},
     {ADQ_ADQ412_TEMPERATURE_PCB, "PCB"}
 };
+
+
+const std::map<unsigned int, std::string> ADQ_descriptions::ADQ214_temperatures = {
+    {ADQ_ADQ214_TEMPERATURE_ADC0, "ADC0"},
+    {ADQ_ADQ214_TEMPERATURE_ADC1, "ADC1"},
+    {ADQ_ADQ214_TEMPERATURE_FPGA, "FPGA"},
+    {ADQ_ADQ214_TEMPERATURE_PCB, "PCB"}
+};
