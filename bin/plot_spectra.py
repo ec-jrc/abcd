@@ -130,7 +130,8 @@ for file_name in args.file_names:
     max_times = list()
     energy_edges = None
     counter = 0
-    events_counter = 0
+    counter_events_total = 0
+    counter_events_in_range = 0
 
     # We will read the file in chunks so we can process also very big files
     with open(file_name, "rb") as input_file:
@@ -154,11 +155,13 @@ for file_name in args.file_names:
                 except ValueError:
                     channel_selection = data['channel'] >= 0
 
-                events_counter += channel_selection.sum()
+                counter_events_total += channel_selection.sum()
 
                 energy_selection = np.logical_and(min_energy < qlongs, qlongs < max_energy)
 
                 selection = np.logical_and(channel_selection, energy_selection)
+
+                counter_events_in_range += selection.sum()
 
                 this_spectrum, energy_edges = np.histogram(qlongs[selection],
                                                            bins = N_E,
@@ -178,9 +181,11 @@ for file_name in args.file_names:
 
         Delta_time = (max_time - min_time) * args.ns_per_sample * 1e-9
 
-        print("    Number of events: {:d}".format(events_counter))
+        print("    Total number of events of channel {:d}: {:d}".format(channel, counter_events_total))
+        print("    Number of events in energy range: {:d}".format(counter_events_in_range))
         print("    Time delta: {:f} s".format(Delta_time))
-        print("    Average rate: {:f} Hz".format(events_counter / Delta_time))
+        print("    Average rate total: {:f} Hz".format(counter_events_total / Delta_time))
+        print("    Average rate in range: {:f} Hz".format(counter_events_in_range / Delta_time))
 
         int_spectrum = functools.reduce(np.add, partial_spectra)
 
