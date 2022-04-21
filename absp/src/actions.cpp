@@ -55,7 +55,7 @@ extern "C" {
 
 #include "Digitizer.hpp"
 #include "ADQ412.hpp"
-//#include "ADQ214.hpp"
+#include "ADQ214.hpp"
 #include "ADQ14_FWDAQ.hpp"
 #include "ADQ14_FWPD.hpp"
 
@@ -307,7 +307,7 @@ void actions::generic::destroy_digitizer(status &global_status)
 
     for (unsigned int index = 0; index < global_status.digitizers.size(); index++)
     {
-        Digitizer *digitizer = global_status.digitizers[index];
+        ABCD::Digitizer *digitizer = global_status.digitizers[index];
 
         if (global_status.verbosity > 0)
         {
@@ -368,6 +368,7 @@ bool actions::generic::create_digitizer(status &global_status)
         return 0;
     }
 
+    // This creates a file with the error trace when the program is executed
     //if (global_status.verbosity > 0)
     //{
     //    char time_buffer[BUFFER_SIZE];
@@ -378,6 +379,8 @@ bool actions::generic::create_digitizer(status &global_status)
     //}
 
     //ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, LOG_LEVEL_INFO, ".");
+    // This is to enable all possible log levels
+    //ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, 0x7FFFFFFF, ".");
 
     if (global_status.verbosity > 0)
     {
@@ -519,25 +522,19 @@ bool actions::generic::create_digitizer(status &global_status)
         CHECKZERO(ADQControlUnit_SetupDevice(global_status.adq_cu_ptr, device_index));
 
         if (ADQlist[device_index].ProductID == PID_ADQ214) {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Refusing to use ADQ214!!!!!!!!!!!!; ";
-            std::cout << std::endl;
-
             // WARNING: boards numbering start from 1 in the next functions
-            //const int adq214_index = device_index + 1;
+            const int adq214_index = device_index + 1;
 
-            //ADQ214 *adq214_ptr = new ADQ214(global_status.verbosity);
+            ABCD::ADQ214 *adq214_ptr = new ABCD::ADQ214(global_status.verbosity);
 
-            //adq214_ptr->Initialize(global_status.adq_cu_ptr, adq214_index);
+            adq214_ptr->Initialize(global_status.adq_cu_ptr, adq214_index);
 
-            //global_status.digitizers.push_back(adq214_ptr);
+            global_status.digitizers.push_back(adq214_ptr);
         } else if (ADQlist[device_index].ProductID == PID_ADQ412) {
             // WARNING: boards numbering start from 1 in the next functions
             const int adq412_index = device_index + 1;
 
-            ADQ412 *adq412_ptr = new ADQ412(global_status.verbosity);
+            ABCD::ADQ412 *adq412_ptr = new ABCD::ADQ412(global_status.verbosity);
 
             adq412_ptr->Initialize(global_status.adq_cu_ptr, adq412_index);
 
@@ -580,13 +577,13 @@ bool actions::generic::create_digitizer(status &global_status)
             }
 
             if (has_FWPD == 1 ) {
-                ADQ14_FWPD *adq14_ptr = new ADQ14_FWPD(global_status.verbosity);
+                ABCD::ADQ14_FWPD *adq14_ptr = new ABCD::ADQ14_FWPD(global_status.verbosity);
 
                 adq14_ptr->Initialize(global_status.adq_cu_ptr, adq14_index);
 
                 global_status.digitizers.push_back(adq14_ptr);
             } else {
-                ADQ14_FWDAQ *adq14_ptr = new ADQ14_FWDAQ(global_status.verbosity);
+                ABCD::ADQ14_FWDAQ *adq14_ptr = new ABCD::ADQ14_FWDAQ(global_status.verbosity);
 
                 adq14_ptr->Initialize(global_status.adq_cu_ptr, adq14_index);
 
