@@ -23,11 +23,13 @@ extern "C" {
 #define ADQ14_FWPD_TIMESTAMP_MAX (1UL << ADQ14_FWDAQ_TIMESTAMP_BITS)
 #define ADQ14_FWPD_TIMESTAMP_THRESHOLD (1L << (ADQ14_FWDAQ_TIMESTAMP_BITS - 1))
 
-class ADQ14_FWPD : public Digitizer {
+namespace ABCD {
+
+class ADQ14_FWPD : public ABCD::Digitizer {
 private:
     // Putting this to notify the compiler that we do intend to replace the
     // method but we do not want the user to call the base method.
-    using Digitizer::Initialize;
+    using ABCD::Digitizer::Initialize;
 
 public:
     // Descriptions of the flag values
@@ -143,5 +145,6 @@ public:
     void SetDBSInstancesNumber(unsigned int n) { DBS_instances_number = n; }
     unsigned int GetDBSInstancesNumber() const { return DBS_instances_number; }
 };
+}
 
 #endif

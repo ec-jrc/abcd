@@ -22,13 +22,13 @@ extern "C" {
 #define BUFFER_SIZE 32
 
 
-ADQ412::ADQ412(int Verbosity) : Digitizer(Verbosity)
+ABCD::ADQ412::ADQ412(int Verbosity) : Digitizer(Verbosity)
 {
     if (GetVerbosity() > 0)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::ADQ412() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ADQ412() ";
         std::cout << std::endl;
     }
 
@@ -59,11 +59,11 @@ ADQ412::ADQ412(int Verbosity) : Digitizer(Verbosity)
 
 //==================================================================
 
-ADQ412::~ADQ412() { }
+ABCD::ADQ412::~ADQ412() { }
 
 //==================================================================
 
-int ADQ412::Initialize(void* adq, int num)
+int ABCD::ADQ412::Initialize(void* adq, int num)
 {
     adq_cu_ptr = adq;
     adq_num = num;
@@ -86,16 +86,16 @@ int ADQ412::Initialize(void* adq, int num)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::Initialize() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Initialize() ";
         std::cout << "Initialized board; ";
         std::cout << std::endl;
-        std::cout << '[' << time_buffer << "] ADQ412::Initialize() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Initialize() ";
         std::cout << "Card name (serial number): " << GetName() << "; ";
         std::cout << "USB address: " << ADQ_GetUSBAddress(adq_cu_ptr, adq_num) << "; ";
         std::cout << "PCIe address: " << ADQ_GetPCIeAddress(adq_cu_ptr, adq_num) << "; ";
         std::cout << std::endl;
 
-        std::cout << '[' << time_buffer << "] ADQ412::Initialize() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Initialize() ";
         std::cout << "ADQAPI Revision: " << ADQAPI_GetRevision() << "; ";
         std::cout << "ADQ412 Revision: {";
         int* revision = ADQ_GetRevision(adq_cu_ptr, adq_num);
@@ -105,12 +105,12 @@ int ADQ412::Initialize(void* adq, int num)
         std::cout << "}; ";
         std::cout << std::endl;
 
-        std::cout << '[' << time_buffer << "] ADQ412::Initialize() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Initialize() ";
         std::cout << "Channels number: " << GetChannelsNumber() << "; ";
         std::cout << "DBS instances: " << dbs_inst << "; ";
         std::cout << std::endl;
 
-        std::cout << '[' << time_buffer << "] ADQ412::Initialize() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Initialize() ";
         std::cout << "Has adjustable input range: " << (ADQ_HasAdjustableInputRange(adq_cu_ptr, adq_num) > 0 ? "true" : "false") << "; ";
         std::cout << "Has adjustable offset: " << (ADQ_HasAdjustableBias(adq_cu_ptr, adq_num) > 0 ? "true" : "false") << "; ";
         std::cout << std::endl;
@@ -129,13 +129,13 @@ int ADQ412::Initialize(void* adq, int num)
 
 //==========================================================================================
 
-int ADQ412::Configure()
+int ABCD::ADQ412::Configure()
 {
     if (GetVerbosity() > 0)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Configure() ";
         std::cout << "Configuring board; ";
         std::cout << std::endl;
     }
@@ -153,7 +153,7 @@ int ADQ412::Configure()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Configure() ";
         std::cout << "Setting clock; ";
         std::cout << "clock_source: " << ADQ_descriptions::clock_source.at(clock_source) << "; ";
         std::cout << std::endl;
@@ -164,7 +164,7 @@ int ADQ412::Configure()
     if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Configure() ";
         std::cout << "Clock source from device: " << ADQ_descriptions::clock_source.at(ADQ_GetClockSource(adq_cu_ptr, adq_num)) << "; ";
         std::cout << std::endl;
     }
@@ -174,7 +174,7 @@ int ADQ412::Configure()
     //{
     //    char time_buffer[BUFFER_SIZE];
     //    time_string(time_buffer, BUFFER_SIZE, NULL);
-    //    std::cout << '[' << time_buffer << "] ADQ412::Configure() ";
+    //    std::cout << '[' << time_buffer << "] ABCD::ADQ412::Configure() ";
     //    std::cout << "Setting PLL divider; ";
     //    std::cout << "pll_divider: " << pll_divider << "; ";
     //    std::cout << std::endl;
@@ -188,7 +188,7 @@ int ADQ412::Configure()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Configure() ";
         std::cout << "Setting interleaving mode; ";
         std::cout << "interleaving_mode: " << 0 << "; ";
         std::cout << std::endl;
@@ -200,7 +200,7 @@ int ADQ412::Configure()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Configure() ";
         std::cout << "Disabling test data; ";
         std::cout << std::endl;
     }
@@ -222,7 +222,7 @@ int ADQ412::Configure()
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ412::Configure() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ412::Configure() ";
             std::cout << "Channel: " << channel << "; ";
             std::cout << "Enabled: " << (IsChannelEnabled(channel) ? "true" : "false") << "; ";
             std::cout << "Triggering: " << (IsChannelTriggering(channel) ? "true" : "false") << "; ";
@@ -242,7 +242,7 @@ int ADQ412::Configure()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Configure() ";
         std::cout << "Channels acquisition mask: " << (unsigned int)channels_acquisition_mask << "; ";
         std::cout << "Channels triggering mask: " << channels_triggering_mask << "; ";
         std::cout << std::endl;
@@ -257,7 +257,7 @@ int ADQ412::Configure()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Configure() ";
         std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Wrong triggering mask (got: " << channels_triggering_mask << "), enabling all channels; ";
         std::cout << std::endl;
 
@@ -273,7 +273,7 @@ int ADQ412::Configure()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Configure() ";
         std::cout << "Setting trigger; ";
         std::cout << "mode: " << ADQ_descriptions::trig_mode.at(trig_mode) << "; ";
         std::cout << std::endl;
@@ -286,7 +286,7 @@ int ADQ412::Configure()
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ412::Configure() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ412::Configure() ";
             std::cout << "Setting external TTL trigger; ";
             std::cout << std::endl;
         }
@@ -298,7 +298,7 @@ int ADQ412::Configure()
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ412::Configure() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ412::Configure() ";
             std::cout << "Setting channels trigger; ";
             std::cout << std::endl;
         }
@@ -312,7 +312,7 @@ int ADQ412::Configure()
     if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Configure() ";
         std::cout << "Trigger from device: ";
         std::cout << ADQ_descriptions::trig_mode.at(ADQ_GetTriggerMode(adq_cu_ptr, adq_num)) << "; ";
         std::cout << "Channels triggering mask: " << ADQ_GetLvlTrigChannel(adq_cu_ptr, adq_num) << "; ";
@@ -339,7 +339,7 @@ int ADQ412::Configure()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Configure() ";
         std::cout << "Setting pretrigger: " << pretrigger << "; ";
         std::cout << std::endl;
     }
@@ -376,13 +376,13 @@ int ADQ412::Configure()
 
 //==========================================================================================
 
-int ADQ412::StartAcquisition()
+int ABCD::ADQ412::StartAcquisition()
 {
     if (GetVerbosity() > 1)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::StartAcquisition() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::StartAcquisition() ";
         std::cout << "Starting acquisition; ";
         std::cout << "Trigger mode: " << ADQ_descriptions::trig_mode.at(trig_mode) << "; ";
         std::cout << std::endl;
@@ -395,13 +395,13 @@ int ADQ412::StartAcquisition()
 
 //==========================================================================================
 
-int ADQ412::RearmTrigger()
+int ABCD::ADQ412::RearmTrigger()
 {
     if (GetVerbosity() > 1)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::RearmTrigger() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::RearmTrigger() ";
         std::cout << "Rearming trigger; ";
         std::cout << "Trigger mode: " << ADQ_descriptions::trig_mode.at(trig_mode) << " (index: " << trig_mode << "); ";
         std::cout << std::endl;
@@ -418,7 +418,7 @@ int ADQ412::RearmTrigger()
 }
 
 //==========================================================================================
-bool ADQ412::AcquisitionReady()
+bool ABCD::ADQ412::AcquisitionReady()
 {
 
     const unsigned int retval = ADQ_GetAcquiredAll(adq_cu_ptr, adq_num);
@@ -427,7 +427,7 @@ bool ADQ412::AcquisitionReady()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::AcquisitionReady() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::AcquisitionReady() ";
         std::cout << "Acquisition ready: " << retval << "; ";
         std::cout << std::endl;
     }
@@ -436,7 +436,7 @@ bool ADQ412::AcquisitionReady()
 }
 
 //==========================================================================================
-bool ADQ412::DataOverflow()
+bool ABCD::ADQ412::DataOverflow()
 {
 
     const unsigned int retval = ADQ_GetStreamOverflow(adq_cu_ptr, adq_num);
@@ -445,7 +445,7 @@ bool ADQ412::DataOverflow()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::DataOverflow() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::DataOverflow() ";
         std::cout << "Overflow: " << retval << "; ";
         std::cout << std::endl;
     }
@@ -455,7 +455,7 @@ bool ADQ412::DataOverflow()
 
 
 //==========================================================================================
-int ADQ412::GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms)
+int ABCD::ADQ412::GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms)
 {
     // We will skip the target headers reading because we have no documentation
     // about their structure, thus we will pass just NULL to the function.
@@ -473,7 +473,7 @@ int ADQ412::GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms)
     if (retval == 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "]  ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Error in fetching data; ";
         std::cout << std::endl;
 
@@ -481,7 +481,7 @@ int ADQ412::GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms)
     } else if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::GetWaveformsFromCard() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::GetWaveformsFromCard() ";
         std::cout << "Collected all samples; ";
         std::cout << std::endl;
     }
@@ -499,7 +499,7 @@ int ADQ412::GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms)
             {
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ADQ412::GetWaveformsFromCard() ";
+                std::cout << '[' << time_buffer << "] ABCD::ADQ412::GetWaveformsFromCard() ";
                 std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Detected timestamp overflow; ";
                 std::cout << "Overflows: " << timestamp_overflows << "; ";
                 std::cout << "Negative difference: " << (long long)timestamp_negative_difference << "; ";
@@ -542,7 +542,7 @@ int ADQ412::GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::GetWaveformsFromCard() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::GetWaveformsFromCard() ";
         std::cout << "Converted all samples; ";
         std::cout << "Timestamp overflows: " << timestamp_overflows << "; ";
         std::cout << std::endl;
@@ -554,7 +554,7 @@ int ADQ412::GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms)
 }
 
 //==========================================================================================
-int ADQ412::StopAcquisition()
+int ABCD::ADQ412::StopAcquisition()
 {
     CHECKZERO(ADQ_DisarmTrigger(adq_cu_ptr, adq_num));
 
@@ -563,13 +563,13 @@ int ADQ412::StopAcquisition()
 
 //=====================================================================================================
 
-int ADQ412::ForceSoftwareTrigger()
+int ABCD::ADQ412::ForceSoftwareTrigger()
 {
     if (GetVerbosity() > 1)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::ForceSoftwareTrigger() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ForceSoftwareTrigger() ";
         std::cout << "Forcing a software trigger; ";
         std::cout << std::endl;
     }
@@ -583,13 +583,13 @@ int ADQ412::ForceSoftwareTrigger()
 
 //=====================================================================================================
 
-int ADQ412::ResetOverflow()
+int ABCD::ADQ412::ResetOverflow()
 {
     if (GetVerbosity() > 0)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::ResetOverflow() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ResetOverflow() ";
         std::cout << "Resetting a data overflow; ";
         std::cout << std::endl;
     }
@@ -601,13 +601,13 @@ int ADQ412::ResetOverflow()
 
 //=========================================================================
 
-int ADQ412::ReadConfig(json_t *config)
+int ABCD::ADQ412::ReadConfig(json_t *config)
 {
     if (GetVerbosity() > 0)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
         std::cout << "Reading configration JSON; ";
         std::cout << std::endl;
     }
@@ -623,7 +623,7 @@ int ADQ412::ReadConfig(json_t *config)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
         std::cout << "Card is " << (enable ? "enabled" : "disabled") << "; ";
         std::cout << std::endl;
     }
@@ -641,7 +641,7 @@ int ADQ412::ReadConfig(json_t *config)
 
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "]  ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Wrong clock source";
         std::cout << std::endl;
     }
@@ -652,7 +652,7 @@ int ADQ412::ReadConfig(json_t *config)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
         std::cout << "Clock source: got: " << ADQ_descriptions::clock_source.at(clock_source) << " (index: " << clock_source << "); ";
         std::cout << std::endl;
     }
@@ -664,7 +664,7 @@ int ADQ412::ReadConfig(json_t *config)
     //{
     //    char time_buffer[BUFFER_SIZE];
     //    time_string(time_buffer, BUFFER_SIZE, NULL);
-    //    std::cout << '[' << time_buffer << "] ADQ412::ReadConfig() ";
+    //    std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
     //    std::cout << "Sampling: got: " << sampling << "; ";
     //    std::cout << "selected: " << sSampling[iSampling] << " (index: " << iSampling << "); ";
     //    std::cout << std::endl;
@@ -683,7 +683,7 @@ int ADQ412::ReadConfig(json_t *config)
     if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
         std::cout << "Trigger source: " << str_trigger_source<< "; ";
         std::cout << std::endl;
     }
@@ -698,7 +698,7 @@ int ADQ412::ReadConfig(json_t *config)
 
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid trigger source; ";
         std::cout << "Got: " << str_trigger_source << "; ";
         std::cout << std::endl;
@@ -720,7 +720,7 @@ int ADQ412::ReadConfig(json_t *config)
     if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
         std::cout << "Trigger slope: " << str_trigger_slope<< "; ";
         std::cout << std::endl;
     }
@@ -735,7 +735,7 @@ int ADQ412::ReadConfig(json_t *config)
 
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid trigger slope; ";
         std::cout << "Got: " << str_trigger_slope << "; ";
         std::cout << std::endl;
@@ -745,7 +745,7 @@ int ADQ412::ReadConfig(json_t *config)
 
     // This level should be the absolute trigger level.
     // In the rest of ABCD the waveforms' samples are treated as uint16_t and we
-    // are offsetting what we read from the ADQ412 to convert from int16_t.
+    // are offsetting what we read from the ABCD::ADQ412 to convert from int16_t.
     // The user should be able to set a trigger level according to what it is
     // shown in the waveforms display, thus we should expect a uin16_t number
     // that we convert to a int16_t.
@@ -758,7 +758,7 @@ int ADQ412::ReadConfig(json_t *config)
     if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
         std::cout << "Trigger level: " << trig_level << "; ";
         std::cout << std::endl;
     }
@@ -789,7 +789,7 @@ int ADQ412::ReadConfig(json_t *config)
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ412::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
                     std::cout << "Found channel: " << id << "; ";
                     std::cout << std::endl;
                 }
@@ -800,7 +800,7 @@ int ADQ412::ReadConfig(json_t *config)
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ412::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
                     std::cout << "Channel is " << (enabled ? "enabled" : "disabled") << "; ";
                     std::cout << std::endl;
                 }
@@ -813,7 +813,7 @@ int ADQ412::ReadConfig(json_t *config)
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ412::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
                     std::cout << "Channel is " << (triggering ? "" : "not ") << "triggering; ";
                     std::cout << std::endl;
                 }
@@ -827,7 +827,7 @@ int ADQ412::ReadConfig(json_t *config)
                 } else {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ412::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
                     std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Channel out of range, ignoring it; ";
                     std::cout << std::endl;
                 }
@@ -848,7 +848,7 @@ int ADQ412::ReadConfig(json_t *config)
     if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
         std::cout << "Pretrigger: " << pretrigger << "; ";
         std::cout << std::endl;
     }
@@ -862,7 +862,7 @@ int ADQ412::ReadConfig(json_t *config)
     if (scope_samples < 1 || max_samples_per_record < scope_samples) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "]  ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Samples number out of range";
         std::cout << std::endl;
 
@@ -881,7 +881,7 @@ int ADQ412::ReadConfig(json_t *config)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
         std::cout << "Scope samples: got: " << scope_samples << "; ";
         std::cout << std::endl;
     }
@@ -894,7 +894,7 @@ int ADQ412::ReadConfig(json_t *config)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
         std::cout << "Maximum records number: " << max_records_number << " (for scope_samples: " << samples_per_record << "); ";
         std::cout << std::endl;
     }
@@ -905,7 +905,7 @@ int ADQ412::ReadConfig(json_t *config)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
         std::cout << "Number of records: got: " << records_number << "; ";
         std::cout << std::endl;
     }
@@ -913,7 +913,7 @@ int ADQ412::ReadConfig(json_t *config)
     if (records_number < 1 || max_records_number < records_number) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "]  ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Records number out of range";
         std::cout << std::endl;
 

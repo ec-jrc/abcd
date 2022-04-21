@@ -58,7 +58,7 @@ struct status
     // Digitizer specific variables                                           //
     ////////////////////////////////////////////////////////////////////////////
     void *adq_cu_ptr;
-    std::vector<Digitizer*> digitizers;
+    std::vector<ABCD::Digitizer*> digitizers;
 
     std::map<unsigned int, unsigned int> digitizers_user_ids;
 

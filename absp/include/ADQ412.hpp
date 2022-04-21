@@ -17,11 +17,13 @@ extern "C" {
 #define ADQ412_TIMESTAMP_MAX (1UL << ADQ412_TIMESTAMP_BITS)
 #define ADQ412_TIMESTAMP_THRESHOLD (1L << (ADQ412_TIMESTAMP_BITS - 1))
 
-class ADQ412 : public Digitizer {
+namespace ABCD {
+
+class ADQ412 : public ABCD::Digitizer {
 private:
     // Putting this to notify the compiler that we do intend to replace the
     // method but we do not want the user to call the base method.
-    using Digitizer::Initialize;
+    using ABCD::Digitizer::Initialize;
 
 public:
     //--------------------------------------------------------------------------
@@ -121,5 +123,6 @@ public:
 
     int GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms);
 };
+}
 
 #endif
