@@ -65,11 +65,8 @@ extern "C" {
 
 #define BUFFER_SIZE 32
 
-// This represents the maximum number of available channels in any of the cards
-// that are being used. This number is then used to calculate the global channel
-// number of each card number with the formula:
-// global_channel_number = board_channel_number + board_user_id * MAXIMUM_CHANNELS_NUMBER
-#define MAXIMUM_CHANNELS_NUMBER 4
+// The global channel number of each card is calculated with the formula:
+// global_channel_number = board_channel_number + board_user_id * GetChannelsNumber()
 
 /******************************************************************************/
 /* Generic actions                                                            */
@@ -185,7 +182,7 @@ int actions::generic::start_acquisition(status &global_status, unsigned int digi
         std::cout << std::endl;
     }
 
-    const unsigned int user_id = global_status.digitizers_user_ids[digitizer_index];
+    const unsigned int user_id = global_status.digitizers_user_ids.at(digitizer_index);
     auto digitizer = global_status.digitizers[digitizer_index];
 
     if (global_status.verbosity > 0)
@@ -214,7 +211,7 @@ void actions::generic::rearm_trigger(status &global_status, unsigned int digitiz
         std::cout << std::endl;
     }
 
-    const unsigned int user_id = global_status.digitizers_user_ids[digitizer_index];
+    const unsigned int user_id = global_status.digitizers_user_ids.at(digitizer_index);
     auto digitizer = global_status.digitizers[digitizer_index];
 
     if (global_status.verbosity > 0)
@@ -731,7 +728,7 @@ bool actions::generic::configure_digitizer(status &global_status)
                         std::cout << std::endl;
                     }
 
-                    const unsigned int this_max_channel_number = (user_id + 1) * MAXIMUM_CHANNELS_NUMBER;
+                    const unsigned int this_max_channel_number = (user_id + 1) * (digitizer)->GetChannelsNumber();
 
                     if (max_channel_number < this_max_channel_number) {
                         max_channel_number = this_max_channel_number;
@@ -1280,7 +1277,11 @@ state actions::start_acquisition(status &global_status)
         std::cout << std::endl;
     }
 
-    for (unsigned int digitizer_index = 0; digitizer_index < global_status.digitizers.size(); digitizer_index++) {
+    for (auto value = global_status.digitizers_user_ids.begin(); value != global_status.digitizers_user_ids.end(); ++value)
+    {
+        const unsigned int digitizer_index = value->first;
+        //const unsigned int user_id = value->second;
+
         actions::generic::start_acquisition(global_status, digitizer_index);
         actions::generic::rearm_trigger(global_status, digitizer_index);
     }
@@ -1399,7 +1400,7 @@ state actions::read_data(status &global_status)
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
             std::cout << '[' << time_buffer << "] ";
-            std::cout << "Polling board: " << digitizer->GetName() << " (user_id: " << user_id << "); ";
+            std::cout << "Polling board: " << digitizer->GetName() << " (user_id: " << user_id << ", digitizer_index: " << digitizer_index << "); ";
             std::cout << "Acquisition ready: " << (is_ready ? "yes" : "no") << "; ";
             std::cout << "Overflow: " << (is_overflow ? "yes" : "no") << "; ";
             std::cout << std::endl;
@@ -1482,7 +1483,8 @@ state actions::read_data(status &global_status)
                 for (unsigned int waveform_index = 0; waveform_index < waveforms_size; waveform_index++) {
                     struct event_waveform this_waveform = waveforms[waveform_index];
 
-                    const uint8_t global_channel = this_waveform.channel + user_id * MAXIMUM_CHANNELS_NUMBER;
+                    const uint8_t global_channel = this_waveform.channel + user_id * (digitizer)->GetChannelsNumber();
+
                     this_waveform.channel = global_channel;
                     global_status.counts[global_channel] += 1;
                     global_status.partial_counts[global_channel] += 1;
