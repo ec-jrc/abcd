@@ -11,8 +11,6 @@ extern "C" {
 
 #include "Digitizer.hpp"
 
-#define ADQ14_FWPD_MAX_CHANNELS_NUMBER 8
-
 #define ADQ14_FWPD_RECORD_HEADER_SIZE 40
 #define ADQ14_FWPD_RECORD_HEADER_MASK_LOST_RECORD (1 << 0)
 #define ADQ14_FWPD_RECORD_HEADER_MASK_LOST_DATA ((1 << 1) + (1 << 2) + (1 << 3))

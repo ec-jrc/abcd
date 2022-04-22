@@ -9,8 +9,6 @@ extern "C" {
 
 #include "Digitizer.hpp"
 
-#define ADQ412_MAX_CHANNELS_NUMBER 8
-
 #define ADQ412_RECORD_HEADER_SIZE 32
 
 #define ADQ412_TIMESTAMP_BITS 43
@@ -83,8 +81,8 @@ public:
     // Create a pointer array containing the data buffer pointers
     // GetData allows for a digitizer with max 8 channels,
     // the unused pointers should be null pointers
-    void* target_buffers[ADQ412_MAX_CHANNELS_NUMBER];
-    std::vector<int16_t> buffers[ADQ412_MAX_CHANNELS_NUMBER];
+    void* target_buffers[ADQ_GETDATA_MAX_NOF_CHANNELS];
+    std::vector<int16_t> buffers[ADQ_GETDATA_MAX_NOF_CHANNELS];
     std::vector<uint8_t> target_headers;
     std::vector<int64_t> target_timestamps;
 

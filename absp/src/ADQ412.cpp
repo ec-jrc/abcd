@@ -357,7 +357,7 @@ int ABCD::ADQ412::Configure()
 
         target_buffers[channel] = buffers[channel].data();
     }
-    for (unsigned int channel = GetChannelsNumber(); channel < ADQ412_MAX_CHANNELS_NUMBER; channel++) {
+    for (unsigned int channel = GetChannelsNumber(); channel < ADQ_GETDATA_MAX_NOF_CHANNELS; channel++) {
         target_buffers[channel] = NULL;
     }
 
