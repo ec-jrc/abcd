@@ -69,15 +69,33 @@ ABCD::ADQ214::~ADQ214() { }
 
 int ABCD::ADQ214::Initialize(void* adq, int num)
 {
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::Initialize() ";
+        std::cout << std::endl;
+    }
+
     adq_cu_ptr = adq;
     adq_num = num;
 
     CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_POWER_ON));
     CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_COMMUNICATION));
 
-    const std::string board_name = ADQ214_GetBoardSerialNumber(adq_cu_ptr, adq_num);
+    const char *board_name = ADQ_GetBoardSerialNumber(adq_cu_ptr, adq_num);
 
-    SetName(board_name);
+    if (!board_name) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::ReadConfig() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Error in getting the serial number; ";
+        std::cout << std::endl;
+
+        SetName("");
+    } else {
+        SetName(board_name);
+    }
 
     const unsigned int number_of_channels = ADQ_GetNofChannels(adq_cu_ptr, adq_num);
 
@@ -95,6 +113,7 @@ int ABCD::ADQ214::Initialize(void* adq, int num)
         std::cout << std::endl;
         std::cout << '[' << time_buffer << "] ABCD::ADQ214::Initialize() ";
         std::cout << "Card name (serial number): " << GetName() << "; ";
+        std::cout << "Product name: " << ADQ_GetBoardProductName(adq_cu_ptr, adq_num) << "; ";
         std::cout << "USB address: " << ADQ_GetUSBAddress(adq_cu_ptr, adq_num) << "; ";
         std::cout << "PCIe address: " << ADQ_GetPCIeAddress(adq_cu_ptr, adq_num) << "; ";
         std::cout << std::endl;
@@ -243,8 +262,9 @@ int ABCD::ADQ214::Configure()
     // Only a set of possible masks are allowed, if the mask is wrong we use
     // the most conservative option of enabling all channels.
     if (!(channels_triggering_mask == 0 || // No channel, probably external trigger
+          channels_triggering_mask == 1 || // Channel 0
+          channels_triggering_mask == 2 || // Channel 1
           channels_triggering_mask == 3 || // Channel 0 and 1
-          channels_triggering_mask == 12 ||// Channel 2 and 3
           channels_triggering_mask == 15)) // All channels
     {
         char time_buffer[BUFFER_SIZE];
@@ -295,7 +315,6 @@ int ABCD::ADQ214::Configure()
             std::cout << std::endl;
         }
 
-        CHECKZERO(ADQ_SetTriggerMode(adq_cu_ptr,  adq_num, trig_mode));
         CHECKZERO(ADQ_SetLvlTrigLevel(adq_cu_ptr, adq_num, trig_level));
         CHECKZERO(ADQ_SetLvlTrigEdge(adq_cu_ptr,  adq_num, trig_slope));
         CHECKZERO(ADQ_SetLvlTrigChannel(adq_cu_ptr, adq_num, channels_triggering_mask));
@@ -349,7 +368,7 @@ int ABCD::ADQ214::Configure()
 
         target_buffers[channel] = buffers[channel].data();
     }
-    for (unsigned int channel = GetChannelsNumber(); channel < ADQ214_MAX_CHANNELS_NUMBER; channel++) {
+    for (unsigned int channel = GetChannelsNumber(); channel < ADQ_GETDATA_MAX_NOF_CHANNELS; channel++) {
         target_buffers[channel] = NULL;
     }
 
