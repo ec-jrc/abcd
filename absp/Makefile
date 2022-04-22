@@ -3,7 +3,7 @@ include ../common_definitions.mk
 # File names
 EXEC = absp
 
-SOURCES = $(SRC_DIR)/actions.cpp $(SRC_DIR)/states.cpp $(SRC_DIR)/ADQ_descriptions.cpp $(SRC_DIR)/ADQ412.cpp $(SRC_DIR)/ADQ14_FWDAQ.cpp $(SRC_DIR)/ADQ14_FWPD.cpp
+SOURCES = $(SRC_DIR)/actions.cpp $(SRC_DIR)/states.cpp $(SRC_DIR)/ADQ_descriptions.cpp $(SRC_DIR)/ADQ412.cpp $(SRC_DIR)/ADQ14_FWDAQ.cpp $(SRC_DIR)/ADQ14_FWPD.cpp $(SRC_DIR)/ADQ214.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
 CXXFLAGS += -std=c++11
