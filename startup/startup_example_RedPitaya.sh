@@ -12,7 +12,12 @@ if [[ -z "${ABCD_FOLDER}" ]]; then
 fi
 
 # Folder in which data should be saved
-DATA_FOLDER="${ABCD_FOLDER}""/data/"
+# Check if the DATA_FOLDER variable is set in the environment, otherwise set it here
+if [[ -z "${DATA_FOLDER}" ]]; then
+    # The variable is not set, thus set it to the folder in which ABCD is installed
+    DATA_FOLDER="${ABCD_FOLDER}""/data/"
+fi
+
 
 CURRENT_FOLDER="$PWD"
 
@@ -32,8 +37,6 @@ else
     #echo "Changing folder to: ""${ABCD_FOLDER}"
     #cd "${ABCD_FOLDER}"
     
-    echo "Replaying data file: ${FILE_NAME}"
-
     # Checking if another ABCD session is running
     if [ "`tmux ls 2> /dev/null | grep ABCD | wc -l`" -gt 0 ]
     then
