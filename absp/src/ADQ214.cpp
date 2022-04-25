@@ -227,8 +227,25 @@ int ABCD::ADQ214::Configure()
     // -------------------------------------------------------------------------
     channels_triggering_mask = 0;
     channels_acquisition_mask = 0;
+    channels_analog_front_end_mask = 0;
 
     for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
+        int gain;
+        int offset;
+
+        // Channel indexing starts from 1
+        CHECKZERO(ADQ_GetGainAndOffset(adq_cu_ptr, adq_num, channel + 1, &gain, &offset));
+
+        // This is just a value added to the ADC conversion and not a physical offset
+        //CHECKZERO(ADQ_SetGainAndOffset(adq_cu_ptr, adq_num, channel + 1, gain, 0));
+
+        // This is not supported in the ADQ214
+        //CHECKZERO(ADQ_SetAdjustableBias(adq_cu_ptr, adq_num, channel + 1, 30000));
+
+        uint8_t analog_front_end_mode;
+
+        CHECKZERO(ADQ_GetAfeSwitch(adq_cu_ptr, adq_num, channel + 1, &analog_front_end_mode));
+
         if (GetVerbosity() > 0)
         {
             char time_buffer[BUFFER_SIZE];
@@ -237,6 +254,9 @@ int ABCD::ADQ214::Configure()
             std::cout << "Channel: " << channel << "; ";
             std::cout << "Enabled: " << (IsChannelEnabled(channel) ? "true" : "false") << "; ";
             std::cout << "Triggering: " << (IsChannelTriggering(channel) ? "true" : "false") << "; ";
+            std::cout << "Gain: " << gain << "; ";
+            std::cout << "Offset: " << offset << "; ";
+            std::cout << "Analog front end mode: " << (unsigned int)analog_front_end_mode << "; ";
             std::cout << std::endl;
         }
 
@@ -246,8 +266,10 @@ int ABCD::ADQ214::Configure()
         if (IsChannelEnabled(channel)) {
             channels_acquisition_mask += (1 << channel);
         }
+        if (analog_front_end_couplings[channel] == ADQ_ANALOG_FRONT_END_COUPLING_DC) {
+            channels_analog_front_end_mask += (1 << channel) + (1 << (channel + 2));
+        }
     }
-
 
     if (GetVerbosity() > 0)
     {
@@ -256,6 +278,7 @@ int ABCD::ADQ214::Configure()
         std::cout << '[' << time_buffer << "] ABCD::ADQ214::Configure() ";
         std::cout << "Channels acquisition mask: " << (unsigned int)channels_acquisition_mask << "; ";
         std::cout << "Channels triggering mask: " << channels_triggering_mask << "; ";
+        std::cout << "Channels analong front end mask: " << (unsigned int)channels_analog_front_end_mask << "; ";
         std::cout << std::endl;
     }
 
@@ -275,6 +298,8 @@ int ABCD::ADQ214::Configure()
 
         channels_triggering_mask = 15;
     }
+
+    CHECKZERO(ADQ_SetAfeSwitch(adq_cu_ptr, adq_num, channels_analog_front_end_mask));
 
     // -------------------------------------------------------------------------
     //  Trigger settings
@@ -383,6 +408,25 @@ int ABCD::ADQ214::Configure()
     CHECKZERO(ADQ_MultiRecordSetup(adq_cu_ptr, adq_num, records_number, samples_per_record));
 
     return DIGITIZER_SUCCESS;
+}
+
+
+//==========================================================================================
+
+void ABCD::ADQ214::SetChannelsNumber(unsigned int n)
+{
+    if (GetVerbosity() > 1)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::SetChannelsNumber() ";
+        std::cout << "Setting channels number to: " << n << "; ";
+        std::cout << std::endl;
+    }
+
+    Digitizer::SetChannelsNumber(n);
+
+    analog_front_end_couplings.resize(n, ADQ_ANALOG_FRONT_END_COUPLING_DC);
 }
 
 //==========================================================================================
@@ -702,7 +746,7 @@ int ABCD::ADQ214::ReadConfig(json_t *config)
     // Looking for the settings in the description map
     const auto tm_result = map_utilities::find_item(ADQ_descriptions::trig_mode, str_trigger_source);
 
-    if (tm_result != ADQ_descriptions::trig_mode.end()) {
+    if (tm_result != ADQ_descriptions::trig_mode.end() && str_trigger_source.length() > 0) {
         trig_mode = tm_result->first;
     } else {
         trig_mode = ADQ_LEVEL_TRIGGER_MODE;
@@ -732,14 +776,14 @@ int ABCD::ADQ214::ReadConfig(json_t *config)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ214::ReadConfig() ";
-        std::cout << "Trigger slope: " << str_trigger_slope<< "; ";
+        std::cout << "Trigger slope: " << str_trigger_slope << "; ";
         std::cout << std::endl;
     }
 
     // Looking for the settings in the description map
     const auto ts_result = map_utilities::find_item(ADQ_descriptions::trig_slope, str_trigger_slope);
 
-    if (ts_result != ADQ_descriptions::trig_mode.end()) {
+    if (ts_result != ADQ_descriptions::trig_mode.end() && str_trigger_slope.length() > 0) {
         trig_slope = ts_result->first;
     } else {
         trig_slope = ADQ_TRIG_SLOPE_FALLING;
@@ -781,6 +825,7 @@ int ABCD::ADQ214::ReadConfig(json_t *config)
     for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
         SetChannelEnabled(channel, false);
         SetChannelTriggering(channel, false);
+        analog_front_end_couplings[channel] = ADQ_ANALOG_FRONT_END_COUPLING_DC;
     }
 
     json_t *json_channels = json_object_get(config, "channels");
@@ -831,10 +876,41 @@ int ABCD::ADQ214::ReadConfig(json_t *config)
 
                 json_object_set_new_nocheck(value, "triggering", json_boolean(triggering));
 
+                const char *cstr_coupling = json_string_value(json_object_get(value, "coupling"));
+                const std::string str_coupling = (cstr_coupling) ? std::string(cstr_coupling) : std::string();
+
+                if (GetVerbosity() > 0) {
+                    char time_buffer[BUFFER_SIZE];
+                    time_string(time_buffer, BUFFER_SIZE, NULL);
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ214::ReadConfig() ";
+                    std::cout << "Channel coupling: " << str_coupling << "; ";
+                    std::cout << std::endl;
+                }
+
+                // Looking for the settings in the description map
+                const auto cp_result = map_utilities::find_item(ADQ_descriptions::analog_front_end_coupling, str_coupling);
+
+                unsigned int analog_front_end_coupling = ADQ_ANALOG_FRONT_END_COUPLING_DC;
+
+                if (cp_result != ADQ_descriptions::analog_front_end_coupling.end() && str_coupling.length() > 0) {
+                    analog_front_end_coupling = cp_result->first;
+                } else {
+                    analog_front_end_coupling = ADQ_ANALOG_FRONT_END_COUPLING_DC;
+
+                    char time_buffer[BUFFER_SIZE];
+                    time_string(time_buffer, BUFFER_SIZE, NULL);
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ214::ReadConfig() ";
+                    std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid coupling; ";
+                    std::cout << "Got: " << str_coupling << "; ";
+                    std::cout << std::endl;
+                }
+
+                json_object_set_nocheck(value, "coupling", json_string(ADQ_descriptions::analog_front_end_coupling.at(analog_front_end_coupling).c_str()));
 
                 if (0 <= id && id < GetChannelsNumber()) {
                     SetChannelEnabled(id, enabled);
                     SetChannelTriggering(id, triggering);
+                    analog_front_end_couplings[id] = analog_front_end_coupling;
                 } else {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);

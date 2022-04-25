@@ -45,6 +45,11 @@ const std::map<unsigned int, std::string> ADQ_descriptions::collection_mode = {
     {ADQ_COLLECTION_MODE_RAW_PAD, "raw_pad"}
 };
 
+const std::map<unsigned int, std::string> ADQ_descriptions::analog_front_end_coupling = {
+    {ADQ_ANALOG_FRONT_END_COUPLING_AC, "AC"},
+    {ADQ_ANALOG_FRONT_END_COUPLING_DC, "DC"}
+};
+
 const std::map<unsigned int, std::string> ADQ_descriptions::ADQ14_temperatures = {
     {ADQ_ADQ14_TEMPERATURE_PCB, "PCB"},
     {ADQ_ADQ14_TEMPERATURE_ADC1, "ADC1"},

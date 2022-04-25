@@ -60,6 +60,10 @@ public:
     // Channels settings
     //--------------------------------------------------------------------------
 
+    // Channels couplings in the analong front ends
+    uint8_t channels_analog_front_end_mask;
+    std::vector<uint8_t> analog_front_end_couplings;
+
     //--------------------------------------------------------------------------
     // Waveforms settings
     //--------------------------------------------------------------------------
@@ -109,6 +113,8 @@ public:
     int Initialize(void* adq_cu_ptr, int adq_num);
     int ReadConfig(json_t* config);
     int Configure();
+
+    void SetChannelsNumber(unsigned int n);
 
     int StartAcquisition();
     int RearmTrigger();
