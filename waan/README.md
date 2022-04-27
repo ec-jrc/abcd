@@ -81,6 +81,7 @@ Where the source code of the library would be `libuser.c`.
 ## Example libraries
 These example libraries are provided:
 
+- `libSimplePSD.c`: Calculates the energy and Pulse Shape information of a short pulse, by applying the double integration method. This is the simplest of the libraries, that can be a starting point for new users.
 - `libCFD.c`: Calculates the timing information of a pulse by applying a Constant Fraction Discriminator algorithm.
 - `libRT.c`: Calculates the timing information of a pulse by looking at a threshold crossing point, where the threshold is relative to the pulse maximum. This shows an example of an algorithm that can generate multiple processed events.
 - `libPSD.c`: Calculates the energy and Pulse Shape information of a short pulse, by applying the double integration method.
