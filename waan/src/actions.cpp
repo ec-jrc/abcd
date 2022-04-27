@@ -247,17 +247,37 @@ bool actions::generic::configure(status &global_status)
         json_t *value;
 
         json_array_foreach(json_channels, index, value) {
+            // The id may be a single integer or an array of integers
             json_t *json_id = json_object_get(value, "id");
 
-            if (json_id != NULL && json_is_integer(json_id)) {
-                const int id = json_integer_value(json_id);
+            std::vector<int> channel_ids;
 
+            if (json_id != NULL && json_is_integer(json_id)) {
+                const int id = json_number_value(json_id);
+                channel_ids.push_back(id);
+            } else if (json_id != NULL && json_is_array(json_id)) {
+                size_t id_index;
+                json_t *id_value;
+
+                json_array_foreach(json_id, id_index, id_value) {
+                    if (id_value != NULL && json_is_integer(id_value)) {
+                        const int id = json_number_value(id_value);
+                        channel_ids.push_back(id);
+                    }
+                }
+            }
+
+            if (channel_ids.size() > 0) {
                 if (verbosity > 0)
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
                     std::cout << '[' << time_buffer << "] ";
-                    std::cout << "Found channel: " << id << "; ";
+                    std::cout << "Found channel(s): ";
+                    for (auto& id : channel_ids) {
+                        std::cout << id << " ";
+                    }
+                    std::cout << "; ";
                     std::cout << std::endl;
                 }
 
@@ -340,9 +360,11 @@ bool actions::generic::configure(status &global_status)
                             std::cout << std::endl;
                         }
 
-                        global_status.channels_timestamp_init[id].fn = dummy_init;
-                        global_status.channels_timestamp_close[id].fn = dummy_close;
-                        global_status.channels_timestamp_analysis[id].fn = dummy_timestamp_analysis;
+                        for (auto& id : channel_ids) {
+                            global_status.channels_timestamp_init[id].fn = dummy_init;
+                            global_status.channels_timestamp_close[id].fn = dummy_close;
+                            global_status.channels_timestamp_analysis[id].fn = dummy_timestamp_analysis;
+                        }
                     } else {
                         if (verbosity > 0)
                         {
@@ -382,9 +404,13 @@ bool actions::generic::configure(status &global_status)
                                 std::cout << "WARNING: Unable to load timestamp init function: " << dlerror() << "; ";
                                 std::cout << std::endl;
 
-                                global_status.channels_timestamp_init[id].fn = dummy_init;
+                                for (auto& id : channel_ids) {
+                                    global_status.channels_timestamp_init[id].fn = dummy_init;
+                                }
                             } else {
-                                global_status.channels_timestamp_init[id].obj = dl_init;
+                                for (auto& id : channel_ids) {
+                                    global_status.channels_timestamp_init[id].obj = dl_init;
+                                }
                             }
 
                             if (verbosity > 0)
@@ -405,9 +431,13 @@ bool actions::generic::configure(status &global_status)
                                 std::cout << "WARNING: Unable to load timestamp close function: " << dlerror() << "; ";
                                 std::cout << std::endl;
 
-                                global_status.channels_timestamp_close[id].fn = dummy_close;
+                                for (auto& id : channel_ids) {
+                                    global_status.channels_timestamp_close[id].fn = dummy_close;
+                                }
                             } else {
-                                global_status.channels_timestamp_close[id].obj = dl_close;
+                                for (auto& id : channel_ids) {
+                                    global_status.channels_timestamp_close[id].obj = dl_close;
+                                }
                             }
 
                             if (verbosity > 0)
@@ -441,8 +471,10 @@ bool actions::generic::configure(status &global_status)
                                     std::cout << std::endl;
                                 }
 
-                                global_status.dl_timestamp_handles[id] = dl_handle;
-                                global_status.channels_timestamp_analysis[id].obj = dl_timestamp;
+                                for (auto& id : channel_ids) {
+                                    global_status.dl_timestamp_handles[id] = dl_handle;
+                                    global_status.channels_timestamp_analysis[id].obj = dl_timestamp;
+                                }
                             } else {
                                 if (verbosity > 0)
                                 {
@@ -509,9 +541,13 @@ bool actions::generic::configure(status &global_status)
                                 std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy init function: " << dlerror() << "; ";
                                 std::cout << std::endl;
 
-                                global_status.channels_energy_init[id].fn = dummy_init;
+                                for (auto& id : channel_ids) {
+                                    global_status.channels_energy_init[id].fn = dummy_init;
+                                }
                             } else {
-                                global_status.channels_energy_init[id].obj = dl_init;
+                                for (auto& id : channel_ids) {
+                                    global_status.channels_energy_init[id].obj = dl_init;
+                                }
                             }
 
                             if (verbosity > 0)
@@ -532,9 +568,13 @@ bool actions::generic::configure(status &global_status)
                                 std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy close function: " << dlerror() << "; ";
                                 std::cout << std::endl;
 
-                                global_status.channels_energy_close[id].fn = dummy_close;
+                                for (auto& id : channel_ids) {
+                                    global_status.channels_energy_close[id].fn = dummy_close;
+                                }
                             } else {
-                                global_status.channels_energy_close[id].obj = dl_close;
+                                for (auto& id : channel_ids) {
+                                    global_status.channels_energy_close[id].obj = dl_close;
+                                }
                             }
 
                             if (verbosity > 0)
@@ -568,8 +608,10 @@ bool actions::generic::configure(status &global_status)
                                     std::cout << std::endl;
                                 }
 
-                                global_status.dl_energy_handles[id] = dl_handle;
-                                global_status.channels_energy_analysis[id].obj = dl_energy;
+                                for (auto& id : channel_ids) {
+                                    global_status.dl_energy_handles[id] = dl_handle;
+                                    global_status.channels_energy_analysis[id].obj = dl_energy;
+                                }
                             } else {
                                 if (verbosity > 0)
                                 {
@@ -588,18 +630,20 @@ bool actions::generic::configure(status &global_status)
                 // Libraries storing in global_status                         //
                 ////////////////////////////////////////////////////////////////
                 if (!dl_loading_error) {
-                    void *timestamp_user_config = NULL;
-                    void *energy_user_config = NULL;
+                    for (auto& id : channel_ids) {
+                        void *timestamp_user_config = NULL;
+                        void *energy_user_config = NULL;
 
-                    json_t *user_config = json_object_get(value, "user_config");
+                        json_t *user_config = json_object_get(value, "user_config");
 
-                    if (!json_is_object(user_config)) {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "WARNING: user_config is not an object; ";
-                        std::cout << std::endl;
-                    } else {
+                        if (!json_is_object(user_config)) {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "WARNING: user_config is not an object for channel " << id << "; ";
+                            std::cout << std::endl;
+                        }
+
                         if (verbosity > 0)
                         {
                             char time_buffer[BUFFER_SIZE];
@@ -614,13 +658,13 @@ bool actions::generic::configure(status &global_status)
                                                                      &timestamp_user_config);
                         global_status.channels_energy_init[id].fn(user_config,
                                                                   &energy_user_config);
+
+                        global_status.channels_timestamp_user_config[id] = timestamp_user_config;
+                        global_status.channels_energy_user_config[id] = energy_user_config;
+                        global_status.partial_counts[id] = 0;
+
+                        global_status.active_channels.insert(id);
                     }
-
-                    global_status.channels_timestamp_user_config[id] = timestamp_user_config;
-                    global_status.channels_energy_user_config[id] = energy_user_config;
-                    global_status.partial_counts[id] = 0;
-
-                    global_status.active_channels.insert(id);
                 }
             }
         }
