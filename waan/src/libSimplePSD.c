@@ -29,14 +29,6 @@
  */
 #define GATE_LONG 90
 
-/*! \brief Optional init function. 
- */
-void energy_init(json_t* json_config, void** user_config)
-{
-    UNUSED(json_config);
-    UNUSED(user_config);
-}
-
 /*! \brief Function that determines the energy information.
  */
 void energy_analysis(const uint16_t *samples,
@@ -62,6 +54,7 @@ void energy_analysis(const uint16_t *samples,
 
     baseline /= BASELINE_SAMPLES;
 
+    // Calculating the integrals
     double qshort = 0;
 
     for (uint32_t i = INTEGRATION_START; (i < (INTEGRATION_START + GATE_SHORT)) && (i < samples_number); i++) {
