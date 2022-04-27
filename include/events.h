@@ -19,7 +19,7 @@ struct event_PSD
     uint16_t qlong;
     uint16_t baseline;
     uint8_t channel;
-    uint8_t pur;
+    uint8_t group_counter;
 };
 
 struct event_waveform

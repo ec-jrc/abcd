@@ -18,10 +18,11 @@ else
     qshorts = arrayfun(@(x) bitand(65535, bitshift(x, 0)), raw_words);
     qlongs = arrayfun(@(x) bitand(65535, bitshift(x, -16)), raw_words);
     channels = arrayfun(@(x) bitand(255, bitshift(x, -48)), raw_words);
+    group_counter = arrayfun(@(x) bitand(255, bitshift(x, -56)), raw_words);
     
-    printf("#N\ttimestamp\tqshort\tqlong\tchannel\n")
+    printf("#N\ttimestamp\tqshort\tqlong\tchannel\tgroup counter\n")
     
     for i = 1:N
-        printf("%d\t%d\t%d\t%d\t%d\n", i, timestamps(i), qshorts(i), qlongs(i), channels(i));
+        printf("%d\t%d\t%d\t%d\t%d\n", i, timestamps(i), qshorts(i), qlongs(i), channels(i), group_counter(i));
     endfor
 endif
