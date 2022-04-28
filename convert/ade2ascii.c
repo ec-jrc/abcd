@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
     if (!error_flag)
     {
         // Printing the header to the output file
-        fprintf(out_file, "#N\ttimestamp\tqshort\tqlong\tchannel\n");
+        fprintf(out_file, "#N\ttimestamp\tqshort\tqlong\tchannel\tgroup counter\n");
 
         intmax_t counter = 0;
 
@@ -121,11 +121,12 @@ int main(int argc, char *argv[])
                 fprintf(out_file, "%" PRIu16 "\t", event.qlong);
                 // channel: the number of the digitizer channel that acquired
                 //          this event
-                fprintf(out_file, "%" PRIu8 "\n", event.channel);
+                fprintf(out_file, "%" PRIu8 "\t", event.channel);
                 // baseline: the pulse baseline
                 //fprintf(out_file, "%" PRIu16 "\t", event.baseline);
-                // pur: unused byte of the event struct
-                //fprintf(out_file, "%" PRIu8 "\n", event.pur);
+                // group_counter: number of the events that follow this event
+                //                that are in temporal coincidence with it
+                fprintf(out_file, "%" PRIu8 "\n", event.group_counter);
 
                 counter += 1;
             } else {

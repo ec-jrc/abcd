@@ -252,7 +252,7 @@ void timestamp_analysis(const uint16_t *samples,
     (*events_buffer)[0].qlong = 0;
     (*events_buffer)[0].baseline = 0;
     (*events_buffer)[0].channel = waveform->channel;
-    (*events_buffer)[0].pur = 0;
+    (*events_buffer)[0].group_counter = 0;
 
     (*trigger_positions)[0] = zero_crossing_index;
 

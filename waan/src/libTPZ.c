@@ -251,7 +251,7 @@ void energy_analysis(const uint16_t *samples,
 
     uint64_t int_baseline = ((uint64_t)round(baseline)) & UINT16_MAX;
 
-    const bool PUR = false;
+    const uint8_t group_counter = 0;
 
     if (energy_maximum < config->energy_threshold) {
         // Discard the event
@@ -264,7 +264,7 @@ void energy_analysis(const uint16_t *samples,
         (*events_buffer)[0].qlong = int_maximum;
         (*events_buffer)[0].baseline = int_baseline;
         (*events_buffer)[0].channel = waveform->channel;
-        (*events_buffer)[0].pur = PUR;
+        (*events_buffer)[0].group_counter = group_counter;
 
         const uint8_t initial_additional_number = waveform_additional_get_number(waveform);
         const uint8_t new_additional_number = initial_additional_number + 3;

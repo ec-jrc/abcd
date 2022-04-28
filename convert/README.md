@@ -2,13 +2,13 @@
 
 The [`ade2ascii.py`](./ade2ascii.py) python script and the [`ade2ascii`](./ade2ascii.c) C99 program convert the events files to an ASCII file with the format:
 
-    #N      timestamp       qshort  qlong   channel
-    0       3403941888      1532    1760    4
-    1       3615693824      471     561     4
-    2       4078839808      210     268     4
-    3       4961184768      198     216     4
-    4       6212482048      775     892     4
-    ...     ...             ...     ...     ...
+    #N      timestamp       qshort  qlong   channel    group counter
+    0       3403941888      1532    1760    4          0
+    1       3615693824      471     561     4          0
+    2       4078839808      210     268     4          0
+    3       4961184768      198     216     4          0
+    4       6212482048      775     892     4          0
+    ...     ...             ...     ...     ...        ...
 
 The [`ade2ascii.m`](./ade2ascii.m) script shows how to read the data files in Octave (and Matlab) and prints them in ASCII with the [`ade2ascii.py`](./ade2ascii.py) format.
 

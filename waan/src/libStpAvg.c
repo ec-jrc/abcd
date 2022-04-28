@@ -238,7 +238,7 @@ void energy_analysis(const uint16_t *samples,
 
     uint64_t int_baseline = ((uint64_t)round(baseline)) & UINT16_MAX;
 
-    const bool PUR = false;
+    const uint8_t group_counter = 0;
 
     if (delta < config->energy_threshold) {
         // Discard the event
@@ -251,7 +251,7 @@ void energy_analysis(const uint16_t *samples,
         (*events_buffer)[0].qlong = int_delta;
         (*events_buffer)[0].baseline = int_baseline;
         (*events_buffer)[0].channel = waveform->channel;
-        (*events_buffer)[0].pur = PUR;
+        (*events_buffer)[0].group_counter = group_counter;
 
         // We determine some parameters to generate the additional pulses
         double compensated_min = 0;

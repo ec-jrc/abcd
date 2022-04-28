@@ -308,7 +308,7 @@ void timestamp_analysis(const uint16_t *samples,
         (*events_buffer)[index].qlong = 0;
         (*events_buffer)[index].baseline = baseline;
         (*events_buffer)[index].channel = waveform->channel;
-        (*events_buffer)[index].pur = 0;
+        (*events_buffer)[index].group_counter = 0;
     }
 
     if (!config->disable_RT_gates) {
