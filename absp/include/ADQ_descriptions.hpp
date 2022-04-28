@@ -18,6 +18,9 @@
 // not precisely describe it
 #define RESET_OVERFLOW 4
 
+#define ADQ_ANALOG_FRONT_END_COUPLING_AC 0
+#define ADQ_ANALOG_FRONT_END_COUPLING_DC 1
+
 #define ADQ_TRIG_SLOPE_RISING 1
 #define ADQ_TRIG_SLOPE_FALLING 0
 
@@ -62,6 +65,7 @@ public:
     static const std::map<unsigned int, std::string> trig_mode;
     static const std::map<unsigned int, std::string> trig_slope;
     static const std::map<unsigned int, std::string> collection_mode;
+    static const std::map<unsigned int, std::string> analog_front_end_coupling;
     static const std::map<unsigned int, std::string> ADQ14_temperatures;
     static const std::map<unsigned int, std::string> ADQ412_temperatures;
     static const std::map<unsigned int, std::string> ADQ214_temperatures;

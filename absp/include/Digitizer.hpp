@@ -16,6 +16,8 @@ extern "C" {
 #define DIGITIZER_SUCCESS 1
 #define DIGITIZER_FAILURE 0
 
+namespace ABCD {
+
 class Digitizer {
     unsigned int channels_number;
     int verbosity;
@@ -105,5 +107,6 @@ public:
         return DIGITIZER_FAILURE;
     }
 };
+}
 
 #endif

@@ -9,19 +9,19 @@ extern "C" {
 
 #include "Digitizer.hpp"
 
-#define ADQ412_MAX_CHANNELS_NUMBER 8
-
 #define ADQ412_RECORD_HEADER_SIZE 32
 
 #define ADQ412_TIMESTAMP_BITS 43
 #define ADQ412_TIMESTAMP_MAX (1UL << ADQ412_TIMESTAMP_BITS)
 #define ADQ412_TIMESTAMP_THRESHOLD (1L << (ADQ412_TIMESTAMP_BITS - 1))
 
-class ADQ412 : public Digitizer {
+namespace ABCD {
+
+class ADQ412 : public ABCD::Digitizer {
 private:
     // Putting this to notify the compiler that we do intend to replace the
     // method but we do not want the user to call the base method.
-    using Digitizer::Initialize;
+    using ABCD::Digitizer::Initialize;
 
 public:
     //--------------------------------------------------------------------------
@@ -81,8 +81,8 @@ public:
     // Create a pointer array containing the data buffer pointers
     // GetData allows for a digitizer with max 8 channels,
     // the unused pointers should be null pointers
-    void* target_buffers[ADQ412_MAX_CHANNELS_NUMBER];
-    std::vector<int16_t> buffers[ADQ412_MAX_CHANNELS_NUMBER];
+    void* target_buffers[ADQ_GETDATA_MAX_NOF_CHANNELS];
+    std::vector<int16_t> buffers[ADQ_GETDATA_MAX_NOF_CHANNELS];
     std::vector<uint8_t> target_headers;
     std::vector<int64_t> target_timestamps;
 
@@ -121,5 +121,6 @@ public:
 
     int GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms);
 };
+}
 
 #endif

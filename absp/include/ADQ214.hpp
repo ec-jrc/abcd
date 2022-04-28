@@ -1,5 +1,5 @@
-#ifndef __ADQ14_FWDAQ_HPP__
-#define __ADQ14_FWDAQ_HPP__
+#ifndef __ADQ214_HPP__
+#define __ADQ214_HPP__
 
 #include <map>
 
@@ -9,19 +9,15 @@ extern "C" {
 
 #include "Digitizer.hpp"
 
-#define ADQ14_FWDAQ_RECORD_HEADER_SIZE 40
-#define ADQ14_FWDAQ_RECORD_HEADER_MASK_LOST_RECORD (1 << 0)
-#define ADQ14_FWDAQ_RECORD_HEADER_MASK_LOST_DATA ((1 << 1) + (1 << 2) + (1 << 3))
-#define ADQ14_FWDAQ_RECORD_HEADER_MASK_FIFO_FILL ((1 << 4) + (1 << 5) + (1 << 6))
-#define ADQ14_FWDAQ_RECORD_HEADER_MASK_OVER_RANGE (1 << 7)
+#define ADQ214_RECORD_HEADER_SIZE 32
 
-#define ADQ14_FWDAQ_TIMESTAMP_BITS 63
-#define ADQ14_FWDAQ_TIMESTAMP_MAX (1UL << ADQ14_FWDAQ_TIMESTAMP_BITS)
-#define ADQ14_FWDAQ_TIMESTAMP_THRESHOLD (1L << (ADQ14_FWDAQ_TIMESTAMP_BITS - 1))
+#define ADQ214_TIMESTAMP_BITS 43
+#define ADQ214_TIMESTAMP_MAX (1UL << ADQ214_TIMESTAMP_BITS)
+#define ADQ214_TIMESTAMP_THRESHOLD (1L << (ADQ214_TIMESTAMP_BITS - 1))
 
 namespace ABCD {
 
-class ADQ14_FWDAQ : public ABCD::Digitizer {
+class ADQ214 : public ABCD::Digitizer {
 private:
     // Putting this to notify the compiler that we do intend to replace the
     // method but we do not want the user to call the base method.
@@ -35,11 +31,14 @@ public:
     // Pointer to the control unit of the ADQ cards
     void* adq_cu_ptr;
 
-    // Number of the ADQ14_FWDAQ card
-    int adq_num;
+    // Number of the ADQ214 card
+    unsigned int adq_num;
 
     // Flag to select the clock source of the digitizer
     int clock_source;
+
+    // TODO: Understand how this works
+    int pll_divider;
 
     //--------------------------------------------------------------------------
     // Trigger settings
@@ -61,21 +60,9 @@ public:
     // Channels settings
     //--------------------------------------------------------------------------
 
-    // The desired input ranges as requested by the user
-    static const float default_input_range;
-    std::vector<float> desired_input_ranges;
-
-    // The hardware DC offsets set on the channels
-    static const int default_DC_offset;
-    std::vector<int16_t> DC_offsets;
-
-    // Digital Baseline Stabilization settings
-    unsigned int DBS_instances_number;
-    static const int default_DBS_target;
-    static const int default_DBS_saturation_level_lower;
-    static const int default_DBS_saturation_level_upper;
-    std::vector<bool> DBS_disableds;
-    std::vector<uint32_t> baseline_samples;
+    // Channels couplings in the analong front ends
+    uint8_t channels_analog_front_end_mask;
+    std::vector<uint8_t> analog_front_end_couplings;
 
     //--------------------------------------------------------------------------
     // Waveforms settings
@@ -119,8 +106,9 @@ public:
     // Counter of overflows, used only for debugging
     unsigned int timestamp_overflows;
 
-    ADQ14_FWDAQ(int verbosity = 0);
-    virtual ~ADQ14_FWDAQ();
+
+    ADQ214(int verbosity = 1);
+    virtual ~ADQ214();
 
     int Initialize(void* adq_cu_ptr, int adq_num);
     int ReadConfig(json_t* config);
@@ -138,9 +126,6 @@ public:
     bool DataOverflow();
 
     int GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms);
-
-    void SetDBSInstancesNumber(unsigned int n) { DBS_instances_number = n; }
-    unsigned int GetDBSInstancesNumber() const { return DBS_instances_number; }
 };
 }
 

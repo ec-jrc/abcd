@@ -34,27 +34,27 @@ extern "C" {
 #define TIMESTAMP_THRESHOLD (1L << (TIMESTAMP_BITS - 1))
 
 // Defined in V
-const double ADQ14_FWPD::default_trig_ext_threshold = 0.5;
-const unsigned int ADQ14_FWPD::default_trig_ext_slope = ADQ_TRIG_SLOPE_RISING;
+const double ABCD::ADQ14_FWPD::default_trig_ext_threshold = 0.5;
+const unsigned int ABCD::ADQ14_FWPD::default_trig_ext_slope = ADQ_TRIG_SLOPE_RISING;
 // Defined in mVpp
-const float ADQ14_FWPD::default_input_range = 1000;
+const float ABCD::ADQ14_FWPD::default_input_range = 1000;
 // Defined in ADC samples
-const int ADQ14_FWPD::default_DC_offset = 0;
+const int ABCD::ADQ14_FWPD::default_DC_offset = 0;
 // Defined in ADC samples
-const int ADQ14_FWPD::default_DBS_target = 31000;
+const int ABCD::ADQ14_FWPD::default_DBS_target = 31000;
 // If left at zero the FWPD will use its default values
-const int ADQ14_FWPD::default_DBS_saturation_level_lower = 0;
-const int ADQ14_FWPD::default_DBS_saturation_level_upper = 0;
+const int ABCD::ADQ14_FWPD::default_DBS_saturation_level_lower = 0;
+const int ABCD::ADQ14_FWPD::default_DBS_saturation_level_upper = 0;
 
-const unsigned int ADQ14_FWPD::DMA_flush_timeout = 100;
+const unsigned int ABCD::ADQ14_FWPD::DMA_flush_timeout = 100;
 
-ADQ14_FWPD::ADQ14_FWPD(int Verbosity) : Digitizer(Verbosity)
+ABCD::ADQ14_FWPD::ADQ14_FWPD(int Verbosity) : Digitizer(Verbosity)
 {
     if (GetVerbosity() > 0)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::ADQ14_FWPD() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ADQ14_FWPD() ";
         std::cout << std::endl;
     }
 
@@ -82,7 +82,7 @@ ADQ14_FWPD::ADQ14_FWPD(int Verbosity) : Digitizer(Verbosity)
 
 //==================================================================
 
-ADQ14_FWPD::~ADQ14_FWPD() {
+ABCD::ADQ14_FWPD::~ADQ14_FWPD() {
     for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
         if (target_buffers[channel]) {
             delete target_buffers[channel];
@@ -95,7 +95,7 @@ ADQ14_FWPD::~ADQ14_FWPD() {
 
 //==================================================================
 
-int ADQ14_FWPD::Initialize(void* adq, int num)
+int ABCD::ADQ14_FWPD::Initialize(void* adq, int num)
 {
     adq_cu_ptr = adq;
     adq14_num = num;
@@ -134,16 +134,17 @@ int ADQ14_FWPD::Initialize(void* adq, int num)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::Initialize() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Initialize() ";
         std::cout << "Initialized board; ";
         std::cout << std::endl;
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::Initialize() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Initialize() ";
         std::cout << "Card name (serial number): " << GetName() << "; ";
+        std::cout << "Product name: " << ADQ_GetBoardProductName(adq_cu_ptr, adq14_num) << "; ";
         std::cout << "USB address: " << ADQ_GetUSBAddress(adq_cu_ptr, adq14_num) << "; ";
         std::cout << "PCIe address: " << ADQ_GetPCIeAddress(adq_cu_ptr, adq14_num) << "; ";
         std::cout << std::endl;
 
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::Initialize() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Initialize() ";
         std::cout << "ADQAPI Revision: " << ADQAPI_GetRevision() << "; ";
         std::cout << "PD Firmware generation: " << FWPD_generation << "; ";
         std::cout << "ADQ14 Revision: {";
@@ -154,13 +155,13 @@ int ADQ14_FWPD::Initialize(void* adq, int num)
         std::cout << "}; ";
         std::cout << std::endl;
 
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::Initialize() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Initialize() ";
         std::cout << "Channels number: " << GetChannelsNumber() << "; ";
         std::cout << "ADC cores: " << adc_cores << "; ";
         std::cout << "DBS instances: " << GetDBSInstancesNumber() << "; ";
         std::cout << std::endl;
 
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::Initialize() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Initialize() ";
         std::cout << "Has adjustable input range: " << (ADQ_HasAdjustableInputRange(adq_cu_ptr, adq14_num) > 0 ? "true" : "false") << "; ";
         std::cout << "Has adjustable offset: " << (ADQ_HasAdjustableBias(adq_cu_ptr, adq14_num) > 0 ? "true" : "false") << "; ";
         //std::cout << "Has adjustable external trigger threshold: " << (ADQ_HasVariableTrigThreshold(adq_cu_ptr, adq14_num) > 0 ? "true" : "false") << "; ";
@@ -175,13 +176,13 @@ int ADQ14_FWPD::Initialize(void* adq, int num)
 
 //==========================================================================================
 
-int ADQ14_FWPD::Configure()
+int ABCD::ADQ14_FWPD::Configure()
 {
     if (GetVerbosity() > 0)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
         std::cout << "Configuring board; ";
         std::cout << std::endl;
     }
@@ -199,7 +200,7 @@ int ADQ14_FWPD::Configure()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
         std::cout << "Setting clock; ";
         std::cout << "clock_source: " << ADQ_descriptions::clock_source.at(clock_source) << "; ";
         std::cout << std::endl;
@@ -210,7 +211,7 @@ int ADQ14_FWPD::Configure()
     if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
         std::cout << "Clock source from device: " << ADQ_descriptions::clock_source.at(ADQ_GetClockSource(adq_cu_ptr, adq14_num)) << "; ";
         std::cout << std::endl;
     }
@@ -224,7 +225,7 @@ int ADQ14_FWPD::Configure()
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
             std::cout << "Channel: " << channel << "; ";
             std::cout << std::endl;
         }
@@ -236,7 +237,7 @@ int ADQ14_FWPD::Configure()
             {
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
                 std::cout << "Setting channel multiplexer to default values; ";
                 std::cout << std::endl;
             }
@@ -248,7 +249,7 @@ int ADQ14_FWPD::Configure()
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
             std::cout << "Disabling test data; ";
             std::cout << std::endl;
         }
@@ -263,7 +264,7 @@ int ADQ14_FWPD::Configure()
             {
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
                 std::cout << "Setting input range; ";
                 std::cout << std::endl;
             }
@@ -277,7 +278,7 @@ int ADQ14_FWPD::Configure()
             {
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
                 std::cout << "Input range: desired: " << desired << " mVpp, result: " << result << " mVpp; ";
                 std::cout << std::endl;
             }
@@ -290,7 +291,7 @@ int ADQ14_FWPD::Configure()
             {
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
                 std::cout << "Setting DC offset to: " << offset << " samples; ";
                 std::cout << std::endl;
             }
@@ -310,7 +311,7 @@ int ADQ14_FWPD::Configure()
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
             std::cout << "Setting DBS instance: " << instance << " to: ";
             std::cout << (DBS_disabled ? "disabled" : "enabled") << "; ";
             std::cout << std::endl;
@@ -341,7 +342,7 @@ int ADQ14_FWPD::Configure()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
         std::cout << "Setting trigger; ";
         std::cout << "mode: " << ADQ_descriptions::trig_mode.at(trig_mode) << "; ";
         std::cout << std::endl;
@@ -354,7 +355,7 @@ int ADQ14_FWPD::Configure()
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
             std::cout << "Setting external TTL trigger; ";
             std::cout << std::endl;
         }
@@ -367,7 +368,7 @@ int ADQ14_FWPD::Configure()
     if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
         std::cout << "Trigger from device: ";
         std::cout << ADQ_descriptions::trig_mode.at(ADQ_GetTriggerMode(adq_cu_ptr, adq14_num)) << "; ";
         std::cout << std::endl;
@@ -388,7 +389,7 @@ int ADQ14_FWPD::Configure()
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
             std::cout << "FWPD Settings of channel: " << channel << "; ";
             std::cout << "Enabled: " << (IsChannelEnabled(channel) ? "true" : "false") << "; ";
             std::cout << std::endl;
@@ -461,7 +462,7 @@ int ADQ14_FWPD::Configure()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
         std::cout << "Enabling PD level trigger; ";
         std::cout << std::endl;
     }
@@ -476,7 +477,7 @@ int ADQ14_FWPD::Configure()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
         std::cout << "Setting transfer buffers number to: " << transfer_buffers_number << "; ";
         std::cout << "Setting transfer buffer size to: " << (transfer_buffer_size / 1024.0) << " kiB; ";
         std::cout << std::endl;
@@ -492,7 +493,7 @@ int ADQ14_FWPD::Configure()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
         std::cout << "Setting up PD streaming with channel mask: 0x" << std::hex << (unsigned int)channel_mask << std::dec << "; ";
         std::cout << std::endl;
     }
@@ -503,7 +504,7 @@ int ADQ14_FWPD::Configure()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
         std::cout << "Using streaming generation: " << streaming_generation << "; ";
         std::cout << std::endl;
     }
@@ -513,7 +514,7 @@ int ADQ14_FWPD::Configure()
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
             std::cout << "Allocating streaming memory; ";
             std::cout << std::endl;
         }
@@ -542,7 +543,7 @@ int ADQ14_FWPD::Configure()
         //{
         //    char time_buffer[BUFFER_SIZE];
         //    time_string(time_buffer, BUFFER_SIZE, NULL);
-        //    std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+        //    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
         //    std::cout << "Triggered streaming setup; ";
         //    std::cout << "number_of_records: 0x" << std::hex << max_records_number << std::dec << ", " << max_records_number << "; ";
         //    std::cout << "scope_samples: " << (unsigned int)max_scope_samples << "; ";
@@ -569,7 +570,7 @@ int ADQ14_FWPD::Configure()
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
             std::cout << "Initializing data readout parameters; ";
             std::cout << std::endl;
         }
@@ -579,7 +580,7 @@ int ADQ14_FWPD::Configure()
         if (rpi != sizeof(readout_parameters)) {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "]  ADQ14_FWPD::Configure() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
             std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to initialize streaming parameters";
             std::cout << std::endl;
 
@@ -593,7 +594,7 @@ int ADQ14_FWPD::Configure()
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
             std::cout << "Setting data readout parameters; ";
             std::cout << std::endl;
         }
@@ -603,7 +604,7 @@ int ADQ14_FWPD::Configure()
         if (rps != sizeof(readout_parameters)) {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "]  ADQ14_FWPD::Configure() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
             std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to initialize streaming parameters";
             std::cout << std::endl;
 
@@ -616,7 +617,7 @@ int ADQ14_FWPD::Configure()
 
 //==========================================================================================
 
-void ADQ14_FWPD::SetChannelsNumber(unsigned int n)
+void ABCD::ADQ14_FWPD::SetChannelsNumber(unsigned int n)
 {
     Digitizer::SetChannelsNumber(n);
 
@@ -639,13 +640,13 @@ void ADQ14_FWPD::SetChannelsNumber(unsigned int n)
 
 //================================================c=========================================
 
-int ADQ14_FWPD::StartAcquisition()
+int ABCD::ADQ14_FWPD::StartAcquisition()
 {
     if (GetVerbosity() > 1)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::StartAcquisition() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::StartAcquisition() ";
         std::cout << "Starting acquisition; ";
         std::cout << "Trigger mode: " << ADQ_descriptions::trig_mode.at(trig_mode) << "; ";
         std::cout << std::endl;
@@ -655,7 +656,7 @@ int ADQ14_FWPD::StartAcquisition()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::StartAcquisition() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::StartAcquisition() ";
         std::cout << "Using streaming generation: " << streaming_generation << "; ";
         std::cout << std::endl;
     }
@@ -672,11 +673,11 @@ int ADQ14_FWPD::StartAcquisition()
         if (retval != ADQ_EOK) {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "]  ADQ14_FWPD::StartAcquisition() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::StartAcquisition() ";
             std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to start acquisition ";
             std::cout << " (code: " << WRITE_YELLOW << retval << WRITE_NC << "); ";
             std::cout << std::endl;
-            std::cout << '[' << time_buffer << "]  ADQ14_FWPD::StartAcquisition() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::StartAcquisition() ";
             std::cout << WRITE_RED << ADQ_descriptions::error.at(retval) << WRITE_NC << "; ";
             std::cout << std::endl;
 
@@ -706,13 +707,13 @@ int ADQ14_FWPD::StartAcquisition()
 
 //================================================c=========================================
 
-int ADQ14_FWPD::RearmTrigger()
+int ABCD::ADQ14_FWPD::RearmTrigger()
 {
     if (GetVerbosity() > 1)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::RearmTrigger() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::RearmTrigger() ";
         std::cout << "Rearming trigger; ";
         std::cout << "Trigger mode: " << ADQ_descriptions::trig_mode.at(trig_mode) << "; ";
         std::cout << std::endl;
@@ -723,7 +724,7 @@ int ADQ14_FWPD::RearmTrigger()
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ14_FWPD::RearmTrigger() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::RearmTrigger() ";
             std::cout << "Forcing software trigger; ";
             std::cout << std::endl;
         }
@@ -737,13 +738,13 @@ int ADQ14_FWPD::RearmTrigger()
 }
 
 //==========================================================================================
-bool ADQ14_FWPD::AcquisitionReady()
+bool ABCD::ADQ14_FWPD::AcquisitionReady()
 {
     if (GetVerbosity() > 1)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::AcquisitionReady() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::AcquisitionReady() ";
         std::cout << "Using streaming generation: " << streaming_generation << "; ";
         std::cout << std::endl;
     }
@@ -760,7 +761,7 @@ bool ADQ14_FWPD::AcquisitionReady()
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ14_FWPD::AcquisitionReady() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::AcquisitionReady() ";
             std::cout << "Filled buffers: " << filled_buffers << "; ";
             std::cout << "Time since the last buffer ready: " << delta_time.count() << " ms; ";
             std::cout << std::endl;
@@ -773,7 +774,7 @@ bool ADQ14_FWPD::AcquisitionReady()
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::AcquisitionReady() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::AcquisitionReady() ";
                     std::cout << "Issuing a flush of the DMA; ";
                     std::cout << std::endl;
                 }
@@ -808,7 +809,7 @@ bool ADQ14_FWPD::AcquisitionReady()
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::AcquisitionReady() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::AcquisitionReady() ";
                     std::cout << "Available data; ";
                     std::cout << std::endl;
                 }
@@ -816,7 +817,7 @@ bool ADQ14_FWPD::AcquisitionReady()
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::AcquisitionReady() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::AcquisitionReady() ";
                     std::cout << "Status event: flags: ";
                     printf("%08" PRIu32 "", ADQ_status.flags);
                     std::cout << "; ";
@@ -826,7 +827,7 @@ bool ADQ14_FWPD::AcquisitionReady()
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::AcquisitionReady() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::AcquisitionReady() ";
                     std::cout << "Timeout; ";
                     std::cout << std::endl;
                 }
@@ -834,7 +835,7 @@ bool ADQ14_FWPD::AcquisitionReady()
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::AcquisitionReady() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::AcquisitionReady() ";
                     std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Error code: " << (long)available_bytes << "; ";
                     std::cout << std::endl;
                 }
@@ -848,14 +849,14 @@ bool ADQ14_FWPD::AcquisitionReady()
 }
 
 //==========================================================================================
-int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms)
+int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms)
 {
     while (AcquisitionReady()) {
         if (GetVerbosity() > 1)
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ14_FWPD::GetWaveformsFromCard() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
             std::cout << "Using streaming generation: " << streaming_generation << "; ";
             std::cout << std::endl;
         }
@@ -865,7 +866,7 @@ int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &wavefor
             {
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ADQ14_FWPD::AcquisitionReady() ";
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::AcquisitionReady() ";
                 std::cout << "Issuing a flush of the DMA; ";
                 std::cout << std::endl;
             }
@@ -885,7 +886,7 @@ int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &wavefor
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::GetWaveformsFromCard() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
                     std::cout << "Channel: " << channel << " (enabled: " << IsChannelEnabled(channel) << "); ";
                     std::cout << "Added samples: " << added_samples[channel] << "; ";
                     std::cout << "Added headers: " << added_headers[channel] << "; ";
@@ -898,7 +899,7 @@ int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &wavefor
                     {
                         char time_buffer[BUFFER_SIZE];
                         time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ADQ14_FWPD::GetWaveformsFromCard() ";
+                        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
                         std::cout << "Available for channel " << channel << ": ";
                         std::cout << "headers: " << added_headers[channel] << "; ";
                         std::cout << "samples: " << added_samples[channel] << "; ";
@@ -910,7 +911,7 @@ int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &wavefor
                         {
                             char time_buffer[BUFFER_SIZE];
                             time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ADQ14_FWPD::GetWaveformsFromCard() ";
+                            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
                             std::cout << "Icomplete record at end; ";
                             std::cout << std::endl;
                         }
@@ -929,7 +930,7 @@ int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &wavefor
                         {
                             char time_buffer[BUFFER_SIZE];
                             time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ADQ14_FWPD::GetWaveformsFromCard() ";
+                            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
                             std::cout << "Channel: " << channel << "; ";
                             std::cout << "Collected record number: " << (unsigned long)record_number << "; ";
                             std::cout << "Record length: " << (unsigned long)samples_per_record << "; ";
@@ -948,7 +949,7 @@ int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &wavefor
                             {
                                 char time_buffer[BUFFER_SIZE];
                                 time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ADQ14_FWPD::GetWaveformsFromCard() ";
+                                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
                                 std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Detected timestamp overflow; ";
                                 std::cout << "Overflows: " << timestamp_overflows << "; ";
                                 std::cout << "Negative difference: " << (long long)timestamp_negative_difference << "; ";
@@ -1001,7 +1002,7 @@ int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &wavefor
             {
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ADQ14_FWPD::GetWaveformsFromCard() ";
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
                 std::cout << "Available channel: " << available_channel << ", " << (unsigned int)channel << "; ";
                 std::cout << "Collected record number: " << (unsigned long)record_number << "; ";
                 std::cout << "Record length: " << (unsigned long)samples_per_record << "; ";
@@ -1020,7 +1021,7 @@ int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &wavefor
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::GetWaveformsFromCard() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
                     std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Detected timestamp overflow; ";
                     std::cout << "Overflows: " << timestamp_overflows << "; ";
                     std::cout << "Negative difference: " << (long long)timestamp_negative_difference << "; ";
@@ -1068,7 +1069,7 @@ int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &wavefor
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ14_FWPD::GetWaveformsFromCard() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
             std::cout << "Converted all samples; ";
             std::cout << "Timestamp overflows: " << timestamp_overflows << "; ";
             std::cout << std::endl;
@@ -1079,13 +1080,13 @@ int ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &wavefor
 }
 
 //==========================================================================================
-int ADQ14_FWPD::StopAcquisition()
+int ABCD::ADQ14_FWPD::StopAcquisition()
 {
     if (GetVerbosity() > 0)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::StopAcquisition() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::StopAcquisition() ";
         std::cout << "Using streaming generation: " << streaming_generation << "; ";
         std::cout << std::endl;
     }
@@ -1098,11 +1099,11 @@ int ADQ14_FWPD::StopAcquisition()
         if (retval != ADQ_EOK && retval != ADQ_EINTERRUPTED) {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "]  ADQ14_FWPD::StopAcquisition() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::StopAcquisition() ";
             std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Stop acquisition error ";
             std::cout << " (code: " << WRITE_YELLOW << retval << WRITE_NC << "); ";
             std::cout << std::endl;
-            std::cout << '[' << time_buffer << "]  ADQ14_FWPD::StopAcquisition() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::StopAcquisition() ";
             std::cout << WRITE_RED << ADQ_descriptions::error.at(retval) << WRITE_NC << "; ";
             std::cout << std::endl;
 
@@ -1115,13 +1116,13 @@ int ADQ14_FWPD::StopAcquisition()
 
 //=====================================================================================================
 
-int ADQ14_FWPD::ForceSoftwareTrigger()
+int ABCD::ADQ14_FWPD::ForceSoftwareTrigger()
 {
     if (GetVerbosity() > 1)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::ForceSoftwareTrigger() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ForceSoftwareTrigger() ";
         std::cout << "Forcing a software trigger; ";
         std::cout << std::endl;
     }
@@ -1133,13 +1134,13 @@ int ADQ14_FWPD::ForceSoftwareTrigger()
 
 //=========================================================================
 
-int ADQ14_FWPD::ReadConfig(json_t *config)
+int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
 {
     if (GetVerbosity() > 0)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
         std::cout << "Reading configration JSON; ";
         std::cout << std::endl;
     }
@@ -1155,7 +1156,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
         std::cout << "Card is " << (enable ? "enabled" : "disabled") << "; ";
         std::cout << std::endl;
     }
@@ -1173,7 +1174,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
 
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "]  ADQ14_FWPD::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Wrong clock source";
         std::cout << std::endl;
     }
@@ -1184,7 +1185,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
         std::cout << "Clock source: got: " << ADQ_descriptions::clock_source.at(clock_source) << " (index: " << clock_source << "); ";
         std::cout << std::endl;
     }
@@ -1199,7 +1200,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
             std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Missing \"transfer\" entry in configuration; ";
             std::cout << std::endl;
         }
@@ -1216,7 +1217,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
         std::cout << "Transfer buffer size: " << transfer_buffer_size << " B, " << transfer_buffer_size / 1024 << " kiB; ";
         std::cout << std::endl;
     }
@@ -1231,7 +1232,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
         std::cout << "Transfer buffers number: " << transfer_buffers_number << "; ";
         std::cout << std::endl;
     }
@@ -1246,7 +1247,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
         std::cout << "Transfer timeout: " << transfer_timeout << " ms; ";
         std::cout << std::endl;
     }
@@ -1263,7 +1264,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ADQ14_FWPD::Configure() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
             std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Missing \"trigger\" entry in configuration; ";
             std::cout << std::endl;
         }
@@ -1279,7 +1280,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
     if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
         std::cout << "Trigger source: " << str_trigger_source<< "; ";
         std::cout << std::endl;
     }
@@ -1294,7 +1295,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
 
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid trigger source; ";
         std::cout << "Got: " << str_trigger_source << "; ";
         std::cout << std::endl;
@@ -1327,7 +1328,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
                     std::cout << "Found channel: " << id << "; ";
                     std::cout << std::endl;
                 }
@@ -1338,7 +1339,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
                     std::cout << "Channel is " << (enabled ? "enabled" : "disabled") << "; ";
                     std::cout << std::endl;
                 }
@@ -1349,7 +1350,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
                     std::cout << "Input range: " << input_range << " mVpp; ";
                     std::cout << std::endl;
                 }
@@ -1364,7 +1365,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
                     std::cout << "DC offset: " << offset << " samples; ";
                     std::cout << std::endl;
                 }
@@ -1375,7 +1376,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
                     std::cout << "DBS disable: " << (DBS_disable ? "true" : "false") << "; ";
                     std::cout << std::endl;
                 }
@@ -1386,7 +1387,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
                 if (GetVerbosity() > 0) {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
                     std::cout << "Trigger level: " << trig_level << "; ";
                     std::cout << std::endl;
                 }
@@ -1397,7 +1398,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
                 if (GetVerbosity() > 0) {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
                     std::cout << "Trigger slope: " << str_trigger_slope<< "; ";
                     std::cout << std::endl;
                 }
@@ -1410,7 +1411,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
 
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
                     std::cout << "Found matching trigger slope; ";
                     std::cout << "Got: " << str_trigger_slope << "; ";
                     std::cout << "index: " << trig_slope << "; ";
@@ -1420,7 +1421,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
 
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
                     std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid trigger slope; ";
                     std::cout << "Got: " << str_trigger_slope << "; ";
                     std::cout << std::endl;
@@ -1435,7 +1436,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
                 if (GetVerbosity() > 0) {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
                     std::cout << "Pretrigger: " << pretrigger << "; ";
                     std::cout << std::endl;
                 }
@@ -1448,7 +1449,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
                 if (GetVerbosity() > 0) {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
                     std::cout << "Baseline samples: " << baseline << "; ";
                     std::cout << std::endl;
                 }
@@ -1460,7 +1461,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
                 if (GetVerbosity() > 0) {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
                     std::cout << "Scope samples: " << scope << "; ";
                     std::cout << std::endl;
                 }
@@ -1483,7 +1484,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
                 if (GetVerbosity() > 0) {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
                     std::cout << "Records number: " << records << "; ";
                     std::cout << std::endl;
                 }
@@ -1502,7 +1503,7 @@ int ADQ14_FWPD::ReadConfig(json_t *config)
                 } else {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ADQ14_FWPD::ReadConfig() ";
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
                     std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Channel out of range, ignoring it; ";
                     std::cout << std::endl;
                 }
