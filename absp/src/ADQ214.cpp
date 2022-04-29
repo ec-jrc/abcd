@@ -61,11 +61,11 @@ ABCD::ADQ214::ADQ214(int Verbosity) : ABCD::Digitizer(Verbosity)
     timestamp_overflows = 0;
 }
 
-//==================================================================
+//==============================================================================
 
 ABCD::ADQ214::~ADQ214() { }
 
-//==================================================================
+//==============================================================================
 
 int ABCD::ADQ214::Initialize(void* adq, int num)
 {
@@ -150,7 +150,7 @@ int ABCD::ADQ214::Initialize(void* adq, int num)
     return DIGITIZER_SUCCESS;
 }
 
-//==========================================================================================
+//==============================================================================
 
 int ABCD::ADQ214::Configure()
 {
@@ -411,7 +411,7 @@ int ABCD::ADQ214::Configure()
 }
 
 
-//==========================================================================================
+//==============================================================================
 
 void ABCD::ADQ214::SetChannelsNumber(unsigned int n)
 {
@@ -429,7 +429,7 @@ void ABCD::ADQ214::SetChannelsNumber(unsigned int n)
     analog_front_end_couplings.resize(n, ADQ_ANALOG_FRONT_END_COUPLING_DC);
 }
 
-//==========================================================================================
+//==============================================================================
 
 int ABCD::ADQ214::StartAcquisition()
 {
@@ -448,7 +448,7 @@ int ABCD::ADQ214::StartAcquisition()
     return DIGITIZER_SUCCESS;
 }
 
-//==========================================================================================
+//==============================================================================
 
 int ABCD::ADQ214::RearmTrigger()
 {
@@ -472,7 +472,8 @@ int ABCD::ADQ214::RearmTrigger()
     return DIGITIZER_SUCCESS;
 }
 
-//==========================================================================================
+//==============================================================================
+
 bool ABCD::ADQ214::AcquisitionReady()
 {
 
@@ -490,7 +491,8 @@ bool ABCD::ADQ214::AcquisitionReady()
     return retval == 1 ? true : false;
 }
 
-//==========================================================================================
+//==============================================================================
+
 bool ABCD::ADQ214::DataOverflow()
 {
 
@@ -508,8 +510,8 @@ bool ABCD::ADQ214::DataOverflow()
     return retval == 0 ? false : true;
 }
 
+//==============================================================================
 
-//==========================================================================================
 int ABCD::ADQ214::GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms)
 {
     // We will skip the target headers reading because we have no documentation
@@ -608,7 +610,8 @@ int ABCD::ADQ214::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
     return DIGITIZER_SUCCESS;
 }
 
-//==========================================================================================
+//==============================================================================
+
 int ABCD::ADQ214::StopAcquisition()
 {
     CHECKZERO(ADQ_DisarmTrigger(adq_cu_ptr, adq_num));
@@ -616,7 +619,7 @@ int ABCD::ADQ214::StopAcquisition()
     return DIGITIZER_SUCCESS;
 }
 
-//=====================================================================================================
+//==============================================================================
 
 int ABCD::ADQ214::ForceSoftwareTrigger()
 {
@@ -636,7 +639,7 @@ int ABCD::ADQ214::ForceSoftwareTrigger()
     return DIGITIZER_SUCCESS;
 }
 
-//=====================================================================================================
+//==============================================================================
 
 int ABCD::ADQ214::ResetOverflow()
 {
@@ -654,7 +657,7 @@ int ABCD::ADQ214::ResetOverflow()
     return DIGITIZER_SUCCESS;
 }
 
-//=========================================================================
+//==============================================================================
 
 int ABCD::ADQ214::ReadConfig(json_t *config)
 {
@@ -1016,4 +1019,79 @@ int ABCD::ADQ214::ReadConfig(json_t *config)
     return DIGITIZER_SUCCESS;
 }
 
-//======================================================================
+//==============================================================================
+
+int ABCD::ADQ214::SpecificCommand(json_t *json_command)
+{
+    const char *cstr_command = json_string_value(json_object_get(json_command, "command"));
+    const std::string command = (cstr_command) ? std::string(cstr_command) : std::string();
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::SpecificCommand() ";
+        std::cout << "Specific command: " << command << "; ";
+        std::cout << std::endl;
+    }
+
+    if (command == std::string("GPIO_set_direction")) {
+        const char *cstr_direction = json_string_value(json_object_get(json_command, "direction"));
+        const std::string direction = (cstr_direction) ? std::string(cstr_direction) : std::string();
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ214::SpecificCommand() ";
+            std::cout << "Setting GPIO direction: " << direction << "; ";
+            std::cout << std::endl;
+        }
+
+        // Informing that all the pins should keep their direction, only pin 5
+        // can be changed in these boards.
+        const uint16_t mask = 0xF;
+        uint16_t pins_directions = 0;
+
+        if (direction == std::string("input")) {
+            pins_directions = 0;
+        } else if (direction == std::string("output")) {
+            pins_directions = (1 << 4);
+        }
+
+        CHECKZERO(ADQ_SetDirectionGPIO(adq_cu_ptr, adq_num, pins_directions, mask));
+    } else if (command == std::string("GPIO_write")) {
+        const int value = json_integer_value(json_object_get(json_command, "value"));
+
+        // Informing that all the pins should ignore the command, only pin 5 can
+        // be used in these boards.
+        const uint16_t mask = 0xF;
+        const uint16_t pin_value = (value > 0) ? (1 << 4) : 0;
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ214::SpecificCommand() ";
+            std::cout << "Writing GPIO: " << value << ", pin_value: " << (unsigned int)pin_value << "; ";
+            std::cout << std::endl;
+        }
+
+        CHECKZERO(ADQ_WriteGPIO(adq_cu_ptr, adq_num, pin_value, mask));
+    } else if (command == std::string("GPIO_read")) {
+        const int read_pins_values = ADQ_ReadGPIO(adq_cu_ptr, adq_num);
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ214::SpecificCommand() ";
+            std::cout << "Read GPIO values: " << read_pins_values << "; ";
+            std::cout << std::endl;
+        }
+    }
+
+    return DIGITIZER_SUCCESS;
+}
+
+//==============================================================================
