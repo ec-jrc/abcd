@@ -6,8 +6,8 @@
 #include <stdexcept>
 
 #include <chrono>
+#include <thread>
 #include <unistd.h>
-
 
 extern "C" {
 #include <jansson.h>
@@ -1078,6 +1078,51 @@ int ABCD::ADQ214::SpecificCommand(json_t *json_command)
         }
 
         CHECKZERO(ADQ_WriteGPIO(adq_cu_ptr, adq_num, pin_value, mask));
+    } else if (command == std::string("GPIO_pulse")) {
+        const int width = json_integer_value(json_object_get(json_command, "width"));
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ214::SpecificCommand() ";
+            std::cout << "Pulse on GPIO of width: " << width << " us; ";
+            std::cout << std::endl;
+        }
+
+        // Informing that all the pins should ignore the command, only pin 5 can
+        // be used in these boards.
+        const uint16_t mask = 0xF;
+        const uint16_t pin_value_on = (1 << 4);
+        const uint16_t pin_value_off = 0;
+
+        CHECKZERO(ADQ_WriteGPIO(adq_cu_ptr, adq_num, pin_value_on, mask));
+
+        std::this_thread::sleep_for(std::chrono::microseconds(width));
+
+        CHECKZERO(ADQ_WriteGPIO(adq_cu_ptr, adq_num, pin_value_off, mask));
+    } else if (command == std::string("timestamp_reset")) {
+        const char *cstr_mode = json_string_value(json_object_get(json_command, "mode"));
+        const std::string mode = (cstr_mode) ? std::string(cstr_mode) : std::string();
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ214::SpecificCommand() ";
+            std::cout << "Timestamp reset mode: " << mode << "; ";
+            std::cout << std::endl;
+        }
+
+        int restart_mode = 1;
+
+        if (mode == std::string("pulse")) {
+            restart_mode = 0;
+        } else if (mode == std::string("now")) {
+            restart_mode = 1;
+        }
+
+        CHECKZERO(ADQ_ResetTrigTimer(adq_cu_ptr, adq_num, restart_mode));
     } else if (command == std::string("GPIO_read")) {
         const int read_pins_values = ADQ_ReadGPIO(adq_cu_ptr, adq_num);
 
