@@ -410,7 +410,6 @@ int ABCD::ADQ214::Configure()
     return DIGITIZER_SUCCESS;
 }
 
-
 //==============================================================================
 
 void ABCD::ADQ214::SetChannelsNumber(unsigned int n)
