@@ -57,23 +57,41 @@ ABCD::ADQ412::ADQ412(int Verbosity) : Digitizer(Verbosity)
     timestamp_overflows = 0;
 }
 
-//==================================================================
+//==============================================================================
 
 ABCD::ADQ412::~ADQ412() { }
 
-//==================================================================
+//==============================================================================
 
 int ABCD::ADQ412::Initialize(void* adq, int num)
 {
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Initialize() ";
+        std::cout << std::endl;
+    }
+
     adq_cu_ptr = adq;
     adq_num = num;
 
     CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_POWER_ON));
     CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_COMMUNICATION));
 
-    const std::string board_name = ADQ_GetBoardSerialNumber(adq_cu_ptr, adq_num);
+    const char *board_name = ADQ_GetBoardSerialNumber(adq_cu_ptr, adq_num);
 
-    SetName(board_name);
+    if (!board_name) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Error in getting the serial number; ";
+        std::cout << std::endl;
+
+        SetName("");
+    } else {
+        SetName(board_name);
+    }
 
     const unsigned int number_of_channels = ADQ_GetNofChannels(adq_cu_ptr, adq_num);
 
@@ -128,7 +146,7 @@ int ABCD::ADQ412::Initialize(void* adq, int num)
     return DIGITIZER_SUCCESS;
 }
 
-//==========================================================================================
+//==============================================================================
 
 int ABCD::ADQ412::Configure()
 {
@@ -219,6 +237,18 @@ int ABCD::ADQ412::Configure()
     channels_acquisition_mask = 0;
 
     for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
+        int gain;
+        int offset;
+
+        // Channel indexing starts from 1
+        CHECKZERO(ADQ_GetGainAndOffset(adq_cu_ptr, adq_num, channel + 1, &gain, &offset));
+
+        // This is just a value added to the ADC conversion and not a physical offset
+        //CHECKZERO(ADQ_SetGainAndOffset(adq_cu_ptr, adq_num, channel + 1, gain, 0));
+
+        // This might be supported in the ADQ412
+        //CHECKZERO(ADQ_SetAdjustableBias(adq_cu_ptr, adq_num, channel + 1, 30000));
+
         if (GetVerbosity() > 0)
         {
             char time_buffer[BUFFER_SIZE];
@@ -227,6 +257,8 @@ int ABCD::ADQ412::Configure()
             std::cout << "Channel: " << channel << "; ";
             std::cout << "Enabled: " << (IsChannelEnabled(channel) ? "true" : "false") << "; ";
             std::cout << "Triggering: " << (IsChannelTriggering(channel) ? "true" : "false") << "; ";
+            std::cout << "Gain: " << gain << "; ";
+            std::cout << "Offset: " << offset << "; ";
             std::cout << std::endl;
         }
 
@@ -237,7 +269,6 @@ int ABCD::ADQ412::Configure()
             channels_acquisition_mask += (1 << channel);
         }
     }
-
 
     if (GetVerbosity() > 0)
     {
@@ -304,7 +335,6 @@ int ABCD::ADQ412::Configure()
             std::cout << std::endl;
         }
 
-        CHECKZERO(ADQ_SetTriggerMode(adq_cu_ptr,  adq_num, trig_mode));
         CHECKZERO(ADQ_SetLvlTrigLevel(adq_cu_ptr, adq_num, trig_level));
         CHECKZERO(ADQ_SetLvlTrigEdge(adq_cu_ptr,  adq_num, trig_slope));
         CHECKZERO(ADQ_SetLvlTrigChannel(adq_cu_ptr, adq_num, channels_triggering_mask));
@@ -375,7 +405,7 @@ int ABCD::ADQ412::Configure()
     return DIGITIZER_SUCCESS;
 }
 
-//==========================================================================================
+//==============================================================================
 
 int ABCD::ADQ412::StartAcquisition()
 {
@@ -394,7 +424,7 @@ int ABCD::ADQ412::StartAcquisition()
     return DIGITIZER_SUCCESS;
 }
 
-//==========================================================================================
+//==============================================================================
 
 int ABCD::ADQ412::RearmTrigger()
 {
@@ -418,7 +448,8 @@ int ABCD::ADQ412::RearmTrigger()
     return DIGITIZER_SUCCESS;
 }
 
-//==========================================================================================
+//==============================================================================
+
 bool ABCD::ADQ412::AcquisitionReady()
 {
 
@@ -436,7 +467,8 @@ bool ABCD::ADQ412::AcquisitionReady()
     return retval == 1 ? true : false;
 }
 
-//==========================================================================================
+//==============================================================================
+
 bool ABCD::ADQ412::DataOverflow()
 {
 
@@ -454,8 +486,8 @@ bool ABCD::ADQ412::DataOverflow()
     return retval == 0 ? false : true;
 }
 
+//==============================================================================
 
-//==========================================================================================
 int ABCD::ADQ412::GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms)
 {
     // We will skip the target headers reading because we have no documentation
@@ -554,7 +586,8 @@ int ABCD::ADQ412::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
     return DIGITIZER_SUCCESS;
 }
 
-//==========================================================================================
+//==============================================================================
+
 int ABCD::ADQ412::StopAcquisition()
 {
     CHECKZERO(ADQ_DisarmTrigger(adq_cu_ptr, adq_num));
@@ -562,7 +595,7 @@ int ABCD::ADQ412::StopAcquisition()
     return DIGITIZER_SUCCESS;
 }
 
-//=====================================================================================================
+//==============================================================================
 
 int ABCD::ADQ412::ForceSoftwareTrigger()
 {
@@ -582,7 +615,7 @@ int ABCD::ADQ412::ForceSoftwareTrigger()
     return DIGITIZER_SUCCESS;
 }
 
-//=====================================================================================================
+//==============================================================================
 
 int ABCD::ADQ412::ResetOverflow()
 {
@@ -600,7 +633,7 @@ int ABCD::ADQ412::ResetOverflow()
     return DIGITIZER_SUCCESS;
 }
 
-//=========================================================================
+//==============================================================================
 
 int ABCD::ADQ412::ReadConfig(json_t *config)
 {
@@ -692,7 +725,7 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
     // Looking for the settings in the description map
     const auto tm_result = map_utilities::find_item(ADQ_descriptions::trig_mode, str_trigger_source);
 
-    if (tm_result != ADQ_descriptions::trig_mode.end()) {
+    if (tm_result != ADQ_descriptions::trig_mode.end() && str_trigger_source.length() > 0) {
         trig_mode = tm_result->first;
     } else {
         trig_mode = ADQ_LEVEL_TRIGGER_MODE;
@@ -722,14 +755,14 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
-        std::cout << "Trigger slope: " << str_trigger_slope<< "; ";
+        std::cout << "Trigger slope: " << str_trigger_slope << "; ";
         std::cout << std::endl;
     }
 
     // Looking for the settings in the description map
     const auto ts_result = map_utilities::find_item(ADQ_descriptions::trig_slope, str_trigger_slope);
 
-    if (ts_result != ADQ_descriptions::trig_mode.end()) {
+    if (ts_result != ADQ_descriptions::trig_mode.end() && str_trigger_slope.length() > 0) {
         trig_slope = ts_result->first;
     } else {
         trig_slope = ADQ_TRIG_SLOPE_FALLING;
@@ -930,4 +963,4 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
     return DIGITIZER_SUCCESS;
 }
 
-//======================================================================
+//==============================================================================
