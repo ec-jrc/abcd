@@ -304,7 +304,7 @@ int main(int argc, char *argv[])
 
                     if (verbosity > 1)
                     {
-                        printf("size: %zu; this_channel: %" PRIu8 "; samples_number: %" PRIu32 "; gates_number: %" PRIu8 ", this_size: %zu; input_offset: %zu\n", size, this_channel, samples_number, gates_number, this_size, input_offset);
+                        printf("timestamp: %" PRIu64 "; this_channel: %" PRIu8 "; samples_number: %" PRIu32 "; gates_number: %" PRIu8 ", this_size: %zu; input_offset: %zu\n", timestamp, this_channel, samples_number, gates_number, this_size, input_offset);
                     }
     
                     all_events += 1;
