@@ -106,6 +106,10 @@ public:
     virtual int GetWaveformsFromCard(std::vector<struct event_waveform>& /*waveforms*/) {
         return DIGITIZER_FAILURE;
     }
+
+    //--------------------------------------------------------------------------
+
+    virtual int SpecificCommand(json_t* /*json_command*/) { return DIGITIZER_FAILURE; }
 };
 }
 

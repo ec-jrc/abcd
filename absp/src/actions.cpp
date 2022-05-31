@@ -1145,6 +1145,30 @@ state actions::receive_commands(status &global_status)
                 json_decref(json_event_message);
 
                 return states::configure_digitizer;
+            } else if (command == std::string("specific") && json_arguments) {
+                const char *cstr_serial = json_string_value(json_object_get(json_arguments, "serial"));
+                const std::string serial = (cstr_serial) ? std::string(cstr_serial) : std::string();
+
+                for (unsigned int digitizer_index = 0; digitizer_index < global_status.digitizers.size(); digitizer_index++)
+                {
+                    auto digitizer = global_status.digitizers[digitizer_index];
+
+                    if ((digitizer)->GetName() == serial) {
+                        if (global_status.verbosity > 0)
+                        {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "Found matching card: " << serial << "; ";
+                            std::cout << std::endl;
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "Forwarding command; ";
+                            std::cout << std::endl;
+                        }
+
+                        (digitizer)->SpecificCommand(json_arguments);
+                    }
+                }
             } else if (command == std::string("off")) {
                 return states::clear_memory;
             } else if (command == std::string("quit")) {

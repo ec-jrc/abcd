@@ -126,6 +126,11 @@ public:
     bool DataOverflow();
 
     int GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms);
+
+    //--------------------------------------------------------------------------
+    
+    int SpecificCommand(json_t* json_command);
+    
 };
 }
 

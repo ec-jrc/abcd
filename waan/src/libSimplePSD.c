@@ -1,3 +1,16 @@
+/*! \brief Very simple example of determination of the energy information of a
+ *         pulse by integration.
+ *
+ * Calculation procedure:
+ *  1. The baseline is determined averaging the first N samples.
+ *  2. The pulse is integrated over two intervals from the integration start
+ *     position.
+ *
+ * In the event_PSD structure the energy information is stored in the qlong
+ * entry. The qshort stored the value of the shorted integral. The configuration
+ * is hard-coded in the source in order to make the example very easy.
+ */
+
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
