@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2016 Cristiano Lino Fontana
+ * (C) Copyright 2016, 2022 European Union, Cristiano Lino Fontana
  *
  * This file is part of ABCD.
  *
@@ -79,8 +79,10 @@ void print_usage(const char *name) {
     printf("\t-D <address>: Output socket address, default: %s\n", defaults_cofi_data_address);
     printf("\t-T <period>: Set base period in milliseconds, default: %d\n", defaults_cofi_base_period);
     printf("\t-w <coincidence_window>: Symmetric coincidence window in nanoseconds\n");
-    printf("\t-l <left_coincidence_window>: Left edge of coincidence window in nanoseconds, default: %f\n", defaults_cofi_coincidence_window_left);
-    printf("\t-r <right_coincidence_window>: Right edge of coincidence window in nanoseconds, default: %f\n", defaults_cofi_coincidence_window_right);
+    printf("\t-l <left_coincidence_window>: Left coincidence window width in nanoseconds extending to negative times relative to the reference pulse, default: %f\n", defaults_cofi_coincidence_window_left);
+    printf("\t-r <right_coincidence_window>: Right coincidence window width in nanoseconds relative to the reference pulse, default: %f\n", defaults_cofi_coincidence_window_right);
+    printf("\t-L <left_coincidence_edge>: Left edge of the coincidence window in nanoseconds relative to the reference pulse, default: %f\n", -1 * defaults_cofi_coincidence_window_left);
+    printf("\t-m <multiplicity>: Event minimum multiplicity excluding the reference channel, default: %u\n", defaults_cofi_multiplicity);
     printf("\t-n <ns_per_sample>: Nanoseconds per sample, default: %f\n", defaults_cofi_ns_per_sample);
     printf("\t-k: Enable keep reference event, even if there are no coincidences.\n");
 
@@ -88,8 +90,8 @@ void print_usage(const char *name) {
 }
 
 bool in(int channel, int *reference_channels, size_t number_of_channels);
-void quicksort(struct event_PSD *events, intmax_t low, intmax_t high);
-intmax_t partition(struct event_PSD *events, intmax_t low, intmax_t high);
+void quicksort(struct event_PSD *events, int64_t low, int64_t high);
+int64_t partition(struct event_PSD *events, int64_t low, int64_t high);
 void reallocate_events(size_t events_number, size_t *previous_events_number, struct event_PSD **coincidence_events);
 
 int main(int argc, char *argv[])
@@ -107,9 +109,10 @@ int main(int argc, char *argv[])
     float left_coincidence_window_ns = defaults_cofi_coincidence_window_left;
     float right_coincidence_window_ns = defaults_cofi_coincidence_window_right;
     float ns_per_sample = defaults_cofi_ns_per_sample;
+    size_t multiplicity = defaults_cofi_multiplicity;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hA:D:S:P:T:w:l:r:n:kvV")) != -1) {
+    while ((c = getopt(argc, argv, "hA:D:S:P:T:w:l:r:L:n:m:kvV")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
@@ -138,6 +141,9 @@ int main(int argc, char *argv[])
                 break;
             case 'r':
                 right_coincidence_window_ns = atof(optarg);
+                break;
+            case 'L':
+                left_coincidence_window_ns = -1 * atof(optarg);
                 break;
             case 'n':
                 ns_per_sample = atof(optarg);
@@ -172,8 +178,8 @@ int main(int argc, char *argv[])
         reference_channels[i] = atoi(argv[optind + i]);
     }
 
-    const uintmax_t left_coincidence_window = (uintmax_t)(left_coincidence_window_ns / ns_per_sample);
-    const uintmax_t right_coincidence_window = (uintmax_t)(right_coincidence_window_ns / ns_per_sample);
+    const uint64_t left_coincidence_window = (uint64_t)(left_coincidence_window_ns / ns_per_sample);
+    const uint64_t right_coincidence_window = (uint64_t)(right_coincidence_window_ns / ns_per_sample);
 
     if (verbosity > 0) {
         printf("Input socket address: %s\n", input_address);
@@ -186,8 +192,8 @@ int main(int argc, char *argv[])
         printf("\n");
         printf("Verbosity: %u\n", verbosity);
         printf("Base period: %u\n", base_period);
-        printf("Left coincidence window: %f, (clock steps: %" PRIuMAX ")\n", left_coincidence_window_ns, left_coincidence_window);
-        printf("Right coincidence window: %f, (clock steps: %" PRIuMAX ")\n", right_coincidence_window_ns, right_coincidence_window);
+        printf("Left coincidence window: %f, (clock steps: %" PRIu64 ")\n", left_coincidence_window_ns, left_coincidence_window);
+        printf("Right coincidence window: %f, (clock steps: %" PRIu64 ")\n", right_coincidence_window_ns, right_coincidence_window);
         printf("Nanoseconds per sample: %f\n", ns_per_sample);
     }
 
@@ -326,7 +332,7 @@ int main(int argc, char *argv[])
                                 size_t found_coincidences = 0;
 
                                 // Search backward in time
-                                for (intmax_t j = (i - 1); j > 0; j--)
+                                for (int64_t j = (i - 1); j > 0; j--)
                                 {
                                     const struct event_PSD that_event = events[j];
 
@@ -340,7 +346,7 @@ int main(int argc, char *argv[])
 
                                             if (verbosity > 1)
                                             {
-                                                printf(" Backward coincidence!!!! i: %zu, j: %" PRIdMAX ", channel: %" PRIu8 ", timestamps: this: %" PRIu64 ", that: %" PRIu64 ", difference: %" PRIdMAX "\n", i, j, that_event.channel, this_event.timestamp, that_event.timestamp, ((intmax_t)that_event.timestamp) - (intmax_t)this_event.timestamp);
+                                                printf(" Backward coincidence!!!! i: %zu, j: %" PRId64 ", channel: %" PRIu8 ", timestamps: this: %" PRIu64 ", that: %" PRIu64 ", difference: %" PRId64 "\n", i, j, that_event.channel, this_event.timestamp, that_event.timestamp, ((int64_t)that_event.timestamp) - (int64_t)this_event.timestamp);
                                             }
 
                                             if ((coincidence_group_start_index + found_coincidences) < defaults_cofi_coincidence_buffer_multiplier * events_number)
@@ -356,7 +362,7 @@ int main(int argc, char *argv[])
                                 }
 
                                 // Search forward in time
-                                for (intmax_t j = (i + 1); j < (intmax_t)events_number; j++)
+                                for (int64_t j = (i + 1); j < (int64_t)events_number; j++)
                                 {
                                     const struct event_PSD that_event = events[j];
 
@@ -370,7 +376,7 @@ int main(int argc, char *argv[])
 
                                             if (verbosity > 1)
                                             {
-                                                printf(" Forward coincidence!!!! i: %zu, j: %" PRIdMAX ", channel: %" PRIu8 ", timestamps: this: %" PRIu64 ", that: %" PRIu64 ", difference: %" PRIdMAX "\n", i, j, that_event.channel, this_event.timestamp, that_event.timestamp, ((intmax_t)that_event.timestamp) - (intmax_t)this_event.timestamp);
+                                                printf(" Forward coincidence!!!! i: %zu, j: %" PRId64 ", channel: %" PRIu8 ", timestamps: this: %" PRIu64 ", that: %" PRIu64 ", difference: %" PRId64 "\n", i, j, that_event.channel, this_event.timestamp, that_event.timestamp, ((int64_t)that_event.timestamp) - (int64_t)this_event.timestamp);
                                             }
 
                                             if ((coincidence_group_start_index + found_coincidences) < defaults_cofi_coincidence_buffer_multiplier * events_number)
@@ -385,20 +391,31 @@ int main(int argc, char *argv[])
                                     }
                                 }
 
-                                quicksort(coincidence_events, coincidence_group_start_index + 1, coincidence_group_start_index + found_coincidences);
-
-                                if (((found_coincidences > 0) || keep_reference_event)
-                                    && (coincidence_group_start_index < defaults_cofi_coincidence_buffer_multiplier * events_number))
+                                if (verbosity > 1)
                                 {
-                                    coincidence_events[coincidence_group_start_index] = this_event;
+                                    printf(" Event multiplicity: %zu\n", found_coincidences);
+                                }
 
-                                    if (found_coincidences > 0xFF) {
-                                        coincidence_events[coincidence_group_start_index].group_counter = 0xFF;
-                                    } else {
-                                        coincidence_events[coincidence_group_start_index].group_counter = (uint8_t)found_coincidences;
+                                if (found_coincidences >= multiplicity) {
+                                    quicksort(coincidence_events, coincidence_group_start_index + 1, coincidence_group_start_index + found_coincidences);
+
+                                    if (coincidence_group_start_index < defaults_cofi_coincidence_buffer_multiplier * events_number) {
+                                        coincidence_events[coincidence_group_start_index] = this_event;
+
+                                        if (found_coincidences > 0xFF) {
+                                            coincidence_events[coincidence_group_start_index].group_counter = 0xFF;
+                                        } else {
+                                            coincidence_events[coincidence_group_start_index].group_counter = (uint8_t)found_coincidences;
+                                        }
+
+                                        coincidence_group_start_index += (1 + found_coincidences);
                                     }
-
-                                    coincidence_group_start_index += (1 + found_coincidences);
+                                } else if (keep_reference_event) {
+                                    if (coincidence_group_start_index < defaults_cofi_coincidence_buffer_multiplier * events_number) {
+                                        coincidence_events[coincidence_group_start_index] = this_event;
+                                        coincidence_events[coincidence_group_start_index].group_counter = 0;
+                                        coincidence_group_start_index += 1;
+                                    }
                                 }
                             }
                         }
@@ -499,11 +516,11 @@ bool in(int channel, int *reference_channels, size_t number_of_channels)
     return false;
 }
 
-void quicksort(struct event_PSD *events, intmax_t low, intmax_t high)
+void quicksort(struct event_PSD *events, int64_t low, int64_t high)
 {
     if (low < high)
     {
-        const intmax_t pivot_index = partition(events, low, high);
+        const int64_t pivot_index = partition(events, low, high);
 
         //printf("Quicksort: low: %lu, high: %lu, pivot: %lu\n", low, high, pivot_index);
 
@@ -512,13 +529,13 @@ void quicksort(struct event_PSD *events, intmax_t low, intmax_t high)
     }
 }
 
-intmax_t partition(struct event_PSD *events, intmax_t low, intmax_t high)
+int64_t partition(struct event_PSD *events, int64_t low, int64_t high)
 {
     const struct event_PSD pivot = events[high];
 
-    intmax_t i = low - 1;
+    int64_t i = low - 1;
 
-    for (intmax_t j = low; j <= high - 1; j++)
+    for (int64_t j = low; j <= high - 1; j++)
     {
         if (events[j].timestamp <= pivot.timestamp)
         {
