@@ -145,6 +145,9 @@ int main(int argc, char *argv[])
             case 'L':
                 left_coincidence_window_ns = -1 * atof(optarg);
                 break;
+            case 'm':
+                multiplicity = atoi(optarg);
+                break;
             case 'n':
                 ns_per_sample = atof(optarg);
                 break;
@@ -267,7 +270,7 @@ int main(int argc, char *argv[])
         char *input_buffer;
         size_t size;
 
-        const int result = receive_byte_message(input_socket, &topic, (void **)(&input_buffer), &size, true, verbosity);
+        const int result = receive_byte_message(input_socket, &topic, (void **)(&input_buffer), &size, true, 0);
 
         if (result == EXIT_FAILURE)
         {
@@ -391,9 +394,9 @@ int main(int argc, char *argv[])
                                     }
                                 }
 
-                                if (verbosity > 1)
+                                if (verbosity > 1 && found_coincidences > 0)
                                 {
-                                    printf(" Event multiplicity: %zu\n", found_coincidences);
+                                    printf(" Event multiplicity: %zu%s\n", found_coincidences, (found_coincidences >= multiplicity) ? " SELECTING GROUP!!!" : "");
                                 }
 
                                 if (found_coincidences >= multiplicity) {
