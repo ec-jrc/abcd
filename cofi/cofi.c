@@ -237,7 +237,7 @@ int main(int argc, char *argv[])
     }
 
     // Subscribe to data topic
-    zmq_setsockopt(input_socket, ZMQ_SUBSCRIBE, defaults_abcd_data_events_topic, strlen(defaults_abcd_data_events_topic));
+    zmq_setsockopt(input_socket, ZMQ_SUBSCRIBE, "data_abcd", strlen("data_abcd"));
 
     // Wait a bit to prevent the slow-joiner syndrome
     struct timespec slow_joiner_wait;
@@ -430,7 +430,7 @@ int main(int argc, char *argv[])
                         // I am not sure if snprintf is standard or not, apprently it is in the C99 standard
                         snprintf(new_topic, defaults_all_topic_buffer_size, "data_abcd_events_v0_s%zu", output_size);
 
-                        send_byte_message(output_socket, new_topic, (void *)coincidence_events, output_size, verbosity);
+                        send_byte_message(output_socket, new_topic, (void *)coincidence_events, output_size, 0);
                         msg_ID += 1;
 
                         if (verbosity > 0)
@@ -451,6 +451,14 @@ int main(int argc, char *argv[])
                     printf("size: %zu; events_number: %zu; coincidences_number: %zu; ratio: %.2f%%; elaboration_time: %f ms; elaboration_speed: %.1f MBi/s, %.1f kevts/s\n", \
                            size, events_number, coincidence_group_start_index, coincidence_group_start_index / (float)events_number * 100, elaboration_time, elaboration_speed_MB, elaboration_speed_events);
                 }
+            }
+            else if (strstr(topic, "data_abcd_waveforms_v0") == topic)
+            {
+                if (verbosity > 0) {
+                    printf("Forwarding waveforms message\n");
+                }
+
+                send_byte_message(output_socket, topic, (void *)input_buffer, size, 0);
             }
 
             msg_counter += 1;
