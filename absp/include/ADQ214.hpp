@@ -37,8 +37,8 @@ public:
     // Flag to select the clock source of the digitizer
     int clock_source;
 
-    // TODO: Understand how this works
-    int pll_divider;
+    // Settings of the clock PLL divider
+    int PLL_divider;
 
     //--------------------------------------------------------------------------
     // Trigger settings
