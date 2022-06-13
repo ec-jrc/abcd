@@ -231,6 +231,38 @@ inline extern int running_mean(const double *samples, size_t samples_number, \
     return EXIT_SUCCESS;
 }
 
+/*! \brief Function that applies a derivative to the signal
+ *
+ * \param[in] samples an array with the input samples.
+ * \param[in] samples_number the number of samples in the array.
+ *
+ * \param[out] derivative_samples a pointer to an allocated double array with n samples.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int derivate(const double *samples, size_t samples_number, \
+                           double **derivative_samples)
+{
+    if (!samples || !derivative_samples)
+    {
+        return EXIT_FAILURE;
+    }
+    if (!(*derivative_samples))
+    {
+        return EXIT_FAILURE;
+    }
+
+    for (size_t i = 0; i < (samples_number - 1); i++) {
+        (*derivative_samples)[i] = samples[i + 1] - samples[i] / 1.0;
+    }
+
+    // We set the last sample to be the same as the second-to-last in order not
+    // to have discontinuities.
+    (*derivative_samples)[samples_number - 1] = (*derivative_samples)[samples_number - 2];
+
+    return EXIT_SUCCESS;
+}
+
 /*! \brief Function that calculates the CFD signal also known as monitor signal.
  *
  * \param[in] samples an array with the input samples.
