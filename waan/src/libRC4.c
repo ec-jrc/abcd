@@ -5,7 +5,7 @@
  *  1. The baseline is determined averaging the first N samples.
  *  2. The pulse is offset by the baseline to center it around zero.
  *  3. A recursive low-pass filter (RC4 filter) is applied.
- *  6. The energy information is obtained by determining the absolute maximum
+ *  4. The energy information is obtained by determining the absolute maximum
  *     of the resulting waveform.
  *
  * In the event_PSD structure the energy information is stored in the qlong,
