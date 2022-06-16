@@ -397,11 +397,11 @@ inline extern int find_fine_zero_crossing(const double *samples, size_t samples_
     unsigned int sum_xx = 0;
     double sum_y = 0;
     double sum_xy = 0;
-    unsigned int N = 0;
+    //unsigned int N = 0;
 
     for (size_t i = (zero_crossing_index - half_W); i < (zero_crossing_index + half_W + 1); ++i)
     {
-        N += 1;
+        //N += 1;
         sum_x += i;
         sum_xx += i * i;
         sum_y += samples[i];
