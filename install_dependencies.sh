@@ -103,46 +103,22 @@ then
         then
             print_message "Ubuntu system found!"
 
-            release="${release%.*}"
+            release_major="${release%.*}"
 
-            print_message "Major release: ${release}"
+            print_message "Major release: ${release_major}"
 
             print_message "Upgrading system..."
             apt-get update
             apt-get upgrade
 
-            if expr 14 '<=' "$release" '&' "$release" "<" 16 &>/dev/null
+            if [[ 20 -eq "${release_major}" ]]
             then
-                print_message "Installing required packages, for Ubuntu 14 trusty..."
-                apt-get install lsb-release vim git tmux clang libzmq3 libzmq3-dev libjsoncpp-dev libjsoncpp0 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq linux-headers-generic build-essential dkms libgsl0-dev
-
-                print_message "To use Node.js and NPM we need to install them separately"
-
-                print_message "Downloading a setup script for Node.js 10.x"
-                wget https://deb.nodesource.com/setup_10.x -O nodejs_setup10.x.sh
-
-                print_message "Running the script"
-                source nodejs_setup10.x.sh
-
-                apt-get install nodejs
-            elif expr 16 '<=' "$release" '&' "$release" "<" 17 &>/dev/null
-            then
-                print_message "Installing required packages, for Ubuntu 16 xenial..."
-                apt-get install lsb-release vim git tmux clang libzmq5 libzmq3-dev libjsoncpp-dev libjsoncpp1 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq linux-headers-generic build-essential dkms libgsl-dev
-
-                print_message "To use Node.js and NPM we need to install them separately"
-
-                print_message "Downloading a setup script for Node.js 10.x"
-                wget https://deb.nodesource.com/setup_10.x -O nodejs_setup10.x.sh
-
-                print_message "Running the script"
-                source nodejs_setup10.x.sh
-
-                apt-get install nodejs
-            elif expr 17 '<=' "$release" &>/dev/null
-            then
-                print_message "Installing required packages, for Ubuntu 17 artful and on..."
+                print_message "Installing required packages, for Ubuntu 20 Focal Fossa..."
                 apt-get install lsb-release vim git tmux clang libzmq5 libzmq3-dev libjsoncpp-dev libjsoncpp1 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq nodejs npm linux-headers-generic build-essential dkms libgsl-dev
+            elif [[ 22 -eq "${release_major}" ]]
+            then
+                print_message "Installing required packages, for Ubuntu 22 Jammy Jellyfish..."
+                apt-get install lsb-release vim git tmux clang libzmq5 libzmq3-dev libjsoncpp-dev libjsoncpp25 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq nodejs npm linux-headers-generic build-essential dkms libgsl-dev
             else
                 print_message "Unexpected ""$distribution"" version, you will have to install packages manually"
             fi
