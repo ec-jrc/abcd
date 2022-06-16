@@ -94,7 +94,7 @@ inline data_type is_left(struct Point_t P0, struct Point_t P1, struct Point_t P)
 /*  Return: wn: the winding number (=0 only when P is outside)                */
 /*                                                                            */
 /******************************************************************************/
-inline int point_winding_number(struct Point_t P, struct Point_t* polygon, size_t n)
+extern inline int point_winding_number(struct Point_t P, struct Point_t* polygon, size_t n)
 {
     int wn = 0;    // the  winding number counter
 
