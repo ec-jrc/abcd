@@ -84,7 +84,7 @@ int ABCD::ADQ412::Initialize(void* adq, int num)
     if (!board_name) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Initialize() ";
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Error in getting the serial number; ";
         std::cout << std::endl;
 
@@ -137,7 +137,7 @@ int ABCD::ADQ412::Initialize(void* adq, int num)
         for (auto &pair : ADQ_descriptions::ADQ412_temperatures) {
             const double temperature = ADQ_GetTemperature(adq_cu_ptr, adq_num, pair.first) / 256.0;
 
-            std::cout << '[' << time_buffer << "] ADQ_FWSTD::Initialize() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ412::Initialize() ";
             std::cout << pair.second << " temperature: " << temperature << "; ";
             std::cout << std::endl;
         }
@@ -506,7 +506,7 @@ int ABCD::ADQ412::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
     if (retval == 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::GetWaveformsFromCard() ";
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Error in fetching data; ";
         std::cout << std::endl;
 
