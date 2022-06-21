@@ -7,7 +7,8 @@
  *  2. The pulse is offset by the baseline to center it around zero.
  *  3. The decay is compensated with a recursive filter, obtaining a step
  *     function.
- *  4. The energy information is obtained by calculating the difference between
+ *  4. The topline is determined by averaging the N samples after the rise time.
+ *  5. The energy information is obtained by calculating the difference between
  *     the averages of the baseline and of the topline.
  *
  * In the event_PSD structure the energy information is stored in the qlong,
@@ -195,7 +196,7 @@ void energy_analysis(const uint16_t *samples,
     const uint32_t bottomline_start = 0;
     const uint32_t bottomline_end = (config->baseline_samples < samples_number) ? config->baseline_samples : samples_number;
     const uint32_t topline_start = ((config->baseline_samples + config->rise_samples) < samples_number) ? config->baseline_samples + config->rise_samples : samples_number;
-    const uint32_t topline_end = samples_number;
+    const uint32_t topline_end = ((topline_start + config->baseline_samples) < samples_number) ? topline_start + config->baseline_samples : samples_number;
 
     double baseline = 0;
     calculate_average(config->curve_samples, bottomline_start, bottomline_end, &baseline);

@@ -74,7 +74,7 @@ void print_usage(const char *name) {
     printf("Optional arguments:\n");
     printf("\t-h: Display this message\n");
     printf("\t-v: Set verbose execution\n");
-    printf("\t-v: Set more verbose execution\n");
+    printf("\t-V: Set more verbose execution\n");
     //printf("\t-N <number>: Number of waveforms to keep per channel, default: %s\n", defaults_wafi_number);
     printf("\t-A <address>: ABCD data socket address, default: %s\n", defaults_abcd_data_address_sub);
     printf("\t-D <address>: Data output socket address, default: %s\n", defaults_wafi_data_address);
@@ -304,7 +304,7 @@ int main(int argc, char *argv[])
 
                     if (verbosity > 1)
                     {
-                        printf("size: %zu; this_channel: %" PRIu8 "; samples_number: %" PRIu32 "; gates_number: %" PRIu8 ", this_size: %zu; input_offset: %zu\n", size, this_channel, samples_number, gates_number, this_size, input_offset);
+                        printf("timestamp: %" PRIu64 "; this_channel: %" PRIu8 "; samples_number: %" PRIu32 "; gates_number: %" PRIu8 ", this_size: %zu; input_offset: %zu\n", timestamp, this_channel, samples_number, gates_number, this_size, input_offset);
                     }
     
                     all_events += 1;

@@ -1166,6 +1166,20 @@ state actions::receive_commands(status &global_status)
                             std::cout << std::endl;
                         }
 
+                        const char *cstr_specific_command = json_string_value(json_object_get(json_arguments, "command"));
+                        const std::string specific_command = (cstr_serial) ? std::string(cstr_specific_command) : std::string();
+
+                        const std::string event_description = "Specific command to " + serial + ((cstr_serial) ? (": " + specific_command) : std::string());
+
+                        json_t *json_event_message = json_object();
+
+                        json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+                        json_object_set_new_nocheck(json_event_message, "event", json_string(event_description.c_str()));
+
+                        actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+                        json_decref(json_event_message);
+
                         (digitizer)->SpecificCommand(json_arguments);
                     }
                 }

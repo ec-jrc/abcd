@@ -17,3 +17,5 @@ The [`adw2ascii`](./ade2ascii.c) C99 program converts the waveforms files to an 
 The [`adr2adeadw.py`](./adr2adeadw.py) python script extracts from raw files the events and the waveforms files.
 
 The [`adr2configs.py`](./adr2configs.py) python script extracts from raw files the configurations.
+
+The [`adr2configs.py`](./adr2configs.py) python script extracts from raw files the acquisition events (_e.g._ acquisition start, stop, errors...).

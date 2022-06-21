@@ -192,20 +192,17 @@ int ABCD::ADQ214::Configure()
         std::cout << std::endl;
     }
 
-    //pll_divider = (int)aSampling[iSampling];
-    //if (GetVerbosity() > 0)
-    //{
-    //    char time_buffer[BUFFER_SIZE];
-    //    time_string(time_buffer, BUFFER_SIZE, NULL);
-    //    std::cout << '[' << time_buffer << "] ABCD::ADQ214::Configure() ";
-    //    std::cout << "Setting PLL divider; ";
-    //    std::cout << "pll_divider: " << pll_divider << "; ";
-    //    std::cout << std::endl;
-    //}
-    // FIXME: I have no idea what this does
-    //CHECKZERO(ADQ_SetPllFreqDivider(adq_cu_ptr,adq_num, pll_divider));
-    // FIXME: This is not working
-    //CHECKZERO(ADQ_SetPll(adq_cu_ptr, adq_num, pll_divider, 2, 1, 1));
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::Configure() ";
+        std::cout << "Setting PLL divider; ";
+        std::cout << "PLL_divider: " << PLL_divider << "; ";
+        std::cout << std::endl;
+    }
+
+    CHECKZERO(ADQ_SetPllFreqDivider(adq_cu_ptr, adq_num, PLL_divider));
 
     if (GetVerbosity() > 0)
     {
@@ -714,20 +711,28 @@ int ABCD::ADQ214::ReadConfig(json_t *config)
         std::cout << std::endl;
     }
 
-    //const int sampling = json_integer_value(json_object_get(config, "sampling_frequency"));
-    //iSampling = IndexOfClosest(sampling, sSampling);
+    const int raw_PLL_divider = json_integer_value(json_object_get(config, "PLL_divider"));
 
-    //if (GetVerbosity() > 0)
-    //{
-    //    char time_buffer[BUFFER_SIZE];
-    //    time_string(time_buffer, BUFFER_SIZE, NULL);
-    //    std::cout << '[' << time_buffer << "] ABCD::ADQ214::ReadConfig() ";
-    //    std::cout << "Sampling: got: " << sampling << "; ";
-    //    std::cout << "selected: " << sSampling[iSampling] << " (index: " << iSampling << "); ";
-    //    std::cout << std::endl;
-    //}
+    if (2 <= raw_PLL_divider && raw_PLL_divider <= 20) {
+        PLL_divider = raw_PLL_divider;
+    } else {
+        PLL_divider = 2;
 
-    //json_object_set_nocheck(config, "sampling_frequency", json_integer(sSampling[iSampling]));
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::ReadConfig() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid PLL divider value; ";
+        std::cout << "Got: " << raw_PLL_divider << "; ";
+        std::cout << std::endl;
+    }
+
+    if (GetVerbosity() > 0) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::ReadConfig() ";
+        std::cout << "PLL divider: " << PLL_divider << "; ";
+        std::cout << std::endl;
+    }
 
     ////////////////////////////////////////////////////////////////////////////
     // Reading the trigger configuration                                      //

@@ -11,7 +11,7 @@ extern "C" {
 
 #define ADQ214_RECORD_HEADER_SIZE 32
 
-#define ADQ214_TIMESTAMP_BITS 43
+#define ADQ214_TIMESTAMP_BITS 42
 #define ADQ214_TIMESTAMP_MAX (1UL << ADQ214_TIMESTAMP_BITS)
 #define ADQ214_TIMESTAMP_THRESHOLD (1L << (ADQ214_TIMESTAMP_BITS - 1))
 
@@ -37,8 +37,8 @@ public:
     // Flag to select the clock source of the digitizer
     int clock_source;
 
-    // TODO: Understand how this works
-    int pll_divider;
+    // Settings of the clock PLL divider
+    int PLL_divider;
 
     //--------------------------------------------------------------------------
     // Trigger settings
