@@ -281,19 +281,26 @@ int ABCD::ADQ412::Configure()
     }
 
     // Only a set of possible masks are allowed, if the mask is wrong we use
-    // the most conservative option of enabling all channels.
-    if (!(channels_triggering_mask == 0 || // No channel, probably external trigger
-          channels_triggering_mask == 3 || // Channel 0 and 1
-          channels_triggering_mask == 12 ||// Channel 2 and 3
-          channels_triggering_mask == 15)) // All channels
-    {
+    // a conservative option. Only channel couples can be used to trigger,
+    // because the channels are interleaved. If either one of the channel couple
+    // is enabled, then the whole couple is enabled.
+    if ((channels_triggering_mask & 3) == 1 || (channels_triggering_mask & 3) == 2) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ412::Configure() ";
-        std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Wrong triggering mask (got: " << channels_triggering_mask << "), enabling all channels; ";
+        std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Wrong triggering mask for the first couple (got: " << (channels_triggering_mask & 3) << "), enabling all channels of the couple; ";
         std::cout << std::endl;
 
-        channels_triggering_mask = 15;
+        channels_triggering_mask = channels_triggering_mask | 3;
+    }
+    if ((channels_triggering_mask & 12) == 4 || (channels_triggering_mask & 12) == 8) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Configure() ";
+        std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Wrong triggering mask for the second couple (got: " << (channels_triggering_mask & 12) << "), enabling all channels of the couple; ";
+        std::cout << std::endl;
+
+        channels_triggering_mask = channels_triggering_mask | 12;
     }
 
     // -------------------------------------------------------------------------
@@ -301,6 +308,18 @@ int ABCD::ADQ412::Configure()
     // -------------------------------------------------------------------------
 
     CHECKZERO(ADQ_DisarmTrigger(adq_cu_ptr, adq_num));
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::Configure() ";
+        std::cout << "Setting the timestamp to a continuous increment; ";
+        std::cout << std::endl;
+    }
+
+    CHECKZERO(ADQ_SetTrigTimeMode(adq_cu_ptr, adq_num, 0));
+
     if (GetVerbosity() > 0)
     {
         char time_buffer[BUFFER_SIZE];
