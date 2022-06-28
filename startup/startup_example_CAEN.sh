@@ -17,12 +17,6 @@ fi
 
 CURRENT_FOLDER="$PWD"
 
-if [[ -z "$1" ]]
-then
-    FILE_NAME="${ABCD_FOLDER}/data/example_data_DT5730_Ch1_LaBr3_Ch6_CeBr3_Ch7_CeBr3_coincidence_raw.adr.bz2"
-else
-    FILE_NAME="$1"
-fi
 
 TODAY="`date "+%Y%m%d"`"
 echo 'Today is '"$TODAY"
@@ -39,8 +33,6 @@ else
     #This is needed only on older versions of tmux, if the -c option does not work
     #echo "Changing folder to: ""${ABCD_FOLDER}"
     #cd "${ABCD_FOLDER}"
-
-    echo "Replaying data file: ${FILE_NAME}"
 
     # Checking if another ABCD session is running
     if [ "`tmux ls 2> /dev/null | grep ABCD | wc -l`" -gt 0 ]
@@ -67,12 +59,18 @@ else
     echo "Waiting for node.js to start"
     sleep 2
 
-    echo "Creating replayer window, file: ${FILE_NAME}"
-    tmux new-window -d -c "${CURRENT_FOLDER}" -P -t ABCD -n replay "python3 ${ABCD_FOLDER}/replay/replay_raw.py -c -D 'tcp://*:16207' -T 100 ${FILE_NAME}"
-
-    echo "Creating WaAn window"
-    tmux new-window -d -c "${ABCD_FOLDER}/waan/" -P -t ABCD -n waan './waan -v -T 100 -A tcp://127.0.0.1:16207 -D tcp://*:16181 -f ./configs/config_example_data.json'
-
+    echo "Creating ABCD window"
+    # Example for a CAEN desktop digitizer
+    #tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n abcd './abcd/abcd -c 0 -l 0 -n 0 -B 8192 -T 50 -f abcd/configs/DT5751_DPP-PSD_NaI.json'
+    # Example for a CAEN VME digitizer with USB bridge
+    #tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n abcd './abcd/abcd -c 0 -l 0 -n 0 -V "0x210000" -B 8192 -T 50 -f abcd/v1730_NaI_Coincidence_DCFD.json'
+    # Example for a CAEN VME digitizer with optical bridge
+    #tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n abcd './abcd/abcd -c 1 -l 0 -n 0 -V "0x210000" -B 8192 -T 50 -f abcd/v1730_NaI_Coincidence_DCFD.json'
+    # Example for a CAEN VME digitizer with direct optical link
+    #tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n abcd './abcd/abcd -c 1 -l 0 -n 0 -B 8192 -T 10 -f abcd/v1730_NaI_Coincidence_DCFD.json'
+    # Example for a CAEN digitizer with optical link through A4818 the link number (-l) shall be the PID of the A4818
+    #tmux new-window -d -c "$ABCD_FOLDER" -P -t ABCD -n abcd './abcd/abcd -c 5 -l 0 -n 0 -B 8192 -T 10 -f abcd/v1730_NaI_Coincidence_DCFD.json'
+    
     echo "Creating DaSa window, folder: ${DATA_FOLDER}"
     tmux new-window -d -c "${DATA_FOLDER}" -P -t ABCD -n dasa "${ABCD_FOLDER}/dasa/dasa -v"
 
@@ -80,7 +78,7 @@ else
     tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n wadi './wadi/wadi -v'
 
     echo "Creating tofcalc windows"
-    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n tofcalc "./tofcalc/tofcalc -f ./tofcalc/configs/config_example_data.json -n 0.00195312"
+    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n tofcalc "./tofcalc/tofcalc -f ./tofcalc/configs/config.json -n 0.00195312"
 
     echo "Creating spec windows"
     tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n spec "./spec/spec"
