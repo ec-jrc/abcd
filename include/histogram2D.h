@@ -188,6 +188,30 @@ extern inline histogram2D_error_t histogram2D_fill(histogram2D_t *histo,
     return HISTOGRAM2D_OK;
 }
 
+extern inline histogram2D_error_t histogram2D_scale(histogram2D_t *histo, double scaling_factor)
+{
+    if (histo == NULL) {
+        return HISTOGRAM2D_ERROR_EMPTY_HISTO;
+    }
+    if (histo->histo == NULL) {
+        return HISTOGRAM2D_ERROR_EMPTY_HISTO_ARRAY;
+    }
+
+    if (histo->verbosity > 0)
+    {
+        printf("histogram2D_scale()\n");
+    }
+
+    const unsigned int bins = (histo->bins_x * histo->bins_y);
+
+    for (unsigned int i = 0; i < bins; i++)
+    {
+        histo->histo[i] = (histo->histo[i] * scaling_factor);
+    }
+
+    return HISTOGRAM2D_OK;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 // JSON interface                                                             //
