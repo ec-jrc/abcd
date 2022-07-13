@@ -15,13 +15,13 @@
 // You should have received a copy of the GNU General Public License
 // along with ABCD.  If not, see <http://www.gnu.org/licenses/>.
 
-"use strict";
+'use strict';
 
 function page_loaded() {
     const utf8decoder = new TextDecoder("utf8");
 
     const default_time_refresh = 5;
-    const default_plot_height = 1200;
+    const default_plot_height = 900;
 
     var connection_checker = new ConnectionChecker();
     var fitters = {};
@@ -171,9 +171,20 @@ function page_loaded() {
     $("#time_refresh").val(default_time_refresh);
 
     var old_status = {"timestamp": "###"};
-    var old_channels_configs = {};
-    var last_timestamp = null;
-    var last_abcd_config = null;
+    var last_tofcalc_config = null;
+
+    var tofcalc_config_editor = ace.edit("online_editor");
+    tofcalc_config_editor.setTheme("ace/theme/github");
+    tofcalc_config_editor.setShowPrintMargin(false);
+    tofcalc_config_editor.setOptions({"fontFamily": '"Fira Mono"'});
+
+    tofcalc_config_editor.getSession().setMode("ace/mode/json");
+    tofcalc_config_editor.getSession().setTabSize(4);
+    tofcalc_config_editor.getSession().setUseSoftTabs(true);
+
+    tofcalc_config_editor.container.style.lineHeight = 2;
+    tofcalc_config_editor.renderer.updateFontSize();
+    tofcalc_config_editor.resize();
 
     function on_status(message) {
         const decoded_string = utf8decoder.decode(message);
@@ -183,13 +194,11 @@ function page_loaded() {
 
         if (new_status["timestamp"] !== old_status["timestamp"])
         {
-            last_timestamp = new_status["timestamp"];
-
             old_status = new_status;
 
-            //console.log("Updating tofcalc status");
-
-            old_status = new_status;
+            if (new_status.hasOwnProperty("config")) {
+                last_tofcalc_config = new_status["config"];
+            }
 
             const this_selected_channel = selected_channel();
 
@@ -224,84 +233,6 @@ function page_loaded() {
             });
 
             $("#channels_counts").empty().append(counts_list);
-
-            const new_channels_configs = new_status["configs"];
-
-            if ((!_.isEqual(new_channels_configs, old_channels_configs))
-                &&
-                (!_.isNil(this_selected_channel))
-                &&
-                (_.isFinite(this_selected_channel))) {
-
-                old_channels_configs = new_channels_configs;
-
-                $("#module_status").empty();
-
-                new_channels_configs.forEach(function (channel_config) {
-                    const channel = channel_config.id || 0;
-                    const histo_ToF_config = channel_config.ToF || {"min": 0, "max": 0, "bins": 0};
-                    const histo_EvsToF_config = channel_config.EvsToF || {"min_x": 0, "max_x": 0, "bins_x": 0, "min_y": 0, "max_y": 0, "bins_y": 0};
-                    //const histo_EvsE_config = channel_config.EvsE || {"min_x": 0, "max_x": 0, "bins_x": 0, "min_y": 0, "max_y": 0, "bins_y": 0};
-
-                    var channel_display = $("<fieldset>");
-
-                    channel_display.append($("<legend>", {text: "Channel: " + channel}));
-                    channel_display.append($("<label>", {text: "ID: ", "for": "channel_id"}).addClass("hidden"));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: channel,
-                                                        name: "channel_id",
-                                                        id: "channel_id_" + channel}).addClass("hidden").addClass("channel_ids"));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "ToF min: ", "for": "ToF_min"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: histo_ToF_config.min,
-                                                        name: "ToF_min",
-                                                        id: "ToF_min_" + channel}));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "ToF max: ", "for": "ToF_max"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: histo_ToF_config.max,
-                                                        name: "ToF_max",
-                                                        id: "ToF_max_" + channel}));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "ToF bins: ", "for": "ToF_bins"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: histo_ToF_config.bins,
-                                                        name: "ToF_bins",
-                                                        id: "ToF_bins_" + channel}));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "Energy min: ", "for": "E_min"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: histo_EvsToF_config.min_y,
-                                                        name: "E_min",
-                                                        id: "E_min_" + channel}));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "Energy max: ", "for": "E_max"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: histo_EvsToF_config.max_y,
-                                                        name: "E_max",
-                                                        id: "E_max_" + channel}));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "Energy bins: ", "for": "E_bins"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: histo_EvsToF_config.bins_y,
-                                                        name: "E_bins",
-                                                        id: "E_bins_" + channel}));
-                    channel_display.append($("<br>"));
-
-                    channel_display.append($("<span>").text("Reference:"));
-                    channel_display.append(generate_slider("ToF_reference_" + channel, channel_config.reference));
-
-                    $("#module_status").append(channel_display);
-                });
-            }
         }
     }
 
@@ -357,7 +288,7 @@ function page_loaded() {
                 mode: 'lines',
                 line: {shape: 'hv'},
                 name: 'Time-of-Flight (calibrated)',
-                type: 'scatter',
+                type: 'scattergl',
                 mode: 'lines',
                 marker: {
                     size: 0.1
@@ -380,7 +311,7 @@ function page_loaded() {
                 mode: 'lines',
                 line: {shape: 'hv'},
                 name: 'Spectrum (uncalibrated)',
-                type: 'scatter',
+                type: 'scattergl',
                 mode: 'lines',
                 marker: {
                     size: 0.1
@@ -582,28 +513,40 @@ function page_loaded() {
         }
     }
 
-    function tofcalc_arguments_reconfigure() {
-        const channel_ids = $(".channel_ids").map(function (index, element) {
-            return parseInt(this.value);
-        }).get();
+    function tofcalc_arguments_config() {
+        try {
+            const new_text_config = tofcalc_config_editor.getSession().getValue();
+            const new_config = JSON.parse(new_text_config);
+            const kwargs = {"config": new_config};
 
-        const channels = channel_ids.map(function (id) {
-            return {"bins_ToF": parseInt($("#ToF_bins_" + id).val()),
-                    "min_ToF": parseInt($("#ToF_min_" + id).val()),
-                    "max_ToF": parseInt($("#ToF_max_" + id).val()),
-                    "bins_E": parseInt($("#E_bins_" + id).val()),
-                    "min_E": parseInt($("#E_min_" + id).val()),
-                    "max_E": parseInt($("#E_max_" + id).val()),
-                    "id": id,
-                    "reference": $("#ToF_reference_" + id).is(':checked')
-                   };
-        });
+            return kwargs;
 
-        const kwargs = {"channels": channels};
+        } catch (error) {
+            console.log("Error: " + error);
 
-        return kwargs;
+            return null;
+        }
     }
-    
+
+    function tofcalc_get_config() {
+        if (_.isNil(last_tofcalc_config)) {
+            tofcalc_config_editor.getSession().setValue(JSON.stringify({"error": "Unable to load tofcalc config"}, null, 4));
+            tofcalc_config_editor.gotoLine(0);
+        } else {
+            tofcalc_config_editor.getSession().setValue(JSON.stringify(last_tofcalc_config, null, 4));
+            tofcalc_config_editor.gotoLine(0);
+        }
+    }
+
+    function tofcalc_download_config() {
+        const new_text_config = tofcalc_config_editor.getSession().getValue();
+        const file_name = "tofcalc_config_" + dayjs().format("YYYY-MM-DDTHH.mm.ss") + ".json";
+
+        //console.log("Preparing file with name: " + file_name);
+
+        create_and_download_file(new_text_config, file_name, "txt");
+    }
+
     function tofcalc_arguments_reset(channel) {
         return function () {
             const kwargs = {"channel": (_.isNil(channel) ? selected_channel() : channel),
@@ -640,7 +583,9 @@ function page_loaded() {
     });
     $("#button_download_ToF_data").on("click", download_ToF_data);
     $("#button_download_spectrum_data").on("click", download_spectrum_data);
-    $("#button_config_send").on("click", send_command(socket_io, 'reconfigure', tofcalc_arguments_reconfigure));
+    $("#button_config_send").on("click", send_command(socket_io, 'reconfigure', tofcalc_arguments_config));
+    $("#button_config_get").on("click", tofcalc_get_config);
+    $("#button_config_download").on("click", tofcalc_download_config);
     $("#button_reset_channel").on("click", send_command(socket_io, 'reset', tofcalc_arguments_reset()));
     $("#button_reset_all").on("click", send_command(socket_io, 'reset', tofcalc_arguments_reset("all")));
 
