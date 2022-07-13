@@ -215,6 +215,8 @@
 #define defaults_tofcalc_min_E 0
 #define defaults_tofcalc_max_E 40960
 #define defaults_tofcalc_ns_per_sample (2.0 / 1024.0)
+#define defaults_tofcalc_time_decay_enabled false
+#define defaults_tofcalc_time_decay_tau 3.0
 
 #define defaults_fifo_verbosity 1
 #define defaults_fifo_publish_timeout 3
