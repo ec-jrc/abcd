@@ -78,7 +78,7 @@ else
     tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n wadi './wadi/wadi -v'
 
     echo "Creating tofcalc windows"
-    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n tofcalc "./tofcalc/tofcalc -f ./tofcalc/configs/config.json -n 0.00195312"
+    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n tofcalc "./tofcalc/tofcalc -f ./tofcalc/configs/DT5730_LaBr_CeBr.json"
 
     echo "Creating spec windows"
     tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n spec "./spec/spec"
