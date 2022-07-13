@@ -89,7 +89,8 @@ void print_usage(const std::string &name = std::string("spec")) {
     std::cout << defaults_tofcalc_commands_address << std::endl;
     std::cout << "\t-T <period>: Set base period in milliseconds, default: ";
     std::cout << defaults_tofcalc_base_period << std::endl;
-    std::cout << "\t-n <ns_per_sample>: Set nanoseconds per time step, default: ";
+    std::cout << "\t-n <ns_per_sample>: DEPRECATED USE CONFIG FILE" << std::endl;
+    std::cout << "                      Set nanoseconds per time step, default: ";
     std::cout << defaults_tofcalc_ns_per_sample << std::endl;
     std::cout << "\t-f <config_file>: Set config file, default: none" << std::endl;
     std::cout << "\t-v: Set verbose execution" << std::endl;
