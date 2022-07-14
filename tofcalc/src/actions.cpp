@@ -86,6 +86,59 @@ void quicksort(event_PSD *events, intmax_t low, intmax_t high)
 /* Generic actions                                                            */
 /******************************************************************************/
 
+void actions::generic::clear_memory(status &global_status)
+{
+    global_status.reference_channels.clear();
+    global_status.active_channels.clear();
+
+    for (auto &pair: global_status.histos_ToF)
+    {
+        histogram_t *const histo_ToF = pair.second;
+
+        if (histo_ToF != NULL)
+        {
+            histogram_destroy(histo_ToF);
+        }
+    }
+    global_status.histos_ToF.clear();
+
+    for (auto &pair: global_status.histos_E)
+    {
+        histogram_t *const histo_E = pair.second;
+
+        if (histo_E != NULL)
+        {
+            histogram_destroy(histo_E);
+        }
+    }
+    global_status.histos_E.clear();
+
+    for (auto &pair: global_status.histos_EvsToF)
+    {
+        histogram2D_t *const histo_EvsToF = pair.second;
+
+        if (histo_EvsToF != NULL)
+        {
+            histogram2D_destroy(histo_EvsToF);
+        }
+    }
+    global_status.histos_EvsToF.clear();
+
+    for (auto &pair: global_status.histos_EvsE)
+    {
+        histogram2D_t *const histo_EvsE = pair.second;
+
+        if (histo_EvsE != NULL)
+        {
+            histogram2D_destroy(histo_EvsE);
+        }
+    }
+    global_status.histos_EvsE.clear();
+
+    global_status.counts_partial.clear();
+    global_status.counts_total.clear();
+}
+
 void actions::generic::publish_message(status &global_status,
                                       std::string topic,
                                       json_t *status_message)
@@ -990,6 +1043,8 @@ state actions::read_config(status &global_status)
 
 state actions::apply_config(status &global_status)
 {
+    actions::generic::clear_memory(global_status);
+
     json_t * const config = global_status.config;
 
     json_t *json_ns_per_sample = json_object_get(config, "ns_per_sample");
@@ -1071,53 +1126,6 @@ state actions::apply_config(status &global_status)
 
     if (json_channels != NULL && json_is_array(json_channels))
     {
-        global_status.reference_channels.clear();
-        global_status.active_channels.clear();
-
-        for (auto &pair: global_status.histos_ToF)
-        {
-            histogram_t *const histo_ToF = pair.second;
-
-            if (histo_ToF != NULL)
-            {
-                histogram_destroy(histo_ToF);
-            }
-        }
-        global_status.histos_ToF.clear();
-
-        for (auto &pair: global_status.histos_E)
-        {
-            histogram_t *const histo_E = pair.second;
-
-            if (histo_E != NULL)
-            {
-                histogram_destroy(histo_E);
-            }
-        }
-        global_status.histos_E.clear();
-
-        for (auto &pair: global_status.histos_EvsToF)
-        {
-            histogram2D_t *const histo_EvsToF = pair.second;
-
-            if (histo_EvsToF != NULL)
-            {
-                histogram2D_destroy(histo_EvsToF);
-            }
-        }
-        global_status.histos_EvsToF.clear();
-
-        for (auto &pair: global_status.histos_EvsE)
-        {
-            histogram2D_t *const histo_EvsE = pair.second;
-
-            if (histo_EvsE != NULL)
-            {
-                histogram2D_destroy(histo_EvsE);
-            }
-        }
-        global_status.histos_EvsE.clear();
-
         size_t index;
         json_t *value;
 

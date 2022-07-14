@@ -10,6 +10,7 @@ namespace actions
     namespace generic
     {
         // This function is used in the publish_status actions
+        void clear_memory(status&);
         void publish_message(status&, std::string, json_t*);
         bool publish_status(status&);
         bool publish_data(status&);
