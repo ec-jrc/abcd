@@ -52,7 +52,6 @@ void actions::generic::clear_memory(status &global_status)
             histogram_destroy(histo_E);
         }
     }
-
     global_status.histos_E.clear();
 
     for (auto &pair: global_status.histos_PSD)
@@ -64,8 +63,8 @@ void actions::generic::clear_memory(status &global_status)
             histogram2D_destroy(histo_PSD);
         }
     }
+    global_status.histos_PSD.clear();
 
-    global_status.histos_E.clear();
     global_status.counts_partial.clear();
     global_status.counts_total.clear();
 }
