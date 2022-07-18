@@ -122,7 +122,7 @@ function page_loaded() {
             //anchor: 'y3'
         },
         yaxis4: {
-            title: 'Energy [ch]',
+            title: 'Energy of reference [ch]',
             autorange: true,
             autotick: true,
             showspikes: true,
