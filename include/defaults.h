@@ -186,6 +186,8 @@
 #define defaults_pqrs_max_baseline 4096
 #define defaults_pqrs_max_rate 500000
 
+#define defaults_wadi_publication_time 3.0
+
 #define defaults_replay_skip 0
 
 #define defaults_enfi_min_energy 400.0
