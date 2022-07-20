@@ -69,7 +69,7 @@ with zmq.Context() as context:
                            }
 
     if len(args.file_name) > 0:
-        message["arguments"]["file_name"] = args.file_name,
+        message["arguments"]["file_name"] = args.file_name
 
     json_message = json.dumps(message)
     print("Sending message: {}".format(json_message))
