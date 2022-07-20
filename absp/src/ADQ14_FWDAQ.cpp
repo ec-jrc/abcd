@@ -146,7 +146,6 @@ int ABCD::ADQ14_FWDAQ::Initialize(void* adq, int num)
         }
     }
 
-    const unsigned int ADQ_OVERVOLTAGE_PROTECTION_ENABLE = 1;
     CHECKZERO(ADQ_SetOvervoltageProtection(adq_cu_ptr, adq_num, ADQ_OVERVOLTAGE_PROTECTION_ENABLE));
 
     return DIGITIZER_SUCCESS;

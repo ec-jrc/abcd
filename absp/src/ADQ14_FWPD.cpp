@@ -27,8 +27,6 @@ extern "C" {
 
 #define CHANNELS_NUMBER 4
 
-#define MAX_BASELINE_SAMPLES 100
-
 #define TIMESTAMP_BITS 63
 #define TIMESTAMP_MAX (1UL << TIMESTAMP_BITS)
 #define TIMESTAMP_THRESHOLD (1L << (TIMESTAMP_BITS - 1))
@@ -39,7 +37,7 @@ const unsigned int ABCD::ADQ14_FWPD::default_trig_ext_slope = ADQ_TRIG_SLOPE_RIS
 // Defined in mVpp
 const float ABCD::ADQ14_FWPD::default_input_range = 1000;
 // Defined in ADC samples
-const int ABCD::ADQ14_FWPD::default_DC_offset = 0;
+const int ABCD::ADQ14_FWPD::default_DC_offset = 31000;
 // Defined in ADC samples
 const int ABCD::ADQ14_FWPD::default_DBS_target = 31000;
 // If left at zero the FWPD will use its default values
@@ -168,7 +166,6 @@ int ABCD::ADQ14_FWPD::Initialize(void* adq, int num)
         std::cout << std::endl;
     }
 
-    const unsigned int ADQ_OVERVOLTAGE_PROTECTION_ENABLE = 1;
     CHECKZERO(ADQ_SetOvervoltageProtection(adq_cu_ptr, adq14_num, ADQ_OVERVOLTAGE_PROTECTION_ENABLE));
 
     return DIGITIZER_SUCCESS;
@@ -285,27 +282,27 @@ int ABCD::ADQ14_FWPD::Configure()
         }
 
         if (ADQ_HasAdjustableBias(adq_cu_ptr, adq14_num) > 0) {
-            const int offset = DC_offsets[channel];
+            const int DC_offset = DC_offsets[channel];
 
             if (GetVerbosity() > 0)
             {
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
                 std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
-                std::cout << "Setting DC offset to: " << offset << " samples; ";
+                std::cout << "Setting DC offset to: " << DC_offset << " samples; ";
                 std::cout << std::endl;
             }
 
             // This is a physical DC offset added to the signal
             // while ADQ_SetGainAndOffset is a digital calculation
-            CHECKZERO(ADQ_SetAdjustableBias(adq_cu_ptr, adq14_num, channel + 1, offset));
+            CHECKZERO(ADQ_SetAdjustableBias(adq_cu_ptr, adq14_num, channel + 1, DC_offset));
         }
     }
 
     for (unsigned int instance = 0; instance < GetDBSInstancesNumber(); instance++) {
         const bool DBS_disabled = DBS_disableds[instance];
         // We are assuming that the channels correspond to the DBS instances
-        const int offset = DC_offsets[instance];
+        const int DC_offset = DC_offsets[instance];
 
         if (GetVerbosity() > 0)
         {
@@ -319,10 +316,10 @@ int ABCD::ADQ14_FWPD::Configure()
 
         // TODO: Enable these features
         CHECKZERO(ADQ_SetupDBS(adq_cu_ptr, adq14_num, instance,
-                                                     DBS_disabled,
-                                                     offset,
-                                                     default_DBS_saturation_level_lower,
-                                                     default_DBS_saturation_level_upper));
+                                                      DBS_disabled,
+                                                      DC_offset,
+                                                      default_DBS_saturation_level_lower,
+                                                      default_DBS_saturation_level_upper));
     }
 
     // -------------------------------------------------------------------------
@@ -409,31 +406,30 @@ int ABCD::ADQ14_FWPD::Configure()
             }
 
             // TODO: Enable these features
-            const int reset_hysteresis = 0;
-            const int trig_arm_hysteresis = 0;
-            const int reset_arm_hysteresis = 0;
+            const int reset_hysteresis = trig_hysteresises[channel];
+            const int trig_arm_hysteresis = trig_hysteresises[channel];
+            const int reset_arm_hysteresis = trig_hysteresises[channel];
             const int reset_polarity = (trig_slopes[channel] == ADQ_TRIG_SLOPE_RISING ? ADQ_TRIG_SLOPE_FALLING : ADQ_TRIG_SLOPE_RISING);
 
             CHECKZERO(ADQ_PDSetupLevelTrig(adq_cu_ptr, adq14_num, channel + 1,
-                                          trig_levels[channel],
-                                          reset_hysteresis,
-                                          trig_arm_hysteresis,
-                                          reset_arm_hysteresis,
-                                          trig_slopes[channel],
-                                          reset_polarity));
+                                           trig_levels[channel],
+                                           reset_hysteresis,
+                                           trig_arm_hysteresis,
+                                           reset_arm_hysteresis,
+                                           trig_slopes[channel],
+                                           reset_polarity));
 
 
             // TODO: Enable these features
-            const unsigned int moving_average_delay = 8;
             const unsigned int record_variable_length = false ? 1 : 0;
 
             CHECKZERO(ADQ_PDSetupTiming(adq_cu_ptr, adq14_num, channel + 1,
-                                       pretriggers[channel],
-                                       baseline_samples[channel],
-                                       moving_average_delay,
-                                       scope_samples[channel],
-                                       records_numbers[channel],
-                                       record_variable_length));
+                                        pretriggers[channel],
+                                        smooth_samples[channel],
+                                        smooth_delays[channel],
+                                        scope_samples[channel],
+                                        records_numbers[channel],
+                                        record_variable_length));
 
             // Since this gives an error with the generation 1, I am assuming that
             // the problem is the firmware generation...
@@ -446,14 +442,14 @@ int ABCD::ADQ14_FWPD::Configure()
                 const unsigned int minimum_frame_length = 0;
 
                 CHECKZERO(ADQ_PDSetupCharacterization(adq_cu_ptr, adq14_num, channel + 1,
-                                                     collection_mode,
-                                                     reduction_factor,
-                                                     detection_window_length,
-                                                     scope_samples[channel],
-                                                     padding_offset,
-                                                     minimum_frame_length,
-                                                     trig_slopes[channel],
-                                                     trig_mode, trig_mode));
+                                                      collection_mode,
+                                                      reduction_factor,
+                                                      detection_window_length,
+                                                      scope_samples[channel],
+                                                      padding_offset,
+                                                      minimum_frame_length,
+                                                      trig_slopes[channel],
+                                                      trig_mode, trig_mode));
             }
         }
     }
@@ -467,7 +463,7 @@ int ABCD::ADQ14_FWPD::Configure()
         std::cout << std::endl;
     }
 
-    CHECKZERO(ADQ_PDEnableLevelTrig(adq_cu_ptr, adq14_num, 1));
+    CHECKZERO(ADQ_PDEnableLevelTrig(adq_cu_ptr, adq14_num, true ? 1 : 0));
 
     // -------------------------------------------------------------------------
     //  Transfer settings
@@ -623,11 +619,13 @@ void ABCD::ADQ14_FWPD::SetChannelsNumber(unsigned int n)
 
     desired_input_ranges.resize(n, 1000);
     trig_levels.resize(n, 0);
+    trig_hysteresises.resize(n, 0);
     trig_slopes.resize(n, ADQ_TRIG_SLOPE_RISING);
     pretriggers.resize(n, 0);
     DC_offsets.resize(n, default_DC_offset);
     DBS_disableds.resize(n, false);
-    baseline_samples.resize(n, MAX_BASELINE_SAMPLES);
+    smooth_samples.resize(n, ADQ_ADQ14_MAX_SMOOTH_SAMPLES);
+    smooth_delays.resize(n, 0);
     scope_samples.resize(n, 1024);
     records_numbers.resize(n, ADQ_INFINITE_NOF_RECORDS);
     target_buffers.resize(n, nullptr);
@@ -687,7 +685,8 @@ int ABCD::ADQ14_FWPD::StartAcquisition()
 
 
     if (trig_mode == ADQ_SW_TRIGGER_MODE) {
-        int max_records_number = 0;
+        // We need to set it at least to 1 to force at least one trigger
+        int max_records_number = 1;
 
         for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
             if (records_numbers[channel] > max_records_number) {
@@ -1359,18 +1358,22 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
                     input_range = default_input_range;
                 }
 
-                const int offset = json_number_value(json_object_get(value, "DC_offset"));
+                const int DC_offset = json_number_value(json_object_get(value, "DC_offset"));
+
+                json_object_set_nocheck(value, "DC_offset", json_integer(DC_offset));
 
                 if (GetVerbosity() > 0)
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
                     std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-                    std::cout << "DC offset: " << offset << " samples; ";
+                    std::cout << "DC offset: " << DC_offset << " samples; ";
                     std::cout << std::endl;
                 }
 
                 const bool DBS_disable = json_is_true(json_object_get(value, "DBS_disable"));
+
+                json_object_set_nocheck(value, "DBS_disable", DBS_disable ? json_true() : json_false());
 
                 if (GetVerbosity() > 0)
                 {
@@ -1384,11 +1387,25 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
                 // This level should be the relative to the baseline in the FWPD
                 const int trig_level = json_number_value(json_object_get(value, "trigger_level"));
 
+                json_object_set_nocheck(value, "trigger_level", json_integer(trig_level));
+
                 if (GetVerbosity() > 0) {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
                     std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
                     std::cout << "Trigger level: " << trig_level << "; ";
+                    std::cout << std::endl;
+                }
+
+                const int trig_hysteresis = json_number_value(json_object_get(value, "trigger_hysteresis"));
+
+                json_object_set_nocheck(value, "trigger_hysteresis", json_integer(trig_hysteresis));
+
+                if (GetVerbosity() > 0) {
+                    char time_buffer[BUFFER_SIZE];
+                    time_string(time_buffer, BUFFER_SIZE, NULL);
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
+                    std::cout << "Trigger hysteresis: " << trig_hysteresis << "; ";
                     std::cout << std::endl;
                 }
 
@@ -1441,19 +1458,32 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
                     std::cout << std::endl;
                 }
 
-                const int raw_baseline = json_number_value(json_object_get(value, "baseline_samples"));
-                const int baseline = (0 < raw_baseline && raw_baseline < MAX_BASELINE_SAMPLES) ? raw_baseline : MAX_BASELINE_SAMPLES;
+                int this_smooth_samples = json_number_value(json_object_get(value, "smooth_samples"));
+                this_smooth_samples = (0 <= this_smooth_samples && this_smooth_samples < ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? this_smooth_samples : ADQ_ADQ14_MAX_SMOOTH_SAMPLES;
 
-                json_object_set_nocheck(value, "baseline_samples", json_integer(baseline));
+                json_object_set_nocheck(value, "smooth_samples", json_integer(this_smooth_samples));
 
                 if (GetVerbosity() > 0) {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
                     std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-                    std::cout << "Baseline samples: " << baseline << "; ";
+                    std::cout << "Smooth samples: " << this_smooth_samples << "; ";
                     std::cout << std::endl;
                 }
 
+                int smooth_delay = json_number_value(json_object_get(value, "smooth_delay"));
+                smooth_delay = (0 <= smooth_delay && smooth_delay < ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? smooth_delay : 0;
+                smooth_delay = ((smooth_delay + this_smooth_samples) < ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? smooth_delay : (ADQ_ADQ14_MAX_SMOOTH_SAMPLES - this_smooth_samples);
+
+                json_object_set_nocheck(value, "smooth_delay", json_integer(smooth_delay));
+
+                if (GetVerbosity() > 0) {
+                    char time_buffer[BUFFER_SIZE];
+                    time_string(time_buffer, BUFFER_SIZE, NULL);
+                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
+                    std::cout << "Smooth delay: " << smooth_delay << "; ";
+                    std::cout << std::endl;
+                }
                 const unsigned int scope = json_number_value(json_object_get(value, "scope_samples"));
 
                 json_object_set_nocheck(value, "scope_samples", json_integer(scope));
@@ -1468,16 +1498,7 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
 
                 const int raw_records = json_number_value(json_object_get(value, "records_number"));
 
-                // If the trigger is set to software we need to set the records number
-                // to 1 otherwise the buffer will never fill up, because we try to read
-                // the buffer and we reset it continuously.
-                int records = (raw_records < 1) ? ADQ_INFINITE_NOF_RECORDS : raw_records;
-
-                //if (trig_mode == ADQ_SW_TRIGGER_MODE) {
-                //    records = 1;
-                //} else if (raw_records < 1) {
-                //    records = ADQ_INFINITE_NOF_RECORDS;
-                //}
+                const int records = (raw_records < 1) ? ADQ_INFINITE_NOF_RECORDS : raw_records;
 
                 json_object_set_nocheck(value, "records_number", json_integer(records));
 
@@ -1493,11 +1514,13 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
                     SetChannelEnabled(id, enabled);
                     desired_input_ranges[id] = input_range;
                     trig_levels[id] = trig_level;
+                    trig_hysteresises[id] = trig_hysteresis;
                     trig_slopes[id] = trig_slope;
                     pretriggers[id] = pretrigger;
-                    DC_offsets[id] = offset;
+                    DC_offsets[id] = DC_offset;
                     DBS_disableds[id] = DBS_disable;
-                    baseline_samples[id] = baseline;
+                    smooth_samples[id] = this_smooth_samples;
+                    smooth_delays[id] = smooth_delay;
                     scope_samples[id] = scope;
                     records_numbers[id] = records;
                 } else {
