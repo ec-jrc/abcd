@@ -5,6 +5,8 @@
 #include <iostream>
 #include <stdexcept>
 
+#include <chrono>
+#include <thread>
 extern "C" {
 #include <jansson.h>
 
@@ -981,5 +983,127 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
 
     return DIGITIZER_SUCCESS;
 }
+
+//==============================================================================
+
+int ABCD::ADQ412::SpecificCommand(json_t *json_command)
+{
+    const char *cstr_command = json_string_value(json_object_get(json_command, "command"));
+    const std::string command = (cstr_command) ? std::string(cstr_command) : std::string();
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ412::SpecificCommand() ";
+        std::cout << "Specific command: " << command << "; ";
+        std::cout << std::endl;
+    }
+
+    if (command == std::string("GPIO_set_direction")) {
+        const char *cstr_direction = json_string_value(json_object_get(json_command, "direction"));
+        const std::string direction = (cstr_direction) ? std::string(cstr_direction) : std::string();
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ412::SpecificCommand() ";
+            std::cout << "Setting GPIO direction: " << direction << "; ";
+            std::cout << std::endl;
+        }
+
+        // Informing that all the pins should keep their direction, only pin 5
+        // can be changed in these boards.
+        const uint16_t mask = 0xF;
+        uint16_t pins_directions = 0;
+
+        if (direction == std::string("input")) {
+            pins_directions = 0;
+        } else if (direction == std::string("output")) {
+            pins_directions = (1 << 4);
+        }
+
+        CHECKZERO(ADQ_SetDirectionGPIO(adq_cu_ptr, adq_num, pins_directions, mask));
+    } else if (command == std::string("GPIO_write")) {
+        const int value = json_integer_value(json_object_get(json_command, "value"));
+
+        // Informing that all the pins should ignore the command, only pin 5 can
+        // be used in these boards.
+        const uint16_t mask = 0xF;
+        const uint16_t pin_value = (value > 0) ? (1 << 4) : 0;
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ412::SpecificCommand() ";
+            std::cout << "Writing GPIO: " << value << ", pin_value: " << (unsigned int)pin_value << "; ";
+            std::cout << std::endl;
+        }
+
+        CHECKZERO(ADQ_WriteGPIO(adq_cu_ptr, adq_num, pin_value, mask));
+    } else if (command == std::string("GPIO_pulse")) {
+        const int width = json_integer_value(json_object_get(json_command, "width"));
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ412::SpecificCommand() ";
+            std::cout << "Pulse on GPIO of width: " << width << " us; ";
+            std::cout << std::endl;
+        }
+
+        // Informing that all the pins should ignore the command, only pin 5 can
+        // be used in these boards.
+        const uint16_t mask = 0xF;
+        const uint16_t pin_value_on = (1 << 4);
+        const uint16_t pin_value_off = 0;
+
+        CHECKZERO(ADQ_WriteGPIO(adq_cu_ptr, adq_num, pin_value_on, mask));
+
+        std::this_thread::sleep_for(std::chrono::microseconds(width));
+
+        CHECKZERO(ADQ_WriteGPIO(adq_cu_ptr, adq_num, pin_value_off, mask));
+    } else if (command == std::string("timestamp_reset")) {
+        const char *cstr_mode = json_string_value(json_object_get(json_command, "mode"));
+        const std::string mode = (cstr_mode) ? std::string(cstr_mode) : std::string();
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ412::SpecificCommand() ";
+            std::cout << "Timestamp reset mode: " << mode << "; ";
+            std::cout << std::endl;
+        }
+
+        int restart_mode = 1;
+
+        if (mode == std::string("pulse")) {
+            restart_mode = 0;
+        } else if (mode == std::string("now")) {
+            restart_mode = 1;
+        }
+
+        CHECKZERO(ADQ_ResetTrigTimer(adq_cu_ptr, adq_num, restart_mode));
+    } else if (command == std::string("GPIO_read")) {
+        const int read_pins_values = ADQ_ReadGPIO(adq_cu_ptr, adq_num);
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ412::SpecificCommand() ";
+            std::cout << "Read GPIO values: " << read_pins_values << "; ";
+            std::cout << std::endl;
+        }
+    }
+
+    return DIGITIZER_SUCCESS;
+}
+
+//==============================================================================
 
 //==============================================================================
