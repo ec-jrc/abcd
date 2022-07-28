@@ -4,19 +4,16 @@
 
 # Check if the ABCD_FOLDER variable is set in the environment, otherwise set it here
 if [[ -z "${ABCD_FOLDER}" ]]; then
-    # The variable is not set, thus set it to the folder in which ABCD is installed
+    # The variable is not set, thus the user should set it to the folder in which ABCD is installed
     ABCD_FOLDER="$HOME""/abcd/"
 fi
 
 # Folder in which data should be saved
 # Check if the DATA_FOLDER variable is set in the environment, otherwise set it here
 if [[ -z "${DATA_FOLDER}" ]]; then
-    # The variable is not set, thus set it to the folder in which ABCD is installed
+    # The variable is not set, thus the user should set it to the data destination folder
     DATA_FOLDER="${ABCD_FOLDER}""/data/"
 fi
-
-
-CURRENT_FOLDER="$PWD"
 
 TODAY="`date "+%Y%m%d"`"
 echo 'Today is '"$TODAY"
@@ -52,7 +49,7 @@ else
     tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n loggers "./bin/read_events.py -S 'tcp://127.0.0.1:16180' -o log/abcd_events_""$TODAY"".log"
     tmux split-window -d -c "${ABCD_FOLDER}" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16183' -o log/hivo_events_""$TODAY"".log"
     tmux split-window -d -c "${ABCD_FOLDER}" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16185' -o log/dasa_events_""$TODAY"".log"
-    tmux split-window -d -c "${ABCD_FOLDER}" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16187' -o log/spec_events_""$TODAY"".log"
+    tmux split-window -d -c "${ABCD_FOLDER}" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16206' -o log/waan_events_""$TODAY"".log"
 
     tmux select-layout -t ABCD:2 even-vertical
 
@@ -72,7 +69,7 @@ else
     tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n wadi './wadi/wadi -v'
 
     echo "Creating tofcalc windows"
-    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n tofcalc "./tofcalc/tofcalc -f ./tofcalc/config.json -n 0.00195312"
+    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n tofcalc "./tofcalc/tofcalc -f ./tofcalc/configs/AD2_SiPM_LYSO.json"
 
     echo "Creating spec windows"
     tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n spec "./spec/spec"

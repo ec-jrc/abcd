@@ -24,8 +24,6 @@ extern "C" {
 #include "events.hpp"
 #include "actions.hpp"
 
-#define counter_type uint64_t
-
 extern "C" {
 #include "utilities_functions.h"
 #include "socket_functions.h"
@@ -87,6 +85,59 @@ void quicksort(event_PSD *events, intmax_t low, intmax_t high)
 /******************************************************************************/
 /* Generic actions                                                            */
 /******************************************************************************/
+
+void actions::generic::clear_memory(status &global_status)
+{
+    global_status.reference_channels.clear();
+    global_status.active_channels.clear();
+
+    for (auto &pair: global_status.histos_ToF)
+    {
+        histogram_t *const histo_ToF = pair.second;
+
+        if (histo_ToF != NULL)
+        {
+            histogram_destroy(histo_ToF);
+        }
+    }
+    global_status.histos_ToF.clear();
+
+    for (auto &pair: global_status.histos_E)
+    {
+        histogram_t *const histo_E = pair.second;
+
+        if (histo_E != NULL)
+        {
+            histogram_destroy(histo_E);
+        }
+    }
+    global_status.histos_E.clear();
+
+    for (auto &pair: global_status.histos_EvsToF)
+    {
+        histogram2D_t *const histo_EvsToF = pair.second;
+
+        if (histo_EvsToF != NULL)
+        {
+            histogram2D_destroy(histo_EvsToF);
+        }
+    }
+    global_status.histos_EvsToF.clear();
+
+    for (auto &pair: global_status.histos_EvsE)
+    {
+        histogram2D_t *const histo_EvsE = pair.second;
+
+        if (histo_EvsE != NULL)
+        {
+            histogram2D_destroy(histo_EvsE);
+        }
+    }
+    global_status.histos_EvsE.clear();
+
+    global_status.counts_partial.clear();
+    global_status.counts_total.clear();
+}
 
 void actions::generic::publish_message(status &global_status,
                                       std::string topic,
@@ -153,23 +204,6 @@ bool actions::generic::publish_status(status &global_status)
         return false;
     }
 
-    json_t *channels_configs = json_array();
-    if (channels_configs == NULL)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: Unable to create channels_configs json; ";
-        std::cout << std::endl;
-
-        json_decref(status_message);
-        json_decref(reference_channels);
-        json_decref(active_channels);
-
-        // I am not sure what to do here...
-        return false;
-    }
-
     json_t *channels_statuses = json_array();
     if (channels_statuses == NULL)
     {
@@ -182,7 +216,6 @@ bool actions::generic::publish_status(status &global_status)
         json_decref(status_message);
         json_decref(reference_channels);
         json_decref(active_channels);
-        json_decref(channels_configs);
 
         // I am not sure what to do here...
         return false;
@@ -226,68 +259,38 @@ bool actions::generic::publish_status(status &global_status)
         }
 
         json_array_append_new(reference_channels, json_integer(channel));
-
-        json_t *channel_config = json_object();
-
-        json_object_set_new_nocheck(channel_config, "id", json_integer(channel));
-        json_object_set_new_nocheck(channel_config, "enabled", json_true());
-        json_object_set_new_nocheck(channel_config, "reference", json_true());
-
-        json_array_append_new(channels_configs, channel_config);
     }
 
     for (const unsigned int &channel: global_status.active_channels)
     {
-        histogram_t *const histo_ToF = global_status.histos_ToF[channel];
-        histogram_t *const histo_E = global_status.histos_E[channel];
-        histogram2D_t *const histo_EvsToF = global_status.histos_EvsToF[channel];
-        histogram2D_t *const histo_EvsE = global_status.histos_EvsE[channel];
         const unsigned int channel_total_counts = global_status.counts_total[channel];
         const unsigned int channel_partial_counts = global_status.counts_partial[channel];
         const double channel_rate = channel_partial_counts / pubtime;
 
-        if (histo_ToF && histo_E && histo_EvsToF && histo_EvsE) {
-            if (global_status.verbosity > 0)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Publishing status for active channel: " << channel << "; ";
-                std::cout << std::endl;
-            }
-
-            json_t *histo_ToF_config = histogram_config_to_json(histo_ToF);
-            json_t *histo_E_config = histogram_config_to_json(histo_E);
-            json_t *histo_EvsToF_config = histogram2D_config_to_json(histo_EvsToF);
-            json_t *histo_EvsE_config = histogram2D_config_to_json(histo_EvsE);
-
-            json_t *channel_config = json_object();
-
-            json_object_set_new_nocheck(channel_config, "id", json_integer(channel));
-            json_object_set_new_nocheck(channel_config, "enabled", json_true());
-            json_object_set_new_nocheck(channel_config, "reference", json_false());
-            json_object_set_new_nocheck(channel_config, "ToF", histo_ToF_config);
-            json_object_set_new_nocheck(channel_config, "energy", histo_E_config);
-            json_object_set_new_nocheck(channel_config, "EvsToF", histo_EvsToF_config);
-            json_object_set_new_nocheck(channel_config, "EvsE", histo_EvsE_config);
-            json_array_append_new(channels_configs, channel_config);
-
-            json_t *channel_status = json_object();
-
-            json_object_set_new_nocheck(channel_status, "id", json_integer(channel));
-            json_object_set_new_nocheck(channel_status, "enabled", json_true());
-            json_object_set_new_nocheck(channel_status, "rate", json_real(channel_rate));
-            json_object_set_new_nocheck(channel_status, "counts", json_integer(channel_total_counts));
-            json_array_append_new(channels_statuses, channel_status);
-
-            json_array_append_new(active_channels, json_integer(channel));
+        if (global_status.verbosity > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Publishing status for active channel: " << channel << "; ";
+            std::cout << std::endl;
         }
+
+        json_t *channel_status = json_object();
+
+        json_object_set_new_nocheck(channel_status, "id", json_integer(channel));
+        json_object_set_new_nocheck(channel_status, "enabled", json_true());
+        json_object_set_new_nocheck(channel_status, "rate", json_real(channel_rate));
+        json_object_set_new_nocheck(channel_status, "counts", json_integer(channel_total_counts));
+        json_array_append_new(channels_statuses, channel_status);
+
+        json_array_append_new(active_channels, json_integer(channel));
     }
 
-    json_object_set_new_nocheck(status_message, "configs", channels_configs);
     json_object_set_new_nocheck(status_message, "statuses", channels_statuses);
     json_object_set_new_nocheck(status_message, "reference_channels", reference_channels);
     json_object_set_new_nocheck(status_message, "active_channels", active_channels);
+    json_object_set_new_nocheck(status_message, "config", json_deep_copy(global_status.config));
 
     actions::generic::publish_message(global_status, defaults_tofcalc_status_topic, status_message);
 
@@ -297,6 +300,41 @@ bool actions::generic::publish_status(status &global_status)
     for (auto &pair: global_status.counts_partial)
     {
         pair.second = 0;
+    }
+
+    // Scaling histograms right after the publication so the counts in between
+    // two publications are not decaying
+    if (global_status.time_decay_enabled) {
+        const double time_decay_constant = exp(-pubtime / global_status.time_decay_tau);
+
+        for (const unsigned int &channel: global_status.active_channels)
+        {
+            histogram_t *const histo_ToF = global_status.histos_ToF[channel];
+            histogram_t *const histo_E = global_status.histos_E[channel];
+            histogram2D_t *const histo_EvsToF = global_status.histos_EvsToF[channel];
+            histogram2D_t *const histo_EvsE = global_status.histos_EvsE[channel];
+
+            if (histo_ToF && histo_E && histo_EvsToF && histo_EvsE) {
+                if (global_status.verbosity > 0)
+                {
+                    char time_buffer[BUFFER_SIZE];
+                    time_string(time_buffer, BUFFER_SIZE, NULL);
+                    std::cout << '[' << time_buffer << "] ";
+                    std::cout << "Scaling histograms for active channel: " << channel << "; ";
+                    std::cout << std::endl;
+                }
+
+                histogram_scale(histo_ToF, time_decay_constant);
+                histogram_scale(histo_E, time_decay_constant);
+                histogram2D_scale(histo_EvsToF, time_decay_constant);
+                histogram2D_scale(histo_EvsE, time_decay_constant);
+
+                histogram_counts_clear_minimum(histo_ToF, global_status.time_decay_minimum);
+                histogram_counts_clear_minimum(histo_E, global_status.time_decay_minimum);
+                histogram2D_counts_clear_minimum(histo_EvsToF, global_status.time_decay_minimum);
+                histogram2D_counts_clear_minimum(histo_EvsE, global_status.time_decay_minimum);
+            }
+        }
     }
 
     return true;
@@ -348,13 +386,13 @@ bool actions::generic::publish_data(status &global_status)
         return false;
     }
 
-    json_t *channels_configs = json_array();
-    if (channels_configs == NULL)
+    json_t *channels_data = json_array();
+    if (channels_data == NULL)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: Unable to create channels_configs json; ";
+        std::cout << "ERROR: Unable to create channels_data json; ";
         std::cout << std::endl;
 
         json_decref(status_message);
@@ -382,13 +420,13 @@ bool actions::generic::publish_data(status &global_status)
 
         json_array_append_new(reference_channels, json_integer(channel));
 
-        json_t *channel_config = json_object();
+        json_t *channel_data = json_object();
 
-        json_object_set_new_nocheck(channel_config, "id", json_integer(channel));
-        json_object_set_new_nocheck(channel_config, "enabled", json_true());
-        json_object_set_new_nocheck(channel_config, "reference", json_true());
+        json_object_set_new_nocheck(channel_data, "id", json_integer(channel));
+        json_object_set_new_nocheck(channel_data, "enabled", json_true());
+        json_object_set_new_nocheck(channel_data, "reference", json_true());
 
-        json_array_append_new(channels_configs, channel_config);
+        json_array_append_new(channels_data, channel_data);
     }
 
     for (const unsigned int &channel: global_status.active_channels)
@@ -411,30 +449,30 @@ bool actions::generic::publish_data(status &global_status)
                 std::cout << std::endl;
             }
 
-            json_t *histo_ToF_config = histogram_to_json(histo_ToF);
-            json_t *histo_E_config = histogram_to_json(histo_E);
-            json_t *histo_EvsToF_config = histogram2D_to_json(histo_EvsToF);
-            json_t *histo_EvsE_config = histogram2D_to_json(histo_EvsE);
+            json_t *histo_ToF_data = histogram_to_json(histo_ToF);
+            json_t *histo_E_data = histogram_to_json(histo_E);
+            json_t *histo_EvsToF_data = histogram2D_to_json(histo_EvsToF);
+            json_t *histo_EvsE_data = histogram2D_to_json(histo_EvsE);
 
-            json_t *channel_config = json_object();
+            json_t *channel_data = json_object();
 
-            json_object_set_new_nocheck(channel_config, "id", json_integer(channel));
-            json_object_set_new_nocheck(channel_config, "enabled", json_true());
-            json_object_set_new_nocheck(channel_config, "reference", json_false());
-            json_object_set_new_nocheck(channel_config, "rate", json_real(channel_rate));
-            json_object_set_new_nocheck(channel_config, "counts", json_integer(channel_total_counts));
-            json_object_set_new_nocheck(channel_config, "ToF", histo_ToF_config);
-            json_object_set_new_nocheck(channel_config, "energy", histo_E_config);
-            json_object_set_new_nocheck(channel_config, "EvsToF", histo_EvsToF_config);
-            json_object_set_new_nocheck(channel_config, "EvsE", histo_EvsE_config);
+            json_object_set_new_nocheck(channel_data, "id", json_integer(channel));
+            json_object_set_new_nocheck(channel_data, "enabled", json_true());
+            json_object_set_new_nocheck(channel_data, "reference", json_false());
+            json_object_set_new_nocheck(channel_data, "rate", json_real(channel_rate));
+            json_object_set_new_nocheck(channel_data, "counts", json_integer(channel_total_counts));
+            json_object_set_new_nocheck(channel_data, "ToF", histo_ToF_data);
+            json_object_set_new_nocheck(channel_data, "energy", histo_E_data);
+            json_object_set_new_nocheck(channel_data, "EvsToF", histo_EvsToF_data);
+            json_object_set_new_nocheck(channel_data, "EvsE", histo_EvsE_data);
 
-            json_array_append_new(channels_configs, channel_config);
+            json_array_append_new(channels_data, channel_data);
 
             json_array_append_new(active_channels, json_integer(channel));
         }
     }
 
-    json_object_set_new_nocheck(status_message, "data", channels_configs);
+    json_object_set_new_nocheck(status_message, "data", channels_data);
     json_object_set_new_nocheck(status_message, "reference_channels", reference_channels);
     json_object_set_new_nocheck(status_message, "active_channels", active_channels);
 
@@ -587,12 +625,12 @@ bool actions::generic::read_socket(status &global_status)
                     {
                         //std::cout << "Forward:  i: " << i << "; j: " << j << std::endl;
                         const event_PSD that_event = events[j];
-                        
+
                         const double time_of_flight = (static_cast<int64_t>(that_event.timestamp)
                                                        -
                                                        static_cast<int64_t>(this_event.timestamp))
                                                        * ns_per_sample;
-    
+
                         if (global_status.verbosity > 1)
                         {
                             char time_buffer[BUFFER_SIZE];
@@ -656,7 +694,7 @@ bool actions::generic::read_socket(status &global_status)
                                         histogram2D_fill(histo_EvsE, that_event.qlong, this_event.qlong);
                                         global_status.counts_partial[that_event.channel] += 1;
                                         global_status.counts_total[that_event.channel] += 1;
-    
+
                                         found_coincidences += 1;
                                     }
                                 }
@@ -676,7 +714,7 @@ bool actions::generic::read_socket(status &global_status)
                                                        -
                                                        static_cast<int64_t>(this_event.timestamp))
                                                        * ns_per_sample;
-    
+
                         if (global_status.verbosity > 1)
                         {
                             char time_buffer[BUFFER_SIZE];
@@ -695,7 +733,7 @@ bool actions::generic::read_socket(status &global_status)
                         // We first look for the time window as it is the strongest requirement
                         if (min_ToF <= time_of_flight && time_of_flight < max_ToF)
                         {
-    
+
                             // If it is not a reference channel we can tag this as a coincidence
                             if (std::find(global_status.reference_channels.begin(),
                                           global_status.reference_channels.end(),
@@ -719,7 +757,7 @@ bool actions::generic::read_socket(status &global_status)
                                 histogram_t *const histo_E = global_status.histos_E[that_event.channel];
                                 histogram2D_t *const histo_EvsToF = global_status.histos_EvsToF[that_event.channel];
                                 histogram2D_t *const histo_EvsE = global_status.histos_EvsE[that_event.channel];
-    
+
                                 // This is not really an error as a user might not be interested on
                                 // the ToF of this channel
                                 if (!histo_ToF || !histo_E || !histo_EvsToF) {
@@ -741,7 +779,7 @@ bool actions::generic::read_socket(status &global_status)
                                         histogram2D_fill(histo_EvsE, that_event.qlong, this_event.qlong);
                                         global_status.counts_partial[that_event.channel] += 1;
                                         global_status.counts_total[that_event.channel] += 1;
-    
+
                                         found_coincidences += 1;
                                     }
                                 }
@@ -1005,59 +1043,89 @@ state actions::read_config(status &global_status)
 
 state actions::apply_config(status &global_status)
 {
-    const json_t *config = global_status.config;
+    actions::generic::clear_memory(global_status);
+
+    json_t * const config = global_status.config;
+
+    json_t *json_ns_per_sample = json_object_get(config, "ns_per_sample");
+
+    double ns_per_sample = global_status.ns_per_sample;
+
+    if (json_ns_per_sample != NULL && json_is_number(json_ns_per_sample)) {
+        ns_per_sample = json_number_value(json_ns_per_sample);
+
+        if (global_status.verbosity > 0) {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Setting the conversion factor to: " << ns_per_sample << " ns/sample; ";
+            std::cout << std::endl;
+        }
+    }
+    json_object_set_nocheck(config, "ns_per_sample", json_real(ns_per_sample));
+
+    global_status.ns_per_sample = ns_per_sample;
+
+    json_t *json_time_decay = json_object_get(config, "time_decay");
+
+    bool time_decay_enabled = defaults_tofcalc_time_decay_enabled;
+    double time_decay_tau = defaults_tofcalc_time_decay_tau;
+    double time_decay_minimum = defaults_tofcalc_time_decay_minimum;
+
+    if (json_time_decay != NULL && json_is_object(json_time_decay))
+    {
+        time_decay_enabled = json_is_true(json_object_get(json_time_decay, "enable"));
+
+        json_t *json_tau = json_object_get(json_time_decay, "tau");
+
+        if (json_is_number(json_tau) && json_number_value(json_tau) > 0) {
+            time_decay_tau = json_number_value(json_tau);
+        } else {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "WARNING: Invalid value for time_decay_tau, got: " << json_number_value(json_tau) << "; ";
+            std::cout << std::endl;
+        }
+
+        json_t *json_minimum = json_object_get(json_time_decay, "counts_minimum");
+
+        if (json_is_number(json_minimum) && json_number_value(json_minimum) >= 0) {
+            time_decay_minimum = json_number_value(json_minimum);
+        } else {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "WARNING: Invalid value for time_decay_minimum, got: " << json_number_value(json_minimum) << "; ";
+            std::cout << std::endl;
+        }
+
+        if (global_status.verbosity > 0) {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Time decay enabled: " << time_decay_enabled << "; ";
+            std::cout << "Time decay tau: " << time_decay_tau << "; ";
+            std::cout << "Time decay minimum: " << time_decay_minimum << "; ";
+            std::cout << std::endl;
+        }
+    } else {
+        json_object_set_nocheck(config, "time_decay", json_object());
+        json_time_decay = json_object_get(config, "time_decay");
+    }
+
+    json_object_set_nocheck(json_time_decay, "enable", time_decay_enabled ? json_true() : json_false());
+    json_object_set_nocheck(json_time_decay, "tau", json_real(time_decay_tau));
+    json_object_set_nocheck(json_time_decay, "counts_minimum", json_real(time_decay_minimum));
+
+    global_status.time_decay_enabled = time_decay_enabled;
+    global_status.time_decay_tau = time_decay_tau;
+    global_status.time_decay_minimum = time_decay_minimum;
 
     json_t *json_channels = json_object_get(config, "channels");
 
     if (json_channels != NULL && json_is_array(json_channels))
     {
-        global_status.reference_channels.clear();
-        global_status.active_channels.clear();
-
-        for (auto &pair: global_status.histos_ToF)
-        {
-            histogram_t *const histo_ToF = pair.second;
-
-            if (histo_ToF != NULL)
-            {
-                histogram_destroy(histo_ToF);
-            }
-        }
-        global_status.histos_ToF.clear();
-
-        for (auto &pair: global_status.histos_E)
-        {
-            histogram_t *const histo_E = pair.second;
-
-            if (histo_E != NULL)
-            {
-                histogram_destroy(histo_E);
-            }
-        }
-        global_status.histos_E.clear();
-
-        for (auto &pair: global_status.histos_EvsToF)
-        {
-            histogram2D_t *const histo_EvsToF = pair.second;
-
-            if (histo_EvsToF != NULL)
-            {
-                histogram2D_destroy(histo_EvsToF);
-            }
-        }
-        global_status.histos_EvsToF.clear();
-
-        for (auto &pair: global_status.histos_EvsE)
-        {
-            histogram2D_t *const histo_EvsE = pair.second;
-
-            if (histo_EvsE != NULL)
-            {
-                histogram2D_destroy(histo_EvsE);
-            }
-        }
-        global_status.histos_EvsE.clear();
-
         size_t index;
         json_t *value;
 
@@ -1065,41 +1133,75 @@ state actions::apply_config(status &global_status)
             // This block of code that uses the index and value variables
             // that are set in the json_array_foreach() macro.
 
+            // The id may be a single integer or an array of integers
             json_t *json_id = json_object_get(value, "id");
 
-            if (json_id != NULL && json_is_integer(json_id)) {
-                const unsigned int id = json_integer_value(json_id);
+            std::vector<int> channel_ids;
 
+            if (json_id != NULL && json_is_integer(json_id)) {
+                const int id = json_number_value(json_id);
+                channel_ids.push_back(id);
+            } else if (json_id != NULL && json_is_array(json_id)) {
+                size_t id_index;
+                json_t *id_value;
+
+                json_array_foreach(json_id, id_index, id_value) {
+                    if (id_value != NULL && json_is_integer(id_value)) {
+                        const int id = json_number_value(id_value);
+                        channel_ids.push_back(id);
+                    }
+                }
+            }
+
+            if (channel_ids.size() > 0) {
                 if (global_status.verbosity > 0)
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
                     std::cout << '[' << time_buffer << "] ";
-                    std::cout << "Found channel: " << id << "; ";
+                    std::cout << "Found channel(s): ";
+                    for (auto& id : channel_ids) {
+                        std::cout << id << " ";
+                    }
+                    std::cout << "; ";
                     std::cout << std::endl;
                 }
 
-                json_t *json_reference = json_object_get(value, "reference");
+                const bool is_reference = json_is_true(json_object_get(value, "reference"));
 
                 // We create a ToF histogram only if the channel is not a reference channel
                 // because we use reference channels as start pulses and we do not want to
                 // merge the ToF of all the other channels in one histogram.
-                if (json_is_true(json_reference))
+                if (is_reference)
                 {
-                    global_status.reference_channels.insert(id);
+                    json_object_set_nocheck(value, "reference", json_true());
 
-                    if (global_status.verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Channel: " << id << " detected as reference; ";
-                        std::cout << std::endl;
+                    for (const auto& id : channel_ids) {
+                        global_status.reference_channels.insert(id);
+
+                        if (global_status.verbosity > 0)
+                        {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "Channel: " << id << " detected as reference; ";
+                            std::cout << std::endl;
+                        }
+
+                        const std::string event_message = "Configuration of channel " + std::to_string(id) + " as reference";
+
+                        json_t *json_event_message = json_object();
+                        json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+                        json_object_set_new_nocheck(json_event_message, "event", json_string(event_message.c_str()));
+
+                        actions::generic::publish_message(global_status, defaults_tofcalc_events_topic, json_event_message);
+
+                        json_decref(json_event_message);
                     }
                 }
                 else
                 {
-                    global_status.active_channels.insert(id);
+                    json_object_set_nocheck(value, "reference", json_false());
 
                     unsigned int bins_ToF = defaults_tofcalc_bins_ToF;
                     double min_ToF = defaults_tofcalc_min_ToF;
@@ -1109,15 +1211,23 @@ state actions::apply_config(status &global_status)
                     if (json_bins_ToF != NULL && json_is_integer(json_bins_ToF)) {
                         bins_ToF = json_integer_value(json_bins_ToF);
                     }
+
                     json_t *json_min_ToF = json_object_get(value, "min_ToF");
                     if (json_min_ToF != NULL && json_is_number(json_min_ToF)) {
                         min_ToF = json_number_value(json_min_ToF);
                     }
+
                     json_t *json_max_ToF = json_object_get(value, "max_ToF");
                     if (json_max_ToF != NULL && json_is_number(json_max_ToF)) {
                         max_ToF = json_number_value(json_max_ToF);
                     }
-                
+
+                    // Rewriting the values to be sure that the configuration
+                    // has the proper format.
+                    json_object_set_nocheck(value, "bins_ToF", json_integer(bins_ToF));
+                    json_object_set_nocheck(value, "min_ToF", json_real(min_ToF));
+                    json_object_set_nocheck(value, "max_ToF", json_real(max_ToF));
+
                     unsigned int bins_E = defaults_tofcalc_bins_E;
                     double min_E = defaults_tofcalc_min_E;
                     double max_E = defaults_tofcalc_max_E;
@@ -1134,45 +1244,62 @@ state actions::apply_config(status &global_status)
                     if (json_max_E != NULL && json_is_number(json_max_E)) {
                         max_E = json_number_value(json_max_E);
                     }
-                
-                    global_status.histos_ToF[id] = histogram_create(bins_ToF,
-                                                                    min_ToF,
-                                                                    max_ToF,
-                                                                    global_status.verbosity);
 
-                    global_status.histos_E[id] = histogram_create(bins_E,
-                                                                  min_E,
-                                                                  max_E,
-                                                                  global_status.verbosity);
+                    json_object_set_nocheck(value, "bins_E", json_integer(bins_E));
+                    json_object_set_nocheck(value, "min_E", json_real(min_E));
+                    json_object_set_nocheck(value, "max_E", json_real(max_E));
 
-                    global_status.histos_EvsToF[id] = histogram2D_create(bins_ToF,
-                                                                         min_ToF,
-                                                                         max_ToF,
-                                                                         bins_E,
-                                                                         min_E,
-                                                                         max_E,
-                                                                         global_status.verbosity);
+                    for (const auto& id : channel_ids) {
+                        global_status.active_channels.insert(id);
 
-                    global_status.histos_EvsE[id] = histogram2D_create(bins_E,
-                                                                       min_E,
-                                                                       max_E,
-                                                                       bins_E,
-                                                                       min_E,
-                                                                       max_E,
-                                                                       global_status.verbosity);
+                        if (global_status.verbosity > 0)
+                        {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "Channel: " << id << " detected as active; ";
+                            std::cout << std::endl;
+                        }
 
-                    global_status.counts_partial[id] = 0;
-                    global_status.counts_total[id] = 0;
+                        global_status.histos_ToF[id] = histogram_create(bins_ToF,
+                                                                        min_ToF,
+                                                                        max_ToF,
+                                                                        global_status.verbosity);
 
-                    const std::string event_message = "Configuration of histogram for channel: " + std::to_string(id);
+                        global_status.histos_E[id] = histogram_create(bins_E,
+                                                                      min_E,
+                                                                      max_E,
+                                                                      global_status.verbosity);
 
-                    json_t *json_event_message = json_object();
-                    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
-                    json_object_set_new_nocheck(json_event_message, "event", json_string(event_message.c_str()));
+                        global_status.histos_EvsToF[id] = histogram2D_create(bins_ToF,
+                                                                             min_ToF,
+                                                                             max_ToF,
+                                                                             bins_E,
+                                                                             min_E,
+                                                                             max_E,
+                                                                             global_status.verbosity);
 
-                    actions::generic::publish_message(global_status, defaults_tofcalc_events_topic, json_event_message);
+                        global_status.histos_EvsE[id] = histogram2D_create(bins_E,
+                                                                           min_E,
+                                                                           max_E,
+                                                                           bins_E,
+                                                                           min_E,
+                                                                           max_E,
+                                                                           global_status.verbosity);
 
-                    json_decref(json_event_message);
+                        global_status.counts_partial[id] = 0;
+                        global_status.counts_total[id] = 0;
+
+                        const std::string event_message = "Configuration of histograms for channel: " + std::to_string(id);
+
+                        json_t *json_event_message = json_object();
+                        json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+                        json_object_set_new_nocheck(json_event_message, "event", json_string(event_message.c_str()));
+
+                        actions::generic::publish_message(global_status, defaults_tofcalc_events_topic, json_event_message);
+
+                        json_decref(json_event_message);
+                    }
                 }
             }
         }
@@ -1395,163 +1522,36 @@ state actions::receive_commands(status &global_status)
                 {
                     std::cout << "Reconfiguration" << std::endl;
 
-                    json_t *json_channels = json_object_get(json_arguments, "channels");
+                    json_t *json_config = json_object_get(json_arguments, "config");
 
-                    if (json_channels != NULL && json_is_array(json_channels))
+                    if (json_config != NULL && json_is_object(json_config))
                     {
-                        size_t index;
-                        json_t *value;
+                        global_status.config = json_deep_copy(json_config);
 
-                        global_status.reference_channels.clear();
+                        const std::string event_message = "Reconfiguration";
 
-                        json_array_foreach(json_channels, index, value) {
-                            // This block of code that uses the index and value variables
-                            // that are set in the json_array_foreach() macro.
+                        json_t *json_event_message = json_object();
+                        json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+                        json_object_set_new_nocheck(json_event_message, "event", json_string(event_message.c_str()));
 
-                            json_t *json_id = json_object_get(value, "id");
+                        actions::generic::publish_message(global_status, defaults_tofcalc_events_topic, json_event_message);
 
-                            if (json_id != NULL && json_is_integer(json_id)) {
-                                const unsigned int id = json_integer_value(json_id);
+                        json_decref(json_event_message);
 
-                                if (global_status.verbosity > 0)
-                                {
-                                    char time_buffer[BUFFER_SIZE];
-                                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                                    std::cout << '[' << time_buffer << "] ";
-                                    std::cout << "Found channel: " << id << "; ";
-                                    std::cout << std::endl;
-                                }
+                        json_decref(json_message);
 
-                                json_t *json_reference = json_object_get(value, "reference");
-
-                                // We create a ToF histogram only if the channel is not a reference channel
-                                // because we use reference channels as start pulses and we do not want to
-                                // merge the ToF of all the other channels in one histogram.
-                                if (json_is_true(json_reference))
-                                {
-                                    global_status.reference_channels.insert(id);
-
-                                    if (global_status.verbosity > 0)
-                                    {
-                                        char time_buffer[BUFFER_SIZE];
-                                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                                        std::cout << '[' << time_buffer << "] ";
-                                        std::cout << "Channel: " << id << " detected as reference; ";
-                                        std::cout << std::endl;
-                                    }
-                                }
-                                else
-                                {
-                                    auto iter = std::find(global_status.reference_channels.begin(),
-                                                          global_status.reference_channels.end(),
-                                                          id);
-
-                                    // If it was a reference channel we need to erase it
-                                    if (iter != global_status.reference_channels.end())
-                                    {
-                                        global_status.reference_channels.erase(iter);
-                                    }
-
-                                    global_status.counts_partial[id] = 0;
-                                    global_status.counts_total[id] = 0;
-
-                                    unsigned int bins_ToF = defaults_tofcalc_bins_ToF;
-                                    double min_ToF = defaults_tofcalc_min_ToF;
-                                    double max_ToF = defaults_tofcalc_max_ToF;
-
-                                    json_t *json_bins_ToF = json_object_get(value, "bins_ToF");
-                                    if (json_bins_ToF != NULL && json_is_integer(json_bins_ToF)) {
-                                        bins_ToF = json_integer_value(json_bins_ToF);
-                                    }
-                                    json_t *json_min_ToF = json_object_get(value, "min_ToF");
-                                    if (json_min_ToF != NULL && json_is_number(json_min_ToF)) {
-                                        min_ToF = json_number_value(json_min_ToF);
-                                    }
-                                    json_t *json_max_ToF = json_object_get(value, "max_ToF");
-                                    if (json_max_ToF != NULL && json_is_number(json_max_ToF)) {
-                                        max_ToF = json_number_value(json_max_ToF);
-                                    }
-                
-                                    unsigned int bins_E = defaults_tofcalc_bins_E;
-                                    double min_E = defaults_tofcalc_min_E;
-                                    double max_E = defaults_tofcalc_max_E;
-
-                                    json_t *json_bins_E = json_object_get(value, "bins_E");
-                                    if (json_bins_E != NULL && json_is_integer(json_bins_E)) {
-                                        bins_E = json_integer_value(json_bins_E);
-                                    }
-                                    json_t *json_min_E = json_object_get(value, "min_E");
-                                    if (json_min_E != NULL && json_is_number(json_min_E)) {
-                                        min_E = json_number_value(json_min_E);
-                                    }
-                                    json_t *json_max_E = json_object_get(value, "max_E");
-                                    if (json_max_E != NULL && json_is_number(json_max_E)) {
-                                        max_E = json_number_value(json_max_E);
-                                    }
-                
-                                    histogram_t *histo_ToF = global_status.histos_ToF[id];
-                                    if (histo_ToF)
-                                    {
-                                        histogram_destroy(histo_ToF);
-                                    }
-                                    histogram_t *histo_E = global_status.histos_E[id];
-                                    if (histo_E)
-                                    {
-                                        histogram_destroy(histo_E);
-                                    }
-                                    histogram2D_t *histo_EvsToF = global_status.histos_EvsToF[id];
-                                    if (histo_EvsToF)
-                                    {
-                                        histogram2D_destroy(histo_EvsToF);
-                                    }
-                                    histogram2D_t *histo_EvsE = global_status.histos_EvsE[id];
-                                    if (histo_EvsE)
-                                    {
-                                        histogram2D_destroy(histo_EvsE);
-                                    }
-
-                                    global_status.histos_ToF[id] = histogram_create(bins_ToF,
-                                                                                    min_ToF,
-                                                                                    max_ToF,
-                                                                                    global_status.verbosity);
-                                    global_status.histos_E[id] = histogram_create(bins_E,
-                                                                                  min_E,
-                                                                                  max_E,
-                                                                                  global_status.verbosity);
-                                    global_status.histos_EvsToF[id] = histogram2D_create(bins_ToF,
-                                                                                         min_ToF,
-                                                                                         max_ToF,
-                                                                                         bins_E,
-                                                                                         min_E,
-                                                                                         max_E,
-                                                                                         global_status.verbosity);
-                                    global_status.histos_EvsE[id] = histogram2D_create(bins_E,
-                                                                                       min_E,
-                                                                                       max_E,
-                                                                                       bins_E,
-                                                                                       min_E,
-                                                                                       max_E,
-                                                                                       global_status.verbosity);
-
-                                    const std::string event_message = "Reconfiguration of histogram for channel: " + std::to_string(id);
-
-                                    json_t *json_event_message = json_object();
-                                    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
-                                    json_object_set_new_nocheck(json_event_message, "event", json_string(event_message.c_str()));
-
-                                    actions::generic::publish_message(global_status, defaults_tofcalc_events_topic, json_event_message);
-
-                                    json_decref(json_event_message);
-                                }
-                            }
-                        }
+                        return states::APPLY_CONFIG;
                     }
                 }
                 else if (command == std::string("quit"))
                 {
+                    json_decref(json_message);
+
                     return states::CLOSE_SOCKETS;
                 }
             }
+
+            json_decref(json_message);
         }
     }
 

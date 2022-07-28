@@ -34,7 +34,7 @@ parser.add_argument('-C',
 parser.add_argument('-a',
                     '--arguments',
                     type = str,
-                    default = None,
+                    default = "{}",
                     help = 'Command arguments, as a JSON string')
 parser.add_argument('command',
                     type = str,

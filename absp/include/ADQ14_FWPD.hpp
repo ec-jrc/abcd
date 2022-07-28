@@ -69,8 +69,9 @@ public:
     static const int default_DBS_saturation_level_upper;
     std::vector<bool> DBS_disableds;
 
-    std::vector<uint32_t> baseline_samples;
     std::vector<uint32_t> scope_samples;
+    std::vector<uint8_t> smooth_samples;
+    std::vector<uint8_t> smooth_delays;
     std::vector<int> records_numbers;
 
     int64_t transfer_buffer_size;
@@ -85,6 +86,7 @@ public:
     // Number of samples to acquire in the waveforms before the trigger
     std::vector<int32_t> pretriggers;
     std::vector<int16_t> trig_levels;
+    std::vector<int16_t> trig_hysteresises;
     std::vector<int> trig_slopes;
 
     // Flag to select the trigger mode

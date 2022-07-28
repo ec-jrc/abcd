@@ -79,6 +79,7 @@ void print_usage(const char *name) {
     printf("\t-A <address>: ABCD data socket address, default: %s\n", defaults_abcd_data_address_sub);
     printf("\t-D <address>: Data output socket address, default: %s\n", defaults_wafi_data_address);
     printf("\t-T <period>: Set base period in milliseconds, default: %d\n", defaults_wafi_base_period);
+    printf("\t-p <publication_time>: Minimum time between the publication of two waveforms packets, default: %.1f s\n", defaults_wadi_publication_time);
 
     return;
 }
@@ -120,9 +121,10 @@ int main(int argc, char *argv[])
     unsigned int base_period = defaults_wafi_base_period;
     char *input_address = defaults_abcd_data_address_sub;
     char *output_address = defaults_wafi_data_address;
+    double publication_time = defaults_wadi_publication_time;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hA:D:T:vV")) != -1) {
+    while ((c = getopt(argc, argv, "hA:D:T:p:vV")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
@@ -135,6 +137,9 @@ int main(int argc, char *argv[])
                 break;
             case 'T':
                 base_period = atoi(optarg);
+                break;
+            case 'p':
+                publication_time = atof(optarg);
                 break;
             case 'v':
                 verbosity = 1;
@@ -153,6 +158,7 @@ int main(int argc, char *argv[])
         printf("Output socket address: %s\n", output_address);
         printf("Verbosity: %u\n", verbosity);
         printf("Base period: %u\n", base_period);
+        printf("Publication time: %.1f s\n", publication_time);
     }
 
     // Creates a ZeroMQ context
@@ -208,6 +214,8 @@ int main(int argc, char *argv[])
     wait.tv_sec = base_period / 1000;
     wait.tv_nsec = (base_period % 1000) * 1000000L;
 
+    time_t next_publication = time(0);
+
     size_t counter = 0;
     size_t msg_counter = 0;
     size_t msg_ID = 0;
@@ -218,127 +226,139 @@ int main(int argc, char *argv[])
         char *buffer;
         size_t size;
 
-        const int result = receive_byte_message(input_socket, &topic, (void **)(&buffer), &size, true, 0);
+        int result = receive_byte_message(input_socket, &topic, (void **)(&buffer), &size, true, 0);
 
-        if (result == EXIT_FAILURE)
-        {
-            printf("[%zu] ERROR: Some error occurred!!!\n", counter);
-        }
-        else if (size == 0 && result == EXIT_SUCCESS)
-        {
-            if (verbosity > 1)
-            {
-                printf("[%zu] No message available\n", counter);
-            }
-        }
-        else if (size > 0 && result == EXIT_SUCCESS)
+        while (size > 0 && result == EXIT_SUCCESS)
         {
             if (verbosity > 0)
             {
                 printf("[%zu] Message received!!! (topic: %s)\n", counter, topic);
             }
 
-            // Check if the topic is the right one
-            if (strstr(topic, "data_abcd_waveforms_v0") == topic)
-            {
-                size_t all_events = 0;
-                size_t selected_events = 0;
-                size_t input_offset = 0;
+            const time_t now = time(0);
 
-                json_t *active_channels = json_array();
-                json_t *channels = json_array();
+            // We check the time to publication after reading the message from
+            // the socket, because we need to consume messages anyways.
+            // Otherwise the messages would start to queue in the buffer.
+            const double time_to_next_publication = difftime(next_publication, now);
 
-                while (input_offset < size)
+            if (time_to_next_publication > 0) {
+                if (verbosity > 0)
                 {
-                    const uint64_t timestamp = *((uint64_t*)(buffer + input_offset));
-                    const uint8_t this_channel = *((uint8_t*)(buffer + input_offset + 8));
-                    const uint32_t samples_number = *((uint32_t*)(buffer + input_offset + 9));
-                    const uint8_t gates_number = *((uint8_t*)(buffer + input_offset + 13));
-    
-                    // Compute the waveform event size
-                    const size_t this_size = 14 + samples_number * sizeof(uint16_t) + gates_number * samples_number * sizeof(uint8_t);
-    
-                    if (!in_array(this_channel, active_channels))
+                    printf("[%zu] Discarding message, time to next publication: %f\n", counter, time_to_next_publication);
+                }
+            } else {
+                if (verbosity > 0)
+                {
+                    printf("[%zu] Processing message\n", counter);
+                }
+
+                // Check if the topic is the right one
+                if (strstr(topic, "data_abcd_waveforms_v0") == topic)
+                {
+                    size_t all_events = 0;
+                    size_t selected_events = 0;
+                    size_t input_offset = 0;
+
+                    json_t *active_channels = json_array();
+                    json_t *channels = json_array();
+
+                    while (input_offset < size)
                     {
-                        json_array_append_new(active_channels, json_integer(this_channel));
-
-                        json_t *this_samples = json_array();
-                        json_t *these_gates = json_array();
-
-                        const size_t samples_offset = input_offset + 14;
-
-                        for (size_t i = 0; i < samples_number; i++)
+                        const uint64_t timestamp = *((uint64_t*)(buffer + input_offset));
+                        const uint8_t this_channel = *((uint8_t*)(buffer + input_offset + 8));
+                        const uint32_t samples_number = *((uint32_t*)(buffer + input_offset + 9));
+                        const uint8_t gates_number = *((uint8_t*)(buffer + input_offset + 13));
+    
+                        // Compute the waveform event size
+                        const size_t this_size = 14 + samples_number * sizeof(uint16_t) + gates_number * samples_number * sizeof(uint8_t);
+    
+                        if (!in_array(this_channel, active_channels))
                         {
-                            const size_t this_offset = samples_offset + i * sizeof(uint16_t);
-                            const uint16_t sample = *((uint16_t*)(buffer + this_offset));
-                            json_array_append_new(this_samples, json_integer(sample));
-                        }
+                            json_array_append_new(active_channels, json_integer(this_channel));
 
-                        const size_t gates_offset = samples_offset + samples_number * sizeof(uint16_t);
+                            json_t *this_samples = json_array();
+                            json_t *these_gates = json_array();
 
-                        for (size_t j = 0; j < gates_number; j++)
-                        {
-                            json_t *gates_samples = json_array();
+                            const size_t samples_offset = input_offset + 14;
 
                             for (size_t i = 0; i < samples_number; i++)
                             {
-                                const size_t this_offset = gates_offset + j * samples_number * sizeof(uint8_t) + i * sizeof(uint8_t);
-                                const uint8_t sample = *((uint8_t*)(buffer + this_offset));
-                                json_array_append_new(gates_samples, json_integer(sample));
+                                const size_t this_offset = samples_offset + i * sizeof(uint16_t);
+                                const uint16_t sample = *((uint16_t*)(buffer + this_offset));
+                                json_array_append_new(this_samples, json_integer(sample));
                             }
 
-                            json_array_append_new(these_gates, gates_samples);
+                            const size_t gates_offset = samples_offset + samples_number * sizeof(uint16_t);
+
+                            for (size_t j = 0; j < gates_number; j++)
+                            {
+                                json_t *gates_samples = json_array();
+
+                                for (size_t i = 0; i < samples_number; i++)
+                                {
+                                    const size_t this_offset = gates_offset + j * samples_number * sizeof(uint8_t) + i * sizeof(uint8_t);
+                                    const uint8_t sample = *((uint8_t*)(buffer + this_offset));
+                                    json_array_append_new(gates_samples, json_integer(sample));
+                                }
+
+                                json_array_append_new(these_gates, gates_samples);
+                            }
+
+                            json_t *json_channel = json_object();
+
+                            json_object_set_new_nocheck(json_channel, "id", json_integer(this_channel));
+                            json_object_set_new_nocheck(json_channel, "timestamp", json_integer(timestamp));
+                            json_object_set_new_nocheck(json_channel, "samples", this_samples);
+                            json_object_set_new_nocheck(json_channel, "gates", these_gates);
+
+                            json_array_append_new(channels, json_channel);
+
+                            selected_events += 1;
                         }
 
-                        json_t *json_channel = json_object();
-
-                        json_object_set_new_nocheck(json_channel, "id", json_integer(this_channel));
-                        json_object_set_new_nocheck(json_channel, "timestamp", json_integer(timestamp));
-                        json_object_set_new_nocheck(json_channel, "samples", this_samples);
-                        json_object_set_new_nocheck(json_channel, "gates", these_gates);
-
-                        json_array_append_new(channels, json_channel);
-
-                        selected_events += 1;
-                    }
-
-                    if (verbosity > 1)
-                    {
-                        printf("timestamp: %" PRIu64 "; this_channel: %" PRIu8 "; samples_number: %" PRIu32 "; gates_number: %" PRIu8 ", this_size: %zu; input_offset: %zu\n", timestamp, this_channel, samples_number, gates_number, this_size, input_offset);
-                    }
+                        if (verbosity > 1)
+                        {
+                            printf("timestamp: %" PRIu64 "; this_channel: %" PRIu8 "; samples_number: %" PRIu32 "; gates_number: %" PRIu8 ", this_size: %zu; input_offset: %zu\n", timestamp, this_channel, samples_number, gates_number, this_size, input_offset);
+                        }
     
-                    all_events += 1;
-                    input_offset += this_size;
-                }
+                        all_events += 1;
+                        input_offset += this_size;
+                    }
 
-                time_t raw_time;
-                time(&raw_time);
+                    time_t raw_time;
+                    time(&raw_time);
 
-                const struct tm *time_info = localtime(&raw_time);
-                char time_buffer[sizeof("[2011-10-08T07:07:09Z+0100]")];
-                strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%dT%H:%M:%S%z", time_info);
+                    const struct tm *time_info = localtime(&raw_time);
+                    char time_buffer[sizeof("[2011-10-08T07:07:09Z+0100]")];
+                    strftime(time_buffer, sizeof(time_buffer), "%Y-%m-%dT%H:%M:%S%z", time_info);
 
-                if (verbosity > 0)
-                {
-                    printf("Time buffer: %s\n", time_buffer);
-                }
+                    if (verbosity > 0)
+                    {
+                        printf("Time buffer: %s\n", time_buffer);
+                    }
 
-                json_t *json_message = json_object();
+                    json_t *json_message = json_object();
 
-                json_object_set_new_nocheck(json_message, "module", json_string("wadi"));
-                json_object_set_new_nocheck(json_message, "timestamp", json_string(time_buffer));
-                json_object_set_new_nocheck(json_message, "msg_ID", json_integer(msg_ID));
-                json_object_set_new_nocheck(json_message, "active_channels", active_channels);
-                json_object_set_new_nocheck(json_message, "channels", channels);
+                    json_object_set_new_nocheck(json_message, "module", json_string("wadi"));
+                    json_object_set_new_nocheck(json_message, "timestamp", json_string(time_buffer));
+                    json_object_set_new_nocheck(json_message, "msg_ID", json_integer(msg_ID));
+                    json_object_set_new_nocheck(json_message, "active_channels", active_channels);
+                    json_object_set_new_nocheck(json_message, "channels", channels);
 
-                send_json_message(output_socket, defaults_wadi_data_waveforms_topic, json_message, 0);
-                msg_ID += 1;
+                    send_json_message(output_socket, defaults_wadi_data_waveforms_topic, json_message, 0);
+                    msg_ID += 1;
 
-                json_decref(json_message);
+                    json_decref(json_message);
 
-                if (verbosity > 0)
-                {
-                    printf("size: %zu; all_events: %zu; selected_events: %zu; input_offset: %zu\n", size, all_events, selected_events, input_offset);
+                    // Here we rely on the POSIX standard that states that
+                    // time_t is encoded in seconds from the epoch
+                    next_publication = publication_time + time(0);
+
+                    if (verbosity > 0)
+                    {
+                        printf("size: %zu; all_events: %zu; selected_events: %zu; input_offset: %zu\n", size, all_events, selected_events, input_offset);
+                    }
                 }
             }
 
@@ -347,10 +367,8 @@ int main(int argc, char *argv[])
             // Remember to free buffers
             free(topic);
             free(buffer);
-        }
-        else
-        {
-            printf("[%zu] ERROR: What?!?!?!\n", counter);
+
+            result = receive_byte_message(input_socket, &topic, (void **)(&buffer), &size, true, 0);
         }
 
         counter += 1;

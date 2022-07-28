@@ -1,6 +1,7 @@
 extends layout
 
 block content
+  script(src='/ace/ace.js' type="text/javascript" charset="utf-8")
   script(src='/fmin/fmin.js' type="text/javascript" charset="utf-8")
   script(src='/static/javascripts/tofcalc.js')
   script(src='/static/javascripts/fitting.js')
@@ -19,6 +20,9 @@ block content
       p
         button(id="button_download_ToF_data") Download ToF data 
         button(id="button_download_spectrum_data") Download spectrum data 
+      p
+        button(id="button_reset_channel") Reset current channel
+        button(id="button_reset_all") Reset all
     div#plot_ToF.plot_display
   div.columns
     div.column
@@ -37,11 +41,11 @@ block content
     h3 Status
     fieldset 
       legend Commands
-      p
-        button(id="button_config_send") Send configuration
-        button(id="button_reset_channel") Reset channel
-        button(id="button_reset_all") Reset all
-    div#module_status
+      button(id="button_config_send") Send configuration
+      button(id="button_config_get") Get configuration
+      button(id="button_config_download") Download configuration
+    p
+      div#online_editor
   div.display 
     h3 Events log
     div#events_log

@@ -320,6 +320,56 @@ extern inline histogram_error_t histogram_subtract_from(histogram_t *output_hist
     return HISTOGRAM_OK;
 }
 
+extern inline histogram_error_t histogram_scale(histogram_t *histo, double scaling_factor)
+{
+    if (histo == NULL) {
+        return HISTOGRAM_ERROR_EMPTY_HISTO;
+    }
+    if (histo->histo == NULL) {
+        return HISTOGRAM_ERROR_EMPTY_HISTO_ARRAY;
+    }
+
+    if (histo->verbosity > 0)
+    {
+        printf("histogram_scale()\n");
+    }
+
+    const unsigned int bins = histo->bins;
+
+    for (unsigned int i = 0; i < bins; i++)
+    {
+        histo->histo[i] = (histo->histo[i] * scaling_factor);
+    }
+
+    return HISTOGRAM_OK;
+}
+
+extern inline histogram_error_t histogram_counts_clear_minimum(histogram_t *histo, counter_type minimum)
+{
+    if (histo == NULL) {
+        return HISTOGRAM_ERROR_EMPTY_HISTO;
+    }
+    if (histo->histo == NULL) {
+        return HISTOGRAM_ERROR_EMPTY_HISTO_ARRAY;
+    }
+
+    if (histo->verbosity > 0)
+    {
+        printf("histogram_counts_clear_minimum()\n");
+    }
+
+    const unsigned int bins = histo->bins;
+
+    for (unsigned int i = 0; i < bins; i++)
+    {
+        if (histo->histo[i] < minimum) {
+            histo->histo[i] = 0;
+        }
+    }
+
+    return HISTOGRAM_OK;
+}
+
 //! The smoothing window is centered on each bin. The width shall be an odd number, if it is even
 //! it will be transformed to the next odd number.
 extern inline histogram_error_t histogram_box_smooth(histogram_t *histo, unsigned int width)
