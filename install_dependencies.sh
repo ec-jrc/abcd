@@ -51,6 +51,8 @@ then
 else
     print_message "Linux system found!"
 
+    installation_successfull=-1
+
     if [[ ! -n "$(command -v lsb_release)" ]]
     then
         print_message "ERROR: Unable to find the command: lsb_release"
@@ -77,39 +79,64 @@ else
                 ## The CentOS wiki suggests this, but for earlier releases:
                 #dnf --enablerepo=extras install epel-release
                 # The Fedora wiki suggests this:
-                dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+                sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
                 # This is needed for the EPEL repository, according to the Fedora wiki,
                 # but it looks more like something for RHEL.
                 #subscription-manager repos --enable "codeready-builder-for-rhel-8-*-rpms"
-                dnf config-manager --set-enabled PowerTools
+                sudo dnf config-manager --set-enabled PowerTools
 
                 print_message "Upgrading again the system..."
-                dnf upgrade
+                sudo dnf upgrade
 
                 print_message "Installing required packages, for ${distribution}..."
-                dnf install redhat-lsb vim-enhanced git tmux clang jansson-devel jansson zlib zlib-devel bzip2-libs bzip2-devel nodejs npm kernel-devel kernel-headers elfutils-libelf-devel gsl gsl-devel jsoncpp jsoncpp-devel cmake zeromq zeromq-devel python38 python3-zmq python3-numpy python3-scipy python3-matplotlib wget dkms
+                sudo dnf install redhat-lsb vim-enhanced git tmux clang jansson-devel jansson zlib zlib-devel bzip2-libs bzip2-devel nodejs npm kernel-devel kernel-headers elfutils-libelf-devel gsl gsl-devel jsoncpp jsoncpp-devel cmake zeromq zeromq-devel python38 python3-zmq python3-numpy python3-scipy python3-matplotlib wget dkms
+
+                installation_successfull=$?
             else
                 print_message "ERROR: Unexpected ${distribution} version, you will have to install packages manually"
             fi
         elif [ "${distribution}" == "Ubuntu" ]
         then
             print_message "Upgrading system..."
-            apt-get update
-            apt-get upgrade
+            sudo apt-get update
+            sudo apt-get upgrade
 
             if [[ 20 -eq "${release_major}" ]]
             then
                 print_message "Installing required packages, for Ubuntu 20 Focal Fossa..."
-                apt-get install lsb-release vim git tmux clang libzmq5 libzmq3-dev libjsoncpp-dev libjsoncpp1 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq python3-numpy python3-scipy python3-matplotlib nodejs npm linux-headers-generic build-essential dkms libgsl-dev
+                sudo apt-get install lsb-release vim git tmux clang libzmq5 libzmq3-dev libjsoncpp-dev libjsoncpp1 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq python3-numpy python3-scipy python3-matplotlib nodejs npm linux-headers-generic build-essential dkms libgsl-dev
+
+                installation_successfull=$?
             elif [[ 22 -eq "${release_major}" ]]
             then
                 print_message "Installing required packages, for Ubuntu 22 Jammy Jellyfish..."
-                apt-get install lsb-release vim git tmux clang libzmq5 libzmq3-dev libjsoncpp-dev libjsoncpp25 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq python3-numpy python3-scipy python3-matplotlib nodejs npm linux-headers-generic build-essential dkms libgsl-dev
+                sudo apt-get install lsb-release vim git tmux clang libzmq5 libzmq3-dev libjsoncpp-dev libjsoncpp25 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq python3-numpy python3-scipy python3-matplotlib nodejs npm linux-headers-generic build-essential dkms libgsl-dev
+
+                installation_successfull=$?
             else
                 print_message "ERROR: Unexpected ${distribution} version, you will have to install packages manually"
             fi
         else
             print_message "ERROR: Unexpected ${distribution}, you will have to install packages manually"
+        fi
+    fi
+
+    if [[ ${installation_successfull} -eq 0 ]]
+    then
+        print_message "The required packages were installed."
+
+        print_message "Compiling ABCD..."
+        make
+
+        print_message "Installing the dependencies of node.js..."
+        cd wit
+        npm install
+
+        if [[ $? -eq 0 ]]
+        then
+            print_message "Installation successfull!"
+        else
+            print_message "ERROR unable to install ABCD"
         fi
     fi
 fi
