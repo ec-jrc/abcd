@@ -129,14 +129,19 @@ else
         make
 
         print_message "Installing the dependencies of node.js..."
-        cd wit
-        npm install
-
-        if [[ $? -eq 0 ]]
+        if [[ ! -d "wit" ]]
         then
-            print_message "Installation successfull!"
+            print_message "ERROR: Unable to locate wit folder. Was the installation script run in the ABCD main folder?"
         else
-            print_message "ERROR unable to install ABCD"
+            cd wit
+            npm install
+
+            if [[ $? -eq 0 ]]
+            then
+                print_message "Installation successfull!"
+            else
+                print_message "ERROR unable to install ABCD"
+            fi
         fi
     fi
 fi
