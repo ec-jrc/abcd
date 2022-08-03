@@ -50,7 +50,7 @@ def running_mean(x, N):
     return (cumsum[Np:] - cumsum[:-Np]) / Np
 
 
-parser = argparse.ArgumentParser(description='Plots multiple time normalized spectra from ABCD events data files.')
+parser = argparse.ArgumentParser(description='Plots Pulse Shape Discrimination information from ABCD events data files.')
 parser.add_argument('file_names',
                     type = str,
                     nargs = '+',
