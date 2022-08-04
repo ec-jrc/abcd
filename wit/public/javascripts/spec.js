@@ -343,7 +343,7 @@ function page_loaded() {
                 type: 'heatmap'
             };
 
-            const spectrum_data = [energy, PSD];
+            const spectrum_data = [energy];
 
             if (force_update) {
                 // If forced, plotting without the fits so then the
@@ -356,8 +356,9 @@ function page_loaded() {
             fitter.fit_all();
 
             const other_data = fitter.get_all_plots();
+            const PSD_data = [PSD];
 
-            Plotly.react('plot_spectrum', spectrum_data.concat(other_data), layout_spectrum);
+            Plotly.react('plot_spectrum', spectrum_data.concat(other_data, PSD_data), layout_spectrum);
 
             $("#fits_results").empty().append(fitter.get_html_ol());
 
