@@ -241,9 +241,9 @@ for file_name in args.file_names:
         smoothed_spectrum_PSD = running_mean(int_spectrum_PSD, args.smooth_window)
 
         # Time normalization of the spectrum
-        spectrum_energy = np.array(smoothed_spectrum_energy, dtype = np.float) / Delta_time
-        spectrum_PSD = np.array(smoothed_spectrum_PSD, dtype = np.float) / Delta_time
-        histo2d = np.array(int_histo2d, dtype = np.float) / Delta_time
+        spectrum_energy = np.array(smoothed_spectrum_energy, dtype = float) / Delta_time
+        spectrum_PSD = np.array(smoothed_spectrum_PSD, dtype = float) / Delta_time
+        histo2d = np.array(int_histo2d, dtype = float) / Delta_time
 
         spectra_energy.append(spectrum_energy)
         spectra_PSD.append(spectrum_PSD)

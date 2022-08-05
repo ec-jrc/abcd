@@ -193,7 +193,7 @@ for file_name in args.file_names:
         smoothed_spectrum = running_mean(int_spectrum, args.smooth_window)
 
         # Time normalization of the spectrum
-        spectrum = np.array(smoothed_spectrum, dtype = np.float) / Delta_time
+        spectrum = np.array(smoothed_spectrum, dtype = float) / Delta_time
 
         spectrum_derivative = -1 * np.gradient(smoothed_spectrum, energy_resolution)
 
