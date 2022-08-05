@@ -632,12 +632,18 @@ else:
                             origin = 'lower',
                             norm = LogNorm(),
                             interpolation = 'none',
-                            extent = (reference_energy_min, reference_energy_max, energy_min, energy_max),
+                            extent = (energy_min, energy_max, reference_energy_min, reference_energy_max),
                             aspect = 'auto')
     #cbar = fig.colorbar(cax)
 
     bihisto_ax.set_ylabel('Energy (reference channel {}) [ch]'.format(channel_a))
     bihisto_ax.set_xlabel('Energy (channel {}) [ch]'.format(channel_b))
     bihisto_ax.grid()
+
+    if args.save_plots:
+        output_file_name = basename + '_E-E-histo.' + args.images_extension
+
+        print("Saving plot to: {}".format(output_file_name))
+        fig.savefig(output_file_name)
 
     plt.show()
