@@ -344,11 +344,12 @@ function page_loaded() {
             };
 
             const spectrum_data = [energy];
+            const PSD_data = [PSD];
 
             if (force_update) {
                 // If forced, plotting without the fits so then the
                 // data would be ready for the fit
-                Plotly.react('plot_spectrum', spectrum_data, layout_spectrum);
+                Plotly.react('plot_spectrum', spectrum_data.concat(PSD_data), layout_spectrum);
             }
 
             let fitter = fitters[selected_channel()];
@@ -356,9 +357,8 @@ function page_loaded() {
             fitter.fit_all();
 
             const other_data = fitter.get_all_plots();
-            const PSD_data = [PSD];
 
-            Plotly.react('plot_spectrum', spectrum_data.concat(other_data, PSD_data), layout_spectrum);
+            Plotly.react('plot_spectrum', spectrum_data.concat(other_data).concat(PSD_data), layout_spectrum);
 
             $("#fits_results").empty().append(fitter.get_html_ol());
 
