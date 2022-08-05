@@ -9,7 +9,7 @@ block content
   div.display 
     h3 Plot display
     fieldset 
-      legend Controls
+      legend Plot controls
       p
         label Show channel: #[select(id="channel_select")] 
       p
@@ -17,6 +17,11 @@ block content
         button(id="button_clear_fit") Clear fits
       p
         button(id="button_download_spectrum_data") Download spectrum data 
+    fieldset 
+      legend Channels controls
+      p
+        button(id="button_reset_channel") Reset current channel
+        button(id="button_reset_all") Reset all
     div#plot_spectrum.plot_display
   div.columns
     div.column
@@ -32,13 +37,11 @@ block content
         h3 Channels counts
         div#channels_counts
   div.display 
-    h3 Status
+    h3 Configuration
     fieldset 
       legend Commands
       p
         button(id="button_config_send") Send configuration
-        button(id="button_reset_channel") Reset channel
-        button(id="button_reset_all") Reset all
     div#module_status
   div.display 
     h3 Events log
