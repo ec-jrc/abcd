@@ -1,6 +1,6 @@
 #! /bin/bash
 
-#  (C) Copyright 2019 Cristiano Lino Fontana
+#  (C) Copyright 2022, European Union, Cristiano Lino Fontana
 #
 #  This file is part of ABCD.
 #
@@ -24,7 +24,7 @@ function print_message {
     let 'length += 3'
     # Setting bold red
     printf '\e[1m\e[31m'
-    printf '#%.0s' $(seq -s' ' 0 $length)
+    printf '#%.0s' $(seq -s' ' 0 ${length})
     printf '\n'
     printf '# '
     # Resetting bold and color
@@ -35,7 +35,7 @@ function print_message {
     # Setting bold red
     printf '\e[1m\e[31m'
     printf ' #\n' "${message}"
-    printf '#%.0s' $(seq -s' ' 0 $length)
+    printf '#%.0s' $(seq -s' ' 0 ${length})
     printf '\n'
     # Resetting all attributes
     printf '\e[0m'
@@ -45,39 +45,33 @@ kernel_name="$(uname -s)"
 
 print_message "Kernel name: ${kernel_name}"
 
-if [[ "${kernel_name}" == "Linux" ]]
+if [[ "${kernel_name}" != "Linux" ]]
 then
+    print_message "ERROR: Unexpected kernel, this system is not supported. You have to install packages manually."
+else
     print_message "Linux system found!"
 
-    if [[ -n "$(command -v lsb_release)" ]]
+    installation_successfull=-1
+
+    if [[ ! -n "$(command -v lsb_release)" ]]
     then
+        print_message "ERROR: Unable to find the command: lsb_release"
+        echo "It can be installed with:"
+        echo "On Debian and Ubuntu: apt-get install lsb-release"
+        echo "On CentOS and Fedora: dnf install redhat-lsb"
+    else
         distribution="$(lsb_release -s -i)"
         release="$(lsb_release -s -r)"
+        release_major="${release%.*}"
 
-        print_message "Detected distribution: ${distribution}; release: ${release}"
+        print_message "Detected distribution: ${distribution}; major release: ${release_major}"
 
-        if [[ "$distribution" == "Fedora" ]]
+        if [[ "${distribution}" == "CentOS" || "${distribution}" == "Rocky" ]]
         then
-            print_message "Fedora system found!"
-
             print_message "Upgrading system..."
             dnf upgrade
 
-            if [[ 24 -le "${release}" ]]
-            then
-                print_message "Installing required packages, for Fedora..."
-                dnf install redhat-lsb vim-enhanced git tmux clang zeromq zeromq-devel jsoncpp jsoncpp-devel jansson-devel jansson zlib zlib-devel bzip2-libs bzip2-devel python3 python3-zmq nodejs node-gyp npm kernel-devel dkms elfutils-libelf-devel gsl gsl-devel
-            else
-                print_message "Unexpected ""$distribution"" version, you will have to install packages manually"
-            fi
-        elif [ "$distribution" == "CentOS" ]
-        then
-            print_message "CentOS system found!"
-
-            print_message "Upgrading system..."
-            dnf upgrade
-
-            if [[ 8 -le "${release}" ]]
+            if [[ "${release_major}" -eq 8 ]]
             then
                 # The EPEL repository is for jsoncpp
                 print_message "Enabling EPEL repository"
@@ -85,127 +79,69 @@ then
                 ## The CentOS wiki suggests this, but for earlier releases:
                 #dnf --enablerepo=extras install epel-release
                 # The Fedora wiki suggests this:
-                dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+                sudo dnf install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
                 # This is needed for the EPEL repository, according to the Fedora wiki,
                 # but it looks more like something for RHEL.
                 #subscription-manager repos --enable "codeready-builder-for-rhel-8-*-rpms"
-                dnf config-manager --set-enabled PowerTools
+                sudo dnf config-manager --set-enabled PowerTools
 
                 print_message "Upgrading again the system..."
-                dnf upgrade
+                sudo dnf upgrade
 
-                print_message "Installing required packages, for CentOS..."
-                dnf install redhat-lsb vim-enhanced git tmux clang jansson-devel jansson zlib zlib-devel bzip2-libs bzip2-devel nodejs npm kernel-devel kernel-headers elfutils-libelf-devel gsl gsl-devel jsoncpp jsoncpp-devel cmake zeromq zeromq-devel python38 python3-zmq wget dkms
+                print_message "Installing required packages, for ${distribution}..."
+                sudo dnf install redhat-lsb vim-enhanced git tmux clang jansson-devel jansson zlib zlib-devel bzip2-libs bzip2-devel nodejs npm kernel-devel kernel-headers elfutils-libelf-devel gsl gsl-devel jsoncpp jsoncpp-devel cmake zeromq zeromq-devel python38 python3-zmq python3-numpy python3-scipy python3-matplotlib wget dkms
+
+                installation_successfull=$?
             else
-                print_message "Unexpected ""$distribution"" version, you will have to install packages manually"
+                print_message "ERROR: Unexpected ${distribution} version, you will have to install packages manually"
             fi
-        elif [ "$distribution" == "Ubuntu" ]
+        elif [ "${distribution}" == "Ubuntu" ]
         then
-            print_message "Ubuntu system found!"
-
-            release_major="${release%.*}"
-
-            print_message "Major release: ${release_major}"
-
             print_message "Upgrading system..."
-            apt-get update
-            apt-get upgrade
+            sudo apt-get update
+            sudo apt-get upgrade
 
             if [[ 20 -eq "${release_major}" ]]
             then
                 print_message "Installing required packages, for Ubuntu 20 Focal Fossa..."
-                apt-get install lsb-release vim git tmux clang libzmq5 libzmq3-dev libjsoncpp-dev libjsoncpp1 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq nodejs npm linux-headers-generic build-essential dkms libgsl-dev
+                sudo apt-get install lsb-release vim git tmux clang libzmq5 libzmq3-dev libjsoncpp-dev libjsoncpp1 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq python3-numpy python3-scipy python3-matplotlib nodejs npm linux-headers-generic build-essential dkms libgsl-dev
+
+                installation_successfull=$?
             elif [[ 22 -eq "${release_major}" ]]
             then
                 print_message "Installing required packages, for Ubuntu 22 Jammy Jellyfish..."
-                apt-get install lsb-release vim git tmux clang libzmq5 libzmq3-dev libjsoncpp-dev libjsoncpp25 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq nodejs npm linux-headers-generic build-essential dkms libgsl-dev
+                sudo apt-get install lsb-release vim git tmux clang libzmq5 libzmq3-dev libjsoncpp-dev libjsoncpp25 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq python3-numpy python3-scipy python3-matplotlib nodejs npm linux-headers-generic build-essential dkms libgsl-dev
+
+                installation_successfull=$?
             else
-                print_message "Unexpected ""$distribution"" version, you will have to install packages manually"
-            fi
-        elif [ "$distribution" == "Debian" ]
-        then
-            print_message "Debian system found!"
-
-            print_message "Upgrading system..."
-            apt-get update
-            apt-get upgrade
-
-            if expr 9 '<=' "$release" '&' "$release" "<" 10 &>/dev/null
-            then
-                print_message "Installing required packages, for Debian 9 Stretch..."
-                apt-get install lsb-release vim git tmux clang libzmq5 libzmq3-dev libjsoncpp-dev libjsoncpp1 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq linux-headers-$(uname -r) build-essential zlib1g-dev dkms libgsl-dev
-
-                print_message "To use Node.js and NPM we need to install them separately"
-
-                print_message "Downloading a setup script for Node.js 10.x"
-                wget https://deb.nodesource.com/setup_10.x -O nodejs_setup10.x.sh
-
-                print_message "Running the script"
-                source nodejs_setup10.x.sh
-
-                apt-get install nodejs
-            elif expr 10 '<=' "$release" &>/dev/null
-            then
-                print_message "Installing required packages, for Debian 10 Buster..."
-                apt-get install lsb-release vim git tmux clang libzmq5 libzmq3-dev libjsoncpp-dev libjsoncpp1 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq nodejs npm linux-headers-$(uname -r) build-essential zlib1g-dev dkms libgsl-dev
-
-                print_message "Updating NPM"
-		npm install npm@latest -g
-            else
-                print_message "Unexpected ""$distribution"" version, you will have to install packages manually"
+                print_message "ERROR: Unexpected ${distribution} version, you will have to install packages manually"
             fi
         else
-            print_message "Unexpected distribution, you will have to install packages manually"
+            print_message "ERROR: Unexpected ${distribution}, you will have to install packages manually"
         fi
-    elif [ "x""`command -v termux-info`""x" != "xx" ]
-    then
-        print_message "Termux system found!"
-
-        print_message "Upgrading system..."
-        apt update
-        apt upgrade
-
-        print_message "Installing required packages..."
-        apt install vim git tmux clang libzmq libzmq-dev jsoncpp jsoncpp-dev libjansson libjansson-dev libbz2 libbz2-dev python gsl gsl-dev
-    else
-        print_message "ERROR: Unable to find lsb_release."
-        echo "It can be installed with:"
-        echo "On Fedora: dnf install redhat-lsb"
-        echo "On Debian and Ubuntu: apt-get install lsb-release"
     fi
-elif [ "$kernel_name" == "Darwin" ]
-then
-    print_message "macOS system found!"
 
-    if [ "x""`command -v port`""x" != "xx" ]
+    if [[ ${installation_successfull} -eq 0 ]]
     then
-        print_message "Using MacPorts to install dependencies"
-        print_message "Upgrading system..."
-        port selfupdate
-        port upgrade outdated
+        print_message "The required packages were installed."
 
-        print_message "Installing required packages, for macOS..."
-        port install tmux zmq-devel jsoncpp-devel jansson python37 py37-zmq nodejs10 npm6 bzip2 zlib gsl
-    else
-        print_message "Unable to find MacPorts, you will have to install packages manually"
+        print_message "Compiling ABCD..."
+        make
+
+        print_message "Installing the dependencies of node.js..."
+        if [[ ! -d "wit" ]]
+        then
+            print_message "ERROR: Unable to locate wit folder. Was the installation script run in the ABCD main folder?"
+        else
+            cd wit
+            npm install
+
+            if [[ $? -eq 0 ]]
+            then
+                print_message "Installation successfull!"
+            else
+                print_message "ERROR unable to install ABCD"
+            fi
+        fi
     fi
-elif [ "$kernel_name" == "FreeBSD" ]
-then
-    print_message "FreeBSD system found!"
-    print_message "WARNING: This system is not supported"
-
-    print_message "Upgrading system..."
-    pkg update
-    pkg upgrade
-
-    print_message "Installing required packages, for FreeBSD..."
-    pkg install tmux libzmq4 jsoncpp jansson python35 node npm bzip2 lzlib gsl
-
-    print_message "Creating symlink for python3..."
-    ln -s `which python3.5` /usr/local/bin/python3
-
-    print_message "Updating libraries list..."
-    ldconfig
-else
-    print_message "Unexpected kernel, you will have to install packages manually"
 fi

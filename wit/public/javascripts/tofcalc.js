@@ -410,12 +410,13 @@ function page_loaded() {
                 type: 'heatmap'
             };
 
-            const tofcalc_data = [ToF, energy, EvsToF, EvsE];
+            const tofcalc_data = [ToF, energy];
+            const bidimensional_data = [EvsToF, EvsE];
 
             if (force_update) {
                 // If forced, plotting without the fits so then the
                 // data would be ready for the fit
-                Plotly.react('plot_ToF', tofcalc_data, layout_ToF);
+                Plotly.react('plot_ToF', tofcalc_data.concat(bidimensional_data), layout_ToF);
             }
 
             let fitter = fitters[selected_channel()];
@@ -424,7 +425,7 @@ function page_loaded() {
 
             const other_data = fitter.get_all_plots();
 
-            Plotly.react('plot_ToF', tofcalc_data.concat(other_data), layout_ToF);
+            Plotly.react('plot_ToF', tofcalc_data.concat(other_data).concat(bidimensional_data), layout_ToF);
 
             $("#fits_results").empty().append(fitter.get_html_ol());
 
