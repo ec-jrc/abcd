@@ -34,7 +34,7 @@ parser.add_argument('-C',
 parser.add_argument('-a',
                     '--arguments',
                     type = str,
-                    default = None,
+                    default = "{}",
                     help = 'Command arguments, as a JSON string')
 parser.add_argument('command',
                     type = str,
@@ -52,22 +52,22 @@ if True:
 
     socket.connect(args.commands_socket)
 
-    message = dict()
-    message["msg_ID"] = 1
-    message["timestamp"] = datetime.datetime.now().isoformat()
-    message["command"] = args.command
-
     try:
+        message = dict()
+        message["msg_ID"] = 1
+        message["timestamp"] = datetime.datetime.now().isoformat()
+        message["command"] = args.command
+
         message["arguments"] = json.loads(args.arguments)
-    except Exception:
-        message["arguments"] = None
 
-    json_message = json.dumps(message)
-    print("Sending message: {}".format(json_message))
+        json_message = json.dumps(message)
+        print("Sending message: {}".format(json_message))
 
-    message = socket.send(json_message.encode('ascii'))
+        message = socket.send(json_message.encode('ascii'))
 
-    time.sleep(0.5)
+        time.sleep(0.1)
+    except json.decoder.JSONDecodeError as error:
+        print("ERROR on JSON decoding: {}".format(error))
 
     socket.close()
 

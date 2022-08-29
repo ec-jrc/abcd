@@ -1,5 +1,11 @@
 {
     "module": "tofcalc",
+    "ns_per_sample": 0.009765625,
+    "time_decay": {
+        "enable": false,
+        "tau": 3.0,
+        "counts_minimum": 0.0001
+    },
     "channels": [
     {
         "id": 0,
@@ -15,36 +21,5 @@
         "note": "SiPM + LYSO"
     },
     {}
-    ],
-    "gui_config": {
-        "http_port": 8082,
-        "publish_timeout": 3,
-        "sockets": [
-        {
-            "type": "status",
-            "address": "tcp://*:16200",
-            "ip": "127.0.0.1",
-            "topic": "status_tofcalc"
-        },
-        {
-            "type": "events",
-            "address": "tcp://*:16200",
-            "ip": "127.0.0.1",
-            "topic": "events_tofcalc"
-        },
-        {
-            "type": "data",
-            "address": "tcp://*:16201",
-            "ip": "127.0.0.1",
-            "topic": "data_tofcalc"
-        },
-        {
-            "type": "commands",
-            "address": "tcp://*:16202",
-            "ip": "127.0.0.1"
-        },
-        {}
-        ],
-        "zzz": null
-    }
+    ]
 }

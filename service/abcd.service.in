@@ -5,7 +5,7 @@ After=network.target
 [Service]
 Type=oneshot
 User={{ username }}
-ExecStart=/bin/bash {{ ABCD_folder }}/{{ startup_script }}
+ExecStart=/bin/bash {{ startup_script }}
 ExecStop=/usr/bin/tmux kill-session -t ABCD
 RemainAfterExit=yes
 

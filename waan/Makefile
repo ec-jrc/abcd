@@ -6,13 +6,13 @@ EXEC = waan
 SOURCES = $(SRC_DIR)/actions.cpp $(SRC_DIR)/states.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 
-ANALYSIS_SOURCES = $(SRC_DIR)/libNull.c $(SRC_DIR)/libCFD.c $(SRC_DIR)/libTFACFD.c $(SRC_DIR)/libStpAvg.c $(SRC_DIR)/libPSD.c $(SRC_DIR)/libTPZ.c $(SRC_DIR)/libCRRC4.c $(SRC_DIR)/libGeP.c
+ANALYSIS_SOURCES = $(SRC_DIR)/libSimplePSD.c $(SRC_DIR)/libLE.c $(SRC_DIR)/libRT.c $(SRC_DIR)/libCFD.c $(SRC_DIR)/libTFACFD.c $(SRC_DIR)/libStpAvg.c $(SRC_DIR)/libPSD.c $(SRC_DIR)/libTPZ.c $(SRC_DIR)/libCRRC4.c $(SRC_DIR)/libRC4.c $(SRC_DIR)/libRunningMean.c
 ANALYSIS_OBJECTS = $(ANALYSIS_SOURCES:.c=.so)
 
 CFLAGS += 
 CXXFLAGS += -I../../api/include -I /opt/redpitaya/include
 
-LIBS = -lc -lzmq -ljansson -lm -ldl -lgsl -lgslcblas
+LIBS = -lc -lzmq -ljansson -lm -ldl
 LDFLAGS += -L /usr/lib -L/opt/local/lib/ $(LIBS)
 
 .PHONY: all clean

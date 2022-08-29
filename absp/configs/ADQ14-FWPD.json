@@ -1,0 +1,113 @@
+{
+    "cards": [
+        {
+            "id": 0,
+            "model": "ADQ14",
+            "model_note": "This model has the FWPD generation 1",
+            "serial": "SPD-07720",
+            "enable": true,
+            "clock_source": "internal",
+            "clock_source_possible_value0": "internal",
+            "clock_source_possible_value1": "external_10MHz",
+            "clock_source_possible_value2": "external",
+            "clock_source_possible_value3": "external_PXI",
+            "trigger": {
+                "source": "channels",
+                "source_possible_value1": "software",
+                "source_possible_value2": "external",
+                "source_possible_value3": "channels",
+                "zzz": null
+            },
+            "transfer": {
+                "buffer_size": 1024,
+                "buffer_size_note": "in kiB units",
+                "buffers_number": 8,
+                "buffers_number_note": "suggested minimum value is 8",
+                "timeout": 60000,
+                "timeout_note": "in ms units",
+                "zzz": null
+            },
+            "channels": [
+                {
+                    "id": 0,
+                    "enable": true,
+                    "input_range": 1000,
+                    "input_range_note": "in mV units, it is adapted by the firwmware to the closest possible value",
+                    "DC_offset": 0,
+                    "DC_offset_note": "in ADC channels, this will set also the DBS target to the same value",
+                    "DBS_disable": false,
+                    "trigger_level": -200,
+                    "trigger_level_note": "relative to the baseline of the signal, in ADC channels",
+                    "trigger_hysteresis": 30,
+                    "trigger_hysteresis_note": "in ADC channels",
+                    "trigger_slope": "falling",
+                    "trigger_slope_possible_value1": "rising",
+                    "trigger_slope_possible_value2": "falling",
+                    "pretrigger": 128,
+                    "smooth_samples": 90,
+                    "smooth_samples_note": "this must be between 0 and 100, zero disables it",
+                    "smooth_delay": 8,
+                    "smooth_delay_note": "WARNING: smooth_samples + smooth_delay < 100",
+                    "scope_samples": 1024,
+                    "records_number": -1,
+                    "records_number_note1": "if set to -1 it should start an infinite acquisition",
+                    "records_number_note2": "otherwise the digitizer stops reading signals after that number of records",
+                    "records_number_note3": "WARNING: absp will not stop its acquisition, it must be manually done",
+                    "zzz": null
+                },
+                {
+                    "id": 1,
+                    "enable": false,
+                    "input_range": 1000,
+                    "DC_offset": 0,
+                    "DBS_disable": false,
+                    "trigger_level": -200,
+                    "trigger_hysteresis": 30,
+                    "trigger_slope": "falling",
+                    "pretrigger": 128,
+                    "smooth_samples": 92,
+                    "smooth_delay": 8,
+                    "scope_samples": 1024,
+                    "records_number": -1,
+                    "zzz": null
+                },
+                {
+                    "id": 2,
+                    "enable": false,
+                    "input_range": 1000,
+                    "DC_offset": 0,
+                    "DBS_disable": false,
+                    "trigger_level": -200,
+                    "trigger_hysteresis": 30,
+                    "trigger_slope": "falling",
+                    "pretrigger": 128,
+                    "smooth_samples": 92,
+                    "smooth_delay": 8,
+                    "scope_samples": 1024,
+                    "records_number": -1,
+                    "zzz": null
+                },
+                {
+                    "id": 3,
+                    "enable": false,
+                    "input_range": 1000,
+                    "DC_offset": 0,
+                    "DBS_disable": false,
+                    "trigger_level": -200,
+                    "trigger_hysteresis": 30,
+                    "trigger_slope": "falling",
+                    "pretrigger": 128,
+                    "smooth_samples": 92,
+                    "smooth_delay": 8,
+                    "scope_samples": 1024,
+                    "records_number": -1,
+                    "zzz": null
+                },
+                {}
+            ],
+            "zzz": null
+        },
+        {}
+    ],
+    "zzz": null
+}

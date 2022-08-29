@@ -173,18 +173,20 @@
 #define defaults_pqrs_verbosity 1
 #define defaults_pqrs_publish_timeout 5
 #define defaults_pqrs_bins_qshort 128
-#define defaults_pqrs_bins_E 512
-#define defaults_pqrs_bins_PSD 128
+#define defaults_pqrs_bins_E 2200
+#define defaults_pqrs_bins_PSD 110
 #define defaults_pqrs_bins_baseline 128
 #define defaults_pqrs_bins_rate 128
 #define defaults_pqrs_min_qshort 10
 #define defaults_pqrs_max_qshort 10000
 #define defaults_pqrs_min_E 0
-#define defaults_pqrs_max_E 40960
+#define defaults_pqrs_max_E 66000
 #define defaults_pqrs_min_PSD -0.1
 #define defaults_pqrs_max_PSD 1.0
 #define defaults_pqrs_max_baseline 4096
 #define defaults_pqrs_max_rate 500000
+
+#define defaults_wadi_publication_time 3.0
 
 #define defaults_replay_skip 0
 
@@ -195,6 +197,7 @@
 #define defaults_cofi_coincidence_window_right 200.0
 #define defaults_cofi_ns_per_sample (2.0 / 1024.0)
 #define defaults_cofi_coincidence_buffer_multiplier 2
+#define defaults_cofi_multiplicity 1
 
 #define defaults_chafi_topic_subscribe "data_abcd"
 
@@ -214,6 +217,9 @@
 #define defaults_tofcalc_min_E 0
 #define defaults_tofcalc_max_E 40960
 #define defaults_tofcalc_ns_per_sample (2.0 / 1024.0)
+#define defaults_tofcalc_time_decay_enabled false
+#define defaults_tofcalc_time_decay_tau 3.0
+#define defaults_tofcalc_time_decay_minimum 0.0001
 
 #define defaults_fifo_verbosity 1
 #define defaults_fifo_publish_timeout 3

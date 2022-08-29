@@ -135,13 +135,18 @@ function page_loaded() {
     }
 
     function dasa_arguments() {
-        var enable = {};
-        enable["events"] = $("#file_enable_events").prop("checked");
-        enable["waveforms"] = $("#file_enable_waveforms").prop("checked");
-        enable["raw"] = $("#file_enable_raw").prop("checked");
+        const enable = {"events": $("#file_enable_events").prop("checked"),
+                        "waveforms": $("#file_enable_waveforms").prop("checked"),
+                        "raw": $("#file_enable_raw").prop("checked")};
     
-        var kwargs = {"file_name": $("#file_name").val(), "enable": enable};
-    
+        let kwargs = {"enable": enable};
+
+        const file_name = (String($("#file_name").val())).trim();
+
+        if (file_name.length > 0) {
+            kwargs["file_name"] = file_name;
+        }
+
         return kwargs;
     }
 

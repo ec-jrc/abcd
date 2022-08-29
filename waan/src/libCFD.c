@@ -1,7 +1,43 @@
+/*! \brief Determination of the trigger position by employing a Constant
+ *         Fraction Discriminator algorithm.
+ *
+ * Calculation procedure:
+ *  1. The signal is smoothed with a recursive running mean.
+ *  2. The baseline is determined averaging the first N samples.
+ *  3. The pulse is offset by the baseline to center it around zero.
+ *  4. The CFD algorithm is applied to the resulting pulse.
+ *
+ * The trigger position is added to time timestamp provided by the digitizer
+ * in order to determine the pulse absolute time. The trigger position is
+ * determined with a resolution better than the clock step, the fractional part
+ * is added to the timestamp by shifting it by a user-configurable number of
+ * bits.
+ *
+ * The configuration parameters that are searched in a `json_t` object are:
+ *
+ * - `baseline_samples`: the number of samples to average to determine the
+ *   baseline. The average starts from the beginning of the waveform.
+ * - `fraction`: the multiplication factor of the signal that is to be summed
+ *   to the delayed version of the signal itself.
+ * - `delay`: the delay of the signal in terms of clock samples.
+ * - `zero_crossing_samples`: the number of samples to be used in the linear
+ *   interpolation of the zero-crossing region. Optional, default value: 2
+ * - `smooth_samples`: the number of samples to be averaged in the running
+ *   mean, rounded to the next odd number. Optional, default value: 1
+ * - `fractional_bits`: the number of fractional bits of the timestamp.
+ *   Optional, default value: 10
+ * - `disable_shift`: disable the bit shift of the timestamp, in order to
+ *   recalculate fine timestamps of previously analyzed data.
+ *   Optional, default value: false
+ * - `disable_CFD_gates`: disable the display of the additional waveforms of
+ *   the CFD calculation.
+ *   Optional, default value: false
+ */
+
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 #include <math.h>
 
@@ -26,8 +62,9 @@ struct CFD_config
 
     uint32_t previous_samples_number;
 
+    double *curve_samples;
     double *curve_smoothed;
-    double *curve_centered;
+    double *curve_offset;
     double *curve_CFD;
 };
 
@@ -41,25 +78,6 @@ void reallocate_curves(uint32_t samples_number, struct CFD_config **user_config)
  * `timestamp_analysis()` function. The configuration is returned as an
  * allocated `struct CFD_config`.
  *
- * The parameters that are searched in the json_t object are:
- *
- * - "baseline_samples": the number of samples to be used in the baseline
- *   evaluation.
- * - "fraction": the multiplication factor of the signal that is to be summed
- *   to the delayed version of the signal itself.
- * - "delay": the delay of the signal in terms of clock samples.
- * - "zero_crossing_samples": the number of samples to be used in the linear
- *   interpolation of the zero-crossing region. Optional, default value: 2
- * - "smooth_samples": the number of samples to be averaged in the running
- *   mean, rounded to the next odd number. Optional, default value: 1
- * - "fractional_bits": the number of fractional bits of the timestamp.
- *   Optional, default value: 10
- * - "disable_shift": disable the bit shift of the timestamp, in order to
- *   recalculate fine timestamps of previously analyzed data.
- *   Optional, default value: false
- * - "disable_CFD_gates": disable the display of the additional waveforms of
- *   the CFD calculation.
- *   Optional, default value: false
  */
 void timestamp_init(json_t *json_config, void **user_config)
 {
@@ -117,8 +135,9 @@ void timestamp_init(json_t *json_config, void **user_config)
         config->is_error = false;
         config->previous_samples_number = 0;
 
+        config->curve_samples = NULL;
         config->curve_smoothed = NULL;
-        config->curve_centered = NULL;
+        config->curve_offset = NULL;
         config->curve_CFD = NULL;
 
         (*user_config) = (void*)config;
@@ -131,11 +150,14 @@ void timestamp_close(void *user_config)
 {
     struct CFD_config *config = (struct CFD_config*)user_config;
 
+    if (config->curve_samples) {
+        free(config->curve_samples);
+    }
     if (config->curve_smoothed) {
         free(config->curve_smoothed);
     }
-    if (config->curve_centered) {
-        free(config->curve_centered);
+    if (config->curve_offset) {
+        free(config->curve_offset);
     }
     if (config->curve_CFD) {
         free(config->curve_CFD);
@@ -150,23 +172,38 @@ void timestamp_close(void *user_config)
  */
 void timestamp_analysis(const uint16_t *samples,
                         uint32_t samples_number,
-                        uint32_t *trigger_position,
                         struct event_waveform *waveform,
-                        struct event_PSD *event,
-                        int8_t *select_event,
+                        uint32_t **trigger_positions,
+                        struct event_PSD **events_buffer,
+                        size_t *events_number,
                         void *user_config)
 {
     struct CFD_config *config = (struct CFD_config*)user_config;
 
     reallocate_curves(samples_number, &config);
 
-    if (config->is_error) {
+    bool is_error = false;
+
+    if ((*events_number) != 1) {
+        printf("WARNING: libCFD timestamp_analysis(): Reallocating buffers\n");
+
+        // Assuring that there is one event_PSD and discarding others
+        is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
+    }
+
+    if (is_error || config->is_error) {
         printf("ERROR: libCFD timestamp_analysis(): Error status detected\n");
 
         return;
     }
 
-    running_mean(samples, samples_number, config->smooth_samples, &config->curve_smoothed);
+    // Get pointers to the first elements in the buffers
+    struct event_PSD *this_event = (*events_buffer);
+    uint32_t *this_position = (*trigger_positions);
+
+    to_double(samples, samples_number, &config->curve_samples);
+
+    running_mean(config->curve_samples, samples_number, config->smooth_samples, &config->curve_smoothed);
 
     double baseline = 0;
 
@@ -174,9 +211,9 @@ void timestamp_analysis(const uint16_t *samples,
 
     add_and_multiply_constant(config->curve_smoothed, samples_number, \
                               -1 * baseline, 1.0, \
-                              &config->curve_centered);
+                              &config->curve_offset);
 
-    CFD_signal(config->curve_centered, samples_number, config->delay, config->fraction, &config->curve_CFD);
+    CFD_signal(config->curve_offset, samples_number, config->delay, config->fraction, &config->curve_CFD);
 
     double CFD_min = 0;
     double CFD_max = 0;
@@ -220,11 +257,15 @@ void timestamp_analysis(const uint16_t *samples,
     }
 
     // Output
-    waveform->timestamp = new_timestamp;
-    event->timestamp = new_timestamp;
-    event->baseline = baseline;
 
-    (*trigger_position) = zero_crossing_index;
+    this_event->timestamp = new_timestamp;
+    this_event->qshort = 0;
+    this_event->qlong = 0;
+    this_event->baseline = baseline;
+    this_event->channel = waveform->channel;
+    this_event->group_counter = 0;
+
+    (*this_position) = zero_crossing_index;
 
     if (!config->disable_CFD_gates) {
         waveform_additional_set_number(waveform, 2);
@@ -255,8 +296,6 @@ void timestamp_analysis(const uint16_t *samples,
             }
         }
     }
-
-    (*select_event) = SELECT_TRUE;
 }
 
 void reallocate_curves(uint32_t samples_number, struct CFD_config **user_config)
@@ -268,13 +307,22 @@ void reallocate_curves(uint32_t samples_number, struct CFD_config **user_config)
 
         config->is_error = false;
 
+        double *new_curve_samples = realloc(config->curve_samples,
+                                            samples_number * sizeof(double));
         double *new_curve_smoothed = realloc(config->curve_smoothed,
                                              samples_number * sizeof(double));
-        double *new_curve_centered = realloc(config->curve_centered,
-                                             samples_number * sizeof(double));
+        double *new_curve_offset = realloc(config->curve_offset,
+                                           samples_number * sizeof(double));
         double *new_curve_CFD = realloc(config->curve_CFD,
                                         samples_number * sizeof(double));
 
+        if (!new_curve_samples) {
+            printf("ERROR: libCFD reallocate_curves(): Unable to allocate curve_samples memory\n");
+
+            config->is_error = true;
+        } else {
+            config->curve_samples = new_curve_samples;
+        }
         if (!new_curve_smoothed) {
             printf("ERROR: libCFD reallocate_curves(): Unable to allocate curve_smoothed memory\n");
 
@@ -282,12 +330,12 @@ void reallocate_curves(uint32_t samples_number, struct CFD_config **user_config)
         } else {
             config->curve_smoothed = new_curve_smoothed;
         }
-        if (!new_curve_centered) {
-            printf("ERROR: libCFD reallocate_curves(): Unable to allocate curve_centered memory\n");
+        if (!new_curve_offset) {
+            printf("ERROR: libCFD reallocate_curves(): Unable to allocate curve_offset memory\n");
 
             config->is_error = true;
         } else {
-            config->curve_centered = new_curve_centered;
+            config->curve_offset = new_curve_offset;
         }
         if (!new_curve_CFD) {
             printf("ERROR: libCFD reallocate_curves(): Unable to allocate curve_CFD memory\n");

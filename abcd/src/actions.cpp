@@ -378,11 +378,11 @@ bool actions::generic::create_digitizer(status &global_status)
 bool actions::generic::configure_digitizer(status &global_status)
 {
     CAENDgtz *digitizer = global_status.digitizer;
-    unsigned int connection_type = global_status.connection_type;
-    unsigned int link_number = global_status.link_number;
-    unsigned int CONET_node = global_status.CONET_node;
-    unsigned int VME_address = global_status.VME_address;
-    unsigned int verbosity = global_status.verbosity;
+    const unsigned int connection_type = global_status.connection_type;
+    const int link_number = global_status.link_number;
+    const unsigned int CONET_node = global_status.CONET_node;
+    const unsigned int VME_address = global_status.VME_address;
+    const unsigned int verbosity = global_status.verbosity;
 
     if (!digitizer)
     {
@@ -1472,7 +1472,7 @@ state actions::add_to_buffer(status &global_status)
                     //const uint16_t baseline = 0 + (global_status.Evt_PSD[ch][i].Extras & 0x0000FFFF);
                     const uint16_t baseline = global_status.Evt_PSD[ch][i].Baseline;
                     const uint8_t  channel = ch;
-                    const uint8_t  pur = global_status.Evt_PSD[ch][i].Pur;
+                    const uint8_t  group_counter = global_status.Evt_PSD[ch][i].Pur;
 
                     //std::cerr << "MAIN: Event: timestamp: " << timestamp << std::endl;
                     //std::cerr << "MAIN: Event: baseline: " << baseline << std::endl;
@@ -1480,7 +1480,7 @@ state actions::add_to_buffer(status &global_status)
                     //std::cerr << "MAIN: Event: qlong: " << qlong << std::endl;
                     //std::cerr << "MAIN: Event: extras: " << global_status.Evt_PSD[ch][i].Extras << std::endl;
 
-                    global_status.events_buffer.emplace_back(timestamp, qshort, qlong, baseline, channel, pur);
+                    global_status.events_buffer.emplace_back(timestamp, qshort, qlong, baseline, channel, group_counter);
 
                     global_status.counts[channel] += 1;
                     global_status.partial_counts[channel] += 1;

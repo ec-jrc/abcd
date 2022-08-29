@@ -36,12 +36,12 @@ args = parser.parse_args()
 
 # Struct used to read the events binary data.
 # An event is a 16 bytes structure composed of:
-#  64 bits - timestamp (format string: Q)
-#  16 bits - qshort    (format string: H)
-#  16 bits - qlong     (format string: H)
-#  16 bits - baseline  (format string: H)
-#   8 bits - channel   (format string: B)
-#   8 bits - PUR flag  (format string: B)
+#  64 bits - timestamp     (format string: Q)
+#  16 bits - qshort        (format string: H)
+#  16 bits - qlong         (format string: H)
+#  16 bits - baseline      (format string: H)
+#   8 bits - channel       (format string: B)
+#   8 bits - group counter (format string: B)
 event_PSD_struct = struct.Struct("<QHHHBB")
 event_PSD_size = event_PSD_struct.size
 
@@ -51,7 +51,7 @@ if args.output_name is not None:
     output_file = open(args.output_name, 'w')
 
 with open(args.file_name, 'rb') as input_file:
-    output_file.write("#N\ttimestamp\tqshort\tqlong\tchannel\n")
+    output_file.write("#N\ttimestamp\tqshort\tqlong\tchannel\tgroup counter\n")
 
     counter = 0
 
@@ -59,9 +59,9 @@ with open(args.file_name, 'rb') as input_file:
         while True:
             binary_data = input_file.read(event_PSD_size)
 
-            timestamp, qshort, qlong, baseline, channel, pur = event_PSD_struct.unpack(binary_data)
+            timestamp, qshort, qlong, baseline, channel, group_counter = event_PSD_struct.unpack(binary_data)
 
-            output_file.write("{:d}\t{:d}\t{:d}\t{:d}\t{:d}\n".format(counter, timestamp, qshort, qlong, channel))
+            output_file.write("{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\n".format(counter, timestamp, qshort, qlong, channel, group_counter))
             counter += 1
     except struct.error:
         pass

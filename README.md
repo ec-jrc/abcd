@@ -206,7 +206,7 @@ For the moment there are only two kinds of binary data streams.
 +-------------------------------------------------------------------------------+
 | PSD event: word of 16 bytes                                                   |
 +---------------------------------------+---------+---------+---------+----+----+
-| Timestamp                             |Q short  |Q long   |Baseline |Ch. |PUR |
+| Timestamp                             |Q short  |Q long   |Baseline |Ch. |G.C.|
 | 64 bit                                |16 bit   |16 bit   |16 bit   |8bit|8bit|
 | C99 stdint: uint64_t                  |uint16_t |uint16_t |uint16_t |uint|uint|
 +---------------------------------------+---------+---------+---------+----+----+
@@ -251,9 +251,13 @@ Each PSD event is a 16 bytes binary word with:
 * Charge long (energy information) - 16 bit unsigned integer;
 * Baseline - 16 bit unsigned integer;
 * Channel number - 8 bit unsigned integer;
-* PUR flag - 8 bit unsigned integer, unused.
+* Group counter - 8 bit unsigned integer;
 
-The PHA events use the same format but the "Charge long" contains the pulse height.
+The various analysis libraries of the [waan](./waan/) module normally use the "Charge long" entry as the energy information.
+The "Charge short" is used differently by the libraries, refer to the specific library.
+
+The "Group counter" entry is the number of the events that follow the current event that are in temporal coincidence with it.
+This entry is managed by the [cofi](./cofi/) module.
 
 This is the format used by [dasa](./dasa/) to save data as events files.
 

@@ -1,0 +1,172 @@
+{
+    "cards": [
+        {
+            "id": 0,
+            "model": "ADQ14",
+            "model_note": "This model has the FWDAQ",
+            "serial": "SPD-10089",
+            "enable": true,
+            "scope_samples": 4800,
+            "records_number": 3,
+            "pretrigger": 2400,
+            "clock_source": "internal",
+            "clock_source0": "internal",
+            "clock_source1": "external_10MHz",
+            "clock_source2": "external",
+            "clock_source3": "external_PXI",
+            "trigger": {
+                "source": "channels",
+                "source1": "software",
+                "source2": "external",
+                "source3": "channels",
+                "slope": "rising",
+                "slope0": "rising",
+                "slope1": "falling",
+                "level": 34000,
+                "level_note": "in absolute ADC channels as seen in the waveforms display",
+                "zzz": null
+            },
+            "channels": [
+                {
+                    "id": 0,
+                    "enable": true,
+                    "triggering": true,
+                    "input_range": 1000.0,
+                    "input_range_note": "in mV units, it is adapted by the firwmware to the closest possible value",
+                    "DC_offset": 0,
+                    "DC_offset_note": "in ADC channels",
+                    "DBS_disable": false
+                },
+                {
+                    "id": 1,
+                    "enable": false
+                },
+                {
+                    "id": 2,
+                    "enable": false
+                },
+                {
+                    "id": 3,
+                    "enable": false
+                },
+                {}
+            ],
+            "zzz": null
+        },
+        {
+            "id": 1,
+            "model": "ADQ14",
+            "model_note": "This model has the FWPD generation 1",
+            "serial": "SPD-07720",
+            "enable": true,
+            "clock_source": "internal",
+            "clock_source0": "internal",
+            "clock_source1": "external_10MHz",
+            "clock_source2": "external",
+            "clock_source3": "external_PXI",
+            "trigger": {
+                "source": "channels",
+                "source1": "software",
+                "source2": "external",
+                "source3": "channels",
+                "zzz": null
+            },
+            "transfer": {
+                "buffer_size": 1024,
+                "buffer_size_note": "in kiB units",
+                "buffers_number": 8,
+                "buffers_number_note": "suggested minimum value is 8",
+                "timeout": 60000,
+                "timeout_note": "in ms units",
+                "zzz": null
+            },
+            "channels": [
+                {
+                    "id": 0,
+                    "enable": true,
+                    "input_range": 1000.0,
+                    "input_range_note": "in mV units, it is adapted by the firwmware to the closest possible value",
+                    "DC_offset": 31100,
+                    "DC_offset_note": "in ADC channels, this will set also the DBS target to the same value",
+                    "DBS_disable": false,
+                    "trigger_level": -300,
+                    "trigger_level_note": "relative to the baseline of the signal, in ADC channels",
+                    "trigger_slope": "falling",
+                    "trigger_slope1": "rising",
+                    "trigger_slope2": "falling",
+                    "pretrigger": 32,
+                    "baseline_samples": 25,
+                    "baseline_samples_note": "this must be between 1 and 100",
+                    "scope_samples": 128,
+                    "records_number": 0,
+                    "records_number_note": "if set to zero it should start an infinite acquisition, otherwise the acquisition stops after that number of records",
+                    "zzz": null
+                },
+                {
+                    "id": 1,
+                    "enable": false
+                },
+                {
+                    "id": 2,
+                    "enable": false
+                },
+                {
+                    "id": 3,
+                    "enable": false
+                },
+                {}
+            ],
+            "zzz": null
+        },
+        {
+            "id": 2,
+            "model": "ADQ412",
+            "serial": "SPD-00858",
+            "enable": false,
+            "scope_samples": 4800,
+            "records_number": 3,
+            "pretrigger": 2400,
+            "clock_source": "internal",
+            "clock_source0": "internal",
+            "clock_source1": "external_10MHz",
+            "clock_source2": "external",
+            "clock_source3": "external_PXI",
+            "trigger": {
+                "source": "channels",
+                "source1": "software",
+                "source2": "external",
+                "source3": "channels",
+                "slope": "rising",
+                "slope0": "rising",
+                "slope1": "falling",
+                "level": 34000
+            },
+            "channels": [
+                {
+                    "id": 0,
+                    "enable": true,
+                    "triggering": true
+                },
+                {
+                    "id": 1,
+                    "enable": false,
+                    "triggering": false
+                },
+                {
+                    "id": 2,
+                    "enable": false,
+                    "triggering": false
+                },
+                {
+                    "id": 3,
+                    "enable": false,
+                    "triggering": false
+                },
+                {}
+            ],
+            "zzz": null
+        },
+        {}
+    ],
+    "zzz": null
+}

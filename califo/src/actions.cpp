@@ -300,7 +300,7 @@ bool actions::generic::read_socket(status &global_status)
                                                     new_qlong,
                                                     this_event.baseline,
                                                     this_event.channel,
-                                                    this_event.pur
+                                                    this_event.group_counter
                                                 };
 
                     events_buffer.push_back(new_event);

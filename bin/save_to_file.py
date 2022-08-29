@@ -43,9 +43,11 @@ parser.add_argument('-w',
                     '--enable_waveforms',
                     action = "store_true",
                     help = 'Enable waveforms file')
-parser.add_argument('file_name',
+parser.add_argument('-f',
+                    '--file_name',
                     type = str,
-                    help = 'Root part of the file name to be written')
+                    default = "",
+                    help = 'Root part of the file name to be written, if not provided the value "abcd_data_CURRENTDATETIME" will be set by `dasa`')
 
 args = parser.parse_args()
 
@@ -60,12 +62,14 @@ with zmq.Context() as context:
     message["msg_ID"] = 1
     message["timestamp"] = datetime.datetime.now().isoformat()
     message["command"] = "start"
-    message["arguments"] = {"file_name": args.file_name,
-                            "enable": {"events": args.enable_events,
+    message["arguments"] = {"enable": {"events": args.enable_events,
                                        "raw": args.enable_raw,
                                        "waveforms": args.enable_waveforms,
                                       },
                            }
+
+    if len(args.file_name) > 0:
+        message["arguments"]["file_name"] = args.file_name
 
     json_message = json.dumps(message)
     print("Sending message: {}".format(json_message))

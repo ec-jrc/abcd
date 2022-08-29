@@ -2,7 +2,7 @@
 
 `waan` is a general purpose waveforms analysis software.
 It allows users to define their own pulses analysis routines, without worrying about the inner workings of the ABCD data acquisition system (DAQ).
-The user is responsible to write two libraries in C99, that take a waveform as input and outputs a processed event.
+The user is responsible to write two libraries in C99, that take a waveform as input and outputs one or more processed event.
 The user functions can be modified and reloaded at runtime, simplifying the development phase.
 
 ## Structure
@@ -52,13 +52,14 @@ Two analysis functions are foreseen in the structure:
 2. `energy_analysis()` that determines the energy information of the pulse;
 
 The two analyses were separated in order to simplify code reuse.
-The user might want to perform both analyses in either one of the two functions, in order to optimize the computational time.
+The user might want to perform both analyses in the `energy_analysis()` function, in order to optimize the computational time.
 The functions may be different for each acquisition channel, allowing the coexistence of different detectors on the same digitizer.
 A pulse may also be discarded by the user functions, in order to eliminate unwanted/noise events.
 
 ## Configuration
 The configuration file is in the [JSON](http://www.json.org/) format.
 For each channel the user shall provide the filename of the libraries.
+The timestamp analysis may be omitted without putting a name on the relative library.
 The filenames shall follow the conventions of the UNIX dynamic linking functions; thus if the filename contains a slash (`/`) then the file is searched on the given path, if there is no slash then the library is searched in the standard system library folders.
 If the user wants to use a local file in the current directory the filename shall start with `./` (_e.g._ `./libCFD.so`).
 The libraries may be modified and reloaded at runtime.
@@ -80,7 +81,11 @@ Where the source code of the library would be `libuser.c`.
 ## Example libraries
 These example libraries are provided:
 
-- `libNull.c`: Simple `timestamp_analysis()` function that forwards the waveform to the energy analysis without doing anything. It is useful if the user is not interested in determining timing information from the pulse or if the user wants to perform all the analysis in the energy analysis step.
+- `libSimplePSD.c`: Calculates the energy and Pulse Shape information of a short pulse, by applying the double integration method. This is the simplest of the libraries, that can be a starting point for new users.
+- `libLE.c`: Calculates the timing information of a pulse by applying a Leading Edge Discriminator algorithm.
+- `libCFD.c`: Calculates the timing information of a pulse by applying a Constant Fraction Discriminator algorithm.
+- `libRT.c`: Calculates the timing information of a pulse by looking at a threshold crossing point, where the threshold is relative to the pulse maximum. This shows an example of an algorithm that can generate multiple processed events.
+- `libPSD.c`: Calculates the energy and Pulse Shape information of a short pulse, by applying the double integration method.
 - `libStpAvg.c`: Calculates the energy information of a exponentially decaying pulse, by compensating the decay and determining its height with simple averages.
 - `libCRRC4.c`: Calculates the energy information of a exponentially decaying pulse, by compensating the decay and then applying a recursive CR-RC^4 filter.
-- `libPSD.c`: Calculates the energy and Pulse Shape information of a short pulse, by applying the double integration method.
+- `libRC4.c`: Calculates the energy information of a short pulse, by applying a recursive RC^4 filter and determining the maximum.

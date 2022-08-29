@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with ABCD.  If not, see <http://www.gnu.org/licenses/>.
 
-"use strict";
+'use strict';
 
 function page_loaded() {
     const utf8decoder = new TextDecoder("utf8");
@@ -70,7 +70,7 @@ function page_loaded() {
             type: 'dropdown',
             x: 0.0,
             xanchor: 'left',
-            y: 0.32,
+            y: 0.42,
             yanchor: 'bottom'
         }
     ]
@@ -92,7 +92,7 @@ function page_loaded() {
             showspikes: true,
             spikemode: 'across',
             domain: [0.0, 1.0],
-            anchor: 'y3'
+            anchor: 'y4'
         },
         yaxis: {
             title: 'Counts',
@@ -100,7 +100,7 @@ function page_loaded() {
             autotick: true,
             showspikes: true,
             spikemode: 'across',
-            domain: [0.7, 1.0]
+            domain: [0.75, 1.0]
             //anchor: 'y1'
         },
         yaxis2: {
@@ -109,7 +109,7 @@ function page_loaded() {
             autotick: true,
             showspikes: true,
             spikemode: 'across',
-            domain: [0.4, 0.7]
+            domain: [0.5, 0.75]
             //anchor: 'y2'
         },
         yaxis3: {
@@ -118,7 +118,16 @@ function page_loaded() {
             autotick: true,
             showspikes: true,
             spikemode: 'across',
-            domain: [0.0, 0.3]
+            domain: [0.25, 0.4]
+            //anchor: 'y3'
+        },
+        yaxis4: {
+            title: 'Energy of reference [ch]',
+            autorange: true,
+            autotick: true,
+            showspikes: true,
+            spikemode: 'across',
+            domain: [0.0, 0.25]
             //anchor: 'y3'
         },
         updatemenus: updatemenus_ToF,
@@ -135,7 +144,7 @@ function page_loaded() {
             yanchor: 'top',
         },
         grid: {
-            rows: 3,
+            rows: 4,
             columns: 1,
             //pattern: 'independent',
             roworder:'top to bottom'
@@ -162,9 +171,20 @@ function page_loaded() {
     $("#time_refresh").val(default_time_refresh);
 
     var old_status = {"timestamp": "###"};
-    var old_channels_configs = {};
-    var last_timestamp = null;
-    var last_abcd_config = null;
+    var last_tofcalc_config = null;
+
+    var tofcalc_config_editor = ace.edit("online_editor");
+    tofcalc_config_editor.setTheme("ace/theme/github");
+    tofcalc_config_editor.setShowPrintMargin(false);
+    tofcalc_config_editor.setOptions({"fontFamily": '"Fira Mono"'});
+
+    tofcalc_config_editor.getSession().setMode("ace/mode/json");
+    tofcalc_config_editor.getSession().setTabSize(4);
+    tofcalc_config_editor.getSession().setUseSoftTabs(true);
+
+    tofcalc_config_editor.container.style.lineHeight = 2;
+    tofcalc_config_editor.renderer.updateFontSize();
+    tofcalc_config_editor.resize();
 
     function on_status(message) {
         const decoded_string = utf8decoder.decode(message);
@@ -174,13 +194,11 @@ function page_loaded() {
 
         if (new_status["timestamp"] !== old_status["timestamp"])
         {
-            last_timestamp = new_status["timestamp"];
-
             old_status = new_status;
 
-            //console.log("Updating Speccalc status");
-
-            old_status = new_status;
+            if (new_status.hasOwnProperty("config")) {
+                last_tofcalc_config = new_status["config"];
+            }
 
             const this_selected_channel = selected_channel();
 
@@ -205,82 +223,16 @@ function page_loaded() {
 
             $("#channels_rates").empty().append(rates_list);
 
-            const new_channels_configs = new_status["configs"];
+            let counts_list = $("<ul>");
 
-            if ((!_.isEqual(new_channels_configs, old_channels_configs))
-                &&
-                (!_.isNil(this_selected_channel))
-                &&
-                (_.isFinite(this_selected_channel))) {
+            new_channels_statuses.forEach(function (channel_status) {
+                const channel = channel_status["id"];
+                const counts = channel_status["counts"];
 
-                old_channels_configs = new_channels_configs;
+                counts_list.append($("<li>", {text: "Ch " + channel + ": " + counts.toFixed(0)}));
+            });
 
-                $("#module_status").empty();
-
-                new_channels_configs.forEach(function (channel_config) {
-                    const channel = channel_config.id || 0;
-                    const histo_ToF_config = channel_config.ToF || {"min": 0, "max": 0, "bins": 0};
-                    const histo_EToF_config = channel_config.EToF || {"min_x": 0, "max_x": 0, "bins_x": 0, "min_y": 0, "max_y": 0, "bins_y": 0};
-
-                    var channel_display = $("<fieldset>");
-
-                    channel_display.append($("<legend>", {text: "Channel: " + channel}));
-                    channel_display.append($("<label>", {text: "ID: ", "for": "channel_id"}).addClass("hidden"));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: channel,
-                                                        name: "channel_id",
-                                                        id: "channel_id_" + channel}).addClass("hidden").addClass("channel_ids"));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "ToF min: ", "for": "ToF_min"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: histo_ToF_config.min,
-                                                        name: "ToF_min",
-                                                        id: "ToF_min_" + channel}));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "ToF max: ", "for": "ToF_max"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: histo_ToF_config.max,
-                                                        name: "ToF_max",
-                                                        id: "ToF_max_" + channel}));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "ToF bins: ", "for": "ToF_bins"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: histo_ToF_config.bins,
-                                                        name: "ToF_bins",
-                                                        id: "ToF_bins_" + channel}));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "Energy min: ", "for": "E_min"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: histo_EToF_config.min_y,
-                                                        name: "E_min",
-                                                        id: "E_min_" + channel}));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "Energy max: ", "for": "E_max"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: histo_EToF_config.max_y,
-                                                        name: "E_max",
-                                                        id: "E_max_" + channel}));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "Energy bins: ", "for": "E_bins"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: histo_EToF_config.bins_y,
-                                                        name: "E_bins",
-                                                        id: "E_bins_" + channel}));
-                    channel_display.append($("<br>"));
-
-                    channel_display.append($("<span>").text("Reference:"));
-                    channel_display.append(generate_slider("ToF_reference_" + channel, channel_config.reference));
-
-                    $("#module_status").append(channel_display);
-                });
-            }
+            $("#channels_counts").empty().append(counts_list);
         }
     }
 
@@ -308,7 +260,7 @@ function page_loaded() {
     }
 
     function create_plot() {
-        Plotly.newPlot('plot_ToF', [{}, {}, {}], layout_ToF, config_ToF);
+        Plotly.newPlot('plot_ToF', [{}, {}, {}, {}], layout_ToF, config_ToF);
     }
 
     function update_plot(force) {
@@ -336,7 +288,7 @@ function page_loaded() {
                 mode: 'lines',
                 line: {shape: 'hv'},
                 name: 'Time-of-Flight (calibrated)',
-                type: 'scatter',
+                type: 'scattergl',
                 mode: 'lines',
                 marker: {
                     size: 0.1
@@ -359,49 +311,51 @@ function page_loaded() {
                 mode: 'lines',
                 line: {shape: 'hv'},
                 name: 'Spectrum (uncalibrated)',
-                type: 'scatter',
+                type: 'scattergl',
                 mode: 'lines',
                 marker: {
                     size: 0.1
                 }
             };
 
-            const histo_EToF = spectra[selected_channel()].EToF;
+            const histo_EvsToF = spectra[selected_channel()].EvsToF;
 
-            const delta_x = (histo_EToF.config.max_x - histo_EToF.config.min_x) / histo_EToF.config.bins_x;
-            const delta_y = (histo_EToF.config.max_y - histo_EToF.config.min_y) / histo_EToF.config.bins_y;
+            const EvsToF_delta_x = (histo_EvsToF.config.max_x - histo_EvsToF.config.min_x) / histo_EvsToF.config.bins_x;
+            const EvsToF_delta_y = (histo_EvsToF.config.max_y - histo_EvsToF.config.min_y) / histo_EvsToF.config.bins_y;
 
-            let edges_x = [];
+            let EvsToF_edges_x = [];
 
-            for (let index_x = 0; index_x < histo_EToF.config.bins_x; index_x++) {
-                edges_x.push(index_x * delta_x + histo_EToF.config.min_x);
+            for (let index_x = 0; index_x < histo_EvsToF.config.bins_x; index_x++) {
+                EvsToF_edges_x.push(index_x * EvsToF_delta_x + histo_EvsToF.config.min_x);
             }
 
-            let edges_y = [];
+            let EvsToF_edges_y = [];
 
-            for (let index_y = 0; index_y < histo_EToF.config.bins_y; index_y++) {
-                edges_y.push(index_y * delta_y + histo_EToF.config.min_y);
+            for (let index_y = 0; index_y < histo_EvsToF.config.bins_y; index_y++) {
+                EvsToF_edges_y.push(index_y * EvsToF_delta_y + histo_EvsToF.config.min_y);
             }
 
-            var heights = [];
+            var EvsToF_heights = [];
 
-            for (let index_y = 0; index_y < histo_EToF.config.bins_y; index_y++) {
-                let row = [];
+            for (let index_y = 0; index_y < histo_EvsToF.config.bins_y; index_y++) {
+                let EvsToF_row = [];
 
-                for (let index_x = 0; index_x < histo_EToF.config.bins_x; index_x++) {
-                    const index = (index_x + histo_EToF.config.bins_x * index_y);
-                    const counts = Math.log10(histo_EToF.data[index]);
+                for (let index_x = 0; index_x < histo_EvsToF.config.bins_x; index_x++) {
+                    const index = (index_x + histo_EvsToF.config.bins_x * index_y);
+                    const counts = Math.log10(histo_EvsToF.data[index]);
 
-                    row.push(counts);
+                    EvsToF_row.push(counts);
                 }
 
-                heights.push(row);
+                EvsToF_heights.push(EvsToF_row);
             }
 
-            const EToF = {
-                x: edges_x,
-                y: edges_y,
-                z: heights,
+            //console.log("Updated EvsToF; edges x: " + EvsToF_edges_x.length + "; edges y: " + EvsToF_edges_y.length + ";");
+
+            const EvsToF = {
+                x: EvsToF_edges_x,
+                y: EvsToF_edges_y,
+                z: EvsToF_heights,
                 xaxis: 'x1',
                 yaxis: 'y2',
                 name: 'E vs ToF',
@@ -410,12 +364,59 @@ function page_loaded() {
                 type: 'heatmap'
             };
 
-            const tofcalc_data = [ToF, energy, EToF]
+            const histo_EvsE = spectra[selected_channel()].EvsE;
+
+            const EvsE_delta_x = (histo_EvsE.config.max_x - histo_EvsE.config.min_x) / histo_EvsE.config.bins_x;
+            const EvsE_delta_y = (histo_EvsE.config.max_y - histo_EvsE.config.min_y) / histo_EvsE.config.bins_y;
+
+            let EvsE_edges_x = [];
+
+            for (let index_x = 0; index_x < histo_EvsE.config.bins_x; index_x++) {
+                EvsE_edges_x.push(index_x * EvsE_delta_x + histo_EvsE.config.min_x);
+            }
+
+            let EvsE_edges_y = [];
+
+            for (let index_y = 0; index_y < histo_EvsE.config.bins_y; index_y++) {
+                EvsE_edges_y.push(index_y * EvsE_delta_y + histo_EvsE.config.min_y);
+            }
+
+            var EvsE_heights = [];
+
+            for (let index_y = 0; index_y < histo_EvsE.config.bins_y; index_y++) {
+                let EvsE_row = [];
+
+                for (let index_x = 0; index_x < histo_EvsE.config.bins_x; index_x++) {
+                    const index = (index_x + histo_EvsE.config.bins_x * index_y);
+                    const counts = Math.log10(histo_EvsE.data[index]);
+
+                    EvsE_row.push(counts);
+                }
+
+                EvsE_heights.push(EvsE_row);
+            }
+
+            //console.log("Updated EvsE; edges x: " + EvsE_edges_x.length + "; edges y: " + EvsE_edges_y.length + ";");
+
+            const EvsE = {
+                x: EvsE_edges_x,
+                y: EvsE_edges_y,
+                z: EvsE_heights,
+                xaxis: 'x2',
+                yaxis: 'y4',
+                name: 'E vs E',
+                colorscale: 'Viridis',
+                showscale: false,
+                type: 'heatmap'
+            };
+
+            const tofcalc_data = [ToF, energy];
+            const bidimensional_data = [EvsToF, EvsE];
 
             if (force_update) {
                 // If forced, plotting without the fits so then the
                 // data would be ready for the fit
-                Plotly.react('plot_ToF', tofcalc_data, layout_ToF);
+                Plotly.react('plot_ToF', tofcalc_data.concat(bidimensional_data), layout_ToF);
             }
 
             let fitter = fitters[selected_channel()];
@@ -424,7 +425,7 @@ function page_loaded() {
 
             const other_data = fitter.get_all_plots();
 
-            Plotly.react('plot_ToF', tofcalc_data.concat(other_data), layout_ToF);
+            Plotly.react('plot_ToF', tofcalc_data.concat(other_data).concat(bidimensional_data), layout_ToF);
 
             $("#fits_results").empty().append(fitter.get_html_ol());
 
@@ -513,28 +514,40 @@ function page_loaded() {
         }
     }
 
-    function tofcalc_arguments_reconfigure() {
-        const channel_ids = $(".channel_ids").map(function (index, element) {
-            return parseInt(this.value);
-        }).get();
+    function tofcalc_arguments_config() {
+        try {
+            const new_text_config = tofcalc_config_editor.getSession().getValue();
+            const new_config = JSON.parse(new_text_config);
+            const kwargs = {"config": new_config};
 
-        const channels = channel_ids.map(function (id) {
-            return {"bins_ToF": parseInt($("#ToF_bins_" + id).val()),
-                    "min_ToF": parseInt($("#ToF_min_" + id).val()),
-                    "max_ToF": parseInt($("#ToF_max_" + id).val()),
-                    "bins_E": parseInt($("#E_bins_" + id).val()),
-                    "min_E": parseInt($("#E_min_" + id).val()),
-                    "max_E": parseInt($("#E_max_" + id).val()),
-                    "id": id,
-                    "reference": $("#ToF_reference_" + id).is(':checked')
-                   };
-        });
+            return kwargs;
 
-        const kwargs = {"channels": channels};
+        } catch (error) {
+            console.log("Error: " + error);
 
-        return kwargs;
+            return null;
+        }
     }
-    
+
+    function tofcalc_get_config() {
+        if (_.isNil(last_tofcalc_config)) {
+            tofcalc_config_editor.getSession().setValue(JSON.stringify({"error": "Unable to load tofcalc config"}, null, 4));
+            tofcalc_config_editor.gotoLine(0);
+        } else {
+            tofcalc_config_editor.getSession().setValue(JSON.stringify(last_tofcalc_config, null, 4));
+            tofcalc_config_editor.gotoLine(0);
+        }
+    }
+
+    function tofcalc_download_config() {
+        const new_text_config = tofcalc_config_editor.getSession().getValue();
+        const file_name = "tofcalc_config_" + dayjs().format("YYYY-MM-DDTHH.mm.ss") + ".json";
+
+        //console.log("Preparing file with name: " + file_name);
+
+        create_and_download_file(new_text_config, file_name, "txt");
+    }
+
     function tofcalc_arguments_reset(channel) {
         return function () {
             const kwargs = {"channel": (_.isNil(channel) ? selected_channel() : channel),
@@ -571,7 +584,9 @@ function page_loaded() {
     });
     $("#button_download_ToF_data").on("click", download_ToF_data);
     $("#button_download_spectrum_data").on("click", download_spectrum_data);
-    $("#button_config_send").on("click", send_command(socket_io, 'reconfigure', tofcalc_arguments_reconfigure));
+    $("#button_config_send").on("click", send_command(socket_io, 'reconfigure', tofcalc_arguments_config));
+    $("#button_config_get").on("click", tofcalc_get_config);
+    $("#button_config_download").on("click", tofcalc_download_config);
     $("#button_reset_channel").on("click", send_command(socket_io, 'reset', tofcalc_arguments_reset()));
     $("#button_reset_all").on("click", send_command(socket_io, 'reset', tofcalc_arguments_reset("all")));
 
@@ -591,7 +606,7 @@ function page_loaded() {
     
     graph_div.on('plotly_relayout', function(eventdata){
         if (Object.keys(eventdata).includes("xaxis.range[0]")) {
-            console.log("Zoom or pan on ToF or EToF");
+            console.log("Zoom or pan on ToF or EvsToF");
 
             const update = {
                 "xaxis2.range[0]": eventdata["yaxis2.range[0]"],

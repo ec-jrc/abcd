@@ -33,6 +33,8 @@
  *   Optional, default value: 1
  * - `energy_threshold`: pulses with an energy lower than the threshold are
  *   discared. Optional, default value: 0
+ *
+ * This function determines only one event_PSD and will discard the others.
  */
 
 #include <stdio.h>
@@ -49,7 +51,7 @@
 #define min(x,y) ((x) < (y)) ? (x) : (y)
 #define max(x,y) ((x) > (y)) ? (x) : (y)
 
-/*! \brief Sctructure that holds the configuration for the `energy_analysis` function.
+/*! \brief Sctructure that holds the configuration for the `energy_analysis()` function.
  */
 struct PSD_config
 {
@@ -74,7 +76,7 @@ struct PSD_config
  */
 void reallocate_curves(uint32_t samples_number, struct PSD_config **user_config);
 
-/*! \brief Function that reads the json_t configuration for the `energy_analysis` function.
+/*! \brief Function that reads the json_t configuration for the `energy_analysis()` function.
  *
  * This function parses a JSON object determining the configuration for the
  * `energy_analysis()` function. The configuration is returned as an
@@ -173,50 +175,60 @@ void energy_close(void *user_config)
  */
 void energy_analysis(const uint16_t *samples,
                      uint32_t samples_number,
-                     uint32_t trigger_position,
                      struct event_waveform *waveform,
-                     struct event_PSD *event,
-                     int8_t *select_event,
+                     uint32_t **trigger_positions,
+                     struct event_PSD **events_buffer,
+                     size_t *events_number,
                      void *user_config)
 {
     struct PSD_config *config = (struct PSD_config*)user_config;
 
     reallocate_curves(samples_number, &config);
 
-    //const int64_t baseline_end = trigger_position - config->pregate;
-    const int64_t baseline_end = config->baseline_samples;
-
     bool is_error = false;
 
-    if (baseline_end < 1) {
-        printf("ERROR: libPSD energy_analysis(): baseline_end is less than one!\n");
+    if ((*events_number) != 1) {
+        printf("WARNING: libPSD energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
 
-        is_error = true;
-    } else if (baseline_end > samples_number) {
-        printf("ERROR: libPSD energy_analysis(): baseline_end is greater than samples_number!\n");
+        // Assuring that there is one event_PSD and discarding others
+        is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
 
-        is_error = true;
+        if (is_error) {
+            printf("ERROR: libPSD energy_analysis(): Unable to reallocate buffers\n");
+        }
     }
 
-    int64_t short_gate_start = trigger_position - config->short_pregate;
-    int64_t long_gate_start = trigger_position - config->long_pregate;
+    uint32_t baseline_end = config->baseline_samples;
+
+    if (baseline_end < 1) {
+        printf("WARNING: libPSD energy_analysis(): baseline_end is less than one!\n");
+
+        baseline_end = 1;
+    } else if (baseline_end > samples_number) {
+        printf("WARNING: libPSD energy_analysis(): baseline_end is greater than samples_number!\n");
+
+        baseline_end = samples_number;
+    }
+
+    int64_t short_gate_start = (*trigger_positions)[0] - config->short_pregate;
+    int64_t long_gate_start = (*trigger_positions)[0] - config->long_pregate;
 
     if (short_gate_start < 0) {
-        printf("ERROR: libPSD energy_analysis(): short_gate_start is less than zero!\n");
+        printf("WARNING: libPSD energy_analysis(): short_gate_start is less than zero!\n");
 
         short_gate_start = 0;
     } else if (short_gate_start >= samples_number) {
-        printf("ERROR: libPSD energy_analysis(): short_gate_start is greater than samples_number!\n");
+        printf("WARNING: libPSD energy_analysis(): short_gate_start is greater than samples_number!\n");
 
         short_gate_start = samples_number - 1;
     }
 
     if (long_gate_start < 0) {
-        printf("ERROR: libPSD energy_analysis(): long_gate_start is less than zero!\n");
+        printf("WARNING: libPSD energy_analysis(): long_gate_start is less than zero!\n");
 
         long_gate_start = 0;
     } else if (long_gate_start >= samples_number) {
-        printf("ERROR: libPSD energy_analysis(): long_gate_start is greater than samples_number!\n");
+        printf("WARNING: libPSD energy_analysis(): long_gate_start is greater than samples_number!\n");
 
         long_gate_start = samples_number - 1;
     }
@@ -228,27 +240,27 @@ void energy_analysis(const uint16_t *samples,
     int64_t long_gate_end = long_gate_start + config->long_gate - 1;
 
     if (short_gate_end < 0) {
-        printf("ERROR: libPSD energy_analysis(): short_gate_end is less than zero!\n");
+        printf("WARNING: libPSD energy_analysis(): short_gate_end is less than zero!\n");
 
         short_gate_end = 0;
     } else if (short_gate_end >= samples_number) {
-        printf("ERROR: libPSD energy_analysis(): short_gate_end is greater than samples_number!\n");
+        printf("WARNING: libPSD energy_analysis(): short_gate_end is greater than samples_number!\n");
 
         short_gate_end = samples_number - 1;
     }
 
     if (long_gate_end < 0) {
-        printf("ERROR: libPSD energy_analysis(): long_gate_end is less than zero!\n");
+        printf("WARNING: libPSD energy_analysis(): long_gate_end is less than zero!\n");
 
         long_gate_end = 0;
     } else if (long_gate_end >= samples_number) {
-        printf("ERROR: libPSD energy_analysis(): long_gate_end is greater than samples_number!\n");
+        printf("WARNING: libPSD energy_analysis(): long_gate_end is greater than samples_number!\n");
 
         long_gate_end = samples_number - 1;
     }
 
     if (config->is_error || is_error) {
-        printf("ERROR: libPSD energy_analysis(): Error status detected\n");
+        printf("WARNING: libPSD energy_analysis(): Error status detected\n");
 
         return;
     }
@@ -265,11 +277,13 @@ void energy_analysis(const uint16_t *samples,
     const double qlong  = config->curve_integral[long_gate_end]
                           - config->curve_integral[long_gate_start - 2];
 
-    const double scaled_qshort = qshort * config->integrals_scaling * (config->pulse_polarity == POLARITY_POSITIVE ? 1.0 : -1.0);
-    const double scaled_qlong = qlong * config->integrals_scaling * (config->pulse_polarity == POLARITY_POSITIVE ? 1.0 : -1.0);
+    const double scaled_qshort = qshort * config->integrals_scaling
+                                 * (config->pulse_polarity == POLARITY_POSITIVE ? 1.0 : -1.0);
+    const double scaled_qlong  = qlong * config->integrals_scaling
+                                 * (config->pulse_polarity == POLARITY_POSITIVE ? 1.0 : -1.0);
 
-    uint64_t long_qshort = (uint64_t)round(scaled_qshort);
-    uint64_t long_qlong = (uint64_t)round(scaled_qlong);
+    const uint64_t long_qshort = (uint64_t)round(scaled_qshort);
+    const uint64_t long_qlong = (uint64_t)round(scaled_qlong);
 
     // We convert the 64 bit integers to 16 bit to simulate the digitizer data
     uint16_t int_qshort = long_qshort & UINT16_MAX;
@@ -286,19 +300,21 @@ void energy_analysis(const uint16_t *samples,
 
     uint64_t int_baseline = ((uint64_t)round(baseline)) & UINT16_MAX;
 
-    const bool PUR = false;
-
-    // Output
-    event->timestamp = waveform->timestamp;
-    event->qshort = int_qshort;
-    event->qlong = int_qlong;
-    event->baseline = int_baseline;
-    event->channel = waveform->channel;
-    event->pur = PUR;
+    const uint8_t group_counter = 0;
 
     if (scaled_qlong < config->energy_threshold) {
-        (*select_event) = SELECT_FALSE;
+        // Discard the event
+        reallocate_buffers(trigger_positions, events_buffer, events_number, 0);
     } else {
+        // Output
+        // We have to assume that this was taken care earlier
+        //(*events_buffer)[0].timestamp = waveform->timestamp;
+        (*events_buffer)[0].qshort = int_qshort;
+        (*events_buffer)[0].qlong = int_qlong;
+        (*events_buffer)[0].baseline = int_baseline;
+        (*events_buffer)[0].channel = waveform->channel;
+        (*events_buffer)[0].group_counter = group_counter;
+
         const uint8_t initial_additional_number = waveform_additional_get_number(waveform);
         const uint8_t new_additional_number = initial_additional_number + 3;
 
@@ -339,8 +355,6 @@ void energy_analysis(const uint16_t *samples,
                 additional_gate_long[i] = ZERO;
             }
         }
-
-        (*select_event) = SELECT_TRUE;
     }
 }
 

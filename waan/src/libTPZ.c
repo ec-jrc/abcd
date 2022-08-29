@@ -1,3 +1,40 @@
+/*! \brief Determination of the energy information from an exponentially
+ *         decaying pulse, by compensating its decay and then applying a CR-RC4
+ *         filter to the waveforms.
+ *
+ * Calculation procedure:
+ *  1. The baseline is determined averaging the first N samples.
+ *  2. The pulse is offset by the baseline to center it around zero.
+ *  3. The decay is compensated with a recursive filter, obtaining a step
+ *     function.
+ *  4. A recursive trapezoidal filter is applied.
+ *  5. The energy information is obtained by determining the absolute maximum
+ *     of the resulting waveform.
+ *
+ * In the event_PSD structure the energy information is stored in the qlong,
+ * while the qshort stores the value of the shorter integral.
+ *
+ * The configuration parameters that are searched in a `json_t` object are:
+ *
+ * - `baseline_samples`: the number of samples to average to determine the
+ *   baseline. The average starts from the beginning of the waveform.
+ * - `pulse_polarity`: a string describing the expected pulse polarity, it
+ *   can be `positive` or `negative`.
+ * - `decay_time`: the pulse decay time in terms of clock samples, for the
+ *   compensation.
+ * - `trapezoid_risetime`: the risetime of the resulting trapezoid.
+ * - `trapezoid_flattop`: the width of the trapezoid top.
+ * - `peaking_time`: the position of the trapezoid top relative to the
+ *   trigger_position, the trapezoid height is stored in the qshort entry of
+ *   the event_PSD structure.
+ * - `height_scaling`: a scaling factor multiplied to both the integrals.
+ *   Optional, default value: 1
+ * - `energy_threshold`: pulses with an energy lower than the threshold are
+ *   discared. Optional, default value: 0
+ *
+ * This function determines only one event_PSD and will discard the others.
+ */
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -20,6 +57,7 @@ struct TPZ_config
     uint32_t baseline_samples;
     enum pulse_polarity_t pulse_polarity;
     double height_scaling;
+    double energy_threshold;
 
     bool is_error;
 
@@ -35,27 +73,12 @@ struct TPZ_config
  */
 void reallocate_curves(uint32_t samples_number, struct TPZ_config **user_config);
 
-/*! \brief Function that reads the json_t configuration for the `energy_analysis` function.
+/*! \brief Function that reads the json_t configuration for the `energy_analysis()` function.
  *
  * This function parses a JSON object determining the configuration for the
  * `energy_analysis()` function. The configuration is returned as an
  * allocated `struct TPZ_config`.
  *
- * The parameters that are searched in the json_t object are:
- *
- * - "baseline_samples": the number of samples to average to determine the
- *   baseline.
- * - "pulse_polarity": a string describing the expected pulse polarity, it
- *   can be "positive" or "negative".
- * - "decay_time": the pulse decay time in terms of clock samples, for the
- *   compensation.
- * - "trapezoid_risetime": the risetime of the resulting trapezoid.
- * - "trapezoid_flattop": the width of the trapezoid top.
- * - "peaking_time": the position of the trapezoid top relative to the
- *   trigger_position, the trapezoid height is stored in the qshort entry of
- *   the event_PSD structure.
- * - "height_scaling": a scaling factor multiplied to both the integrals.
- *   Optional, default value: 1
  */
 void energy_init(json_t *json_config, void **user_config)
 {
@@ -84,6 +107,12 @@ void energy_init(json_t *json_config, void **user_config)
             config->height_scaling = json_number_value(json_object_get(json_config, "height_scaling"));
         } else {
             config->height_scaling = 1;
+        }
+
+        if (json_is_number(json_object_get(json_config, "energy_threshold"))) {
+            config->energy_threshold = json_number_value(json_object_get(json_config, "energy_threshold"));
+        } else {
+            config->energy_threshold = 0;
         }
 
         config->pulse_polarity = POLARITY_NEGATIVE;
@@ -139,21 +168,34 @@ void energy_close(void *user_config)
     }
 }
 
-/*! \brief Function that determines the energy and TPZ information with the double integration method.
+/*! \brief Function that determines the energy information.
  */
 void energy_analysis(const uint16_t *samples,
                      uint32_t samples_number,
-                     uint32_t trigger_position,
                      struct event_waveform *waveform,
-                     struct event_PSD *event,
-                     int8_t *select_event,
+                     uint32_t **trigger_positions,
+                     struct event_PSD **events_buffer,
+                     size_t *events_number,
                      void *user_config)
 {
     struct TPZ_config *config = (struct TPZ_config*)user_config;
 
     reallocate_curves(samples_number, &config);
 
-    if (config->is_error) {
+    bool is_error = false;
+
+    if ((*events_number) != 1) {
+        printf("WARNING: libTPZ energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
+
+        // Assuring that there is one event_PSD and discarding others
+        is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
+
+        if (is_error) {
+            printf("ERROR: libTPZ energy_analysis(): Unable to reallocate buffers\n");
+        }
+    }
+
+    if (is_error || config->is_error) {
         printf("ERROR: libTPZ energy_analysis(): Error status detected\n");
 
         return;
@@ -189,7 +231,7 @@ void energy_analysis(const uint16_t *samples,
                  &trapezoid_min, &trapezoid_max);
 
     const double energy_maximum = trapezoid_max * config->height_scaling / (config->trapezoid_risetime + config->trapezoid_flattop);
-    const double energy_at_peaking = config->curve_trapezoid[config->peaking_time + trigger_position] * config->height_scaling / (config->trapezoid_risetime + config->trapezoid_flattop);
+    const double energy_at_peaking = config->curve_trapezoid[config->peaking_time + (*trigger_positions)[0]] * config->height_scaling / (config->trapezoid_risetime + config->trapezoid_flattop);
 
     const uint64_t long_maximum = (uint64_t)round(energy_maximum);
     const uint64_t long_at_peaking = (uint64_t)round(energy_at_peaking);
@@ -209,54 +251,58 @@ void energy_analysis(const uint16_t *samples,
 
     uint64_t int_baseline = ((uint64_t)round(baseline)) & UINT16_MAX;
 
-    const bool PUR = false;
+    const uint8_t group_counter = 0;
 
-    // Output
-    event->timestamp = waveform->timestamp;
-    event->qshort = int_at_peaking;
-    event->qlong = int_maximum;
-    event->baseline = int_baseline;
-    event->channel = waveform->channel;
-    event->pur = PUR;
+    if (energy_maximum < config->energy_threshold) {
+        // Discard the event
+        reallocate_buffers(trigger_positions, events_buffer, events_number, 0);
+    } else {
+        // Output
+        // We have to assume that this was taken care earlier
+        //(*events_buffer)[0].timestamp = waveform->timestamp;
+        (*events_buffer)[0].qshort = int_at_peaking;
+        (*events_buffer)[0].qlong = int_maximum;
+        (*events_buffer)[0].baseline = int_baseline;
+        (*events_buffer)[0].channel = waveform->channel;
+        (*events_buffer)[0].group_counter = group_counter;
 
-    const uint8_t initial_additional_number = waveform_additional_get_number(waveform);
-    const uint8_t new_additional_number = initial_additional_number + 3;
+        const uint8_t initial_additional_number = waveform_additional_get_number(waveform);
+        const uint8_t new_additional_number = initial_additional_number + 3;
 
-    waveform_additional_set_number(waveform, new_additional_number);
+        waveform_additional_set_number(waveform, new_additional_number);
 
-    uint8_t *additional_compensated = waveform_additional_get(waveform, initial_additional_number + 0);
-    uint8_t *additional_trapezoid = waveform_additional_get(waveform, initial_additional_number + 1);
-    uint8_t *additional_positions = waveform_additional_get(waveform, initial_additional_number + 2);
+        uint8_t *additional_compensated = waveform_additional_get(waveform, initial_additional_number + 0);
+        uint8_t *additional_trapezoid = waveform_additional_get(waveform, initial_additional_number + 1);
+        uint8_t *additional_positions = waveform_additional_get(waveform, initial_additional_number + 2);
 
-    double compensated_min = 0;
-    double compensated_max = 0;
-    size_t compensated_index_min = 0;
-    size_t compensated_index_max = 0;
+        double compensated_min = 0;
+        double compensated_max = 0;
+        size_t compensated_index_min = 0;
+        size_t compensated_index_max = 0;
 
-    find_extrema(config->curve_compensated, 0, samples_number,
-                 &compensated_index_min, &compensated_index_max,
-                 &compensated_min, &compensated_max);
+        find_extrema(config->curve_compensated, 0, samples_number,
+                     &compensated_index_min, &compensated_index_max,
+                     &compensated_min, &compensated_max);
 
-    const double compensated_abs_max = (fabs(compensated_max) > fabs(compensated_min)) ? fabs(compensated_max) : fabs(compensated_min);
-    const double trapezoid_abs_max = (fabs(trapezoid_max) > fabs(trapezoid_min)) ? fabs(trapezoid_max) : fabs(trapezoid_min);
+        const double compensated_abs_max = (fabs(compensated_max) > fabs(compensated_min)) ? fabs(compensated_max) : fabs(compensated_min);
+        const double trapezoid_abs_max = (fabs(trapezoid_max) > fabs(trapezoid_min)) ? fabs(trapezoid_max) : fabs(trapezoid_min);
 
-    const uint8_t ZERO = UINT8_MAX / 2;
-    const uint8_t MAX = UINT8_MAX / 2;
+        const uint8_t ZERO = UINT8_MAX / 2;
+        const uint8_t MAX = UINT8_MAX / 2;
 
-    for (uint32_t i = 0; i < samples_number; i++) {
-        additional_compensated[i] = (config->curve_compensated[i] / compensated_abs_max) * MAX + ZERO;
-        additional_trapezoid[i] = (config->curve_trapezoid[i] / trapezoid_abs_max) * MAX + ZERO;
+        for (uint32_t i = 0; i < samples_number; i++) {
+            additional_compensated[i] = (config->curve_compensated[i] / compensated_abs_max) * MAX + ZERO;
+            additional_trapezoid[i] = (config->curve_trapezoid[i] / trapezoid_abs_max) * MAX + ZERO;
 
-        if (i == trapezoid_index_max) {
-            additional_positions[i] = MAX + ZERO;
-        } else if (i == (config->peaking_time + trigger_position)) {
-            additional_positions[i] = MAX / 2 + ZERO;
-        } else {
-            additional_positions[i] = ZERO;
+            if (i == trapezoid_index_max) {
+                additional_positions[i] = MAX + ZERO;
+            } else if (i == (config->peaking_time + (*trigger_positions)[0])) {
+                additional_positions[i] = MAX / 2 + ZERO;
+            } else {
+                additional_positions[i] = ZERO;
+            }
         }
     }
-
-    (*select_event) = SELECT_TRUE;
 }
 
 void reallocate_curves(uint32_t samples_number, struct TPZ_config **user_config)
@@ -264,7 +310,7 @@ void reallocate_curves(uint32_t samples_number, struct TPZ_config **user_config)
     struct TPZ_config *config = (*user_config);
 
     if (samples_number != config->previous_samples_number) {
-	config->previous_samples_number = samples_number;
+        config->previous_samples_number = samples_number;
 
         config->is_error = false;
 

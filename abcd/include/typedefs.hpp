@@ -53,7 +53,7 @@ struct status
 
     CAENDgtz *digitizer = nullptr;
     unsigned int connection_type;
-    unsigned int link_number;
+    int link_number;
     unsigned int CONET_node;
     unsigned int VME_address;
     unsigned int events_buffer_max_size;

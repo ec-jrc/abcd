@@ -33,6 +33,7 @@ ENERGY_MAX = 20000
 SMOOTH_WINDOW = 1
 # This should be 160 MB
 BUFFER_SIZE = 16 * 10 * 1024 * 1024
+IMAGES_EXTENSION = 'pdf'
 
 def running_mean(x, N):
     Np = (N // 2) * 2 + 1
@@ -91,6 +92,13 @@ parser.add_argument('-s',
                     '--save_data',
                     action = "store_true",
                     help = 'Save histograms to file')
+parser.add_argument('--save_plot',
+                    action = "store_true",
+                    help = 'Save plot to file')
+parser.add_argument('--images_extension',
+                    type = str,
+                    default = IMAGES_EXTENSION,
+                    help = 'Define the extension of the image files (default: {})'.format(IMAGES_EXTENSION))
 
 args = parser.parse_args()
 
@@ -122,7 +130,8 @@ for file_name in args.file_names:
     max_times = list()
     energy_edges = None
     counter = 0
-    events_counter = 0
+    counter_events_total = 0
+    counter_events_in_range = 0
 
     # We will read the file in chunks so we can process also very big files
     with open(file_name, "rb") as input_file:
@@ -146,11 +155,13 @@ for file_name in args.file_names:
                 except ValueError:
                     channel_selection = data['channel'] >= 0
 
-                events_counter += channel_selection.sum()
+                counter_events_total += channel_selection.sum()
 
                 energy_selection = np.logical_and(min_energy < qlongs, qlongs < max_energy)
 
                 selection = np.logical_and(channel_selection, energy_selection)
+
+                counter_events_in_range += selection.sum()
 
                 this_spectrum, energy_edges = np.histogram(qlongs[selection],
                                                            bins = N_E,
@@ -170,9 +181,11 @@ for file_name in args.file_names:
 
         Delta_time = (max_time - min_time) * args.ns_per_sample * 1e-9
 
-        print("    Number of events: {:d}".format(events_counter))
+        print("    Total number of events of channel {:d}: {:d}".format(channel, counter_events_total))
+        print("    Number of events in energy range: {:d}".format(counter_events_in_range))
         print("    Time delta: {:f} s".format(Delta_time))
-        print("    Average rate: {:f} Hz".format(events_counter / Delta_time))
+        print("    Average rate total: {:f} Hz".format(counter_events_total / Delta_time))
+        print("    Average rate in range: {:f} Hz".format(counter_events_in_range / Delta_time))
 
         int_spectrum = functools.reduce(np.add, partial_spectra)
 
@@ -180,7 +193,7 @@ for file_name in args.file_names:
         smoothed_spectrum = running_mean(int_spectrum, args.smooth_window)
 
         # Time normalization of the spectrum
-        spectrum = np.array(smoothed_spectrum, dtype = np.float) / Delta_time
+        spectrum = np.array(smoothed_spectrum, dtype = float) / Delta_time
 
         spectrum_derivative = -1 * np.gradient(smoothed_spectrum, energy_resolution)
 
@@ -196,18 +209,20 @@ if args.save_data:
     for spectrum, spectrum_derivative, file_name in zip(spectra, spectra_derivatives, args.file_names):
         basename, extension = os.path.splitext(file_name)
 
-        output_file_name = basename + '_ch{}_qlong.csv'.format(channel)
+        basename += '_ch{}'.format(channel)
+
+        output_file_name = basename + '_energy.csv'
         output_array = np.vstack((energy_edges[:-1], spectrum)).T
 
         print("    Writing qlong histogram to: {}".format(output_file_name))
-        np.savetxt(output_file_name, output_array, delimiter = ',', header = 'energy,counts')
+        np.savetxt(output_file_name, output_array, delimiter = ',', header = '#energy,counts')
 
         if args.enable_derivatives:
             output_file_name = basename + '_deriv.csv'
             output_array = np.vstack((energy_edges[:-1], spectrum_derivative)).T
 
             print("    Writing derivative of qlong histogram to: {}".format(output_file_name))
-            np.savetxt(output_file_name, output_array, delimiter = ',', header = 'energy,counts')
+            np.savetxt(output_file_name, output_array, delimiter = ',', header = '#energy,counts derivative')
 else:
     fig = plt.figure()
 
@@ -236,5 +251,18 @@ else:
     spect_ax.set_xlabel('Energy [ch]')
     spect_ax.grid()
     spect_ax.legend()
+
+    if args.save_plot:
+        figure_name = ""
+
+        for file_name in args.file_names:
+            basename, extension = os.path.splitext(file_name)
+            figure_name += basename
+
+        figure_name += '_ch{}'.format(channel) + '.' + args.images_extension
+
+        print("Saving figure to: {}".format(figure_name))
+
+        fig.savefig(figure_name)
 
     plt.show()

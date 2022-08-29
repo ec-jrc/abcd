@@ -7,7 +7,8 @@
  *  2. The pulse is offset by the baseline to center it around zero.
  *  3. The decay is compensated with a recursive filter, obtaining a step
  *     function.
- *  4. The energy information is obtained by calculating the difference between
+ *  4. The topline is determined by averaging the N samples after the rise time.
+ *  5. The energy information is obtained by calculating the difference between
  *     the averages of the baseline and of the topline.
  *
  * In the event_PSD structure the energy information is stored in the qlong,
@@ -20,11 +21,15 @@
  * - `rise_samples`: the number of samples to skip after the end of the baseline
  *   before starting the averaging window of the topline.
  * - `pulse_polarity`: a string describing the expected pulse polarity, it
- *   can be "positive` or "negative".
+ *   can be `positive` or `negative`.
  * - `decay_time`: the pulse decay time in terms of clock samples, for the
  *   compensation.
  * - `height_scaling`: a scaling factor multiplied to both the integrals.
  *   Optional, default value: 1
+ * - `energy_threshold`: pulses with an energy lower than the threshold are
+ *   discared. Optional, default value: 0
+ *
+ * This function determines only one event_PSD and will discard the others.
  */
 
 #include <stdio.h>
@@ -47,6 +52,7 @@ struct StpAvg_config
     uint32_t rise_samples;
     enum pulse_polarity_t pulse_polarity;
     double height_scaling;
+    double energy_threshold;
 
     bool is_error;
 
@@ -92,6 +98,12 @@ void energy_init(json_t *json_config, void **user_config)
             config->height_scaling = json_number_value(json_object_get(json_config, "height_scaling"));
         } else {
             config->height_scaling = 1;
+        }
+
+        if (json_is_number(json_object_get(json_config, "energy_threshold"))) {
+            config->energy_threshold = json_number_value(json_object_get(json_config, "energy_threshold"));
+        } else {
+            config->energy_threshold = 0;
         }
 
         config->pulse_polarity = POLARITY_NEGATIVE;
@@ -143,21 +155,34 @@ void energy_close(void *user_config)
     }
 }
 
-/*! \brief Function that determines the energy and PSD information.
+/*! \brief Function that determines the energy information.
  */
 void energy_analysis(const uint16_t *samples,
                      uint32_t samples_number,
-                     uint32_t trigger_position,
                      struct event_waveform *waveform,
-                     struct event_PSD *event,
-                     int8_t *select_event,
+                     uint32_t **trigger_positions,
+                     struct event_PSD **events_buffer,
+                     size_t *events_number,
                      void *user_config)
 {
-    UNUSED(trigger_position);
+    UNUSED(trigger_positions);
 
     struct StpAvg_config *config = (struct StpAvg_config*)user_config;
 
     reallocate_curves(samples_number, &config);
+
+    bool is_error = false;
+
+    if ((*events_number) != 1) {
+        printf("WARNING: libStpAvg energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
+
+        // Assuring that there is one event_PSD and discarding others
+        is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
+
+        if (is_error) {
+            printf("ERROR: libStpAvg energy_analysis(): Unable to reallocate buffers\n");
+        }
+    }
 
     if (config->is_error) {
         printf("ERROR: libStpAvg energy_analysis(): Error status detected\n");
@@ -171,7 +196,7 @@ void energy_analysis(const uint16_t *samples,
     const uint32_t bottomline_start = 0;
     const uint32_t bottomline_end = (config->baseline_samples < samples_number) ? config->baseline_samples : samples_number;
     const uint32_t topline_start = ((config->baseline_samples + config->rise_samples) < samples_number) ? config->baseline_samples + config->rise_samples : samples_number;
-    const uint32_t topline_end = samples_number;
+    const uint32_t topline_end = ((topline_start + config->baseline_samples) < samples_number) ? topline_start + config->baseline_samples : samples_number;
 
     double baseline = 0;
     calculate_average(config->curve_samples, bottomline_start, bottomline_end, &baseline);
@@ -194,7 +219,9 @@ void energy_analysis(const uint16_t *samples,
     double topline = 0;
     calculate_average(config->curve_compensated, topline_start, topline_end, &topline);
 
-    const uint64_t long_delta = (uint64_t)round((topline - bottomline) * config->height_scaling);
+    const double delta = (topline - bottomline) * config->height_scaling;
+
+    const uint64_t long_delta = (uint64_t)round(delta);
     const uint64_t long_topline = (uint64_t)round(topline * config->height_scaling);
 
     // We convert the 64 bit integers to 16 bit to simulate the digitizer data
@@ -212,53 +239,57 @@ void energy_analysis(const uint16_t *samples,
 
     uint64_t int_baseline = ((uint64_t)round(baseline)) & UINT16_MAX;
 
-    const bool PUR = false;
+    const uint8_t group_counter = 0;
 
-    // Output
-    event->timestamp = waveform->timestamp;
-    event->qshort = int_topline;
-    event->qlong = int_delta;
-    event->baseline = int_baseline;
-    event->channel = waveform->channel;
-    event->pur = PUR;
+    if (delta < config->energy_threshold) {
+        // Discard the event
+        reallocate_buffers(trigger_positions, events_buffer, events_number, 0);
+    } else {
+        // Output
+        // We have to assume that this was taken care earlier
+        //(*events_buffer)[0].timestamp = waveform->timestamp;
+        (*events_buffer)[0].qshort = int_topline;
+        (*events_buffer)[0].qlong = int_delta;
+        (*events_buffer)[0].baseline = int_baseline;
+        (*events_buffer)[0].channel = waveform->channel;
+        (*events_buffer)[0].group_counter = group_counter;
 
-    // We determine some parameters to generate the additional pulses
-    double compensated_min = 0;
-    double compensated_max = 0;
-    size_t compensated_index_min = 0;
-    size_t compensated_index_max = 0;
+        // We determine some parameters to generate the additional pulses
+        double compensated_min = 0;
+        double compensated_max = 0;
+        size_t compensated_index_min = 0;
+        size_t compensated_index_max = 0;
 
-    find_extrema(config->curve_compensated, 0, samples_number,
-                 &compensated_index_min, &compensated_index_max,
-                 &compensated_min, &compensated_max);
+        find_extrema(config->curve_compensated, 0, samples_number,
+                     &compensated_index_min, &compensated_index_max,
+                     &compensated_min, &compensated_max);
 
-    const double compensated_abs_max = (fabs(compensated_max) > fabs(compensated_min)) ? fabs(compensated_max) : fabs(compensated_min);
+        const double compensated_abs_max = (fabs(compensated_max) > fabs(compensated_min)) ? fabs(compensated_max) : fabs(compensated_min);
 
-    const uint8_t initial_additional_number = waveform_additional_get_number(waveform);
-    const uint8_t new_additional_number = initial_additional_number + 2;
+        const uint8_t initial_additional_number = waveform_additional_get_number(waveform);
+        const uint8_t new_additional_number = initial_additional_number + 2;
 
-    waveform_additional_set_number(waveform, new_additional_number);
+        waveform_additional_set_number(waveform, new_additional_number);
 
-    uint8_t *additional_compensated = waveform_additional_get(waveform, initial_additional_number + 0);
-    uint8_t *additional_levels = waveform_additional_get(waveform, initial_additional_number + 1);
+        uint8_t *additional_compensated = waveform_additional_get(waveform, initial_additional_number + 0);
+        uint8_t *additional_levels = waveform_additional_get(waveform, initial_additional_number + 1);
 
-    const uint8_t ZERO = UINT8_MAX / 2;
-    const uint8_t MAX = UINT8_MAX / 2;
+        const uint8_t ZERO = UINT8_MAX / 2;
+        const uint8_t MAX = UINT8_MAX / 2;
 
-    for (uint32_t i = 0; i < samples_number; i++) {
-        additional_compensated[i] = (config->curve_compensated[i] / compensated_abs_max) * MAX + ZERO;
+        for (uint32_t i = 0; i < samples_number; i++) {
+            additional_compensated[i] = (config->curve_compensated[i] / compensated_abs_max) * MAX + ZERO;
 
-        if (i < config->baseline_samples) {
-            additional_levels[i] = bottomline / compensated_abs_max * MAX + ZERO;
-        } else if (config->baseline_samples <= i && i < config->baseline_samples + config->rise_samples) {
-            // Creates a visual ramp that goes from bottomline to topline
-            additional_levels[i] = ((double)i - config->baseline_samples) / config->rise_samples * topline / compensated_abs_max * MAX + ZERO;
-        } else {
-            additional_levels[i] = topline / compensated_abs_max * MAX + ZERO;
+            if (i < config->baseline_samples) {
+                additional_levels[i] = bottomline / compensated_abs_max * MAX + ZERO;
+            } else if (config->baseline_samples <= i && i < config->baseline_samples + config->rise_samples) {
+                // Creates a visual ramp that goes from bottomline to topline
+                additional_levels[i] = ((double)i - config->baseline_samples) / config->rise_samples * topline / compensated_abs_max * MAX + ZERO;
+            } else {
+                additional_levels[i] = topline / compensated_abs_max * MAX + ZERO;
+            }
         }
     }
-
-    (*select_event) = SELECT_TRUE;
 }
 
 void reallocate_curves(uint32_t samples_number, struct StpAvg_config **user_config)

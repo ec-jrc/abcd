@@ -179,7 +179,8 @@ inline extern int add_and_multiply_constant(const double *samples, size_t sample
     return EXIT_SUCCESS;
 }
 
-/*! \brief Function that applies a recursive running mean, as described in the DSP book, chapter 15, eq. (15-3)
+/*! \brief Function that applies a recursive running mean, as described in the
+ *         DSP book, chapter 15, eq. (15-3)
  *
  * \param[in] samples an array with the input samples.
  * \param[in] samples_number the number of samples in the array.
@@ -189,7 +190,7 @@ inline extern int add_and_multiply_constant(const double *samples, size_t sample
  *
  * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
  */
-inline extern int running_mean(const uint16_t *samples, size_t samples_number, \
+inline extern int running_mean(const double *samples, size_t samples_number, \
                                unsigned int smooth_samples, \
                                double **smoothed_samples)
 {
@@ -207,25 +208,57 @@ inline extern int running_mean(const uint16_t *samples, size_t samples_number, \
 
     // Calculating the average of the first M numbers and then storing that on
     // the first P numbers.
-    uint32_t accumulator = 0;
-    for (uint32_t i = 0; i < smooth_samples; i++) {
+    double accumulator = 0;
+    for (size_t i = 0; i < smooth_samples; i++) {
         accumulator += samples[i];
     }
 
     const double beginning_average = accumulator / M;
-    for (uint32_t i = 0; i < (P + 1); i++) {
+    for (size_t i = 0; i < (P + 1); i++) {
         (*smoothed_samples)[i] = beginning_average;
     }
 
-    for (uint32_t i = (P + 1); i < (samples_number - P); i++) {
+    for (size_t i = (P + 1); i < (samples_number - P); i++) {
         (*smoothed_samples)[i] = (*smoothed_samples)[i - 1]
                                  + (((int32_t)samples[i + P]) - ((int32_t)samples[i - (P + 1)])) / M;
     }
 
     // The last (P + 1) numbers will be all identical.
-    for (uint32_t i = (samples_number - P); i < samples_number; i++) {
+    for (size_t i = (samples_number - P); i < samples_number; i++) {
         (*smoothed_samples)[i] = (*smoothed_samples)[samples_number - P - 1];
     }
+
+    return EXIT_SUCCESS;
+}
+
+/*! \brief Function that applies a derivative to the signal
+ *
+ * \param[in] samples an array with the input samples.
+ * \param[in] samples_number the number of samples in the array.
+ *
+ * \param[out] derivative_samples a pointer to an allocated double array with n samples.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int derivate(const double *samples, size_t samples_number, \
+                           double **derivative_samples)
+{
+    if (!samples || !derivative_samples)
+    {
+        return EXIT_FAILURE;
+    }
+    if (!(*derivative_samples))
+    {
+        return EXIT_FAILURE;
+    }
+
+    for (size_t i = 0; i < (samples_number - 1); i++) {
+        (*derivative_samples)[i] = samples[i + 1] - samples[i] / 1.0;
+    }
+
+    // We set the last sample to be the same as the second-to-last in order not
+    // to have discontinuities.
+    (*derivative_samples)[samples_number - 1] = (*derivative_samples)[samples_number - 2];
 
     return EXIT_SUCCESS;
 }
@@ -364,11 +397,11 @@ inline extern int find_fine_zero_crossing(const double *samples, size_t samples_
     unsigned int sum_xx = 0;
     double sum_y = 0;
     double sum_xy = 0;
-    unsigned int N = 0;
+    //unsigned int N = 0;
 
     for (size_t i = (zero_crossing_index - half_W); i < (zero_crossing_index + half_W + 1); ++i)
     {
-        N += 1;
+        //N += 1;
         sum_x += i;
         sum_xx += i * i;
         sum_y += samples[i];

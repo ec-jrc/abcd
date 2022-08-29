@@ -50,7 +50,7 @@ def running_mean(x, N):
     return (cumsum[Np:] - cumsum[:-Np]) / Np
 
 
-parser = argparse.ArgumentParser(description='Plots multiple time normalized spectra from ABCD events data files.')
+parser = argparse.ArgumentParser(description='Plots Pulse Shape Discrimination information from ABCD events data files.')
 parser.add_argument('file_names',
                     type = str,
                     nargs = '+',
@@ -241,9 +241,9 @@ for file_name in args.file_names:
         smoothed_spectrum_PSD = running_mean(int_spectrum_PSD, args.smooth_window)
 
         # Time normalization of the spectrum
-        spectrum_energy = np.array(smoothed_spectrum_energy, dtype = np.float) / Delta_time
-        spectrum_PSD = np.array(smoothed_spectrum_PSD, dtype = np.float) / Delta_time
-        histo2d = np.array(int_histo2d, dtype = np.float) / Delta_time
+        spectrum_energy = np.array(smoothed_spectrum_energy, dtype = float) / Delta_time
+        spectrum_PSD = np.array(smoothed_spectrum_PSD, dtype = float) / Delta_time
+        histo2d = np.array(int_histo2d, dtype = float) / Delta_time
 
         spectra_energy.append(spectrum_energy)
         spectra_PSD.append(spectrum_PSD)

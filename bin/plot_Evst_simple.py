@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-#  (C) Copyright 2016 Cristiano Lino Fontana
+#  (C) Copyright 2016, 2019 Cristiano Lino Fontana
 #
 #  This file is part of ABCD.
 #
@@ -8,24 +8,21 @@
 #  it under the terms of the GNU General Public License as published by
 #  the Free Software Foundation, either version 3 of the License, or
 #  (at your option) any later version.
-# 
+#
 #  ABCD is distributed in the hope that it will be useful,
 #  but WITHOUT ANY WARRANTY; without even the implied warranty of
 #  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #  GNU General Public License for more details.
-# 
+#
 #  You should have received a copy of the GNU General Public License
 #  along with ABCD.  If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
-import struct
 import os
-import json
 
 import math
 
 import numpy as np
-from scipy import optimize
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 
@@ -38,7 +35,7 @@ TIME_MIN = -1
 TIME_MAX = -1
 EVENTS_COUNT = -1
 
-parser = argparse.ArgumentParser(description='Read and print ABCD data files')
+parser = argparse.ArgumentParser(description='Plot the time dependency of the energy spectrum from ABCD events data files.')
 parser.add_argument('file_name',
                     type = str,
                     help = 'Input file name')
@@ -96,9 +93,6 @@ parser.add_argument('-s',
                     help = 'Save histograms to file')
 
 args = parser.parse_args()
-
-# One more H than expected, I guess the compiler is padding the data
-event_PSD_struct = struct.Struct("<QHHHBB")
 
 event_PSD_dtype = np.dtype([('timetag', np.uint64),
                             ('qshort', np.uint16),

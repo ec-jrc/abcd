@@ -75,8 +75,8 @@ void print_usage(const char *name) {
     printf("\t-h: Display this message\n");
     printf("\t-v: Set verbose execution\n");
     printf("\t-V: Set more verbose execution\n");
-    printf("\t-S <address>: SUB socket address, default: %s\n", defaults_abcd_data_address_sub);
-    printf("\t-P <address>: PUB socket address, default: %s\n", defaults_chafi_data_address);
+    printf("\t-A <address>: Input data socket address, default: %s\n", defaults_abcd_data_address_sub);
+    printf("\t-D <address>: Output data socket address, default: %s\n", defaults_chafi_data_address);
     printf("\t-T <period>: Set base period in milliseconds, default: %d\n", defaults_chafi_base_period);
 
     return;
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
     char *output_address = defaults_chafi_data_address;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hS:P:T:vV")) != -1) {
+    while ((c = getopt(argc, argv, "hA:D:S:P:T:vV")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
@@ -117,6 +117,12 @@ int main(int argc, char *argv[])
                 input_address = optarg;
                 break;
             case 'P':
+                output_address = optarg;
+                break;
+            case 'A':
+                input_address = optarg;
+                break;
+            case 'D':
                 output_address = optarg;
                 break;
             case 'T':
