@@ -160,6 +160,7 @@ mean_rates = mean_rates / time_resolution / 1000
 
 
 fig = plt.figure()
+fig.suptitle("Energy vs time (channel: {})".format(args.channel))
 
 bihisto_ax = fig.add_subplot(111)
 
@@ -183,6 +184,7 @@ if args.save_plots:
     fig.savefig(output_file_name)
 
 fig = plt.figure()
+fig.suptitle("Rate vs time (channel: {})".format(args.channel))
 
 rate_ax = fig.add_subplot(111, sharex = bihisto_ax)
 
