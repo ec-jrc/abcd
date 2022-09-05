@@ -15,6 +15,6 @@ html
           a(href=`/`) #[span.material-icons home]
         each module in modules
           li
-            a(href=`/module/` + module.name) #{module.name}
+            a(href=`/module/` + module.name, target='_blank') #{module.name}
     block content
     input(type="hidden" name=name id="module_name" value=name)
