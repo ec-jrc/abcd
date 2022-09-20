@@ -76,7 +76,15 @@ void add_channel(status &global_status, unsigned int channel)
 
         if (json_channels != NULL) {
             if (!json_is_array(json_channels)) {
-                // Deleting this wrong object
+                if (global_status.verbosity > 0)
+                {
+                    char time_buffer[BUFFER_SIZE];
+                    time_string(time_buffer, BUFFER_SIZE, NULL);
+                    std::cout << '[' << time_buffer << "] ";
+                    std::cout << "WARNING: Channels is not an array, deleting it; ";
+                    std::cout << std::endl;
+                }
+
                 json_decref(json_channels);
 
                 json_channels = json_array();
@@ -84,17 +92,53 @@ void add_channel(status &global_status, unsigned int channel)
                 json_object_set_new_nocheck(config, "channels", json_channels);
             }
 
-            json_t *json_channel = json_object();
+            bool already_exist = false;
 
-            json_object_set_new_nocheck(json_channel, "id", json_integer(channel));
-            json_object_set_new_nocheck(json_channel, "bins_E", json_integer(defaults_spec_bins_E));
-            json_object_set_new_nocheck(json_channel, "min_E", json_integer(defaults_spec_min_E));
-            json_object_set_new_nocheck(json_channel, "max_E", json_integer(defaults_spec_max_E));
-            json_object_set_new_nocheck(json_channel, "bins_PSD", json_integer(defaults_spec_bins_PSD));
-            json_object_set_new_nocheck(json_channel, "min_PSD", json_real(defaults_spec_min_PSD));
-            json_object_set_new_nocheck(json_channel, "max_PSD", json_real(defaults_spec_max_PSD));
+            size_t index;
+            json_t *json_channel;
 
-            json_array_append_new(json_channels, json_channel);
+            json_array_foreach(json_channels, index, json_channel) {
+                // The id may be a single integer or an array of integers
+                json_t *json_id = json_object_get(json_channel, "id");
+
+                std::vector<int> channel_ids;
+
+                if (json_id != NULL && json_is_integer(json_id)) {
+                    const int id = json_number_value(json_id);
+                    channel_ids.push_back(id);
+                } else if (json_id != NULL && json_is_array(json_id)) {
+                    size_t id_index;
+                    json_t *id_value;
+
+                    json_array_foreach(json_id, id_index, id_value) {
+                        if (id_value != NULL && json_is_integer(id_value)) {
+                            const int id = json_number_value(id_value);
+                            channel_ids.push_back(id);
+                        }
+                    }
+                }
+
+                if (std::find(channel_ids.begin(),
+                              channel_ids.end(),
+                              channel) != channel_ids.end())
+                {
+                    already_exist = true;
+                }
+            }
+
+            if (!already_exist) {
+                json_t *json_channel = json_object();
+
+                json_object_set_new_nocheck(json_channel, "id", json_integer(channel));
+                json_object_set_new_nocheck(json_channel, "bins_E", json_integer(defaults_spec_bins_E));
+                json_object_set_new_nocheck(json_channel, "min_E", json_integer(defaults_spec_min_E));
+                json_object_set_new_nocheck(json_channel, "max_E", json_integer(defaults_spec_max_E));
+                json_object_set_new_nocheck(json_channel, "bins_PSD", json_integer(defaults_spec_bins_PSD));
+                json_object_set_new_nocheck(json_channel, "min_PSD", json_real(defaults_spec_min_PSD));
+                json_object_set_new_nocheck(json_channel, "max_PSD", json_real(defaults_spec_max_PSD));
+
+                json_array_append_new(json_channels, json_channel);
+            }
         }
     }
     else if (global_status.verbosity > 0)
@@ -857,7 +901,6 @@ state actions::apply_config(status &global_status)
                     std::cout << std::endl;
                 }
 
-
                 unsigned int bins_PSD = defaults_spec_bins_PSD;
                 double min_PSD = defaults_spec_min_PSD;
                 double max_PSD = defaults_spec_max_PSD;
@@ -906,6 +949,10 @@ state actions::apply_config(status &global_status)
 
                 for (const auto& id : channel_ids) {
                     add_channel(global_status, id);
+
+                    histogram_reconfigure(global_status.histos_E[id], bins_E, min_E, max_E, 0);
+
+                    histogram2D_reconfigure(global_status.histos_PSD[id], bins_E, min_E, max_E, bins_PSD, min_PSD, max_PSD, 0);
 
                     const std::string event_message = "Configuration of histograms for channel: " + std::to_string(id);
 
