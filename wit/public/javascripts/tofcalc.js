@@ -26,8 +26,6 @@ function page_loaded() {
     var connection_checker = new ConnectionChecker();
     var fitters = {};
 
-    var enable_fitting = false;
-
     var updatemenus_ToF = [
         {
             buttons: [
