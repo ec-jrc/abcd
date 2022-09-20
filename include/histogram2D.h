@@ -51,6 +51,7 @@ enum histogram2D_error_t
     HISTOGRAM2D_ERROR_JSON_MALLOC = -5,
     HISTOGRAM2D_ERROR_DIFFERENT_SIZE = -6,
     HISTOGRAM2D_ERROR_NULL_WIDTH = -7,
+    HISTOGRAM2D_ERROR_JSON_INCORRECT = -8,
     HISTOGRAM2D_ERROR_GENERIC = -99
 };
 
@@ -63,12 +64,12 @@ typedef enum histogram2D_error_t histogram2D_error_t;
 //                                                                            //
 ////////////////////////////////////////////////////////////////////////////////
 extern inline histogram2D_t *histogram2D_create(unsigned int bins_x,
-                                            data_type min_x,
-                                            data_type max_x,
-                                            unsigned int bins_y,
-                                            data_type min_y,
-                                            data_type max_y,
-                                            unsigned int verbosity)
+                                                data_type min_x,
+                                                data_type max_x,
+                                                unsigned int bins_y,
+                                                data_type min_y,
+                                                data_type max_y,
+                                                unsigned int verbosity)
 {
     histogram2D_t *new_histo = (histogram2D_t*)malloc(sizeof(histogram2D_t));
 
@@ -238,6 +239,61 @@ extern inline histogram2D_error_t histogram2D_counts_clear_minimum(histogram2D_t
     return HISTOGRAM2D_OK;
 }
 
+extern inline histogram2D_error_t histogram2D_reconfigure(histogram2D_t *histo,
+                                                          unsigned int bins_x,
+                                                          data_type min_x,
+                                                          data_type max_x,
+                                                          unsigned int bins_y,
+                                                          data_type min_y,
+                                                          data_type max_y,
+                                                          unsigned int verbosity)
+{
+    if (histo == NULL) {
+        return HISTOGRAM2D_ERROR_EMPTY_HISTO;
+    }
+    if (histo->histo == NULL) {
+        return HISTOGRAM2D_ERROR_EMPTY_HISTO_ARRAY;
+    }
+
+    if (histo->verbosity > 0)
+    {
+        printf("histogram2D_reconfigure()\n");
+    }
+
+    histo->verbosity = verbosity;
+    histo->bins_x = bins_x;
+    histo->min_x = min_x;
+    histo->max_x = max_x;
+    histo->bins_y = bins_y;
+    histo->min_y = min_y;
+    histo->max_y = max_y;
+
+    if (histo->verbosity > 0)
+    {
+        printf("histogram2D_reconfigure(): verbosity: %d\n", histo->verbosity);
+        printf("histogram2D_reconfigure(): bins_x: %d\n", histo->bins_x);
+        printf("histogram2D_reconfigure(): min_x: %f\n", histo->min_x);
+        printf("histogram2D_reconfigure(): max_x: %f\n", histo->max_x);
+        printf("histogram2D_reconfigure(): bins_y: %d\n", histo->bins_y);
+        printf("histogram2D_reconfigure(): min_y: %f\n", histo->min_y);
+        printf("histogram2D_reconfigure(): max_y: %f\n", histo->max_y);
+    }
+   
+    histo->bin_width_x = (histo->max_x - histo->min_x) / histo->bins_x;
+    histo->bin_width_y = (histo->max_y - histo->min_y) / histo->bins_y;
+
+    free(histo->histo);
+
+    histo->histo = (counter_type*)calloc(sizeof(counter_type), histo->bins_x * histo->bins_y);
+
+    if (histo->histo == NULL)
+    {
+        return HISTOGRAM2D_ERROR_MALLOC;
+    }
+
+    return HISTOGRAM2D_OK;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 // JSON interface                                                             //
@@ -261,95 +317,32 @@ extern inline histogram2D_error_t histogram2D_reconfigure_json(histogram2D_t *hi
     }
 
     json_t *json_verbosity = json_object_get(new_config, "verbosity");
-    if (json_verbosity != NULL && json_is_integer(json_verbosity))
-    {
-        histo->verbosity = json_integer_value(json_verbosity);
-
-        if (histo->verbosity > 0)
-        {
-            printf("histogram2D_reconfigure_json(): verbosity: %d\n", histo->verbosity);
-        }
-    }
-
     json_t *json_bins_x = json_object_get(new_config, "bins_x");
-    if (json_bins_x != NULL && json_is_integer(json_bins_x))
-    {
-        histo->bins_x = json_integer_value(json_bins_x);
-
-        if (histo->verbosity > 0)
-        {
-            printf("histogram2D_reconfigure_json(): bins_x: %d\n", histo->bins_x);
-        }
-    }
-
     json_t *json_min_x = json_object_get(new_config, "min_x");
-    if (json_min_x != NULL && json_is_number(json_min_x))
-    {
-        histo->min_x = json_number_value(json_min_x);
-
-        if (histo->verbosity > 0)
-        {
-            printf("histogram2D_reconfigure_json(): min_x: %f\n", histo->min_x);
-        }
-    }
-
     json_t *json_max_x = json_object_get(new_config, "max_x");
-    if (json_max_x != NULL && json_is_integer(json_max_x))
-    {
-        histo->max_x = json_number_value(json_max_x);
-
-        if (histo->verbosity > 0)
-        {
-            printf("histogram2D_reconfigure_json(): max_x: %f\n", histo->max_x);
-        }
-    }
-
     json_t *json_bins_y = json_object_get(new_config, "bins_y");
-    if (json_bins_y != NULL && json_is_integer(json_bins_y))
-    {
-        histo->bins_y = json_integer_value(json_bins_y);
-
-        if (histo->verbosity > 0)
-        {
-            printf("histogram2D_reconfigure_json(): bins_y: %d\n", histo->bins_y);
-        }
-    }
-
     json_t *json_min_y = json_object_get(new_config, "min_y");
-    if (json_min_y != NULL && json_is_number(json_min_y))
-    {
-        histo->min_y = json_number_value(json_min_y);
-
-        if (histo->verbosity > 0)
-        {
-            printf("histogram2D_reconfigure_json(): min_y: %f\n", histo->min_y);
-        }
-    }
-
     json_t *json_max_y = json_object_get(new_config, "max_y");
-    if (json_max_y != NULL && json_is_number(json_max_y))
+
+    if (json_verbosity != NULL && json_is_integer(json_verbosity) && \
+        json_bins_x != NULL && json_is_integer(json_bins_x) && \
+        json_min_x != NULL && json_is_number(json_min_x) && \
+        json_max_x != NULL && json_is_number(json_max_x) && \
+        json_bins_y != NULL && json_is_integer(json_bins_y) && \
+        json_min_y != NULL && json_is_number(json_min_y) && \
+        json_max_y != NULL && json_is_number(json_max_y))
     {
-        histo->max_y = json_number_value(json_max_y);
-
-        if (histo->verbosity > 0)
-        {
-            printf("histogram2D_reconfigure_json(): max_y: %f\n", histo->max_y);
-        }
+        return histogram2D_reconfigure(histo,
+                                       json_integer_value(json_bins_x),
+                                       json_number_value(json_min_x),
+                                       json_number_value(json_max_x),
+                                       json_integer_value(json_bins_y),
+                                       json_number_value(json_min_y),
+                                       json_number_value(json_max_y),
+                                       json_integer_value(json_verbosity));
+    } else {
+        return HISTOGRAM2D_ERROR_JSON_INCORRECT;
     }
-
-    histo->bin_width_x = (histo->max_x - histo->min_x) / histo->bins_x;
-    histo->bin_width_y = (histo->max_y - histo->min_y) / histo->bins_y;
-
-    free(histo->histo);
-
-    histo->histo = (counter_type*)calloc(sizeof(counter_type), histo->bins_x * histo->bins_y);
-
-    if (histo->histo == NULL)
-    {
-        return HISTOGRAM2D_ERROR_MALLOC;
-    }
-
-    return HISTOGRAM2D_OK;
 }
 
 extern inline json_t *histogram2D_config_to_json(histogram2D_t *histo)
