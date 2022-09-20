@@ -4,7 +4,7 @@
 #define defaults_abcd_base_period 10
 #define defaults_hijk_base_period 500
 #define defaults_lmno_base_period 100
-#define defaults_pqrs_base_period 100
+#define defaults_spec_base_period 100
 #define defaults_wafi_base_period 100
 #define defaults_enfi_base_period 10
 #define defaults_gzad_base_period 10
@@ -42,10 +42,10 @@
 #define defaults_lmno_status_address "tcp://*:16185"
 #define defaults_lmno_commands_address "tcp://*:16186"
 
-#define defaults_pqrs_ip "127.0.0.1"
-#define defaults_pqrs_status_address "tcp://*:16187"
-#define defaults_pqrs_data_address "tcp://*:16188"
-#define defaults_pqrs_commands_address "tcp://*:16189"
+#define defaults_spec_ip "127.0.0.1"
+#define defaults_spec_status_address "tcp://*:16187"
+#define defaults_spec_data_address "tcp://*:16188"
+#define defaults_spec_commands_address "tcp://*:16189"
 
 #define defaults_wafi_ip "127.0.0.1"
 #define defaults_wafi_data_address "tcp://*:16190"
@@ -105,9 +105,9 @@
 #define defaults_lmno_status_topic "status_lmno"
 #define defaults_lmno_events_topic "events_lmno"
 
-#define defaults_pqrs_status_topic "status_pqrs"
-#define defaults_pqrs_events_topic "events_pqrs"
-#define defaults_pqrs_data_histograms_topic "data_pqrs_histograms"
+#define defaults_spec_status_topic "status_spec"
+#define defaults_spec_events_topic "events_spec"
+#define defaults_spec_data_histograms_topic "data_spec_histograms"
 
 #define defaults_tofcalc_status_topic "status_tofcalc"
 #define defaults_tofcalc_events_topic "events_tofcalc"
@@ -170,21 +170,22 @@
 #define defaults_lmno_extenstion_waveforms "adw"
 #define defaults_lmno_extenstion_raw "adr"
 
-#define defaults_pqrs_verbosity 1
-#define defaults_pqrs_publish_timeout 5
-#define defaults_pqrs_bins_qshort 128
-#define defaults_pqrs_bins_E 2200
-#define defaults_pqrs_bins_PSD 110
-#define defaults_pqrs_bins_baseline 128
-#define defaults_pqrs_bins_rate 128
-#define defaults_pqrs_min_qshort 10
-#define defaults_pqrs_max_qshort 10000
-#define defaults_pqrs_min_E 0
-#define defaults_pqrs_max_E 66000
-#define defaults_pqrs_min_PSD -0.1
-#define defaults_pqrs_max_PSD 1.0
-#define defaults_pqrs_max_baseline 4096
-#define defaults_pqrs_max_rate 500000
+#define defaults_spec_verbosity 1
+#define defaults_spec_publish_timeout 5
+#define defaults_spec_bins_qshort 128
+#define defaults_spec_bins_E 2200
+#define defaults_spec_bins_PSD 110
+#define defaults_spec_bins_baseline 128
+#define defaults_spec_bins_rate 128
+#define defaults_spec_min_qshort 10
+#define defaults_spec_max_qshort 10000
+#define defaults_spec_min_E 0
+#define defaults_spec_max_E 66000
+#define defaults_spec_min_PSD -0.1
+#define defaults_spec_max_PSD 1.0
+#define defaults_spec_time_decay_enabled false
+#define defaults_spec_time_decay_tau 3.0
+#define defaults_spec_time_decay_minimum 0.0001
 
 #define defaults_wadi_publication_time 3.0
 

@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2016 Cristiano Lino Fontana
+ * (C) Copyright 2016, 2022 European Union, Cristiano Lino Fontana
  *
  * This file is part of ABCD.
  *
@@ -30,8 +30,10 @@ namespace states
     extern const state CREATE_CONTEXT;
     extern const state CREATE_SOCKETS;
     extern const state BIND_SOCKETS;
+    extern const state READ_CONFIG;
 
     // Normal states are 2xx
+    extern const state APPLY_CONFIG;
     extern const state PUBLISH_STATUS;
     extern const state RECEIVE_COMMANDS;
     extern const state READ_SOCKET;

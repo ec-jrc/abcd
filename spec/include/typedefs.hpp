@@ -10,7 +10,7 @@
 
 #include "defaults.h"
 
-#define counter_type uint64_t
+#define counter_type double
 
 extern "C" {
 #include <zmq.h>
@@ -21,11 +21,15 @@ extern "C" {
 
 struct status
 {
-    std::string status_address = defaults_pqrs_status_address;
-    std::string data_address = defaults_pqrs_data_address;
-    std::string commands_address = defaults_pqrs_commands_address;
+    std::string status_address = defaults_spec_status_address;
+    std::string data_address = defaults_spec_data_address;
+    std::string commands_address = defaults_spec_commands_address;
     std::string abcd_data_address = defaults_abcd_data_address;
     std::string subscription_topic = defaults_abcd_events_topic;
+
+    std::string config_file;
+
+    json_t *config = nullptr;
 
     void *context = nullptr;
     void *status_socket = nullptr;
@@ -47,7 +51,11 @@ struct status
     std::map<unsigned int, unsigned int> counts_partial;
     std::map<unsigned int, unsigned int> counts_total;
 
-    unsigned int publish_timeout = defaults_pqrs_publish_timeout;
+    unsigned int publish_timeout = defaults_spec_publish_timeout;
+
+    bool time_decay_enabled = defaults_tofcalc_time_decay_enabled;
+    double time_decay_tau = defaults_tofcalc_time_decay_tau;
+    double time_decay_minimum = defaults_tofcalc_time_decay_minimum;
 };
 
 struct state

@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <ctime>
+#include <limits>
 
 extern "C" {
 #include <zmq.h>
@@ -23,8 +24,6 @@ extern "C" {
 #include "events.hpp"
 #include "actions.hpp"
 
-#define counter_type uint64_t
-
 extern "C" {
 #include "utilities_functions.h"
 #include "socket_functions.h"
@@ -34,6 +33,79 @@ extern "C" {
 }
 
 #define BUFFER_SIZE 32
+
+/******************************************************************************/
+/* Channels  utilities                                                        */
+/******************************************************************************/
+
+void add_channel(status &global_status, unsigned int channel)
+{
+    json_t *config = global_status.config;
+
+    if (std::find(global_status.active_channels.begin(),
+                  global_status.active_channels.end(),
+                  channel) == global_status.active_channels.end())
+    {
+        if (global_status.verbosity > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Adding channel " << channel << " to the list of active channel; ";
+            std::cout << std::endl;
+        }
+
+        global_status.active_channels.insert(channel);
+
+        global_status.histos_E[channel] = histogram_create(defaults_spec_bins_E,
+                                                           defaults_spec_min_E,
+                                                           defaults_spec_max_E,
+                                                           global_status.verbosity);
+
+        global_status.histos_PSD[channel] = histogram2D_create(defaults_spec_bins_E,
+                                                              defaults_spec_min_E,
+                                                              defaults_spec_max_E,
+                                                              defaults_spec_bins_PSD,
+                                                              defaults_spec_min_PSD,
+                                                              defaults_spec_max_PSD,
+                                                              global_status.verbosity);
+        global_status.counts_partial[channel] = 0;
+        global_status.counts_total[channel] = 0;
+
+        json_t *json_channels = json_object_get(config, "channels");
+
+        if (json_channels != NULL) {
+            if (!json_is_array(json_channels)) {
+                // Deleting this wrong object
+                json_decref(json_channels);
+
+                json_channels = json_array();
+
+                json_object_set_new_nocheck(config, "channels", json_channels);
+            }
+
+            json_t *json_channel = json_object();
+
+            json_object_set_new_nocheck(json_channel, "id", json_integer(channel));
+            json_object_set_new_nocheck(json_channel, "bins_E", json_integer(defaults_spec_bins_E));
+            json_object_set_new_nocheck(json_channel, "min_E", json_integer(defaults_spec_min_E));
+            json_object_set_new_nocheck(json_channel, "max_E", json_integer(defaults_spec_max_E));
+            json_object_set_new_nocheck(json_channel, "bins_PSD", json_integer(defaults_spec_bins_PSD));
+            json_object_set_new_nocheck(json_channel, "min_PSD", json_real(defaults_spec_min_PSD));
+            json_object_set_new_nocheck(json_channel, "max_PSD", json_real(defaults_spec_max_PSD));
+
+            json_array_append_new(json_channels, json_channel);
+        }
+    }
+    else if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Channel " << channel << " already exists; ";
+        std::cout << std::endl;
+    }
+}
 
 /******************************************************************************/
 /* Generic actions                                                            */
@@ -118,22 +190,6 @@ bool actions::generic::publish_status(status &global_status)
         return false;
     }
 
-    json_t *channels_configs = json_array();
-    if (channels_configs == NULL)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: Unable to create channels_configs json; ";
-        std::cout << std::endl;
-
-        json_decref(status_message);
-        json_decref(active_channels);
-
-        // I am not sure what to do here...
-        return false;
-    }
-
     json_t *channels_statuses = json_array();
     if (channels_statuses == NULL)
     {
@@ -145,7 +201,6 @@ bool actions::generic::publish_status(status &global_status)
 
         json_decref(status_message);
         json_decref(active_channels);
-        json_decref(channels_configs);
 
         // I am not sure what to do here...
         return false;
@@ -170,58 +225,71 @@ bool actions::generic::publish_status(status &global_status)
 
     for (const unsigned int &channel: global_status.active_channels)
     {
-        histogram_t *const histo_E = global_status.histos_E[channel];
-        histogram2D_t *const histo_PSD = global_status.histos_PSD[channel];
         const unsigned int channel_total_counts = global_status.counts_total[channel];
         const unsigned int channel_partial_counts = global_status.counts_partial[channel];
         const double channel_rate = channel_partial_counts / pubtime;
 
-        if (histo_E != NULL && histo_PSD) {
-            if (global_status.verbosity > 0)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Publishing status for active channel: " << channel << "; ";
-                std::cout << std::endl;
-            }
-
-            json_t *histo_E_config = histogram_config_to_json(histo_E);
-            json_t *histo_PSD_config = histogram2D_config_to_json(histo_PSD);
-
-            json_t *channel_config = json_object();
-
-            json_object_set_new_nocheck(channel_config, "id", json_integer(channel));
-            json_object_set_new_nocheck(channel_config, "enabled", json_true());
-            json_object_set_new_nocheck(channel_config, "energy", histo_E_config);
-            json_object_set_new_nocheck(channel_config, "PSD", histo_PSD_config);
-            json_array_append_new(channels_configs, channel_config);
-
-            json_t *channel_status = json_object();
-
-            json_object_set_new_nocheck(channel_status, "id", json_integer(channel));
-            json_object_set_new_nocheck(channel_status, "enabled", json_true());
-            json_object_set_new_nocheck(channel_status, "rate", json_real(channel_rate));
-            json_object_set_new_nocheck(channel_status, "counts", json_integer(channel_total_counts));
-            json_array_append_new(channels_statuses, channel_status);
-
-            json_array_append_new(active_channels, json_integer(channel));
+        if (global_status.verbosity > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Publishing status for active channel: " << channel << "; ";
+            std::cout << std::endl;
         }
+
+        json_t *channel_status = json_object();
+
+        json_object_set_new_nocheck(channel_status, "id", json_integer(channel));
+        json_object_set_new_nocheck(channel_status, "enabled", json_true());
+        json_object_set_new_nocheck(channel_status, "rate", json_real(channel_rate));
+        json_object_set_new_nocheck(channel_status, "counts", json_integer(channel_total_counts));
+        json_array_append_new(channels_statuses, channel_status);
+
+        json_array_append_new(active_channels, json_integer(channel));
     }
 
-    json_object_set_new_nocheck(status_message, "configs", channels_configs);
     json_object_set_new_nocheck(status_message, "statuses", channels_statuses);
     json_object_set_new_nocheck(status_message, "active_channels", active_channels);
+    json_object_set_new_nocheck(status_message, "config", json_deep_copy(global_status.config));
 
-    actions::generic::publish_message(global_status, defaults_pqrs_status_topic, status_message);
+    actions::generic::publish_message(global_status, defaults_spec_status_topic, status_message);
 
     json_decref(status_message);
 
     // Resetting counts
     for (auto &pair: global_status.counts_partial)
     {
-        // FIXME: Check if this works
         pair.second = 0;
+    }
+
+    // Scaling histograms right after the publication so the counts in between
+    // two publications are not decaying
+    if (global_status.time_decay_enabled) {
+        const double time_decay_constant = exp(-pubtime / global_status.time_decay_tau);
+
+        for (const unsigned int &channel: global_status.active_channels)
+        {
+            histogram_t *const histo_E = global_status.histos_E[channel];
+            histogram2D_t *const histo_PSD = global_status.histos_PSD[channel];
+
+            if (histo_E && histo_PSD) {
+                if (global_status.verbosity > 0)
+                {
+                    char time_buffer[BUFFER_SIZE];
+                    time_string(time_buffer, BUFFER_SIZE, NULL);
+                    std::cout << '[' << time_buffer << "] ";
+                    std::cout << "Scaling histograms for active channel: " << channel << "; ";
+                    std::cout << std::endl;
+                }
+
+                histogram_scale(histo_E, time_decay_constant);
+                histogram2D_scale(histo_PSD, time_decay_constant);
+
+                histogram_counts_clear_minimum(histo_E, global_status.time_decay_minimum);
+                histogram2D_counts_clear_minimum(histo_PSD, global_status.time_decay_minimum);
+            }
+        }
     }
 
     return true;
@@ -257,13 +325,13 @@ bool actions::generic::publish_data(status &global_status)
         return false;
     }
 
-    json_t *channels_configs = json_array();
-    if (channels_configs == NULL)
+    json_t *channels_data = json_array();
+    if (channels_data == NULL)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: Unable to create channels_configs json; ";
+        std::cout << "ERROR: Unable to create channels_data json; ";
         std::cout << std::endl;
 
         json_decref(status_message);
@@ -291,40 +359,41 @@ bool actions::generic::publish_data(status &global_status)
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
                 std::cout << '[' << time_buffer << "] ";
-                std::cout << "Publishing status for active channel: " << channel << "; ";
+                std::cout << "Publishing data for active channel: " << channel << "; ";
                 std::cout << std::endl;
             }
 
-            json_t *histo_E_config = histogram_to_json(histo_E);
-            json_t *histo_PSD_config = histogram2D_to_json(histo_PSD);
+            json_t *histo_E_data = histogram_to_json(histo_E);
+            json_t *histo_PSD_data = histogram2D_to_json(histo_PSD);
 
-            json_t *channel_config = json_object();
+            json_t *channel_data = json_object();
 
-            json_object_set_new_nocheck(channel_config, "id", json_integer(channel));
-            json_object_set_new_nocheck(channel_config, "enabled", json_true());
-            json_object_set_new_nocheck(channel_config, "energy", histo_E_config);
-            json_object_set_new_nocheck(channel_config, "PSD", histo_PSD_config);
-            json_object_set_new_nocheck(channel_config, "rate", json_real(channel_rate));
-            json_object_set_new_nocheck(channel_config, "counts", json_integer(channel_total_counts));
-            json_array_append_new(channels_configs, channel_config);
+            json_object_set_new_nocheck(channel_data, "id", json_integer(channel));
+            json_object_set_new_nocheck(channel_data, "enabled", json_true());
+            json_object_set_new_nocheck(channel_data, "rate", json_real(channel_rate));
+            json_object_set_new_nocheck(channel_data, "counts", json_integer(channel_total_counts));
+            json_object_set_new_nocheck(channel_data, "energy", histo_E_data);
+            json_object_set_new_nocheck(channel_data, "PSD", histo_PSD_data);
+
+            json_array_append_new(channels_data, channel_data);
 
             json_array_append_new(active_channels, json_integer(channel));
         }
     }
 
-    json_object_set_new_nocheck(status_message, "data", channels_configs);
+    json_object_set_new_nocheck(status_message, "data", channels_data);
     json_object_set_new_nocheck(status_message, "active_channels", active_channels);
 
     char time_buffer[BUFFER_SIZE];
     time_string(time_buffer, BUFFER_SIZE, NULL);
 
-    json_object_set_new(status_message, "module", json_string("spec"));
-    json_object_set_new(status_message, "timestamp", json_string(time_buffer));
-    json_object_set_new(status_message, "msg_ID", json_integer(global_status.status_msg_ID));
+    json_object_set_new_nocheck(status_message, "module", json_string("spec"));
+    json_object_set_new_nocheck(status_message, "timestamp", json_string(time_buffer));
+    json_object_set_new_nocheck(status_message, "msg_ID", json_integer(global_status.data_msg_ID));
 
-    send_json_message(global_status.data_socket, const_cast<char*>(defaults_pqrs_data_histograms_topic), status_message, 0);
+    send_json_message(global_status.data_socket, const_cast<char*>(defaults_spec_data_histograms_topic), status_message, 0);
 
-    global_status.status_msg_ID += 1;
+    global_status.data_msg_ID += 1;
 
     json_decref(status_message);
 
@@ -394,41 +463,9 @@ bool actions::generic::read_socket(status &global_status)
                 // calculations using doubles anyways.
                 const double qshort = this_event.qshort;
                 const double qlong = this_event.qlong;
-                const double psd = (qlong - qshort) / qlong;
+                const double psd = (qlong != 0) ? ((qlong - qshort) / qlong) : (std::numeric_limits<double>::min());
 
-                if (std::find(global_status.active_channels.begin(),
-                              global_status.active_channels.end(),
-                              channel) == global_status.active_channels.end())
-                {
-                    if (global_status.verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Adding channel " << channel << " to the list of active channel; ";
-                        std::cout << std::endl;
-                    }
-
-                    global_status.active_channels.insert(channel);
-                    // Cannot sort a set
-                    //std::sort(global_status.active_channels.begin(),
-                    //          global_status.active_channels.end());
-
-                    global_status.histos_E[channel] = histogram_create(defaults_pqrs_bins_E,
-                                                                       defaults_pqrs_min_E,
-                                                                       defaults_pqrs_max_E,
-                                                                       global_status.verbosity);
-
-                    global_status.histos_PSD[channel] = histogram2D_create(defaults_pqrs_bins_E,
-                                                                          defaults_pqrs_min_E,
-                                                                          defaults_pqrs_max_E,
-                                                                          defaults_pqrs_bins_PSD,
-                                                                          defaults_pqrs_min_PSD,
-                                                                          defaults_pqrs_max_PSD,
-                                                                          global_status.verbosity);
-                    global_status.counts_partial[channel] = 0;
-                    global_status.counts_total[channel] = 0;
-                }
+                add_channel(global_status, channel);
 
                 if (global_status.verbosity > 1)
                 {
@@ -527,20 +564,6 @@ state actions::create_sockets(status &global_status)
         return states::COMMUNICATION_ERROR;
     }
 
-    // Creates the commands socket
-    void *commands_socket = zmq_socket(context, ZMQ_PULL);
-    if (!commands_socket)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: ZeroMQ Error on commands socket creation: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
-
-        return states::COMMUNICATION_ERROR;
-    }
-
     // Creates the data socket
     void *data_socket = zmq_socket(context, ZMQ_PUB);
     if (!data_socket)
@@ -549,6 +572,20 @@ state actions::create_sockets(status &global_status)
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
         std::cout << "ERROR: ZeroMQ Error on data socket creation: ";
+        std::cout << zmq_strerror(errno);
+        std::cout << std::endl;
+
+        return states::COMMUNICATION_ERROR;
+    }
+
+    // Creates the commands socket
+    void *commands_socket = zmq_socket(context, ZMQ_PULL);
+    if (!commands_socket)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "ERROR: ZeroMQ Error on commands socket creation: ";
         std::cout << zmq_strerror(errno);
         std::cout << std::endl;
 
@@ -644,6 +681,246 @@ state actions::bind_sockets(status &global_status)
     const std::string data_topic("data_abcd_events");
     zmq_setsockopt(global_status.abcd_data_socket, ZMQ_SUBSCRIBE, data_topic.c_str(), data_topic.size());
 
+    return states::READ_CONFIG;
+}
+
+state actions::read_config(status &global_status)
+{
+    const std::string config_file = global_status.config_file;
+
+    if (config_file.length() > 0)
+    {
+        if (global_status.verbosity > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Reading file: ";
+            std::cout << config_file.c_str();
+            std::cout << std::endl;
+        }
+
+        json_error_t error;
+
+        json_t *new_config = json_load_file(config_file.c_str(), 0, &error);
+
+        if (!new_config)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "ERROR: Parse error while reading config file: ";
+            std::cout << error.text;
+            std::cout << " (source: ";
+            std::cout << error.source;
+            std::cout << ", line: ";
+            std::cout << error.line;
+            std::cout << ", column: ";
+            std::cout << error.column;
+            std::cout << ", position: ";
+            std::cout << error.position;
+            std::cout << "); ";
+            std::cout << std::endl;
+
+            return states::PUBLISH_STATUS;
+        }
+
+        global_status.config = new_config;
+    }
+    else
+    {
+        // Creating empty config
+
+        json_t *json_time_decay = json_object();
+
+        json_object_set_new_nocheck(json_time_decay, "enable", json_false());
+        json_object_set_new_nocheck(json_time_decay, "tau", json_real(defaults_spec_time_decay_tau));
+        json_object_set_new_nocheck(json_time_decay, "counts_minimum", json_real(defaults_spec_time_decay_minimum));
+
+        json_t *json_channels = json_array();
+
+        json_t *new_config = json_object();
+
+        json_object_set_new_nocheck(new_config, "time_decay", json_time_decay);
+        json_object_set_new_nocheck(new_config, "channels", json_channels);
+
+        global_status.config = new_config;
+    }
+
+    return states::APPLY_CONFIG;
+}
+
+state actions::apply_config(status &global_status)
+{
+    actions::generic::clear_memory(global_status);
+
+    json_t * const config = global_status.config;
+
+    json_t *json_time_decay = json_object_get(config, "time_decay");
+
+    bool time_decay_enabled = defaults_spec_time_decay_enabled;
+    double time_decay_tau = defaults_spec_time_decay_tau;
+    double time_decay_minimum = defaults_spec_time_decay_minimum;
+
+    if (json_time_decay != NULL && json_is_object(json_time_decay))
+    {
+        time_decay_enabled = json_is_true(json_object_get(json_time_decay, "enable"));
+
+        json_t *json_tau = json_object_get(json_time_decay, "tau");
+
+        if (json_is_number(json_tau) && json_number_value(json_tau) > 0) {
+            time_decay_tau = json_number_value(json_tau);
+        } else {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "WARNING: Invalid value for time_decay_tau, got: " << json_number_value(json_tau) << "; ";
+            std::cout << std::endl;
+        }
+
+        json_t *json_minimum = json_object_get(json_time_decay, "counts_minimum");
+
+        if (json_is_number(json_minimum) && json_number_value(json_minimum) >= 0) {
+            time_decay_minimum = json_number_value(json_minimum);
+        } else {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "WARNING: Invalid value for time_decay_minimum, got: " << json_number_value(json_minimum) << "; ";
+            std::cout << std::endl;
+        }
+
+        if (global_status.verbosity > 0) {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Time decay enabled: " << time_decay_enabled << "; ";
+            std::cout << "Time decay tau: " << time_decay_tau << "; ";
+            std::cout << "Time decay minimum: " << time_decay_minimum << "; ";
+            std::cout << std::endl;
+        }
+    } else {
+        json_object_set_new_nocheck(config, "time_decay", json_object());
+        json_time_decay = json_object_get(config, "time_decay");
+    }
+
+    json_object_set_nocheck(json_time_decay, "enable", time_decay_enabled ? json_true() : json_false());
+    json_object_set_nocheck(json_time_decay, "tau", json_real(time_decay_tau));
+    json_object_set_nocheck(json_time_decay, "counts_minimum", json_real(time_decay_minimum));
+
+    global_status.time_decay_enabled = time_decay_enabled;
+    global_status.time_decay_tau = time_decay_tau;
+    global_status.time_decay_minimum = time_decay_minimum;
+
+    json_t *json_channels = json_object_get(config, "channels");
+
+    if (json_channels != NULL && json_is_array(json_channels))
+    {
+        size_t index;
+        json_t *value;
+
+        json_array_foreach(json_channels, index, value) {
+            // This block of code that uses the index and value variables
+            // that are set in the json_array_foreach() macro.
+
+            // The id may be a single integer or an array of integers
+            json_t *json_id = json_object_get(value, "id");
+
+            std::vector<int> channel_ids;
+
+            if (json_id != NULL && json_is_integer(json_id)) {
+                const int id = json_number_value(json_id);
+                channel_ids.push_back(id);
+            } else if (json_id != NULL && json_is_array(json_id)) {
+                size_t id_index;
+                json_t *id_value;
+
+                json_array_foreach(json_id, id_index, id_value) {
+                    if (id_value != NULL && json_is_integer(id_value)) {
+                        const int id = json_number_value(id_value);
+                        channel_ids.push_back(id);
+                    }
+                }
+            }
+
+            if (channel_ids.size() > 0) {
+                if (global_status.verbosity > 0)
+                {
+                    char time_buffer[BUFFER_SIZE];
+                    time_string(time_buffer, BUFFER_SIZE, NULL);
+                    std::cout << '[' << time_buffer << "] ";
+                    std::cout << "Found channel(s): ";
+                    for (auto& id : channel_ids) {
+                        std::cout << id << " ";
+                    }
+                    std::cout << "; ";
+                    std::cout << std::endl;
+                }
+
+
+                unsigned int bins_PSD = defaults_spec_bins_PSD;
+                double min_PSD = defaults_spec_min_PSD;
+                double max_PSD = defaults_spec_max_PSD;
+
+                json_t *json_bins_PSD = json_object_get(value, "bins_PSD");
+                if (json_bins_PSD != NULL && json_is_integer(json_bins_PSD)) {
+                    bins_PSD = json_integer_value(json_bins_PSD);
+                }
+
+                json_t *json_min_PSD = json_object_get(value, "min_PSD");
+                if (json_min_PSD != NULL && json_is_number(json_min_PSD)) {
+                    min_PSD = json_number_value(json_min_PSD);
+                }
+
+                json_t *json_max_PSD = json_object_get(value, "max_PSD");
+                if (json_max_PSD != NULL && json_is_number(json_max_PSD)) {
+                    max_PSD = json_number_value(json_max_PSD);
+                }
+
+                // Rewriting the values to be sure that the configuration
+                // has the proper format.
+                json_object_set_nocheck(value, "bins_PSD", json_integer(bins_PSD));
+                json_object_set_nocheck(value, "min_PSD", json_real(min_PSD));
+                json_object_set_nocheck(value, "max_PSD", json_real(max_PSD));
+
+                unsigned int bins_E = defaults_spec_bins_E;
+                double min_E = defaults_spec_min_E;
+                double max_E = defaults_spec_max_E;
+
+                json_t *json_bins_E = json_object_get(value, "bins_E");
+                if (json_bins_E != NULL && json_is_integer(json_bins_E)) {
+                    bins_E = json_integer_value(json_bins_E);
+                }
+                json_t *json_min_E = json_object_get(value, "min_E");
+                if (json_min_E != NULL && json_is_number(json_min_E)) {
+                    min_E = json_number_value(json_min_E);
+                }
+                json_t *json_max_E = json_object_get(value, "max_E");
+                if (json_max_E != NULL && json_is_number(json_max_E)) {
+                    max_E = json_number_value(json_max_E);
+                }
+
+                json_object_set_nocheck(value, "bins_E", json_integer(bins_E));
+                json_object_set_nocheck(value, "min_E", json_real(min_E));
+                json_object_set_nocheck(value, "max_E", json_real(max_E));
+
+                for (const auto& id : channel_ids) {
+                    add_channel(global_status, id);
+
+                    const std::string event_message = "Configuration of histograms for channel: " + std::to_string(id);
+
+                    json_t *json_event_message = json_object();
+                    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+                    json_object_set_new_nocheck(json_event_message, "event", json_string(event_message.c_str()));
+
+                    actions::generic::publish_message(global_status, defaults_spec_events_topic, json_event_message);
+
+                    json_decref(json_event_message);
+                }
+            }
+        }
+    }
+
     return states::PUBLISH_STATUS;
 }
 
@@ -713,17 +990,7 @@ state actions::receive_commands(status &global_status)
             {
                 json_t *json_channel = json_object_get(json_arguments, "channel");
 
-                if (global_status.verbosity > 0)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ";
-                    std::cout << "Received command: " << command << "; ";
-                    //std::cout << "Channel: " << json_string_value(json_channel) << " " << json_integer_value(json_channel) << "; ";
-                    std::cout << std::endl;
-                }
-
-                if (json_is_string(json_channel))
+                if (json_channel != NULL && json_is_string(json_channel))
                 {
                     const std::string channel_string = json_string_value(json_channel);
 
@@ -758,14 +1025,13 @@ state actions::receive_commands(status &global_status)
                                 histogram2D_reset(histo_PSD);
                             }
                         }
+
                         for (auto &pair: global_status.counts_partial)
                         {
-                            // FIXME: Check if this works
                             pair.second = 0;
                         }
                         for (auto &pair: global_status.counts_total)
                         {
-                            // FIXME: Check if this works
                             pair.second = 0;
                         }
 
@@ -773,12 +1039,12 @@ state actions::receive_commands(status &global_status)
                         json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
                         json_object_set_new_nocheck(json_event_message, "event", json_string("Reset of all channels"));
 
-                        actions::generic::publish_message(global_status, defaults_pqrs_events_topic, json_event_message);
+                        actions::generic::publish_message(global_status, defaults_spec_events_topic, json_event_message);
 
                         json_decref(json_event_message);
                     }
                 }
-                else if (json_is_integer(json_channel))
+                else if (json_channel != NULL && json_is_integer(json_channel))
                 {
                     const int channel = json_integer_value(json_channel);
 
@@ -815,93 +1081,41 @@ state actions::receive_commands(status &global_status)
                     json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
                     json_object_set_new_nocheck(json_event_message, "event", json_string(event_message.c_str()));
 
-                    actions::generic::publish_message(global_status, defaults_pqrs_events_topic, json_event_message);
+                    actions::generic::publish_message(global_status, defaults_spec_events_topic, json_event_message);
 
                     json_decref(json_event_message);
                 }
             }
             else if (command == std::string("reconfigure") && json_arguments != NULL)
             {
-                json_t *json_channels = json_object_get(json_arguments, "channels");
+                if (global_status.verbosity > 0)
+                {
+                    char time_buffer[BUFFER_SIZE];
+                    time_string(time_buffer, BUFFER_SIZE, NULL);
+                    std::cout << '[' << time_buffer << "] ";
+                    std::cout << "Reconfiguration; ";
+                    std::cout << std::endl;
+                }
 
-                size_t index;
-                json_t *value;
+                json_t *json_config = json_object_get(json_arguments, "config");
 
-                json_array_foreach(json_channels, index, value) {
-                    json_t *json_channel = json_object_get(value, "id");
-                    json_t *json_type = json_object_get(value, "type");
-                    json_t *json_config = json_object_get(value, "config");
+                if (json_config != NULL && json_is_object(json_config))
+                {
+                    global_status.config = json_deep_copy(json_config);
 
-                    if (global_status.verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Received command: " << command << "; ";
-                        std::cout << "Channel: " << json_integer_value(json_channel) << "; ";
-                        std::cout << "Type: " << json_string_value(json_type) << "; ";
-                        std::cout << std::endl;
-                    }
+                    const std::string event_message = "Reconfiguration";
 
-                    if (json_is_integer(json_channel) && json_is_string(json_type) && json_object_size(json_config) > 0)
-                    {
-                        const int channel = json_integer_value(json_channel);
-                        const std::string type = json_string_value(json_type);
-                        global_status.counts_partial[channel] = 0;
-                        global_status.counts_total[channel] = 0;
+                    json_t *json_event_message = json_object();
+                    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+                    json_object_set_new_nocheck(json_event_message, "event", json_string(event_message.c_str()));
 
-                        if (type == std::string("energy"))
-                        {
-                            if (global_status.verbosity > 0)
-                            {
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << "Reconfiguring histo of channel: " << channel << "; ";
-                                std::cout << std::endl;
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << "Bins: " << json_integer_value(json_object_get(json_config, "bins")) << "; ";
-                                std::cout << "Min: " << json_number_value(json_object_get(json_config, "min")) << "; ";
-                                std::cout << "Max: " << json_number_value(json_object_get(json_config, "max")) << "; ";
-                                std::cout << std::endl;
-                            }
+                    actions::generic::publish_message(global_status, defaults_spec_events_topic, json_event_message);
 
-                            histogram_reconfigure_json(global_status.histos_E[channel], json_config);
-                        }
-                        else if (type == std::string("PSD"))
-                        {
-                            if (global_status.verbosity > 0)
-                            {
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << "Reconfiguring histo of channel: " << channel << "; ";
-                                std::cout << std::endl;
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << "Bins X: " << json_integer_value(json_object_get(json_config, "bins_x")) << "; ";
-                                std::cout << "Min X: " << json_number_value(json_object_get(json_config, "min_x")) << "; ";
-                                std::cout << "Max X: " << json_number_value(json_object_get(json_config, "max_x")) << "; ";
-                                std::cout << std::endl;
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << "Bins Y: " << json_integer_value(json_object_get(json_config, "bins_y")) << "; ";
-                                std::cout << "Min Y: " << json_number_value(json_object_get(json_config, "min_y")) << "; ";
-                                std::cout << "Max Y: " << json_number_value(json_object_get(json_config, "max_y")) << "; ";
-                                std::cout << std::endl;
-                            }
+                    json_decref(json_event_message);
 
-                            histogram2D_reconfigure_json(global_status.histos_PSD[channel], json_config);
-                        }
+                    json_decref(json_message);
 
-                        std::string event_message = "Reconfiguration of channel: " + std::to_string(channel) + ", type: " + type;
-
-                        json_t *json_event_message = json_object();
-                        json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
-                        json_object_set_new_nocheck(json_event_message, "event", json_string(event_message.c_str()));
-
-                        actions::generic::publish_message(global_status, defaults_pqrs_events_topic, json_event_message);
-
-                        json_decref(json_event_message);
-                    }
+                    return states::APPLY_CONFIG;
                 }
             }
             else if (command == std::string("quit"))
@@ -1016,7 +1230,7 @@ state actions::communication_error(status &global_status)
     json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
     json_object_set_new_nocheck(json_event_message, "error", json_string(event_message.c_str()));
 
-    actions::generic::publish_message(global_status, defaults_pqrs_events_topic, json_event_message);
+    actions::generic::publish_message(global_status, defaults_spec_events_topic, json_event_message);
 
     json_decref(json_event_message);
 

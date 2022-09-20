@@ -26,7 +26,7 @@ extern "C" {
 
 #define BUFFER_SIZE 32
 
-unsigned int verbosity = defaults_pqrs_verbosity;
+unsigned int verbosity = defaults_spec_verbosity;
 bool terminate_flag = false;
 
 //! Handles standard signals.
@@ -81,17 +81,16 @@ void print_usage(const std::string &name = std::string("spec")) {
     std::cout << "\t-h: Display this message" << std::endl;
     std::cout << "\t-A <address>: ABCD data socket address, default: " << data_address << std::endl;
     std::cout << "\t-S <address>: Status socket address, default: ";
-    std::cout << defaults_pqrs_status_address << std::endl;
+    std::cout << defaults_spec_status_address << std::endl;
     std::cout << "\t-D <address>: Data socket address, default: ";
-    std::cout << defaults_pqrs_data_address << std::endl;
+    std::cout << defaults_spec_data_address << std::endl;
     std::cout << "\t-C <address>: Commands socket address, default: ";
-    std::cout << defaults_pqrs_commands_address << std::endl;
+    std::cout << defaults_spec_commands_address << std::endl;
     std::cout << "\t-T <period>: Set base period in milliseconds, default: ";
-    std::cout << defaults_pqrs_base_period << std::endl;
-    std::cout << "\t-f <file_name>: Configuration file, default: ";
-    std::cout << defaults_abcd_data_events_topic << std::endl;
+    std::cout << defaults_spec_base_period << std::endl;
+    std::cout << "\t-f <config_file>: Set config file, default: none" << std::endl;
     std::cout << "\t-v: Set verbose execution" << std::endl;
-    std::cout << "\t-V: Set more verbose execution" << std::endl;
+    std::cout << "\t-V: Set verbose execution with more details" << std::endl;
 
     return;
 }
@@ -115,14 +114,14 @@ int main(int argc, char *argv[])
     #endif
 
     std::string abcd_data_address = defaults_abcd_data_address_sub;
-    std::string status_address = defaults_pqrs_status_address;
-    std::string data_address = defaults_pqrs_data_address;
-    std::string commands_address = defaults_pqrs_commands_address;
-    std::string subscription_topic = defaults_abcd_data_events_topic;
-    unsigned int base_period = defaults_pqrs_base_period;
+    std::string status_address = defaults_spec_status_address;
+    std::string data_address = defaults_spec_data_address;
+    std::string commands_address = defaults_spec_commands_address;
+    std::string config_file;
+    unsigned int base_period = defaults_spec_base_period;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hA:S:D:T:C:t:vV")) != -1) {
+    while ((c = getopt(argc, argv, "hA:S:D:C:T:f:vV")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(std::string(argv[0]));
@@ -139,9 +138,6 @@ int main(int argc, char *argv[])
             case 'C':
                 commands_address = optarg;
                 break;
-            case 't':
-                subscription_topic = optarg;
-                break;
             case 'T':
                 try
                 {
@@ -149,6 +145,9 @@ int main(int argc, char *argv[])
                 }
                 catch (std::logic_error &e)
                 { }
+                break;
+            case 'f':
+                config_file = optarg;
                 break;
             case 'v':
                 verbosity = 1;
@@ -169,14 +168,13 @@ int main(int argc, char *argv[])
     global_status.status_address = status_address;
     global_status.data_address = data_address;
     global_status.commands_address = commands_address;
-    global_status.subscription_topic = subscription_topic;
+    global_status.config_file = config_file;
 
     if (global_status.verbosity > 0) {
         std::cout << "ABCD data socket address: " << abcd_data_address << std::endl;
         std::cout << "Status socket address: " << status_address << std::endl;
         std::cout << "Data socket address: " << data_address << std::endl;
         std::cout << "Commands socket address: " << commands_address << std::endl;
-        std::cout << "Subscription topic: " << subscription_topic << std::endl;
         std::cout << "Verbosity: " << verbosity << std::endl;
         std::cout << "Base period: " << base_period << std::endl;
     }

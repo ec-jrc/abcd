@@ -10,8 +10,8 @@ namespace actions
     namespace generic
     {
         // This function is used in the publish_status actions
-        void publish_message(status&, std::string, json_t*);
         void clear_memory(status&);
+        void publish_message(status&, std::string, json_t*);
         bool publish_status(status&);
         bool publish_data(status&);
         bool read_socket(status&);
@@ -21,7 +21,9 @@ namespace actions
     state create_context(status&);
     state create_sockets(status&);
     state bind_sockets(status&);
+    state read_config(status&);
 
+    state apply_config(status&);
     state publish_status(status&);
     state receive_commands(status&);
     state read_socket(status&);
