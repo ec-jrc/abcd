@@ -47,6 +47,7 @@ enum histogram_error_t
     HISTOGRAM_ERROR_JSON_MALLOC = -5,
     HISTOGRAM_ERROR_DIFFERENT_SIZE = -6,
     HISTOGRAM_ERROR_NULL_WIDTH = -7,
+    HISTOGRAM_ERROR_JSON_INCORRECT = -8,
     HISTOGRAM_ERROR_GENERIC = -99
 };
 
@@ -432,6 +433,51 @@ extern inline histogram_error_t histogram_box_smooth(histogram_t *histo, unsigne
     return HISTOGRAM_OK;
 }
 
+extern inline histogram_error_t histogram_reconfigure(histogram_t *histo,
+                                                      unsigned int bins,
+                                                      data_type min,
+                                                      data_type max,
+                                                      unsigned int verbosity)
+{
+    if (histo == NULL) {
+        return HISTOGRAM_ERROR_EMPTY_HISTO;
+    }
+    if (histo->histo == NULL) {
+        return HISTOGRAM_ERROR_EMPTY_HISTO_ARRAY;
+    }
+
+    if (histo->verbosity > 0)
+    {
+        printf("histogram_reconfigure()\n");
+    }
+
+    histo->verbosity = verbosity;
+    histo->bins = bins;
+    histo->min = min;
+    histo->max = max;
+
+    if (histo->verbosity > 0)
+    {
+        printf("histogram_reconfigure(): verbosity: %d\n", histo->verbosity);
+        printf("histogram_reconfigure(): bins: %d\n", histo->bins);
+        printf("histogram_reconfigure(): min: %f\n", histo->min);
+        printf("histogram_reconfigure(): max: %f\n", histo->max);
+    }
+   
+    histo->bin_width = (histo->max - histo->min) / histo->bins;
+
+    free(histo->histo);
+
+    histo->histo = (counter_type*)calloc(sizeof(counter_type), histo->bins);
+
+    if (histo->histo == NULL)
+    {
+        return HISTOGRAM_ERROR_MALLOC;
+    }
+
+    return HISTOGRAM_OK;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 //                                                                            //
 // JSON interface                                                             //
@@ -455,61 +501,23 @@ extern inline histogram_error_t histogram_reconfigure_json(histogram_t *histo, j
     }
 
     json_t *json_verbosity = json_object_get(new_config, "verbosity");
-    if (json_verbosity != NULL && json_is_integer(json_verbosity))
-    {
-        histo->verbosity = json_integer_value(json_verbosity);
-
-        if (histo->verbosity > 0)
-        {
-            printf("histogram_reconfigure_json(): verbosity: %d\n", histo->verbosity);
-        }
-    }
-
     json_t *json_bins = json_object_get(new_config, "bins");
-    if (json_bins != NULL && json_is_integer(json_bins))
-    {
-        histo->bins = json_integer_value(json_bins);
-
-        if (histo->verbosity > 0)
-        {
-            printf("histogram_reconfigure_json(): bins: %d\n", histo->bins);
-        }
-    }
-
     json_t *json_min = json_object_get(new_config, "min");
-    if (json_min != NULL && json_is_number(json_min))
-    {
-        histo->min = json_number_value(json_min);
-
-        if (histo->verbosity > 0)
-        {
-            printf("histogram_reconfigure_json(): min: %f\n", histo->min);
-        }
-    }
-
     json_t *json_max = json_object_get(new_config, "max");
-    if (json_max != NULL && json_is_number(json_max))
+
+    if (json_verbosity != NULL && json_is_integer(json_verbosity) && \
+        json_bins != NULL && json_is_integer(json_bins) && \
+        json_min != NULL && json_is_number(json_min) && \
+        json_max != NULL && json_is_number(json_max))
     {
-        histo->max = json_number_value(json_max);
-
-        if (histo->verbosity > 0)
-        {
-            printf("histogram_reconfigure_json(): max: %f\n", histo->max);
-        }
+        return histogram_reconfigure(histo,
+                                     json_integer_value(json_bins),
+                                     json_number_value(json_min),
+                                     json_number_value(json_max),
+                                     json_integer_value(json_verbosity));
+    } else {
+        return HISTOGRAM_ERROR_JSON_INCORRECT;
     }
-
-    histo->bin_width = (histo->max - histo->min) / histo->bins;
-
-    free(histo->histo);
-
-    histo->histo = (counter_type*)calloc(sizeof(counter_type), histo->bins);
-
-    if (histo->histo == NULL)
-    {
-        return HISTOGRAM_ERROR_MALLOC;
-    }
-
-    return HISTOGRAM_OK;
 }
 
 extern inline json_t *histogram_config_to_json(histogram_t *histo)
