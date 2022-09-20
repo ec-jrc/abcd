@@ -221,7 +221,6 @@ bool actions::generic::publish_status(status &global_status)
         return false;
     }
 
-
     if (global_status.verbosity > 0)
     {
         char time_buffer[BUFFER_SIZE];
@@ -1110,7 +1109,7 @@ state actions::apply_config(status &global_status)
             std::cout << std::endl;
         }
     } else {
-        json_object_set_nocheck(config, "time_decay", json_object());
+        json_object_set_new_nocheck(config, "time_decay", json_object());
         json_time_decay = json_object_get(config, "time_decay");
     }
 
@@ -1322,238 +1321,228 @@ state actions::receive_commands(status &global_status)
 {
     void *commands_socket = global_status.commands_socket;
 
-    char *buffer;
-    size_t size;
-
-    const int result = receive_byte_message(commands_socket, nullptr, (void**)(&buffer), &size, 0, global_status.verbosity);
-
-    if (global_status.verbosity > 0)
+    if (global_status.verbosity > 1)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "result: " << result << "; ";
-        std::cout << "size: " << size << "; ";
+        std::cout << "Receiving command... ";
         std::cout << std::endl;
     }
 
-    if (size > 0 && result == EXIT_SUCCESS)
+    json_t *json_message = NULL;
+
+    const int result = receive_json_message(commands_socket, NULL, &json_message, false, global_status.verbosity);
+
+    if (!json_message || result == EXIT_FAILURE)
     {
-        if (global_status.verbosity > 0)
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "ERROR: Error on receiving JSON commands message";
+        std::cout << std::endl;
+    }
+    else
+    {
+        if (global_status.verbosity > 1)
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
             std::cout << '[' << time_buffer << "] ";
-            std::cout << "Message buffer: ";
-            std::cout << (char*)buffer;
-            std::cout << "; ";
+            std::cout << "Received command; ";
             std::cout << std::endl;
         }
 
-        json_error_t error;
-        json_t *json_message = json_loadb(buffer, size, 0, &error);
+        json_t *json_command = json_object_get(json_message, "command");
+        json_t *json_arguments = json_object_get(json_message, "arguments");
 
-        free(buffer);
-
-        if (!json_message)
+        if (json_command != NULL)
         {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "ERROR: ";
-            std::cout << error.text;
-            std::cout << " (source: ";
-            std::cout << error.source;
-            std::cout << ", line: ";
-            std::cout << error.line;
-            std::cout << ", column: ";
-            std::cout << error.column;
-            std::cout << ", position: ";
-            std::cout << error.position;
-            std::cout << "); ";
-            std::cout << std::endl;
-        }
-        else
-        {
-            json_t *json_command = json_object_get(json_message, "command");
-            json_t *json_arguments = json_object_get(json_message, "arguments");
+            const std::string command = json_string_value(json_command);
 
-            if (json_command != NULL && json_is_string(json_command))
+            if (global_status.verbosity > 0)
             {
-                const std::string command = json_string_value(json_command);
-
-                if (command == std::string("reset") && json_arguments != NULL)
-                {
-                    json_t *json_channel = json_object_get(json_arguments, "channel");
-
-                    if (json_channel != NULL && json_is_string(json_channel))
-                    {
-                        const std::string channel = json_string_value(json_channel);
-
-                        const std::string event_message = "Reset of channel: " + channel;
-
-                        json_t *json_event_message = json_object();
-                        json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
-                        json_object_set_new_nocheck(json_event_message, "event", json_string(event_message.c_str()));
-
-                        if (global_status.verbosity > 0)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Received command: " << command << "; ";
-                            std::cout << "Channel: " << channel << "; ";
-                            std::cout << std::endl;
-                        }
-
-                        if (channel == std::string("all"))
-                        {
-                            for (auto &pair: global_status.histos_ToF)
-                            {
-                                histogram_t *const histo_ToF = pair.second;
-
-                                if (histo_ToF != NULL)
-                                {
-                                    histogram_reset(histo_ToF);
-                                }
-                            }
-
-                            for (auto &pair: global_status.histos_E)
-                            {
-                                histogram_t *const histo_E = pair.second;
-
-                                if (histo_E != NULL)
-                                {
-                                    histogram_reset(histo_E);
-                                }
-                            }
-
-                            for (auto &pair: global_status.histos_EvsToF)
-                            {
-                                histogram2D_t *const histo_EvsToF = pair.second;
-
-                                if (histo_EvsToF != NULL)
-                                {
-                                    histogram2D_reset(histo_EvsToF);
-                                }
-                            }
-
-                            for (auto &pair: global_status.histos_EvsE)
-                            {
-                                histogram2D_t *const histo_EvsE = pair.second;
-
-                                if (histo_EvsE != NULL)
-                                {
-                                    histogram2D_reset(histo_EvsE);
-                                }
-                            }
-
-                            for (auto &pair: global_status.counts_partial)
-                            {
-                                pair.second = 0;
-                            }
-                            for (auto &pair: global_status.counts_total)
-                            {
-                                pair.second = 0;
-                            }
-
-                            actions::generic::publish_message(global_status, defaults_tofcalc_events_topic, json_event_message);
-                        }
-
-                        json_decref(json_event_message);
-                    }
-                    else if (json_channel != NULL && json_is_integer(json_channel))
-                    {
-                        const unsigned int channel = json_integer_value(json_channel);
-
-                        std::string event_message = "Reset of channel: " + std::to_string(channel);
-
-                        json_t *json_event_message = json_object();
-                        json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
-                        json_object_set_new_nocheck(json_event_message, "event", json_string(event_message.c_str()));
-
-                        if (global_status.verbosity > 0)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Received command: " << command << "; ";
-                            std::cout << "Channel: " << channel << "; ";
-                            std::cout << std::endl;
-                        }
-
-                        histogram_t *const histo_ToF = global_status.histos_ToF[channel];
-
-                        if (histo_ToF != NULL)
-                        {
-                            histogram_reset(histo_ToF);
-                        }
-
-                        histogram_t *const histo_E = global_status.histos_E[channel];
-
-                        if (histo_E != NULL)
-                        {
-                            histogram_reset(histo_E);
-                        }
-
-                        histogram2D_t *const histo_EvsToF = global_status.histos_EvsToF[channel];
-
-                        if (histo_EvsToF != NULL)
-                        {
-                            histogram2D_reset(histo_EvsToF);
-                        }
-
-                        histogram2D_t *const histo_EvsE = global_status.histos_EvsE[channel];
-
-                        if (histo_EvsE != NULL)
-                        {
-                            histogram2D_reset(histo_EvsE);
-                        }
-
-                        global_status.counts_partial[channel] = 0;
-                        global_status.counts_total[channel] = 0;
-
-                        actions::generic::publish_message(global_status, defaults_tofcalc_events_topic, json_event_message);
-
-                        json_decref(json_event_message);
-                    }
-                }
-                else if (command == std::string("reconfigure") && json_arguments != NULL)
-                {
-                    std::cout << "Reconfiguration" << std::endl;
-
-                    json_t *json_config = json_object_get(json_arguments, "config");
-
-                    if (json_config != NULL && json_is_object(json_config))
-                    {
-                        global_status.config = json_deep_copy(json_config);
-
-                        const std::string event_message = "Reconfiguration";
-
-                        json_t *json_event_message = json_object();
-                        json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
-                        json_object_set_new_nocheck(json_event_message, "event", json_string(event_message.c_str()));
-
-                        actions::generic::publish_message(global_status, defaults_tofcalc_events_topic, json_event_message);
-
-                        json_decref(json_event_message);
-
-                        json_decref(json_message);
-
-                        return states::APPLY_CONFIG;
-                    }
-                }
-                else if (command == std::string("quit"))
-                {
-                    json_decref(json_message);
-
-                    return states::CLOSE_SOCKETS;
-                }
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << "Received command: " << command << "; ";
+                std::cout << std::endl;
             }
 
-            json_decref(json_message);
+            if (command == std::string("reset") && json_arguments != NULL)
+            {
+                json_t *json_channel = json_object_get(json_arguments, "channel");
+
+                if (json_channel != NULL && json_is_string(json_channel))
+                {
+                    const std::string channel_string = json_string_value(json_channel);
+
+                    if (global_status.verbosity > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "Received command: " << command << "; ";
+                        std::cout << "Channel: " << channel_string << "; ";
+                        std::cout << std::endl;
+                    }
+
+                    if (channel_string == std::string("all"))
+                    {
+                        for (auto &pair: global_status.histos_ToF)
+                        {
+                            histogram_t *const histo_ToF = pair.second;
+
+                            if (histo_ToF != NULL)
+                            {
+                                histogram_reset(histo_ToF);
+                            }
+                        }
+
+                        for (auto &pair: global_status.histos_E)
+                        {
+                            histogram_t *const histo_E = pair.second;
+
+                            if (histo_E != NULL)
+                            {
+                                histogram_reset(histo_E);
+                            }
+                        }
+
+                        for (auto &pair: global_status.histos_EvsToF)
+                        {
+                            histogram2D_t *const histo_EvsToF = pair.second;
+
+                            if (histo_EvsToF != NULL)
+                            {
+                                histogram2D_reset(histo_EvsToF);
+                            }
+                        }
+
+                        for (auto &pair: global_status.histos_EvsE)
+                        {
+                            histogram2D_t *const histo_EvsE = pair.second;
+
+                            if (histo_EvsE != NULL)
+                            {
+                                histogram2D_reset(histo_EvsE);
+                            }
+                        }
+
+                        for (auto &pair: global_status.counts_partial)
+                        {
+                            pair.second = 0;
+                        }
+                        for (auto &pair: global_status.counts_total)
+                        {
+                            pair.second = 0;
+                        }
+
+                        json_t *json_event_message = json_object();
+                        json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+                        json_object_set_new_nocheck(json_event_message, "event", json_string("Reset of all channels"));
+
+                        actions::generic::publish_message(global_status, defaults_tofcalc_events_topic, json_event_message);
+
+                        json_decref(json_event_message);
+                    }
+                }
+                else if (json_channel != NULL && json_is_integer(json_channel))
+                {
+                    const int channel = json_integer_value(json_channel);
+
+                    if (global_status.verbosity > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "Received command: " << command << "; ";
+                        std::cout << "Channel: " << channel << "; ";
+                        std::cout << std::endl;
+                    }
+
+                    histogram_t *const histo_ToF = global_status.histos_ToF[channel];
+
+                    if (histo_ToF != NULL)
+                    {
+                        histogram_reset(histo_ToF);
+                    }
+
+                    histogram_t *const histo_E = global_status.histos_E[channel];
+
+                    if (histo_E != NULL)
+                    {
+                        histogram_reset(histo_E);
+                    }
+
+                    histogram2D_t *const histo_EvsToF = global_status.histos_EvsToF[channel];
+
+                    if (histo_EvsToF != NULL)
+                    {
+                        histogram2D_reset(histo_EvsToF);
+                    }
+
+                    histogram2D_t *const histo_EvsE = global_status.histos_EvsE[channel];
+
+                    if (histo_EvsE != NULL)
+                    {
+                        histogram2D_reset(histo_EvsE);
+                    }
+
+                    global_status.counts_partial[channel] = 0;
+                    global_status.counts_total[channel] = 0;
+
+                    std::string event_message = "Reset of channel: " + std::to_string(channel);
+
+                    json_t *json_event_message = json_object();
+                    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+                    json_object_set_new_nocheck(json_event_message, "event", json_string(event_message.c_str()));
+
+                    actions::generic::publish_message(global_status, defaults_tofcalc_events_topic, json_event_message);
+
+                    json_decref(json_event_message);
+                }
+            }
+            else if (command == std::string("reconfigure") && json_arguments != NULL)
+            {
+                if (global_status.verbosity > 0)
+                {
+                    char time_buffer[BUFFER_SIZE];
+                    time_string(time_buffer, BUFFER_SIZE, NULL);
+                    std::cout << '[' << time_buffer << "] ";
+                    std::cout << "Reconfiguration; ";
+                    std::cout << std::endl;
+                }
+
+                json_t *json_config = json_object_get(json_arguments, "config");
+
+                if (json_config != NULL && json_is_object(json_config))
+                {
+                    global_status.config = json_deep_copy(json_config);
+
+                    const std::string event_message = "Reconfiguration";
+
+                    json_t *json_event_message = json_object();
+                    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+                    json_object_set_new_nocheck(json_event_message, "event", json_string(event_message.c_str()));
+
+                    actions::generic::publish_message(global_status, defaults_tofcalc_events_topic, json_event_message);
+
+                    json_decref(json_event_message);
+
+                    json_decref(json_message);
+
+                    return states::APPLY_CONFIG;
+                }
+            }
+            else if (command == std::string("quit"))
+            {
+                return states::CLOSE_SOCKETS;
+            }
         }
     }
+
+    json_decref(json_message);
 
     return states::READ_SOCKET;
 }
