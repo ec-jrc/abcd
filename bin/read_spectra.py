@@ -44,7 +44,7 @@ args = parser.parse_args()
 
 basename, extenstion = os.path.splitext(args.output)
 
-topic = "data_pqrs_histograms".encode('ascii')
+topic = "data_spec_histograms".encode('ascii')
 
 print("Connecting to: {}".format(args.socket))
 print("Subscribing to topic: {}".format(topic))
