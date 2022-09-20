@@ -1,6 +1,7 @@
 extends layout
 
 block content
+  script(src='/ace/ace.js' type="text/javascript" charset="utf-8")
   script(src='/fmin/fmin.js' type="text/javascript" charset="utf-8")
   script(src='/static/javascripts/spec.js')
   script(src='/static/javascripts/fitting.js')
@@ -42,7 +43,10 @@ block content
       legend Commands
       p
         button(id="button_config_send") Send configuration
-    div#module_status
+        button(id="button_config_get") Get configuration
+        button(id="button_config_download") Download configuration
+    p
+      div#online_editor
   div.display 
     h3 Events log
     div#events_log

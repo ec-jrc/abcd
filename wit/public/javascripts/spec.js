@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with ABCD.  If not, see <http://www.gnu.org/licenses/>.
 
-"use strict";
+'use strict';
 
 function page_loaded() {
     const utf8decoder = new TextDecoder("utf8");
@@ -99,7 +99,8 @@ function page_loaded() {
     };
 
     const config_spectrum = {
-        responsive: true
+        responsive: true,
+        modeBarButtonsToRemove: ['lasso2d']
     }
 
     var socket_io = io();
@@ -116,9 +117,20 @@ function page_loaded() {
     $("#time_refresh").val(default_time_refresh);
 
     var old_status = {"timestamp": "###"};
-    var old_channels_configs = {};
-    var last_timestamp = null;
-    var last_abcd_config = null;
+    var last_spec_config = null;
+
+    var spec_config_editor = ace.edit("online_editor");
+    spec_config_editor.setTheme("ace/theme/github");
+    spec_config_editor.setShowPrintMargin(false);
+    spec_config_editor.setOptions({"fontFamily": '"Fira Mono"'});
+
+    spec_config_editor.getSession().setMode("ace/mode/json");
+    spec_config_editor.getSession().setTabSize(4);
+    spec_config_editor.getSession().setUseSoftTabs(true);
+
+    spec_config_editor.container.style.lineHeight = 2;
+    spec_config_editor.renderer.updateFontSize();
+    spec_config_editor.resize();
 
     function on_status(message) {
         const decoded_string = utf8decoder.decode(message);
@@ -128,13 +140,13 @@ function page_loaded() {
 
         if (new_status["timestamp"] !== old_status["timestamp"])
         {
-            last_timestamp = new_status["timestamp"];
-
             old_status = new_status;
 
             //console.log("Updating Speccalc status");
 
-            old_status = new_status;
+            if (new_status.hasOwnProperty("config")) {
+                last_spec_config = new_status["config"];
+            }
 
             const this_selected_channel = selected_channel();
 
@@ -169,78 +181,6 @@ function page_loaded() {
             });
 
             $("#channels_counts").empty().append(counts_list);
-
-            const new_channels_configs = new_status["configs"];
-
-            if ((!_.isEqual(new_channels_configs, old_channels_configs))
-                &&
-                (!_.isNil(this_selected_channel))
-                &&
-                (_.isFinite(this_selected_channel))) {
-
-                old_channels_configs = new_channels_configs;
-
-                $("#module_status").empty();
-
-                new_channels_configs.forEach(function (channel_config) {
-                    const channel = channel_config["id"];
-
-                    let channel_display = $("<fieldset>");
-
-                    channel_display.append($("<legend>", {text: "Channel: " + channel_config.id}));
-                    channel_display.append($("<label>", {text: "ID: ", "for": "channel_id"}).addClass("hidden"));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: channel_config.id,
-                                                        name: "channel_id",
-                                                        id: "channel_id_" + channel}).addClass("hidden").addClass("channel_ids"));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "Energy min: ", "for": "energy_min"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: channel_config.energy.min,
-                                                        name: "energy_min",
-                                                        id: "energy_min_" + channel}));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "Energy max: ", "for": "energy_max"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: channel_config.energy.max,
-                                                        name: "energy_max",
-                                                        id: "energy_max_" + channel}));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "Energy bins: ", "for": "energy_bins"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: channel_config.energy.bins,
-                                                        name: "energy_bins",
-                                                        id: "energy_bins_" + channel}));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "PSD min: ", "for": "PSD_min"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: channel_config.PSD.min_y,
-                                                        name: "PSD_min",
-                                                        id: "PSD_min_" + channel}));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "PSD max: ", "for": "PSD_max"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: channel_config.PSD.max_y,
-                                                        name: "PSD_max",
-                                                        id: "PSD_max_" + channel}));
-                    channel_display.append($("<br>"));
-                    channel_display.append($("<label>", {text: "PSD bins: ", "for": "PSD_bins"}));
-                    channel_display.append($("<input>", {
-                                                        type: "number",
-                                                        value: channel_config.PSD.bins_y,
-                                                        name: "PSD_bins",
-                                                        id: "PSD_bins_" + channel}));
-                    channel_display.append($("<br>"));
-
-                    $("#module_status").append(channel_display);
-                });
-            }
         }
     }
 
@@ -396,7 +336,7 @@ function page_loaded() {
 
             let csv_text = "#Spectrum for channel: " + this_selected_channel + " created on: " + dayjs().format() + "\r\n";
 
-            csv_text += "#left_edge,counts\r\n";
+            csv_text += "#left_edge [ch],counts\r\n";
 
             for (let index = 0; index < histo_energy.data.length; index ++) {
                 const edge = index * delta + histo_energy.config.min;
@@ -412,42 +352,39 @@ function page_loaded() {
     }
 
     function spec_arguments_reconfigure() {
-        const channel_ids = $(".channel_ids").map(function (index, element) {
-            return parseInt(this.value);
-        }).get();
-    
-        const energy_channels = channel_ids.map(function (id) {
-            return {"id": id,
-                    "type": "energy",
-                    "config": {
-                        "verbosity": 0,
-                        "bins": parseInt($("#energy_bins_" + id).val()),
-                        "min": parseFloat($("#energy_min_" + id).val()),
-                        "max": parseFloat($("#energy_max_" + id).val())
-                    }
-                   };
-        });
-    
-        const PSD_channels = channel_ids.map(function (id) {
-            return {"id": id,
-                    "type": "PSD",
-                    "config": {
-                        "verbosity": 0,
-                        "bins_x": parseInt($("#energy_bins_" + id).val()),
-                        "min_x": parseFloat($("#energy_min_" + id).val()),
-                        "max_x": parseFloat($("#energy_max_" + id).val()),
-                        "bins_y": parseInt($("#PSD_bins_" + id).val()),
-                        "min_y": parseFloat($("#PSD_min_" + id).val()),
-                        "max_y": parseFloat($("#PSD_max_" + id).val())
-                    }
-                   };
-        });
-    
-        const kwargs = {"channels": energy_channels.concat(PSD_channels)};
-    
-        return kwargs;
+        try {
+            const new_text_config = spec_config_editor.getSession().getValue();
+            const new_config = JSON.parse(new_text_config);
+            const kwargs = {"config": new_config};
+
+            return kwargs;
+
+        } catch (error) {
+            console.log("Error: " + error);
+
+            return null;
+        }
     }
     
+    function spec_get_config() {
+        if (_.isNil(last_spec_config)) {
+            spec_config_editor.getSession().setValue(JSON.stringify({"error": "Unable to load spec config"}, null, 4));
+            spec_config_editor.gotoLine(0);
+        } else {
+            spec_config_editor.getSession().setValue(JSON.stringify(last_spec_config, null, 4));
+            spec_config_editor.gotoLine(0);
+        }
+    }
+
+    function spec_download_config() {
+        const new_text_config = spec_config_editor.getSession().getValue();
+        const file_name = "spec_config_" + dayjs().format("YYYY-MM-DDTHH.mm.ss") + ".json";
+
+        //console.log("Preparing file with name: " + file_name);
+
+        create_and_download_file(new_text_config, file_name, "txt");
+    }
+
     function spec_arguments_reset(channel) {
         return function () {
             const kwargs = {"channel": (_.isNil(channel) ? selected_channel() : channel),
@@ -483,6 +420,8 @@ function page_loaded() {
     });
     $("#button_download_spectrum_data").on("click", download_spectrum_data);
     $("#button_config_send").on("click", send_command(socket_io, 'reconfigure', spec_arguments_reconfigure));
+    $("#button_config_get").on("click", spec_get_config);
+    $("#button_config_download").on("click", spec_download_config);
     $("#button_reset_channel").on("click", send_command(socket_io, 'reset', spec_arguments_reset()));
     $("#button_reset_all").on("click", send_command(socket_io, 'reset', spec_arguments_reset("all")));
 
