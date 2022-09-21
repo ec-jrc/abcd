@@ -198,7 +198,9 @@ function page_loaded() {
                 csv_text += "\r\n";
             }
         
-            create_and_download_file(csv_text, "Waveform of channel " + this_selected_channel + " with timestamp " + timestamp + ".csv", "txt");
+            const file_name = "Waveform of channel " + this_selected_channel + " with timestamp " + timestamp + " at " + dayjs().format("YYYY-MM-DDTHH.mm.ss") + ".csv";
+        
+            create_and_download_file(csv_text, file_name, "txt");
         } catch (error) {
             console.error(error);
         }

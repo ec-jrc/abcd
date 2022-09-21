@@ -481,8 +481,10 @@ function page_loaded() {
 
                 csv_text += "" + edge + "," + counts + "\r\n";
             }
+
+            const file_name = "ToF plot of channel " + this_selected_channel + " at " + dayjs().format("YYYY-MM-DDTHH.mm.ss") + ".csv";
         
-            create_and_download_file(csv_text, "ToF plot of channel " + this_selected_channel + ".csv", "txt");
+            create_and_download_file(csv_text, file_name, "txt");
         } catch (error) {
             console.error(error);
         }
@@ -506,7 +508,9 @@ function page_loaded() {
                 csv_text += "" + edge + "," + counts + "\r\n";
             }
         
-            create_and_download_file(csv_text, "Spectrum plot of channel " + this_selected_channel + ".csv", "txt");
+            const file_name = "Spectrum plot of channel " + this_selected_channel + " at " + dayjs().format("YYYY-MM-DDTHH.mm.ss") + ".csv";
+        
+            create_and_download_file(csv_text, file_name, "txt");
         } catch (error) {
             console.error(error);
         }
