@@ -195,7 +195,11 @@ function page_loaded() {
 
     function abcd_download_config() {
         const new_text_config = abcd_config_editor.getSession().getValue();
-        create_and_download_file(new_text_config, "abcd_config.json", "txt");
+        const file_name = "abcd_config_" + dayjs().format("YYYY-MM-DDTHH.mm.ss") + ".json";
+
+        //console.log("Preparing file with name: " + file_name);
+
+        create_and_download_file(new_text_config, file_name, "txt");
     }
 
     socket_io.on("connect", socket_io_connection(socket_io, module_name, on_status, update_events_log(), null));
