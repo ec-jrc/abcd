@@ -726,6 +726,9 @@ int ABCD::ADQ214::ReadConfig(json_t *config)
         std::cout << std::endl;
     }
 
+    json_object_set_nocheck(config, "PLL_divider", json_integer(PLL_divider));
+
+
     if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);

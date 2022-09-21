@@ -7,7 +7,7 @@
             "scope_samples": 512,
             "pretrigger": 128,
             "records_number": 200,
-            "sampling_frequency": 400,
+            "PLL_divider": 2,
             "clock_source": "external",
             "clock_source0": "internal",
             "clock_source1": "external_10MHz",
@@ -50,7 +50,7 @@
             "scope_samples": 512,
             "pretrigger": 256,
             "records_number": 200,
-            "sampling_frequency": 400,
+            "PLL_divider": 2,
             "clock_source": "external",
             "channels": [
                 {
@@ -83,7 +83,7 @@
             "scope_samples": 1600,
             "pretrigger": 300,
             "records_number": 100,
-            "sampling_frequency": 400,
+            "PLL_divider": 2,
             "clock_source": "external",
             "channels": [
                 {
@@ -116,7 +116,7 @@
             "scope_samples": 512,
             "pretrigger": 256,
             "records_number": 100,
-            "sampling_frequency": 400,
+            "PLL_divider": 2,
             "clock_source": "external",
             "channels": [
                 {
@@ -149,7 +149,7 @@
             "scope_samples": 1600,
             "pretrigger": 300,
             "records_number": 100,
-            "sampling_frequency": 400,
+            "PLL_divider": 2,
             "clock_source": "external",
             "channels": [
                 {

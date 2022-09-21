@@ -15,7 +15,7 @@
  * The configuration parameters that are searched in a `json_t` object are:
  *
  * - `baseline_samples`: the number of samples to average to determine the
- *   baseline. The average starts from the beginning of the waveform.
+ *   baseline. The average starts from the beginning of the analysis.
  * - `pulse_polarity`: a string describing the expected pulse polarity, it
  *   can be `positive` or `negative`.
  * - `lowpass_time`: the decay time of the low-pass filter (RC4 filter), in
@@ -274,12 +274,13 @@ void energy_analysis(const uint16_t *samples,
         (*events_buffer)[0].group_counter = group_counter;
 
         const uint8_t initial_additional_number = waveform_additional_get_number(waveform);
-        const uint8_t new_additional_number = initial_additional_number + 2;
+        const uint8_t new_additional_number = initial_additional_number + 3;
 
         waveform_additional_set_number(waveform, new_additional_number);
 
-        uint8_t *additional_analysis = waveform_additional_get(waveform, initial_additional_number + 0);
-        uint8_t *additional_RC = waveform_additional_get(waveform, initial_additional_number + 1);
+        uint8_t *additional_gate_analysis = waveform_additional_get(waveform, initial_additional_number + 0);
+        uint8_t *additional_gate_baseline = waveform_additional_get(waveform, initial_additional_number + 1);
+        uint8_t *additional_RC = waveform_additional_get(waveform, initial_additional_number + 2);
 
         const double RC_abs_max = (fabs(RC_max) > fabs(RC_min)) ? fabs(RC_max) : fabs(RC_min);
 
@@ -287,11 +288,17 @@ void energy_analysis(const uint16_t *samples,
         const uint8_t MAX = UINT8_MAX / 2;
 
         for (uint32_t i = 0; i < samples_number; i++) {
+            if (baseline_start <= i && i < baseline_end) {
+                additional_gate_baseline[i] = ZERO + MAX / 2;
+            } else {
+                additional_gate_baseline[i] = ZERO;
+            }
+
             if (analysis_start <= i && i < analysis_end) {
-                additional_analysis[i] = MAX + ZERO;
+                additional_gate_analysis[i] = ZERO + MAX;
                 additional_RC[i] = (config->curve_RC[i - analysis_start] / RC_abs_max) * MAX + ZERO;
             } else {
-                additional_analysis[i] = ZERO;
+                additional_gate_analysis[i] = ZERO;
                 additional_RC[i] = ZERO;
             }
         }
