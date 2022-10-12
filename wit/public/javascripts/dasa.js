@@ -48,88 +48,63 @@ function page_loaded() {
             $("<li>").text("Saving time: none").appendTo(status_list);
         }
 
+        let overall_file_size = 0;
 
-        //let events_li = $("<li>").text("Run time: ");
-        let events_li = $("<li>").text("Events:");
-        let events_ul = $("<ul>");
+        for (const file_type of ["events", "waveforms", "raw"]) {
+            let events_li = $("<li>").text(file_type.charAt(0).toUpperCase() + file_type.slice(1) + " file:");
+            let events_ul = $("<ul>");
 
-        if (new_status.hasOwnProperty("events_file_opened")) {
-            const file_opened = new_status["events_file_opened"];
+            if (new_status.hasOwnProperty(file_type + "_file_opened")) {
+                const file_opened = new_status[file_type + "_file_opened"];
 
-            let li = $("<li>").text('File opened: ' + file_opened);
+                let li = $("<li>").text('File opened: ' + file_opened);
 
-            if (file_opened) {
-                const file_size = new_status["events_file_size"];
-                const file_size_per_minute = Math.round(file_size / run_time_minutes);
+                if (file_opened) {
+                    const file_size = new_status[file_type + "_file_size"];
+                    const file_size_per_minute = Math.round(file_size / run_time_minutes);
 
-                li.addClass("good_status").appendTo(events_ul);
+                    overall_file_size += file_size;
 
-                $('<li>').text("File name: " + new_status["events_file_name"]).appendTo(events_ul);
-                $('<li>').text("File size: " + filesize(file_size).human()).appendTo(events_ul);
-                $('<li>').text("File growth: " + filesize(file_size_per_minute).human() + "/min").appendTo(events_ul);
+                    li.addClass("good_status").appendTo(events_ul);
+
+                    $('<li>').text("File name: " + new_status[file_type + "_file_name"]).appendTo(events_ul);
+                    $('<li>').text("File size: " + filesize(file_size).human()).appendTo(events_ul);
+                    $('<li>').text("File growth: " + filesize(file_size_per_minute).human() + "/min").appendTo(events_ul);
+                } else {
+                    li.addClass("bad_status").appendTo(events_ul);
+                }
             } else {
-                li.addClass("bad_status").appendTo(events_ul);
+                $("<li>").text('File opened: Status Error').addClass("bad_status").appendTo(events_ul);
             }
-        } else {
-            $("<li>").text('File opened: Status Error').addClass("bad_status").appendTo(events_ul);
+
+            events_li.append(events_ul);
+            status_list.append(events_li);
         }
 
-        events_li.append(events_ul);
-        status_list.append(events_li);
+        if (overall_file_size > 0) {
+            let overall_li = $("<li>").text("Overall:");
+            let overall_ul = $("<ul>");
 
-        let waveforms_li = $("<li>").text("Waveforms:");
-        let waveforms_ul = $("<ul>");
+            const overall_file_size_per_second = Math.round(overall_file_size / run_time.asSeconds());
+            const overall_file_size_per_minute = Math.round(overall_file_size / run_time_minutes);
 
-        if (new_status.hasOwnProperty("waveforms_file_opened")) {
-            const file_opened = new_status["waveforms_file_opened"];
+            $('<li>').text("Overall files size: " + filesize(overall_file_size).human()).appendTo(overall_ul);
+            $('<li>').text("Overall files growth: " + filesize(overall_file_size_per_minute).human() + "/min").appendTo(overall_ul);
 
-            let li = $("<li>").text('File opened: ' + file_opened);
+            if (new_status.hasOwnProperty("filesystem_capacity")
+                && new_status.hasOwnProperty("filesystem_available")) {
 
-            if (file_opened) {
-                const file_size = new_status["waveforms_file_size"];
-                const file_size_per_minute = Math.round(file_size / run_time_minutes);
+                const fs_capacity = new_status["filesystem_capacity"];
+                const fs_available = new_status["filesystem_available"];
+                const fs_remaining_time = Math.round(fs_available / overall_file_size_per_second);
 
-                li.addClass("good_status").appendTo(waveforms_ul);
-
-                $('<li>').text("File name: " + new_status["waveforms_file_name"]).appendTo(waveforms_ul);
-                $('<li>').text("File size: " + filesize(file_size).human()).appendTo(waveforms_ul);
-                $('<li>').text("File growth: " + filesize(file_size_per_minute).human() + "/min").appendTo(waveforms_ul);
-            } else {
-                li.addClass("bad_status").appendTo(waveforms_ul);
+                $('<li>').text("Filesystem available space: " + filesize(fs_available).human() + " (total: " + filesize(fs_capacity).human() + ")").appendTo(overall_ul);
+                $("<li>").text("Time to full: " + humanizeDuration(fs_remaining_time * 1000) + " (" + fs_remaining_time + " s)").appendTo(overall_ul);
             }
-        } else {
-            $("<li>").text('File opened: Status Error').addClass("bad_status").appendTo(waveforms_ul);
+
+            overall_li.append(overall_ul);
+            status_list.append(overall_li);
         }
-
-        waveforms_li.append(waveforms_ul);
-        status_list.append(waveforms_li);
-
-        let raw_li = $("<li>").text("Raw:");
-        let raw_ul = $("<ul>");
-
-        if (new_status.hasOwnProperty("raw_file_opened")) {
-            const file_opened = new_status["raw_file_opened"];
-
-            let li = $("<li>").text('File opened: ' + file_opened);
-
-            if (file_opened) {
-                const file_size = new_status["raw_file_size"];
-                const file_size_per_minute = Math.round(file_size / run_time_minutes);
-
-                li.addClass("good_status").appendTo(raw_ul);
-
-                $('<li>').text("File name: " + new_status["raw_file_name"]).appendTo(raw_ul);
-                $('<li>').text("File size: " + filesize(file_size).human()).appendTo(raw_ul);
-                $('<li>').text("File growth: " + filesize(file_size_per_minute).human() + "/min").appendTo(raw_ul);
-            } else {
-                li.addClass("bad_status").appendTo(raw_ul);
-            }
-        } else {
-            $("<li>").text('File opened: Status Error').addClass("bad_status").appendTo(raw_ul);
-        }
-
-        raw_li.append(raw_ul);
-        status_list.append(raw_li);
 
         $("#module_status").html(status_list);
     }
