@@ -12,7 +12,7 @@ C_OBJECTS = $(C_SOURCES:.c=.o)
 CFLAGS += 
 CXXFLAGS += 
 
-LDFLAGS += -ljansson -lm
+LDFLAGS += -ljansson -lm -lstdc++fs
 
 .PHONY: all clean common_objects test
 

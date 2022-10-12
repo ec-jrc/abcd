@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2016 Cristiano Lino Fontana
+ * (C) Copyright 2016, 2022, European Union, Cristiano Lino Fontana
  *
  * This file is part of ABCD.
  *
@@ -26,6 +26,8 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <filesystem>
+
 #include <zmq.h>
 #include <jansson.h>
 
@@ -924,6 +926,21 @@ state actions::saving_publish_status(status &global_status)
     const long int runtime = run_delta_time.count();
 
     json_object_set_new(status_message, "runtime", json_integer(runtime));
+
+    std::string representative_file_name;
+
+    if (global_status.events_file_name.length() > 0) {
+        representative_file_name = global_status.events_file_name;
+    } else if (global_status.waveforms_file_name.length() > 0) {
+        representative_file_name = global_status.waveforms_file_name;
+    } else {
+        representative_file_name = global_status.raw_file_name;
+    }
+
+    const std::filesystem::space_info space_info = std::filesystem::space(representative_file_name);
+
+    json_object_set_new(status_message, "filesystem_capacity", json_integer(space_info.capacity));
+    json_object_set_new(status_message, "filesystem_available", json_integer(space_info.available));
 
     json_object_set_new(status_message, "events_file_opened", json_boolean(global_status.events_output_file.good()));
     json_object_set_new(status_message, "waveforms_file_opened", json_boolean(global_status.waveforms_output_file.good()));
