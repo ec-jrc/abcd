@@ -76,7 +76,8 @@ void print_usage(const char *name) {
     printf("\t-v: Set verbose execution\n");
     printf("\t-V: Set verbose execution with more output\n");
     printf("\t-A <address>: Input socket address, default: %s\n", defaults_abcd_data_address_sub);
-    printf("\t-D <address>: Output socket address, default: %s\n", defaults_cofi_data_address);
+    printf("\t-D <address>: Output socket address for coincidence data, default: %s\n", defaults_cofi_coincidence_data_address);
+    printf("\t-N <address>: Output socket address for anti-coincidence data, default: %s\n", defaults_cofi_anticoincidence_data_address);
     printf("\t-T <period>: Set base period in milliseconds, default: %d\n", defaults_cofi_base_period);
     printf("\t-w <coincidence_window>: Symmetric coincidence window in nanoseconds\n");
     printf("\t-l <left_coincidence_window>: Left coincidence window width in nanoseconds extending to negative times relative to the reference pulse, default: %f\n", defaults_cofi_coincidence_window_left);
@@ -85,6 +86,7 @@ void print_usage(const char *name) {
     printf("\t-m <multiplicity>: Event minimum multiplicity excluding the reference channel, default: %u\n", defaults_cofi_multiplicity);
     printf("\t-n <ns_per_sample>: Nanoseconds per sample, default: %f\n", defaults_cofi_ns_per_sample);
     printf("\t-k: Enable keep reference event, even if there are no coincidences.\n");
+    printf("\t-a: Enable the calculation of anticoincidences and the creation of the corresponding socket.\n");
 
     return;
 }
@@ -92,7 +94,7 @@ void print_usage(const char *name) {
 bool in(int channel, int *reference_channels, size_t number_of_channels);
 void quicksort(struct event_PSD *events, int64_t low, int64_t high);
 int64_t partition(struct event_PSD *events, int64_t low, int64_t high);
-void reallocate_events(size_t events_number, size_t *previous_events_number, struct event_PSD **coincidence_events);
+void reallocate_array(size_t elements_number, size_t *previous_elements_number, void **elements_array, size_t sizeof_type);
 
 int main(int argc, char *argv[])
 {
@@ -105,14 +107,16 @@ int main(int argc, char *argv[])
     unsigned int verbosity = 0;
     unsigned int base_period = defaults_cofi_base_period;
     char *input_address = defaults_abcd_data_address_sub;
-    char *output_address = defaults_cofi_data_address;
+    char *output_address_coincidences = defaults_cofi_coincidence_data_address;
+    char *output_address_anticoincidences = defaults_cofi_anticoincidence_data_address;
+    bool enable_anticoincidences = false;
     float left_coincidence_window_ns = defaults_cofi_coincidence_window_left;
     float right_coincidence_window_ns = defaults_cofi_coincidence_window_right;
     float ns_per_sample = defaults_cofi_ns_per_sample;
     size_t multiplicity = defaults_cofi_multiplicity;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hA:D:S:P:T:w:l:r:L:n:m:kvV")) != -1) {
+    while ((c = getopt(argc, argv, "hA:D:N:S:P:T:w:l:r:L:n:m:kavV")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
@@ -121,13 +125,16 @@ int main(int argc, char *argv[])
                 input_address = optarg;
                 break;
             case 'P':
-                output_address = optarg;
+                output_address_coincidences = optarg;
                 break;
             case 'A':
                 input_address = optarg;
                 break;
             case 'D':
-                output_address = optarg;
+                output_address_coincidences = optarg;
+                break;
+            case 'N':
+                output_address_anticoincidences = optarg;
                 break;
             case 'T':
                 base_period = atoi(optarg);
@@ -153,6 +160,9 @@ int main(int argc, char *argv[])
                 break;
             case 'k':
                 keep_reference_event = true;
+                break;
+            case 'a':
+                enable_anticoincidences = true;
                 break;
             case 'v':
                 verbosity = 1;
@@ -186,7 +196,8 @@ int main(int argc, char *argv[])
 
     if (verbosity > 0) {
         printf("Input socket address: %s\n", input_address);
-        printf("Output socket address: %s\n", output_address);
+        printf("Output socket address for coincidences: %s\n", output_address_coincidences);
+        printf("Output socket address for anticoincidences: %s\n", output_address_anticoincidences);
         printf("Selected channel(s): ");
         for (int i = 0; i < number_of_references; i++)
         {
@@ -198,6 +209,7 @@ int main(int argc, char *argv[])
         printf("Left coincidence window: %f, (clock steps: %" PRIu64 ")\n", left_coincidence_window_ns, left_coincidence_window);
         printf("Right coincidence window: %f, (clock steps: %" PRIu64 ")\n", right_coincidence_window_ns, right_coincidence_window);
         printf("Nanoseconds per sample: %f\n", ns_per_sample);
+        printf("Enable anticoincidences: %s\n", enable_anticoincidences ? "true" : "false");
     }
 
     // Creates a �MQ context
@@ -215,25 +227,45 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    void *output_socket = zmq_socket(context, ZMQ_PUB);
-    if (!output_socket)
+    void *output_socket_coincidences = zmq_socket(context, ZMQ_PUB);
+    if (!output_socket_coincidences)
     {
-        printf("ERROR: ZeroMQ Error on output socket creation\n");
+        printf("ERROR: ZeroMQ Error on output socket creation for coincidences\n");
         return EXIT_FAILURE;
+    }
+
+    void *output_socket_anticoincidences = NULL;
+
+    if (enable_anticoincidences) {
+        output_socket_anticoincidences = zmq_socket(context, ZMQ_PUB);
+        if (!output_socket_anticoincidences)
+        {
+            printf("ERROR: ZeroMQ Error on output socket creation for anticoincidences\n");
+            return EXIT_FAILURE;
+        }
     }
 
     const int is = zmq_connect(input_socket, input_address);
     if (is != 0)
     {
-        printf("ERROR: ZeroMQ Error on input socket binding: %s\n", zmq_strerror(errno));
+        printf("ERROR: ZeroMQ Error on input socket connection: %s\n", zmq_strerror(errno));
         return EXIT_FAILURE;
     }
 
-    const int os = zmq_bind(output_socket, output_address);
-    if (os != 0)
+    const int osc = zmq_bind(output_socket_coincidences, output_address_coincidences);
+    if (osc != 0)
     {
-        printf("ERROR: ZeroMQ Error on output socket connection: %s\n", zmq_strerror(errno));
+        printf("ERROR: ZeroMQ Error on output socket binding for coincidences: %s\n", zmq_strerror(errno));
         return EXIT_FAILURE;
+    }
+
+    if (enable_anticoincidences) {
+        const int osa = zmq_bind(output_socket_anticoincidences, output_address_anticoincidences);
+        if (osa != 0)
+        {
+            printf("ERROR: ZeroMQ Error on output socket binding for coincidences: %s\n", zmq_strerror(errno));
+            return EXIT_FAILURE;
+        }
     }
 
     // Subscribe to data topic
@@ -258,11 +290,40 @@ int main(int argc, char *argv[])
     size_t msg_counter = 0;
     size_t msg_ID = 0;
 
-    size_t previous_events_number = 0;
-    struct event_PSD *coincidence_events = NULL;
+    size_t previous_number_events_coincidence = 0;
+    size_t previous_number_events_anticoincidence = 0;
+    size_t previous_number_selection_anticoincidence = 0;
+
+    struct event_PSD *events_coincidence = NULL;
+    struct event_PSD *events_anticoincidence = NULL;
+    bool *selection_anticoincidence = NULL;
 
     // We start with a random initial guess for the number of events
-    reallocate_events(1024, &previous_events_number, &coincidence_events);
+    if (verbosity > 0)
+    {
+        printf("Allocating memory for coincidence data.\n");
+    }
+
+    reallocate_array(1024,
+                     &previous_number_events_coincidence,
+                     (void**)&events_coincidence,
+                     sizeof(struct event_PSD));
+
+    if (enable_anticoincidences) {
+        if (verbosity > 0)
+        {
+            printf("Allocating memory for anticoincidence data.\n");
+        }
+
+        reallocate_array(1024,
+                         &previous_number_events_anticoincidence,
+                         (void**)&events_anticoincidence,
+                         sizeof(struct event_PSD));
+        reallocate_array(1024,
+                         &previous_number_selection_anticoincidence,
+                         (void**)&selection_anticoincidence,
+                         sizeof(bool));
+    }
 
     while (terminate_flag == 0)
     {
@@ -297,7 +358,7 @@ int main(int argc, char *argv[])
 
                 const size_t events_number = size / sizeof(struct event_PSD);
 
-                size_t coincidence_group_start_index = 0;
+                size_t index_coincidence_group_start = 0;
 
                 struct event_PSD *events = (void *)input_buffer;
 
@@ -307,37 +368,47 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    reallocate_events(events_number, &previous_events_number, &coincidence_events);
+                    reallocate_array(events_number,
+                                     &previous_number_events_coincidence,
+                                     (void**)&events_coincidence,
+                                     sizeof(struct event_PSD));
 
-                    if (coincidence_events == NULL)
+                    if (enable_anticoincidences) {
+                        reallocate_array(events_number,
+                                     &previous_number_events_anticoincidence,
+                                     (void**)&events_anticoincidence,
+                                     sizeof(struct event_PSD));
+                        reallocate_array(events_number,
+                                     &previous_number_selection_anticoincidence,
+                                     (void**)&selection_anticoincidence,
+                                     sizeof(bool));
+
+                        for (uint32_t index = 0; index < events_number; index++) {
+                            selection_anticoincidence[index] = true;
+                        }
+                    }
+
+                    if (!events_coincidence
+                        || ((!events_anticoincidence || !selection_anticoincidence) && enable_anticoincidences))
                     {
-                        printf("[%zu] ERROR: Unable to allocate output buffer\n", counter);
+                        printf("[%zu] ERROR: Unable to allocate output buffer(s)\n", counter);
                     }
                     else
                     {
                         quicksort(events, 0, events_number - 1);
 
-                        //uint64_t prev_timestamp = 0;
-
-                        for (size_t i = 0; i < events_number; i++)
+                        for (size_t index = 0; index < events_number; index++)
                         {
-                            const struct event_PSD this_event = events[i];
-                            //printf("i: %zu, ch: %d, t: %lu\n", i, this_event.channel, this_event.timestamp);
-
-                            //if (prev_timestamp > this_event.timestamp)
-                            //{
-                            //    printf("ERROR: Not ordered!!! i: %zu, timestamp: %lu, prev_timestamp: %lu\n", i, this_event.timestamp, prev_timestamp);
-                            //}
-                            //prev_timestamp = this_event.timestamp;
+                            const struct event_PSD this_event = events[index];
 
                             if (in(this_event.channel, reference_channels, number_of_references))
                             {
                                 size_t found_coincidences = 0;
 
                                 // Search backward in time
-                                for (int64_t j = (i - 1); j > 0; j--)
+                                for (int64_t sub_index = (index - 1); sub_index > 0; sub_index--)
                                 {
-                                    const struct event_PSD that_event = events[j];
+                                    const struct event_PSD that_event = events[sub_index];
 
                                     if((this_event.timestamp - left_coincidence_window) < that_event.timestamp \
                                        && \
@@ -345,16 +416,24 @@ int main(int argc, char *argv[])
                                     {
                                         if (!in(that_event.channel, reference_channels, number_of_references))
                                         {
+                                            // Increase already the found_coincidences counter, so
+                                            // the first event in the output coincidence group is left
+                                            // empty at this stage. It will be filled with the reference
+                                            // event afterwards.
                                             found_coincidences += 1;
 
                                             if (verbosity > 1)
                                             {
-                                                printf(" Backward coincidence!!!! i: %zu, j: %" PRId64 ", channel: %" PRIu8 ", timestamps: this: %" PRIu64 ", that: %" PRIu64 ", difference: %" PRId64 "\n", i, j, that_event.channel, this_event.timestamp, that_event.timestamp, ((int64_t)that_event.timestamp) - (int64_t)this_event.timestamp);
+                                                printf(" Backward coincidence!!!! i: %zu, j: %" PRId64 ", channel: %" PRIu8 ", timestamps: this: %" PRIu64 ", that: %" PRIu64 ", difference: %" PRId64 "\n", index, sub_index, that_event.channel, this_event.timestamp, that_event.timestamp, ((int64_t)that_event.timestamp) - (int64_t)this_event.timestamp);
                                             }
 
-                                            if ((coincidence_group_start_index + found_coincidences) < defaults_cofi_coincidence_buffer_multiplier * events_number)
+                                            if ((index_coincidence_group_start + found_coincidences) < defaults_cofi_coincidence_buffer_multiplier * events_number)
                                             {
-                                                coincidence_events[coincidence_group_start_index + found_coincidences] = that_event;
+                                                events_coincidence[index_coincidence_group_start + found_coincidences] = that_event;
+                                            }
+
+                                            if (enable_anticoincidences) {
+                                                selection_anticoincidence[sub_index] = false;
                                             }
                                         }
                                     }
@@ -365,9 +444,9 @@ int main(int argc, char *argv[])
                                 }
 
                                 // Search forward in time
-                                for (int64_t j = (i + 1); j < (int64_t)events_number; j++)
+                                for (int64_t sub_index = (index + 1); sub_index < (int64_t)events_number; sub_index++)
                                 {
-                                    const struct event_PSD that_event = events[j];
+                                    const struct event_PSD that_event = events[sub_index];
 
                                     if((this_event.timestamp - left_coincidence_window) < that_event.timestamp \
                                        && \
@@ -375,16 +454,21 @@ int main(int argc, char *argv[])
                                     {
                                         if (!in(that_event.channel, reference_channels, number_of_references))
                                         {
+                                            // See previous comment
                                             found_coincidences += 1;
 
                                             if (verbosity > 1)
                                             {
-                                                printf(" Forward coincidence!!!! i: %zu, j: %" PRId64 ", channel: %" PRIu8 ", timestamps: this: %" PRIu64 ", that: %" PRIu64 ", difference: %" PRId64 "\n", i, j, that_event.channel, this_event.timestamp, that_event.timestamp, ((int64_t)that_event.timestamp) - (int64_t)this_event.timestamp);
+                                                printf(" Forward coincidence!!!! i: %zu, j: %" PRId64 ", channel: %" PRIu8 ", timestamps: this: %" PRIu64 ", that: %" PRIu64 ", difference: %" PRId64 "\n", index, sub_index, that_event.channel, this_event.timestamp, that_event.timestamp, ((int64_t)that_event.timestamp) - (int64_t)this_event.timestamp);
                                             }
 
-                                            if ((coincidence_group_start_index + found_coincidences) < defaults_cofi_coincidence_buffer_multiplier * events_number)
+                                            if ((index_coincidence_group_start + found_coincidences) < defaults_cofi_coincidence_buffer_multiplier * events_number)
                                             {
-                                                coincidence_events[coincidence_group_start_index + found_coincidences] = that_event;
+                                                events_coincidence[index_coincidence_group_start + found_coincidences] = that_event;
+                                            }
+
+                                            if (enable_anticoincidences) {
+                                                selection_anticoincidence[sub_index] = false;
                                             }
                                         }
                                     }
@@ -400,42 +484,94 @@ int main(int argc, char *argv[])
                                 }
 
                                 if (found_coincidences >= multiplicity) {
-                                    quicksort(coincidence_events, coincidence_group_start_index + 1, coincidence_group_start_index + found_coincidences);
+                                    quicksort(events_coincidence, index_coincidence_group_start + 1, index_coincidence_group_start + found_coincidences);
 
-                                    if (coincidence_group_start_index < defaults_cofi_coincidence_buffer_multiplier * events_number) {
-                                        coincidence_events[coincidence_group_start_index] = this_event;
+                                    if (index_coincidence_group_start < defaults_cofi_coincidence_buffer_multiplier * events_number) {
+                                        events_coincidence[index_coincidence_group_start] = this_event;
 
                                         if (found_coincidences > 0xFF) {
-                                            coincidence_events[coincidence_group_start_index].group_counter = 0xFF;
+                                            events_coincidence[index_coincidence_group_start].group_counter = 0xFF;
                                         } else {
-                                            coincidence_events[coincidence_group_start_index].group_counter = (uint8_t)found_coincidences;
+                                            events_coincidence[index_coincidence_group_start].group_counter = (uint8_t)found_coincidences;
                                         }
 
-                                        coincidence_group_start_index += (1 + found_coincidences);
+                                        index_coincidence_group_start += (1 + found_coincidences);
+                                    }
+
+                                    if (enable_anticoincidences) {
+                                        selection_anticoincidence[index] = false;
                                     }
                                 } else if (keep_reference_event) {
-                                    if (coincidence_group_start_index < defaults_cofi_coincidence_buffer_multiplier * events_number) {
-                                        coincidence_events[coincidence_group_start_index] = this_event;
-                                        coincidence_events[coincidence_group_start_index].group_counter = 0;
-                                        coincidence_group_start_index += 1;
+                                    if (index_coincidence_group_start < defaults_cofi_coincidence_buffer_multiplier * events_number) {
+                                        events_coincidence[index_coincidence_group_start] = this_event;
+                                        events_coincidence[index_coincidence_group_start].group_counter = 0;
+                                        index_coincidence_group_start += 1;
+                                    }
+
+                                    if (enable_anticoincidences) {
+                                        selection_anticoincidence[index] = false;
                                     }
                                 }
                             }
                         }
 
-                        const size_t output_size = coincidence_group_start_index * sizeof(struct event_PSD);
+                        const size_t output_size = index_coincidence_group_start * sizeof(struct event_PSD);
 
                         // Compute the new topic
                         char new_topic[defaults_all_topic_buffer_size];
-                        // I am not sure if snprintf is standard or not, apprently it is in the C99 standard
                         snprintf(new_topic, defaults_all_topic_buffer_size, "data_abcd_events_v0_s%zu", output_size);
 
-                        send_byte_message(output_socket, new_topic, (void *)coincidence_events, output_size, 0);
+                        send_byte_message(output_socket_coincidences, new_topic, (void *)events_coincidence, output_size, 0);
                         msg_ID += 1;
 
                         if (verbosity > 0)
                         {
-                            printf("Sending message with topic: %s\n", new_topic);
+                            printf("Sending message with coincidences with topic: %s\n", new_topic);
+                        }
+
+                        if (enable_anticoincidences) {
+                            size_t found_anticoincidences = 0;
+
+                            for (size_t index = 0; index < events_number; index++)
+                            {
+                                const struct event_PSD this_event = events[index];
+
+                                if (selection_anticoincidence[index] == true) {
+                                    // This should be memory safe, as the
+                                    // selection is a sub-set of the incoming
+                                    // events.
+                                    events_anticoincidence[found_anticoincidences] = this_event;
+
+                                    if (verbosity > 1) {
+                                        printf(" anticoincidence: i: %zu, found: %zu; channel: %" PRIu8 ", timestamp: %" PRIu64 "\n", \
+                                               index, found_anticoincidences, this_event.channel, this_event.timestamp);
+                                    }
+
+                                    found_anticoincidences += 1;
+                                }
+                            }
+
+                            if (verbosity > 0)
+                            {
+                                printf("events_number: %zu; coincidences_number: %zu; anticoincidences_number: %zu;\n", \
+                                       events_number, index_coincidence_group_start, found_anticoincidences);
+                            }
+
+                            if (found_anticoincidences > 0) {
+                                const size_t output_size = found_anticoincidences * sizeof(struct event_PSD);
+
+                                // Compute the new topic
+                                char new_topic[defaults_all_topic_buffer_size];
+                                snprintf(new_topic, defaults_all_topic_buffer_size, "data_abcd_events_v0_s%zu", output_size);
+
+                                send_byte_message(output_socket_anticoincidences, new_topic, (void *)events_anticoincidence, output_size, 0);
+                                msg_ID += 1;
+
+                                if (verbosity > 0)
+                                {
+                                    printf("Sending message with anticoincidences with topic: %s\n", new_topic);
+                                }
+                            }
                         }
                     }
                 }
@@ -449,7 +585,7 @@ int main(int argc, char *argv[])
                     const float elaboration_speed_events = events_number / elaboration_time;
 
                     printf("size: %zu; events_number: %zu; coincidences_number: %zu; ratio: %.2f%%; elaboration_time: %f ms; elaboration_speed: %.1f MBi/s, %.1f kevts/s\n", \
-                           size, events_number, coincidence_group_start_index, coincidence_group_start_index / (float)events_number * 100, elaboration_time, elaboration_speed_MB, elaboration_speed_events);
+                           size, events_number, index_coincidence_group_start, index_coincidence_group_start / (float)events_number * 100, elaboration_time, elaboration_speed_MB, elaboration_speed_events);
                 }
             }
             else if (strstr(topic, "data_abcd_waveforms_v0") == topic)
@@ -458,7 +594,7 @@ int main(int argc, char *argv[])
                     printf("Forwarding waveforms message\n");
                 }
 
-                send_byte_message(output_socket, topic, (void *)input_buffer, size, 0);
+                send_byte_message(output_socket_coincidences, topic, (void *)input_buffer, size, 0);
             }
 
             msg_counter += 1;
@@ -484,7 +620,12 @@ int main(int argc, char *argv[])
     }
 
     free(reference_channels);
-    free(coincidence_events);
+    free(events_coincidence);
+
+    if (enable_anticoincidences) {
+        free(events_anticoincidence);
+        free(selection_anticoincidence);
+    }
 
     // Wait a bit to allow the sockets to deliver
     nanosleep(&slow_joiner_wait, NULL);
@@ -496,21 +637,30 @@ int main(int argc, char *argv[])
         printf("ERROR: ZeroMQ Error on input socket close: %s\n", zmq_strerror(errno));
         return EXIT_FAILURE;
     }
-    
-    const int oc = zmq_close(output_socket);
-    if (oc != 0)
+
+    const int occ = zmq_close(output_socket_coincidences);
+    if (occ != 0)
     {
-        printf("ERROR: ZeroMQ Error on output socket close: %s\n", zmq_strerror(errno));
+        printf("ERROR: ZeroMQ Error on output socket for coincidences close: %s\n", zmq_strerror(errno));
         return EXIT_FAILURE;
     }
-    
+
+    if (enable_anticoincidences) {
+        const int oac = zmq_close(output_socket_anticoincidences);
+        if (oac != 0)
+        {
+            printf("ERROR: ZeroMQ Error on output socket for anticoincidences close: %s\n", zmq_strerror(errno));
+            return EXIT_FAILURE;
+        }
+    }
+
     const int cc = zmq_ctx_destroy(context);
     if (cc != 0)
     {
         printf("ERROR: ZeroMQ Error on context destroy: %s\n", zmq_strerror(errno));
         return EXIT_FAILURE;
     }
-    
+
     return EXIT_SUCCESS;
 }
 
@@ -561,28 +711,28 @@ int64_t partition(struct event_PSD *events, int64_t low, int64_t high)
     const struct event_PSD temp = events[high];
     events[high] = events[i + 1];
     events[i + 1] = temp;
-    
+
     return i + 1;
 }
 
-void reallocate_events(size_t events_number, size_t *previous_events_number, struct event_PSD **coincidence_events)
+void reallocate_array(size_t elements_number, size_t *previous_elements_number, void **elements_array, size_t sizeof_type)
 {
-    if (events_number > (*previous_events_number)) {
-        *previous_events_number = events_number;
+    if (elements_number > (*previous_elements_number)) {
+        *previous_elements_number = elements_number;
 
-        // At most we can have a events_number**2 number of coincidences,
+        // At most we can have a elements_number**2 number of coincidences,
         // but that would be too much for a buffer...
         // We can estimate a very wide coincidence window and say that there
-        // will be at most defaults_cofi_coincidence_buffer_multiplier * events_number coincidences.
-        struct event_PSD *new_coincidence_events = realloc((*coincidence_events),
-                                                           events_number * sizeof(struct event_PSD) * defaults_cofi_coincidence_buffer_multiplier);
+        // will be at most defaults_cofi_coincidence_buffer_multiplier * elements_number coincidences.
+        void *new_elements_array = realloc((*elements_array),
+                                           elements_number * sizeof_type * defaults_cofi_coincidence_buffer_multiplier);
 
-        if (!new_coincidence_events) {
-            printf("ERROR: reallocate_events(): Unable to allocate coincidence_events memory\n");
+        if (!new_elements_array) {
+            printf("ERROR: reallocate_array(): Unable to allocate elements_array memory\n");
 
-            (*coincidence_events) = NULL;
+            (*elements_array) = NULL;
         } else {
-            (*coincidence_events) = new_coincidence_events;
+            (*elements_array) = new_elements_array;
         }
     }
 }
