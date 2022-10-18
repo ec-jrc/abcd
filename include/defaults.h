@@ -64,10 +64,11 @@
 #define defaults_pufi_data_address "tcp://*:16194"
 
 #define defaults_cofi_ip "127.0.0.1"
-#define defaults_cofi_data_address "tcp://*:16195"
+#define defaults_cofi_coincidence_data_address "tcp://*:16195"
+#define defaults_cofi_anticoincidence_data_address "tcp://*:16196"
 
 #define defaults_chafi_ip "127.0.0.1"
-#define defaults_chafi_data_address "tcp://*:16196"
+#define defaults_chafi_data_address "tcp://*:16209"
 
 #define defaults_waps_ip "127.0.0.1"
 #define defaults_waps_data_address "tcp://*:16197"
