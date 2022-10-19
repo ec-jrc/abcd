@@ -99,6 +99,9 @@ parser.add_argument('--images_extension',
                     type = str,
                     default = IMAGES_EXTENSION,
                     help = 'Define the extension of the image files (default: {})'.format(IMAGES_EXTENSION))
+parser.add_argument('--disable_normalization',
+                    action = "store_true",
+                    help = 'Disable the time normalization of the spectra')
 
 args = parser.parse_args()
 
@@ -193,7 +196,10 @@ for file_name in args.file_names:
         smoothed_spectrum = running_mean(int_spectrum, args.smooth_window)
 
         # Time normalization of the spectrum
-        spectrum = np.array(smoothed_spectrum, dtype = float) / Delta_time
+        if args.disable_normalization:
+            spectrum = np.array(smoothed_spectrum)
+        else:
+            spectrum = np.array(smoothed_spectrum, dtype = float) / Delta_time
 
         spectrum_derivative = -1 * np.gradient(smoothed_spectrum, energy_resolution)
 
