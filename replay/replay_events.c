@@ -49,7 +49,6 @@ void print_usage(const char *name) {
     printf("\t-h: Display this message\n");
     printf("\t-v: Set verbose execution\n");
     printf("\t-V: Set verbose execution with more details\n");
-    printf("\t-S <address>: Status socket address, default: %s\n", defaults_abcd_status_address);
     printf("\t-D <address>: Data socket address, default: %s\n", defaults_abcd_data_address);
     printf("\t-T <period>: Set base period in milliseconds, default: %d\n", defaults_replay_base_period);
     printf("\t             For a very fast replay, 0 ms is also accepted.\n");
@@ -63,20 +62,16 @@ int main(int argc, char *argv[])
 {
     unsigned int verbosity = 0;
     unsigned int base_period = defaults_replay_base_period;
-    char *status_address = defaults_abcd_status_address;
     char *data_address = defaults_abcd_data_address;
     unsigned int skip_packets = defaults_replay_skip;
     size_t buffer_size = defaults_all_topic_buffer_size;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hS:D:T:B:vVs:")) != -1) {
+    while ((c = getopt(argc, argv, "hD:T:B:vVs:")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
                 return EXIT_SUCCESS;
-            case 'S':
-                status_address = optarg;
-                break;
             case 'D':
                 data_address = optarg;
                 break;
@@ -110,7 +105,6 @@ int main(int argc, char *argv[])
     const char *file_name = argv[optind];
 
     if (verbosity > 0) {
-        printf("Status socket address: %s\n", status_address);
         printf("Data socket address: %s\n", data_address);
         printf("Buffer size: %zu\n", buffer_size);
         printf("File: %s\n", file_name);
@@ -127,24 +121,10 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    void *status_socket = zmq_socket(context, ZMQ_PUB);
-    if (!status_socket)
-    {
-        printf("ERROR: ZeroMQ Error on status socket creation\n");
-        return EXIT_FAILURE;
-    }
-
     void *data_socket = zmq_socket(context, ZMQ_PUB);
     if (!data_socket)
     {
         printf("ERROR: ZeroMQ Error on data socket creation\n");
-        return EXIT_FAILURE;
-    }
-
-    const int s = zmq_bind(status_socket, status_address);
-    if (s != 0)
-    {
-        printf("ERROR: ZeroMQ Error on status socket binding: %s\n", zmq_strerror(errno));
         return EXIT_FAILURE;
     }
 
@@ -260,13 +240,6 @@ int main(int argc, char *argv[])
 
     // Wait a bit to allow the sockets to deliver
     nanosleep(&slow_joiner_wait, NULL);
-
-    const int sc = zmq_close(status_socket);
-    if (sc != 0)
-    {
-        printf("ERROR: ZeroMQ Error on status socket close: %s\n", zmq_strerror(errno));
-        return EXIT_FAILURE;
-    }
 
     const int dc = zmq_close(data_socket);
     if (dc != 0)
