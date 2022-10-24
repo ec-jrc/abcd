@@ -1,0 +1,28 @@
+{
+    "module": "tofcalc",
+    "ns_per_sample": 0.0024414063,
+    "time_decay": {
+        "enable": false,
+        "tau": 3,
+        "counts_minimum": 0.0001
+    },
+    "channels": [
+        {
+            "id": 4,
+            "reference": true,
+            "note": "BGO"
+        },
+        {
+            "id": 5,
+            "reference": false,
+            "note": "LaCl",
+            "bins_ToF": 800,
+            "min_ToF": -200,
+            "max_ToF": 200,
+            "bins_E": 660,
+            "min_E": 0,
+            "max_E": 66000
+        },
+        {}
+    ]
+}
