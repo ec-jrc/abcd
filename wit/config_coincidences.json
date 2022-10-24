@@ -1,0 +1,247 @@
+{
+    "verbosity": 1,
+    "heartbeat": 1000,
+    "modules": [
+    {
+        "name": "digitizer_interface",
+        "type": "abcd",
+        "description": "Digitizer interface",
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://127.0.0.1:16180",
+            "topic": "status_abcd"
+        },
+        {
+            "type": "events",
+            "address": "tcp://127.0.0.1:16180",
+            "topic": "events_abcd"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://127.0.0.1:16182"
+        },
+        {}
+        ],
+        "zzz": null
+    },
+    {
+        "name": "waveforms_display",
+        "type": "wadi",
+        "description": "On-line waveforms display",
+        "sockets": [
+        {
+            "type": "data",
+            "address": "tcp://127.0.0.1:16190",
+            "topic": "data_wadi_waveforms"
+        },
+        {}
+        ],
+        "zzz": null
+    },
+    {
+        "name": "waveforms_analysis",
+        "type": "waan",
+        "description": "On-line waveforms analysis",
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://127.0.0.1:16206",
+            "topic": "status_waan"
+        },
+        {
+            "type": "events",
+            "address": "tcp://127.0.0.1:16206",
+            "topic": "events_waan"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://127.0.0.1:16208"
+        },
+        {}
+        ],
+        "zzz": null
+    },
+    {
+        "name": "data_saver",
+        "type": "dasa",
+        "description": "Data saver module",
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://127.0.0.1:16185",
+            "topic": "status_lmno"
+        },
+        {
+            "type": "events",
+            "address": "tcp://127.0.0.1:16185",
+            "topic": "events_lmno"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://127.0.0.1:16186"
+        },
+        {}
+        ],
+        "zzz": null
+    },
+    {
+        "name": "spectrum_calculator",
+        "type": "spec",
+        "description": "Spectrum calculator",
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://127.0.0.1:16187",
+            "topic": "status_spec"
+        },
+        {
+            "type": "events",
+            "address": "tcp://127.0.0.1:16187",
+            "topic": "events_spec"
+        },
+        {
+            "type": "data",
+            "address": "tcp://127.0.0.1:16188",
+            "topic": "data_spec_histograms"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://127.0.0.1:16189"
+        },
+        {}
+        ],
+        "zzz": null
+    },
+    {
+        "name": "ToF_calculator",
+        "type": "tofcalc",
+        "description": "Time-of-Flight calculator",
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://127.0.0.1:16200",
+            "topic": "status_tofcalc"
+        },
+        {
+            "type": "events",
+            "address": "tcp://127.0.0.1:16200",
+            "topic": "events_tofcalc"
+        },
+        {
+            "type": "data",
+            "address": "tcp://127.0.0.1:16201",
+            "topic": "data_tofcalc_histograms"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://127.0.0.1:16202"
+        },
+        {}
+        ],
+        "zzz": null
+    },
+    {
+        "name": "data_saver_coinc",
+        "type": "dasa",
+        "description": "Data saver module in coincidence",
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://127.0.0.1:17185",
+            "topic": "status_lmno"
+        },
+        {
+            "type": "events",
+            "address": "tcp://127.0.0.1:17185",
+            "topic": "events_lmno"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://127.0.0.1:17186"
+        },
+        {}
+        ],
+        "zzz": null
+    },
+    {
+        "name": "spectrum_calculator_coinc",
+        "type": "spec",
+        "description": "Spectrum calculator in coincidence",
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://127.0.0.1:17187",
+            "topic": "status_spec"
+        },
+        {
+            "type": "events",
+            "address": "tcp://127.0.0.1:17187",
+            "topic": "events_spec"
+        },
+        {
+            "type": "data",
+            "address": "tcp://127.0.0.1:17188",
+            "topic": "data_spec_histograms"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://127.0.0.1:17189"
+        },
+        {}
+        ],
+        "zzz": null
+    },
+    {
+        "name": "data_saver_anticoinc",
+        "type": "dasa",
+        "description": "Data saver module in anticoincidence",
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://127.0.0.1:18185",
+            "topic": "status_lmno"
+        },
+        {
+            "type": "events",
+            "address": "tcp://127.0.0.1:18185",
+            "topic": "events_lmno"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://127.0.0.1:18186"
+        },
+        {}
+        ],
+        "zzz": null
+    },
+    {
+        "name": "spectrum_calculator_anticoinc",
+        "type": "spec",
+        "description": "Spectrum calculator in anticoincidence",
+        "sockets": [
+        {
+            "type": "status",
+            "address": "tcp://127.0.0.1:18187",
+            "topic": "status_spec"
+        },
+        {
+            "type": "events",
+            "address": "tcp://127.0.0.1:18187",
+            "topic": "events_spec"
+        },
+        {
+            "type": "data",
+            "address": "tcp://127.0.0.1:18188",
+            "topic": "data_spec_histograms"
+        },
+        {
+            "type": "commands",
+            "address": "tcp://127.0.0.1:18189"
+        },
+        {}
+        ],
+        "zzz": null
+    },
+    {}]
+}
