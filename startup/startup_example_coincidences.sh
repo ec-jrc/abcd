@@ -15,8 +15,6 @@ if [[ -z "${DATA_FOLDER}" ]]; then
     DATA_FOLDER="${ABCD_FOLDER}""/data/"
 fi
 
-CURRENT_FOLDER="$PWD"
-
 # The file to be replayed is passed as an argument to this script
 if [[ -z "$1" ]]
 then
@@ -32,6 +30,8 @@ if [[ -z "${REFERENCE_CHANNELS}" ]]
 then
     REFERENCE_CHANNELS="4"
 fi
+
+CURRENT_FOLDER="$PWD"
 
 TODAY="`date "+%Y%m%d"`"
 echo 'Today is '"$TODAY"
@@ -91,39 +91,39 @@ else
     echo "Creating wadi window"
     tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n wadi './wadi/wadi'
 
-    # This is the first dasa that will see all the data being replayed.
-    # It is connected to the default data port tcp://127.0.0.1:16181 and it is in parallel to cofi.
-    echo "Creating dasa window, folder: ${DATA_FOLDER}"
-    tmux new-window -d -c "${DATA_FOLDER}" -P -t ABCD -n dasa "${ABCD_FOLDER}/dasa/dasa"
-
     # This module reads the singles data stream, but it calculates the time coincidences by itself.
     # It does not need to be attached after a cofi module.
     echo "Creating tofcalc window"
     tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n tofcalc "./tofcalc/tofcalc -f ./tofcalc/configs/SPD214_BGO_LaCl.json"
 
-    # This is the first spec that will see all the data being replayed.
-    # It is connected to the default data port tcp://127.0.0.1:16181 and it is in parallel to cofi.
-    echo "Creating spec window"
-    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n spec "./spec/spec"
-
     # This module generates the coincidences and anticoincidences datastreams
     echo "Creating cofi window"
     tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n cofi "./cofi/cofi -A tcp://127.0.0.1:16181 -D tcp://*:17181 -N tcp://*:18181 -a -w 100 -n 0.0024414063 ${REFERENCE_CHANNELS}"
    
+    # This is the first dasa that will see all the data being replayed.
+    # It is connected to the default data port tcp://127.0.0.1:16181 and it is in parallel to cofi.
+    echo "Creating dasa window 1, folder: ${DATA_FOLDER}"
+    tmux new-window -d -c "${DATA_FOLDER}" -P -t ABCD -n dasa1 "${ABCD_FOLDER}/dasa/dasa"
+
     # This is the second dasa that will see only the coincidences data being replayed.
     # It is connected to the data port tcp://127.0.0.1:17181 of cofi.
     echo "Creating DaSa window 2, folder: ${DATA_FOLDER}"
     tmux new-window -d -c "${DATA_FOLDER}" -P -t ABCD -n dasa2 "${ABCD_FOLDER}/dasa/dasa -v -A tcp://127.0.0.1:17181 -S tcp://*:17185 -C tcp://*:17186"
 
-    # This is the second spec that will see only the coincidences data being replayed.
-    # It is connected to the data port tcp://127.0.0.1:17181 of cofi.
-    echo "Creating spec window 2"
-    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n spec2 "./spec/spec -A tcp://127.0.0.1:17181 -S tcp://*:17187 -D tcp://*:17188 -C tcp://*:17189"
-
     # This is the third dasa that will see only the anticoincidences data being replayed.
     # It is connected to the data port tcp://127.0.0.1:18181 of cofi.
     echo "Creating DaSa window 3, folder: ${DATA_FOLDER}"
     tmux new-window -d -c "${DATA_FOLDER}" -P -t ABCD -n dasa3 "${ABCD_FOLDER}/dasa/dasa -v -A tcp://127.0.0.1:18181 -S tcp://*:18185 -C tcp://*:18186"
+
+    # This is the first spec that will see all the data being replayed.
+    # It is connected to the default data port tcp://127.0.0.1:16181 and it is in parallel to cofi.
+    echo "Creating spec window 1"
+    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n spec1 "./spec/spec"
+
+    # This is the second spec that will see only the coincidences data being replayed.
+    # It is connected to the data port tcp://127.0.0.1:17181 of cofi.
+    echo "Creating spec window 2"
+    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n spec2 "./spec/spec -A tcp://127.0.0.1:17181 -S tcp://*:17187 -D tcp://*:17188 -C tcp://*:17189"
 
     # This is the third spec that will see only the anticoincidences data being replayed.
     # It is connected to the data port tcp://127.0.0.1:18181 of cofi.
@@ -137,8 +137,8 @@ else
     #echo "Opening browser on GUI page"
     #xdg-open 'http://localhost:8080/'
 
-    echo "Waiting for the framework to be ready to the replay..."
-    sleep 2
+    echo "Waiting for the framework to be ready for the replay..."
+    sleep 5
 
     # We will replay only events from the events file, so we are using replay_events
     # When the replayer finishes the file it will quit, so we have to launch it as the last process.
