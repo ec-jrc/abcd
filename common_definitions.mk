@@ -14,7 +14,13 @@ SRC_DIR = src
 INCLUDE_DIR = include/
 
 # Flags
-CXXFLAGS += -std=c++17 -stdlib=libc++ -O3 -W -Wall -pedantic -I$(COMMON_INCLUDE_DIR) -I$(INCLUDE_DIR) -I/usr/include/ -I/usr/include/jsoncpp/ -I /opt/local/include/ -I /usr/local/include/ -I /usr/local/include/jsoncpp/
+ifeq ($(CXX),clang++)
+	CXXFLAGS += -std=c++17 -stdlib=libc++
+else
+	CXXFLAGS += -std=c++17
+endif
+
+CXXFLAGS += -O3 -W -Wall -pedantic -I$(COMMON_INCLUDE_DIR) -I$(INCLUDE_DIR) -I/usr/include/ -I/usr/include/jsoncpp/ -I /opt/local/include/ -I /usr/local/include/ -I /usr/local/include/jsoncpp/
 CFLAGS += -std=c99 -O3 -W -Wall -pedantic -I$(COMMON_INCLUDE_DIR) -I$(INCLUDE_DIR) -I/usr/include/ -I /opt/local/include/ -I /usr/local/include/
 LIBS += -lzmq -ljsoncpp
 LDFLAGS += -L/usr/lib/ -L/usr/lib64/ -L/usr/lib/x86_64-linux-gnu/ -L/opt/local/lib/ -L/usr/local/lib/ $(LIBS)
