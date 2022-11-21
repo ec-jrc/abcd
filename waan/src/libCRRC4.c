@@ -55,7 +55,7 @@
  */
 struct CRRC4_config
 {
-    uint32_t baseline_samples;
+    int64_t baseline_samples;
     uint32_t extension_samples;
     double decay_time;
     double highpass_time;
