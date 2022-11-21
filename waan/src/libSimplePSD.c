@@ -11,12 +11,8 @@
  * is hard-coded in the source in order to make the example very easy.
  */
 
-#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 
 #include "analysis_functions.h"
 #include "events.h"
