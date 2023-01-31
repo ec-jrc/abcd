@@ -23,7 +23,7 @@ struct BoundingBox_t {
     struct Point_t bottom_right;
 };
 
-inline struct BoundingBox_t compute_bounding_box(struct Point_t *polygon, size_t n) {
+extern inline struct BoundingBox_t compute_bounding_box(struct Point_t *polygon, size_t n) {
     struct BoundingBox_t bounding_box;
 
     if (n <= 0) {
@@ -63,7 +63,7 @@ inline struct BoundingBox_t compute_bounding_box(struct Point_t *polygon, size_t
     return bounding_box;
 }
 
-inline int point_in_bounding_box(struct Point_t P, struct BoundingBox_t bounding_box)
+extern inline int point_in_bounding_box(struct Point_t P, struct BoundingBox_t bounding_box)
 {
     return (bounding_box.top_left.x <= P.x) && (P.x < bounding_box.bottom_right.x) &&
            (bounding_box.bottom_right.y <= P.y) && (P.y < bounding_box.top_left.y);
@@ -77,7 +77,7 @@ inline int point_in_bounding_box(struct Point_t P, struct BoundingBox_t bounding
 //            <0 for P  right of the line
 //    See: Algorithm 1 "Area of Triangles and Polygons"
 /******************************************************************************/
-inline data_type is_left(struct Point_t P0, struct Point_t P1, struct Point_t P)
+extern inline data_type is_left(struct Point_t P0, struct Point_t P1, struct Point_t P)
 {
     return (P1.x - P0.x) * (P.y - P0.y) - (P.x -  P0.x) * (P1.y - P0.y);
 }
