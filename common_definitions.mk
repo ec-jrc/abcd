@@ -2,10 +2,8 @@
 # Common definitions                                                           #
 ################################################################################
 
-#CXX = g++
-#CC = gcc
-CXX = clang++
-CC = clang
+# This can be set to "clang" or "gcc"
+ABCD_COMPILER = gcc
 
 COMMON_INCLUDE_DIR = ../include
 COMMON_SRC_DIR = ../src
@@ -14,9 +12,15 @@ SRC_DIR = src
 INCLUDE_DIR = include/
 
 # Flags
-ifeq ($(CXX),clang++)
+ifeq ($(ABCD_COMPILER),clang)
+	CXX = clang++
+	CC = clang
+
 	CXXFLAGS += -std=c++17 -stdlib=libc++
 else
+	CXX = g++
+	CC = gcc
+
 	CXXFLAGS += -std=c++17
 endif
 

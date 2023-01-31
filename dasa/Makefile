@@ -12,7 +12,14 @@ C_OBJECTS = $(C_SOURCES:.c=.o)
 CFLAGS += 
 CXXFLAGS += 
 
-LDFLAGS += -ljansson -lm -lc++abi
+LDFLAGS += -ljansson -lm
+
+ifeq ($(ABCD_COMPILER),clang)
+	LDFLAGS += -lc++abi
+else
+	LDFLAGS += -lstdc++fs
+endif
+
 
 .PHONY: all clean common_objects test
 

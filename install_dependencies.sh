@@ -89,7 +89,7 @@ else
                 sudo dnf upgrade
 
                 print_message "Installing required packages, for ${distribution}..."
-                sudo dnf install redhat-lsb vim-enhanced git tmux clang jansson-devel jansson zlib zlib-devel bzip2-libs bzip2-devel nodejs npm kernel-devel kernel-headers elfutils-libelf-devel gsl gsl-devel jsoncpp jsoncpp-devel cmake zeromq zeromq-devel python38 python3-zmq python3-numpy python3-scipy python3-matplotlib wget dkms
+                sudo dnf install redhat-lsb vim-enhanced git tmux clang libstdc++ libstdc++-devel jansson-devel jansson zlib zlib-devel bzip2-libs bzip2-devel nodejs npm kernel-devel kernel-headers elfutils-libelf-devel gsl gsl-devel jsoncpp jsoncpp-devel cmake zeromq zeromq-devel python38 python3-zmq python3-numpy python3-scipy python3-matplotlib wget dkms
 
                 installation_successfull=$?
             else
@@ -110,7 +110,7 @@ else
             elif [[ 22 -eq "${release_major}" ]]
             then
                 print_message "Installing required packages, for Ubuntu 22 Jammy Jellyfish..."
-                sudo apt-get install lsb-release vim git tmux clang libc++-dev libc++abi-dev libzmq5 libzmq3-dev libjsoncpp-dev libjsoncpp25 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq python3-numpy python3-scipy python3-matplotlib nodejs npm linux-headers-generic build-essential dkms libgsl-dev
+                sudo apt-get install lsb-release vim git tmux clang libc++1 libc++-dev libc++abi-dev libzmq5 libzmq3-dev libjsoncpp-dev libjsoncpp25 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq python3-numpy python3-scipy python3-matplotlib nodejs npm linux-headers-generic build-essential dkms libgsl-dev
 
                 installation_successfull=$?
             else
