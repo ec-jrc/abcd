@@ -71,7 +71,8 @@ with file_open(args.file_name, "rb") as input_file:
         counters_packets_events[module] = 0
         last_configs[module] = dict()
 
-    print('Timestamp\tModule\tEvent_type\tDescription\n')
+    print('# File name: {}'.format(args.file_name))
+    print('# Timestamp\tModule\tEvent_type\tDescription')
 
     byte = input_file.read(1)
 
@@ -120,7 +121,7 @@ with file_open(args.file_name, "rb") as input_file:
                         try:
                             event = json.loads(message_buffer)
 
-                            print('{}\t{}\t{}\t{}\n'.format(event["timestamp"], event["module"], event["type"], event[event["type"]]))
+                            print('{}\t{}\t{}\t{}'.format(event["timestamp"], event["module"], event["type"], event[event["type"]]))
                         except:
                             pass
 
