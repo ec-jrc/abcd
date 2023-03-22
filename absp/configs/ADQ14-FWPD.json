@@ -11,11 +11,33 @@
             "clock_source_possible_value1": "external_10MHz",
             "clock_source_possible_value2": "external",
             "clock_source_possible_value3": "external_PXI",
+            "timestamp_bit_shift": 0,
+            "timestamp_bit_shift_note": "the timestamp may be shifted in order to align it with the waan analysis module",
             "trigger": {
                 "source": "channels",
                 "source_possible_value1": "software",
                 "source_possible_value2": "external",
                 "source_possible_value3": "channels",
+                "impedance": "50_Ohm",
+                "impedance_possible_value1": "50_Ohm",
+                "impedance_possible_value2": "high",
+                "impedance_note": "input impedance of the 'trig' port",
+                "zzz": null
+            },
+            "timestamp_sync": {
+                "enable": false,
+                "mode": "all",
+                "mode_possible_value1": "first",
+                "mode_possible_value2": "all",
+                "mode_note": "when using 'first' it will be rearmed at every configuration",
+                "source": "sync_port",
+                "source_possible_value1": "software",
+                "source_possible_value1": "trig_port",
+                "source_possible_value2": "sync_port",
+                "impedance": "50_Ohm",
+                "impedance_possible_value1": "50_Ohm",
+                "impedance_possible_value2": "high",
+                "impedance_note": "input impedance of the 'sync' port",
                 "zzz": null
             },
             "transfer": {
