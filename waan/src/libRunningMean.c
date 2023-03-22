@@ -196,7 +196,7 @@ void energy_analysis(const uint16_t *samples,
     bool is_error = false;
 
     if ((*events_number) != 1) {
-        printf("WARNING: libRunningMean energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
+        //printf("WARNING: libRunningMean energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
 
         // Assuring that there is one event_PSD and discarding others
         is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
