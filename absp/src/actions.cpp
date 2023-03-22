@@ -52,6 +52,7 @@ extern "C" {
 #define LINUX
 #include "ADQAPI.h"
 #include "ADQ_utilities.hpp"
+#include "ADQ_descriptions.hpp"
 
 #include "Digitizer.hpp"
 #include "ADQ412.hpp"
@@ -518,6 +519,53 @@ bool actions::generic::create_digitizer(status &global_status)
 
         CHECKZERO(ADQControlUnit_SetupDevice(global_status.adq_cu_ptr, device_index));
 
+        if (global_status.verbosity > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Information about device: " << device_index << "; ";
+            std::cout << std::endl;
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "ADQ type: " << ADQ_GetADQType(global_status.adq_cu_ptr, device_index + 1) << "; ";
+            std::cout << "Board product name: " << ADQ_GetBoardProductName(global_status.adq_cu_ptr, device_index + 1) << "; ";
+            // This is not supported for all cards, and it might generate a
+            // segfault since it returns a string that might not have been
+            // initialized.
+            //std::cout << "Card option: " << ADQ_GetCardOption(global_status.adq_cu_ptr, device_index + 1) << "; ";
+            std::cout << std::endl;
+
+            unsigned int family = 0;
+            CHECKZERO(ADQ_GetProductFamily(global_status.adq_cu_ptr, device_index + 1, &family));
+
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Product ID: " << ADQ_GetProductID(global_status.adq_cu_ptr, device_index + 1) << "; ";
+            std::cout << "Product family: " << family << "; ";
+            std::cout << std::endl;
+
+            int *revision = ADQ_GetRevision(global_status.adq_cu_ptr, device_index + 1);
+
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Revision: {";
+            for (int i = 0; i < 6; i++) {
+                std::cout << revision[i] << ", ";
+            }
+            std::cout << "}; ";
+            std::cout << "Firmware type: ";
+            try {
+                std::cout << ADQ_descriptions::ADQ_firmware_revisions.at(revision[0]);
+            } catch (const std::out_of_range& error) {
+                std::cout << "unknown";
+            }
+
+            std::cout << "; ";
+            std::cout << std::endl;
+
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Serial number: " << ADQ_GetBoardSerialNumber(global_status.adq_cu_ptr, device_index + 1) << "; ";
+            std::cout << std::endl;
+        }
+
         if (ADQlist[device_index].ProductID == PID_ADQ214) {
             // WARNING: boards numbering start from 1 in the next functions
             const int adq214_index = device_index + 1;
@@ -557,28 +605,35 @@ bool actions::generic::create_digitizer(status &global_status)
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
                 std::cout << '[' << time_buffer << "] ";
-                std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") Does not have the Pulse Detect firmware; ";
+                std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") does not have the Pulse Detect firmware; ";
                 std::cout << std::endl;
             } else if (has_FWPD == 0) {
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
                 std::cout << '[' << time_buffer << "] ";
-                std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") Did not respond to the firmware request; ";
+                std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") did not respond to the firmware request; ";
                 std::cout << std::endl;
             } else {
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
                 std::cout << '[' << time_buffer << "] ";
-                std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") Unexpected value from the firmware request: " << has_FWPD << "; ";
+                std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") unexpected value from the firmware request: " << has_FWPD << "; ";
                 std::cout << std::endl;
             }
 
-            if (has_FWPD == 1 ) {
+            // FIXME: This might be more reliable with older cards, but we would
+            //        need to know all the firmware versions
+            //int *revision = ADQ_GetRevision(global_status.adq_cu_ptr, device_index + 1);
+            //if (ADQ_descriptions::ADQ_firmware_revisions.at(revision[0]) == "ADQ14_FWPD") {
+
+            if (has_FWPD) {
                 ABCD::ADQ14_FWPD *adq14_ptr = new ABCD::ADQ14_FWPD(global_status.verbosity);
 
                 adq14_ptr->Initialize(global_status.adq_cu_ptr, adq14_index);
 
                 global_status.digitizers.push_back(adq14_ptr);
+
+
             } else {
                 ABCD::ADQ14_FWDAQ *adq14_ptr = new ABCD::ADQ14_FWDAQ(global_status.verbosity);
 
