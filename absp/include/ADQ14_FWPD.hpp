@@ -83,6 +83,9 @@ public:
     // Flag to select the clock source of the digitizer
     int clock_source;
 
+    // Applied bit shift to the read timestamp values
+    unsigned int timestamp_bit_shift;
+
     // Number of samples to acquire in the waveforms before the trigger
     std::vector<int32_t> pretriggers;
     std::vector<int16_t> trig_levels;
@@ -95,7 +98,14 @@ public:
     unsigned int trig_slope;
     // Value to change a delay of the external trigger, not used
     int trig_external_delay;
-    // Value of the trigger level for the channels, in ADC samples
+
+    // Settings for the synchronization of the timestamps
+    bool timestamp_sync_enabled;
+    unsigned int timestamp_sync_mode;
+    unsigned int timestamp_sync_source;
+
+    int trig_port_input_impedance;
+    int sync_port_input_impedance;
 
     // Variables to keep track of timestamp overflows during acquisitions
     int64_t timestamp_last;
@@ -116,13 +126,6 @@ public:
     std::vector<unsigned int> added_samples;
     std::vector<unsigned int> added_headers;
     std::vector<unsigned int> status_headers;
-    int available_channel;
-    int64_t available_bytes;
-    struct ADQRecord *ADQ_record;
-    struct ADQDataReadoutStatus ADQ_status;
-    // This variable notifies whether the data buffers were acquired by
-    // the program and need to be returned to the APIs
-    bool available_buffer;
 
     ADQ14_FWPD(int verbosity = 0);
     ~ADQ14_FWPD();
@@ -144,6 +147,10 @@ public:
 
     void SetDBSInstancesNumber(unsigned int n) { DBS_instances_number = n; }
     unsigned int GetDBSInstancesNumber() const { return DBS_instances_number; }
+
+    //--------------------------------------------------------------------------
+
+    int SpecificCommand(json_t* json_command);
 };
 }
 
