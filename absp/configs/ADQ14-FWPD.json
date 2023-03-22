@@ -2,9 +2,9 @@
     "cards": [
         {
             "id": 0,
-            "model": "ADQ14",
+            "model": "ADQ14DC-4A-VG",
             "model_note": "This model has the FWPD generation 1",
-            "serial": "SPD-07720",
+            "serial": "SPD-07721",
             "enable": true,
             "clock_source": "internal",
             "clock_source_possible_value0": "internal",
@@ -104,8 +104,7 @@
                     "zzz": null
                 },
                 {}
-            ],
-            "zzz": null
+            ]
         },
         {}
     ],
