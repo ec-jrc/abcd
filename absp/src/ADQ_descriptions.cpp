@@ -18,10 +18,15 @@ const std::map<int, std::string> ADQ_descriptions::error = {
 };
 
 const std::map<unsigned int, std::string> ADQ_descriptions::clock_source = {
-    {ADQ_CLOCK_INT_INTREF, "internal"},
-    {ADQ_CLOCK_INT_EXTREF, "external_10MHz"},
-    {ADQ_CLOCK_EXT, "external"},
-    {ADQ_CLOCK_INT_PXIREF, "external_PXI"}
+    //{ADQ_CLOCK_INT_INTREF, "internal"},
+    //{ADQ_CLOCK_INT_EXTREF, "external_10MHz"},
+    //{ADQ_CLOCK_EXT, "external"},
+    //{ADQ_CLOCK_INT_PXIREF, "external_PXI"}
+    {ADQ_CLOCK_SOURCE_INTREF, "internal"},
+    {ADQ_CLOCK_SOURCE_EXTREF, "external_10MHz"},
+    {ADQ_CLOCK_SOURCE_EXTCLK, "external"},
+    {ADQ_CLOCK_SOURCE_PXIE_10M, "external_PXI"},
+    {ADQ_CLOCK_SOURCE_PXIE_100M, "external_PXIe_100MHz"}
 };
 
 const std::map<unsigned int, std::string> ADQ_descriptions::trig_mode = {
@@ -37,6 +42,21 @@ const std::map<unsigned int, std::string> ADQ_descriptions::trig_slope = {
     {ADQ_TRIG_SLOPE_RISING, "rising"}
 };
 
+const std::map<unsigned int, std::string> ADQ_descriptions::timestamp_synchronization_mode = {
+    // These settings do not seem to work
+    //{ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_DISABLE, "disable"},
+    //{ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_FIRST, "first"},
+    //{ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_ALL, "all"}
+    {0, "first"},
+    {1, "all"}
+};
+
+const std::map<unsigned int, std::string> ADQ_descriptions::timestamp_synchronization_source = {
+    {ADQ_EVENT_SOURCE_SOFTWARE, "software"},
+    {ADQ_EVENT_SOURCE_TRIG, "trig_port"},
+    {ADQ_EVENT_SOURCE_SYNC, "sync_port"}
+};
+
 const std::map<unsigned int, std::string> ADQ_descriptions::collection_mode = {
     {ADQ_COLLECTION_MODE_RAW, "raw_pulse"},
     {ADQ_COLLECTION_MODE_METADATA, "pulse_metadata"},
@@ -48,6 +68,12 @@ const std::map<unsigned int, std::string> ADQ_descriptions::collection_mode = {
 const std::map<unsigned int, std::string> ADQ_descriptions::analog_front_end_coupling = {
     {ADQ_ANALOG_FRONT_END_COUPLING_AC, "AC"},
     {ADQ_ANALOG_FRONT_END_COUPLING_DC, "DC"}
+};
+
+const std::map<unsigned int, std::string> ADQ_descriptions::input_impedance = {
+    {ADQ_IMPEDANCE_50_OHM, "50_Ohm"},
+    {ADQ_IMPEDANCE_HIGH, "high"},
+    {ADQ_IMPEDANCE_100_OHM, "100_Ohm"},
 };
 
 const std::map<unsigned int, std::string> ADQ_descriptions::ADQ14_temperatures = {
@@ -73,4 +99,12 @@ const std::map<unsigned int, std::string> ADQ_descriptions::ADQ214_temperatures 
     {ADQ_ADQ214_TEMPERATURE_ADC1, "ADC1"},
     {ADQ_ADQ214_TEMPERATURE_FPGA, "FPGA"},
     {ADQ_ADQ214_TEMPERATURE_PCB, "PCB"}
+};
+
+const std::map<unsigned int, std::string> ADQ_descriptions::ADQ_firmware_revisions = {
+    {12847, "ADQ214_FWDAQ"},
+    {24616, "ADQ14_FWDAQ"},
+    {61728, "ADQ14_FWDAQ"},
+    {25201, "ADQ14_FWPD"},
+    {53534, "ADQ14_FWPD"},
 };
