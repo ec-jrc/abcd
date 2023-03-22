@@ -110,6 +110,10 @@ int ABCD::ADQ14_FWDAQ::Initialize(void* adq, int num)
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Initialize() ";
         std::cout << "Card name (serial number): " << GetName() << "; ";
         std::cout << "Product name: " << ADQ_GetBoardProductName(adq_cu_ptr, adq_num) << "; ";
+        std::cout << "Card option: " << ADQ_GetCardOption(adq_cu_ptr, adq_num) << "; ";
+        std::cout << std::endl;
+
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Initialize() ";
         std::cout << "USB address: " << ADQ_GetUSBAddress(adq_cu_ptr, adq_num) << "; ";
         std::cout << "PCIe address: " << ADQ_GetPCIeAddress(adq_cu_ptr, adq_num) << "; ";
         std::cout << std::endl;
@@ -258,25 +262,26 @@ int ABCD::ADQ14_FWDAQ::Configure()
         }
 
         if (ADQ_HasAdjustableBias(adq_cu_ptr, adq_num) > 0) {
-            const int offset = DC_offsets[channel];
+            const int DC_offset = DC_offsets[channel];
 
             if (GetVerbosity() > 0)
             {
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
                 std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Configure() ";
-                std::cout << "Setting DC offset to: " << offset << " samples; ";
+                std::cout << "Setting DC offset to: " << DC_offset << " samples; ";
                 std::cout << std::endl;
             }
 
             // This is a physical DC offset added to the signal
             // while ADQ_SetGainAndOffset is a digital calculation
-            CHECKZERO(ADQ_SetAdjustableBias(adq_cu_ptr, adq_num, channel + 1, offset));
+            CHECKZERO(ADQ_SetAdjustableBias(adq_cu_ptr, adq_num, channel + 1, DC_offset));
         }
     }
 
     for (unsigned int instance = 0; instance < GetDBSInstancesNumber(); instance++) {
         const bool DBS_disabled = DBS_disableds[instance];
+        const int DC_offset = DC_offsets[instance];
 
         if (GetVerbosity() > 0)
         {
@@ -291,7 +296,7 @@ int ABCD::ADQ14_FWDAQ::Configure()
         // TODO: Enable these features
         CHECKZERO(ADQ_SetupDBS(adq_cu_ptr, adq_num, instance,
                                                      DBS_disabled,
-                                                     default_DBS_target,
+                                                     DC_offset,
                                                      default_DBS_saturation_level_lower,
                                                      default_DBS_saturation_level_upper));
     }
@@ -818,7 +823,7 @@ int ABCD::ADQ14_FWDAQ::ReadConfig(json_t *config)
     // Looking for the settings in the description map
     const auto ts_result = map_utilities::find_item(ADQ_descriptions::trig_slope, str_trigger_slope);
 
-    if (ts_result != ADQ_descriptions::trig_mode.end()) {
+    if (ts_result != ADQ_descriptions::trig_mode.end() && str_trigger_slope.length() > 0) {
         trig_slope = ts_result->first;
     } else {
         trig_slope = ADQ_TRIG_SLOPE_FALLING;
