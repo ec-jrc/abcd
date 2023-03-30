@@ -95,7 +95,7 @@ void timestamp_init(json_t *json_config, void **user_config)
 
         (*user_config) = NULL;
     } else {
-	struct LeftThr_config *config = malloc(1 * sizeof(struct LeftThr_config));
+        struct LeftThr_config *config = malloc(1 * sizeof(struct LeftThr_config));
 
         if (!config) {
             printf("ERROR: libLeftThr timestamp_init(): Unable to allocate config memory\n");
@@ -255,8 +255,6 @@ void timestamp_analysis(const uint16_t *samples,
 
     // Checking if there is a signal in the waveform
     if (offset_max < config->absolute_threshold) {
-        printf("Discarding waveform\n");
-
         // There is no signal in the waveform so we clean up the trigger positions
         reallocate_buffers(trigger_positions, events_buffer, events_number, 0);
     } else {
@@ -270,7 +268,7 @@ void timestamp_analysis(const uint16_t *samples,
 
         uint32_t zero_crossing_index = 0;
 
-        printf("Starting search\n");
+        //printf("Starting search\n");
         
         // Look for the threshold crossing starting from the maximum and going
         // toward left.
@@ -278,15 +276,15 @@ void timestamp_analysis(const uint16_t *samples,
         // values and if we reach zero then an uint32_t would fold over and it
         // would always be positive.
         for (int64_t index = offset_index_max; index >= 0; index--) {
-            printf("index: %" PRId64 "\n", index);
+            //printf("index: %" PRId64 "\n", index);
 
             if (config->curve_LeftThr[index] < 0) {
                 zero_crossing_index = index;
-                printf("Zero crossing index: %" PRId64 "\n", index);
+                //printf("Zero crossing index: %" PRId64 "\n", index);
                 break;
             }
         }
-        printf("Zero crossing index at the end: %" PRIu32 "\n", zero_crossing_index);
+        //printf("Zero crossing index at the end: %" PRIu32 "\n", zero_crossing_index);
 
         double fine_zero_crossing = 0;
 
@@ -296,7 +294,7 @@ void timestamp_analysis(const uint16_t *samples,
                                 config->zero_crossing_samples,
                                 &fine_zero_crossing);
 
-        printf("Fine zero crossing: %f\n", fine_zero_crossing);
+        //printf("Fine zero crossing: %f\n", fine_zero_crossing);
 
         // Converting to fixed-point number
         const uint64_t fine_timestamp = floor(fine_zero_crossing * (1 << config->fractional_bits));
@@ -324,7 +322,7 @@ void timestamp_analysis(const uint16_t *samples,
         (*this_position) = zero_crossing_index;
 
         if (!config->disable_LeftThr_gates) {
-            printf("Generating additionals\n");
+            //printf("Generating additionals\n");
 
             waveform_additional_set_number(waveform, 2);
 
@@ -350,7 +348,7 @@ void timestamp_analysis(const uint16_t *samples,
                 }
             }
 
-            printf("Done generating additionals\n");
+            //printf("Done generating additionals\n");
         }
     }
 }
@@ -360,7 +358,7 @@ void reallocate_curves(uint32_t samples_number, struct LeftThr_config **user_con
     struct LeftThr_config *config = (*user_config);
 
     if (samples_number != config->previous_samples_number) {
-	config->previous_samples_number = samples_number;
+        config->previous_samples_number = samples_number;
 
         config->is_error = false;
 
