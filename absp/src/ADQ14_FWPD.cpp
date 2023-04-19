@@ -877,20 +877,39 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
             {
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::AcquisitionReady() ";
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
                 std::cout << "Issuing a flush of the DMA; ";
                 std::cout << std::endl;
             }
 
             //CHECKZERO(ADQ_FlushDMA(adq_cu_ptr, adq14_num));
 
-            CHECKZERO(ADQ_GetDataStreaming(adq_cu_ptr, adq14_num,
-                                           (void**)target_buffers.data(),
-                                           (void**)target_headers.data(),
-                                           channels_acquisition_mask,
-                                           added_samples.data(),
-                                           added_headers.data(),
-                                           status_headers.data()));
+            // When this fails a subsequent flush of the DMA causes a segfault,
+            // we should reset the board if it fails.
+            //CHECKZERO(ADQ_GetDataStreaming(adq_cu_ptr, adq14_num,
+            //                               (void**)target_buffers.data(),
+            //                               (void**)target_headers.data(),
+            //                               channels_acquisition_mask,
+            //                               added_samples.data(),
+            //                               added_headers.data(),
+            //                               status_headers.data()));
+            const int retval = ADQ_GetDataStreaming(adq_cu_ptr, adq14_num,
+                                                    (void**)target_buffers.data(),
+                                                    (void**)target_headers.data(),
+                                                    channels_acquisition_mask,
+                                                    added_samples.data(),
+                                                    added_headers.data(),
+                                                    status_headers.data());
+
+            if (!retval) {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
+                std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": ADQ_GetDataStreaming failed; ";
+                std::cout << std::endl;
+
+                return DIGITIZER_FAILURE;
+            }
 
             for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
                 if (GetVerbosity() > 1)
