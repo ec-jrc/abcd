@@ -624,7 +624,7 @@ bool actions::generic::create_digitizer(status &global_status)
             // FIXME: This might be more reliable with older cards, but we would
             //        need to know all the firmware versions
             //int *revision = ADQ_GetRevision(global_status.adq_cu_ptr, device_index + 1);
-            //if (ADQ_descriptions::ADQ_firmware_revisions.at(revision[0]) == "ADQ14_FWPD") {
+            //if (ADQ_descriptions::ADQ_firmware_revisions.at(revision[0]) == "ADQ14_FWPD")
 
             if (has_FWPD) {
                 ABCD::ADQ14_FWPD *adq14_ptr = new ABCD::ADQ14_FWPD(global_status.verbosity);
@@ -692,9 +692,9 @@ bool actions::generic::configure_digitizer(status &global_status)
 
     global_status.digitizers_user_ids.clear();
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Starting the global configuration                                      //
-    ////////////////////////////////////////////////////////////////////////////
+    // -------------------------------------------------------------------------
+    //  Starting the global configuration
+    // -------------------------------------------------------------------------
     json_t *config = global_status.config;
 
     unsigned int max_channel_number = 0;
@@ -1022,7 +1022,25 @@ state actions::bind_sockets(status &global_status)
     zmq_delay.tv_nsec = (defaults_abcd_zmq_delay % 1000) * 1000000L;
     nanosleep(&zmq_delay, NULL);
 
-    return states::read_config;
+    return states::create_digitizer;
+}
+
+state actions::create_digitizer(status &global_status)
+{
+    const bool success = actions::generic::create_digitizer(global_status);
+
+    if (global_status.identification_only) {
+        return states::clear_memory;
+    }
+
+    if (success)
+    {
+        return states::read_config;
+    }
+    else
+    {
+        return states::configure_error;
+    }
 }
 
 state actions::read_config(status &global_status)
@@ -1066,21 +1084,7 @@ state actions::read_config(status &global_status)
     {
         global_status.config = new_config;
 
-        return states::create_digitizer;
-    }
-}
-
-state actions::create_digitizer(status &global_status)
-{
-    const bool success = actions::generic::create_digitizer(global_status);
-
-    if (success)
-    {
         return states::configure_digitizer;
-    }
-    else
-    {
-        return states::configure_error;
     }
 }
 
@@ -1769,8 +1773,18 @@ state actions::clear_memory(status &global_status)
 {
     actions::generic::clear_memory(global_status);
 
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Clearing the json configuration; ";
+        std::cout << std::endl;
+    }
+
     // Remember to clean up the json configuration
     json_decref(global_status.config);
+    global_status.config = NULL;
 
     return states::destroy_digitizer;
 }

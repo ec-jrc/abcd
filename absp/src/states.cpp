@@ -88,7 +88,7 @@ const state states::restart_allocate_memory = \
 
 // Closing states are 8xx
 const state states::clear_memory = \
-    {801, "Destroy digitizer object", actions::clear_memory };
+    {801, "Clearing memory", actions::clear_memory };
 const state states::destroy_digitizer = \
     {802, "Destroy digitizer object", actions::destroy_digitizer };
 const state states::close_sockets = \

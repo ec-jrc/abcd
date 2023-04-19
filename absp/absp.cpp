@@ -39,6 +39,8 @@ extern "C" {
 #include "utilities_functions.h"
 }
 
+#include "ADQ_utilities.hpp"
+
 #include "states.hpp"
 
 #define BUFFER_SIZE 32
@@ -123,13 +125,17 @@ int main(int argc, char *argv[])
     unsigned int base_period = defaults_abcd_base_period;
 
     unsigned int events_buffer_max_size = defaults_abcd_events_buffer_max_size;
+    bool identification_only = false;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hS:D:C:f:T:B:vV")) != -1) {
+    while ((c = getopt(argc, argv, "hIS:D:C:f:T:B:vV")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
                 return EXIT_SUCCESS;
+            case 'I':
+                identification_only = true;
+                break;
             case 'S':
                 status_address = optarg;
                 break;
@@ -169,10 +175,12 @@ int main(int argc, char *argv[])
     global_status.verbosity = verbosity;
     global_status.base_period = base_period;
     global_status.events_buffer_max_size = events_buffer_max_size;
+    global_status.config = NULL;
     global_status.config_file = config_file;
     global_status.status_address = status_address;
     global_status.data_address = data_address;
     global_status.commands_address = commands_address;
+    global_status.identification_only = identification_only;
 
     if (global_status.verbosity > 0) {
         std::cout << "Status socket address: " << status_address << std::endl;
@@ -182,6 +190,9 @@ int main(int argc, char *argv[])
         std::cout << "Verbosity: " << verbosity << std::endl;
         std::cout << "Base period: " << base_period << std::endl;
         std::cout << "Events buffer size: " << events_buffer_max_size << std::endl;
+        if (identification_only) {
+            std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Identification only, the program will quit afterwards" << std::endl;
+        }
     }
 
     state current_state = states::start;
