@@ -19,25 +19,17 @@
                 "source_possible_value2": "external",
                 "source_possible_value3": "channels",
                 "impedance": "50_Ohm",
+                "impedance_note": "input impedance of the 'trig' port",
                 "impedance_possible_value1": "50_Ohm",
                 "impedance_possible_value2": "high",
-                "impedance_note": "input impedance of the 'trig' port",
                 "zzz": null
             },
-            "timestamp_sync": {
-                "enable": false,
-                "mode": "all",
-                "mode_possible_value1": "first",
-                "mode_possible_value2": "all",
-                "mode_note": "when using 'first' it will be rearmed at every configuration",
-                "source": "sync_port",
-                "source_possible_value1": "software",
-                "source_possible_value1": "trig_port",
-                "source_possible_value2": "sync_port",
-                "impedance": "50_Ohm",
+            "sync": {
+                "impedance": "high",
+                "impedance_note": "input impedance of the 'sync' port",
                 "impedance_possible_value1": "50_Ohm",
                 "impedance_possible_value2": "high",
-                "impedance_note": "input impedance of the 'sync' port",
+                "impedance_WARNING": "when using 50_Ohm, the board does not seem to trigger",
                 "zzz": null
             },
             "transfer": {
