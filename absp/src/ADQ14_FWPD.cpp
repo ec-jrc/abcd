@@ -175,7 +175,7 @@ int ABCD::ADQ14_FWPD::Initialize(void* adq, int num)
         for (auto &pair : ADQ_descriptions::ADQ14_temperatures) {
             const double temperature = ADQ_GetTemperature(adq_cu_ptr, adq14_num, pair.first) / 256.0;
 
-            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Initialize() ";
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Initialize() ";
             std::cout << pair.second << " temperature: " << temperature << "; ";
             std::cout << std::endl;
         }
@@ -1420,7 +1420,7 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
     json_object_set_nocheck(trigger_config, "impedance", json_string(ADQ_descriptions::input_impedance.at(trig_port_input_impedance).c_str()));
 
     // -------------------------------------------------------------------------
-    //  Starting the sync configuration
+    //  Reading the sync configuration
     // -------------------------------------------------------------------------
     json_t *sync_config = json_object_get(config, "sync");
 
