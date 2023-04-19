@@ -35,6 +35,16 @@
 
 # Examples of specific commands for the ADQ14
 
-# Using the trig port as an output
+# Arming the timestamp reset using the sync port as input
+# Possible modes: "first" and "all"
+#                 WARNING: with "all" the board does not seem to trigger
+# Possible sources: "software", "sync_port", "trig_port"
+#~/abcd/bin/send_command.py specific -a '{"serial": "SPD-07721", "command": "timestamp_reset", "arm": true, "mode": "first", "source": "sync_port"}'
+
+# Setting the trig port as an output
 #~/abcd/bin/send_command.py specific -a '{"serial": "SPD-07721", "command": "GPIO_set_direction", "port": 2, "direction": 1, "mask": 0}'
+# Generating a pulse from the trig port (e.g. to reset the timestamp)
 #~/abcd/bin/send_command.py specific -a '{"serial": "SPD-07721", "command": "GPIO_pulse", "port": 2, "mask": 0, "width": 0}'
+
+# Disarming the timestamp reset
+#~/abcd/bin/send_command.py specific -a '{"serial": "SPD-07721", "command": "timestamp_reset", "arm": false}'
