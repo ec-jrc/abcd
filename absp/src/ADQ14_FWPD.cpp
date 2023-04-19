@@ -28,12 +28,6 @@ extern "C" {
 
 #define BUFFER_SIZE 32
 
-#define CHANNELS_NUMBER 4
-
-#define TIMESTAMP_BITS 63
-#define TIMESTAMP_MAX (1UL << TIMESTAMP_BITS)
-#define TIMESTAMP_THRESHOLD (1L << (TIMESTAMP_BITS - 1))
-
 // Defined in V
 const double ABCD::ADQ14_FWPD::default_trig_ext_threshold = 0.5;
 const unsigned int ABCD::ADQ14_FWPD::default_trig_ext_slope = ADQ_TRIG_SLOPE_RISING;
@@ -68,11 +62,12 @@ ABCD::ADQ14_FWPD::ADQ14_FWPD(int Verbosity) : Digitizer(Verbosity)
 
     SetEnabled(false);
 
+    clock_source = ADQ_CLOCK_INT_INTREF;
+
     DBS_instances_number = 0;
 
     trig_mode = ADQ_LEVEL_TRIGGER_MODE;
     trig_external_delay = 0;
-    clock_source = ADQ_CLOCK_INT_INTREF;
 
     trig_port_input_impedance = ADQ_IMPEDANCE_HIGH;
     sync_port_input_impedance = ADQ_IMPEDANCE_HIGH;
@@ -176,6 +171,14 @@ int ABCD::ADQ14_FWPD::Initialize(void* adq, int num)
         // FIXME: Find out what trigger_num is to be used
         //std::cout << "Has adjustable external trigger threshold: " << (ADQ_HasVariableTrigThreshold(adq_cu_ptr, adq14_num, trigger_num) > 0 ? "true" : "false") << "; ";
         std::cout << std::endl;
+
+        for (auto &pair : ADQ_descriptions::ADQ14_temperatures) {
+            const double temperature = ADQ_GetTemperature(adq_cu_ptr, adq14_num, pair.first) / 256.0;
+
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Initialize() ";
+            std::cout << pair.second << " temperature: " << temperature << "; ";
+            std::cout << std::endl;
+        }
     }
 
     CHECKZERO(ADQ_SetOvervoltageProtection(adq_cu_ptr, adq14_num, ADQ_OVERVOLTAGE_PROTECTION_ENABLE));
@@ -240,6 +243,8 @@ int ABCD::ADQ14_FWPD::Configure()
             time_string(time_buffer, BUFFER_SIZE, NULL);
             std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
             std::cout << "Channel: " << channel << "; ";
+            std::cout << "Enabled: " << (IsChannelEnabled(channel) ? "true" : "false") << "; ";
+            std::cout << "Triggering: " << (IsChannelTriggering(channel) ? "true" : "false") << "; ";
             std::cout << std::endl;
         }
 
@@ -388,7 +393,7 @@ int ABCD::ADQ14_FWPD::Configure()
     //  FWPD specific settings
     // -------------------------------------------------------------------------
 
-    channel_mask = 0;
+    channels_acquisition_mask = 0;
     uint32_t max_scope_samples = 0;
     int32_t max_pretrigger = 0;
     int32_t max_records_number = 0;
@@ -406,7 +411,7 @@ int ABCD::ADQ14_FWPD::Configure()
         }
 
         if (IsChannelEnabled(channel)) {
-            channel_mask += (1 << channel);
+            channels_acquisition_mask += (1 << channel);
 
             if (max_pretrigger < pretriggers[channel]) {
                 max_pretrigger = pretriggers[channel];
@@ -552,11 +557,11 @@ int ABCD::ADQ14_FWPD::Configure()
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
-        std::cout << "Setting up PD streaming with channel mask: 0x" << std::hex << (unsigned int)channel_mask << std::dec << "; ";
+        std::cout << "Setting up PD streaming with channel mask: 0x" << std::hex << (unsigned int)channels_acquisition_mask << std::dec << "; ";
         std::cout << std::endl;
     }
 
-    CHECKZERO(ADQ_PDSetupStreaming(adq_cu_ptr, adq14_num, channel_mask));
+    CHECKZERO(ADQ_PDSetupStreaming(adq_cu_ptr, adq14_num, channels_acquisition_mask));
 
     if (GetVerbosity() > 0)
     {
@@ -606,7 +611,7 @@ int ABCD::ADQ14_FWPD::Configure()
         //    std::cout << "number_of_records: 0x" << std::hex << max_records_number << std::dec << ", " << max_records_number << "; ";
         //    std::cout << "scope_samples: " << (unsigned int)max_scope_samples << "; ";
         //    std::cout << "pretrigger: " << (int)max_pretrigger << "; ";
-        //    std::cout << "channel_mask: 0x" << std::hex << (unsigned int)channel_mask << std::dec << "; ";
+        //    std::cout << "channels_acquisition_mask: 0x" << std::hex << (unsigned int)channels_acquisition_mask << std::dec << "; ";
         //    std::cout << std::endl;
         //}
         //// This gives an error when used with the FWPD generation 1
@@ -615,13 +620,13 @@ int ABCD::ADQ14_FWPD::Configure()
         //                                      max_scope_samples,
         //                                      max_pretrigger,
         //                                      0,
-        //                                      channel_mask));
+        //                                      channels_acquisition_mask));
 
         //// This also gives an error when used with the FWPD generation 1
         //CHECKZERO(ADQ_SetStreamStatus(adq_cu_ptr, adq14_num, 1));
         ////CHECKZERO(ADQ_SetStreamConfig(adq_cu_ptr, adq14_num, 1, 0));
         ////CHECKZERO(ADQ_SetStreamConfig(adq_cu_ptr, adq14_num, 2, 0));
-        ////CHECKZERO(ADQ_SetStreamConfig(adq_cu_ptr, adq14_num, 3, channel_mask));
+        ////CHECKZERO(ADQ_SetStreamConfig(adq_cu_ptr, adq14_num, 3, channels_acquisition_mask));
         ////CHECKZERO(ADQ_SetTriggerMode(adq_cu_ptr, adq14_num, trig_mode));
     } else {
         if (GetVerbosity() > 0)
@@ -774,7 +779,7 @@ int ABCD::ADQ14_FWPD::RearmTrigger()
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::RearmTrigger() ";
         std::cout << "Rearming trigger; ";
-        std::cout << "Trigger mode: " << ADQ_descriptions::trig_mode.at(trig_mode) << "; ";
+        std::cout << "Trigger mode: " << ADQ_descriptions::trig_mode.at(trig_mode) << " (index: " << trig_mode << "); ";
         std::cout << std::endl;
     }
 
@@ -791,7 +796,7 @@ int ABCD::ADQ14_FWPD::RearmTrigger()
         ForceSoftwareTrigger();
     }
 
-    return 0;
+    return DIGITIZER_SUCCESS;
 }
 
 //==============================================================================
@@ -882,7 +887,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
             CHECKZERO(ADQ_GetDataStreaming(adq_cu_ptr, adq14_num,
                                            (void**)target_buffers.data(),
                                            (void**)target_headers.data(),
-                                           channel_mask,
+                                           channels_acquisition_mask,
                                            added_samples.data(),
                                            added_headers.data(),
                                            status_headers.data()));
@@ -950,7 +955,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                         // not verified it.
                         const int64_t timestamp_negative_difference = timestamp_last - timestamp;
 
-                        if (timestamp_negative_difference > TIMESTAMP_THRESHOLD) {
+                        if (timestamp_negative_difference > ADQ14_FWPD_TIMESTAMP_THRESHOLD) {
                             if (GetVerbosity() > 0)
                             {
                                 char time_buffer[BUFFER_SIZE];
@@ -962,7 +967,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                                 std::cout << std::endl;
                             }
 
-                            timestamp_offset += TIMESTAMP_MAX;
+                            timestamp_offset += ADQ14_FWPD_TIMESTAMP_MAX;
                             timestamp_overflows += 1;
                         }
 
@@ -1088,7 +1093,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                 // not verified it.
                 const int64_t timestamp_negative_difference = timestamp_last - timestamp;
 
-                if (timestamp_negative_difference > TIMESTAMP_THRESHOLD) {
+                if (timestamp_negative_difference > ADQ14_FWPD_TIMESTAMP_THRESHOLD) {
                     if (GetVerbosity() > 0)
                     {
                         char time_buffer[BUFFER_SIZE];
@@ -1100,7 +1105,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                         std::cout << std::endl;
                     }
 
-                    timestamp_offset += TIMESTAMP_MAX;
+                    timestamp_offset += ADQ14_FWPD_TIMESTAMP_MAX;
                     timestamp_overflows += 1;
                 }
 
@@ -1108,7 +1113,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                 // behaviour and not the correction.
                 timestamp_last = timestamp;
 
-                const uint64_t timestamp_waveform = timestamp + timestamp_offset;
+                const uint64_t timestamp_waveform = (timestamp + timestamp_offset) << timestamp_bit_shift;
 
                 struct event_waveform this_waveform = waveform_create(timestamp_waveform,
                                                                       channel,
@@ -1149,6 +1154,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
 }
 
 //==============================================================================
+
 int ABCD::ADQ14_FWPD::StopAcquisition()
 {
     if (GetVerbosity() > 0)
@@ -1273,7 +1279,7 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
     json_object_set_nocheck(config, "timestamp_bit_shift", json_integer(timestamp_bit_shift));
 
     // -------------------------------------------------------------------------
-    //  Starting the transfer configuration
+    //  Reading the transfer configuration
     // -------------------------------------------------------------------------
     json_t *transfer_config = json_object_get(config, "transfer");
 
@@ -1337,7 +1343,7 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
     json_object_set_nocheck(transfer_config, "timeout", json_integer(transfer_timeout));
 
     // -------------------------------------------------------------------------
-    //  Starting the trigger configuration
+    //  Reading the trigger configuration
     // -------------------------------------------------------------------------
     json_t *trigger_config = json_object_get(config, "trigger");
 
@@ -1462,7 +1468,7 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
     json_object_set_nocheck(sync_config, "impedance", json_string(ADQ_descriptions::input_impedance.at(sync_port_input_impedance).c_str()));
 
     // -------------------------------------------------------------------------
-    //  Starting the single channels configuration
+    //  Reading the single channels configuration
     // -------------------------------------------------------------------------
     // First resetting the channels statuses
     for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
