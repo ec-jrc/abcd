@@ -74,11 +74,8 @@ ABCD::ADQ14_FWPD::ADQ14_FWPD(int Verbosity) : Digitizer(Verbosity)
     trig_external_delay = 0;
     clock_source = ADQ_CLOCK_INT_INTREF;
 
-    trig_port_input_impedance = ADQ_IMPEDANCE_50_OHM;
-    sync_port_input_impedance = ADQ_IMPEDANCE_50_OHM;
-
-    timestamp_sync_enabled = false;
-    timestamp_sync_mode = ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_ALL;
+    trig_port_input_impedance = ADQ_IMPEDANCE_HIGH;
+    sync_port_input_impedance = ADQ_IMPEDANCE_HIGH;
 
     // This is reset only at the class creation because the timestamp seems to
     // be growing continuously even after starts or stops.
@@ -87,7 +84,7 @@ ABCD::ADQ14_FWPD::ADQ14_FWPD(int Verbosity) : Digitizer(Verbosity)
     timestamp_overflows = 0;
 }
 
-//==================================================================
+//==============================================================================
 
 ABCD::ADQ14_FWPD::~ADQ14_FWPD() {
     for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
@@ -100,7 +97,7 @@ ABCD::ADQ14_FWPD::~ADQ14_FWPD() {
     }
 }
 
-//==================================================================
+//==============================================================================
 
 int ABCD::ADQ14_FWPD::Initialize(void* adq, int num)
 {
@@ -186,7 +183,7 @@ int ABCD::ADQ14_FWPD::Initialize(void* adq, int num)
     return DIGITIZER_SUCCESS;
 }
 
-//==========================================================================================
+//==============================================================================
 
 int ABCD::ADQ14_FWPD::Configure()
 {
@@ -370,38 +367,6 @@ int ABCD::ADQ14_FWPD::Configure()
     }
 
     // -------------------------------------------------------------------------
-    //  Timestamp synchronization settings
-    // -------------------------------------------------------------------------
-    
-    if (timestamp_sync_enabled) {
-        if (GetVerbosity() > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
-            std::cout << "Enabling timestamp synchronization; ";
-            std::cout << "mode: " << ADQ_descriptions::timestamp_synchronization_mode.at(timestamp_sync_mode) << "; ";
-            std::cout << "source: " << ADQ_descriptions::timestamp_synchronization_source.at(timestamp_sync_source) << "; ";
-            std::cout << std::endl;
-        }
-
-        CHECKZERO(ADQ_DisarmTimestampSync(adq_cu_ptr, adq14_num));
-        CHECKZERO(ADQ_SetupTimestampSync(adq_cu_ptr, adq14_num, timestamp_sync_mode, timestamp_sync_source));
-        CHECKZERO(ADQ_ArmTimestampSync(adq_cu_ptr, adq14_num));
-    } else {
-        if (GetVerbosity() > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
-            std::cout << "Disabling timestamp synchronization; ";
-            std::cout << std::endl;
-        }
-
-        CHECKZERO(ADQ_DisarmTimestampSync(adq_cu_ptr, adq14_num));
-    }
-
-    // -------------------------------------------------------------------------
     //  Input impedances
     // -------------------------------------------------------------------------
     
@@ -412,7 +377,7 @@ int ABCD::ADQ14_FWPD::Configure()
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
         std::cout << "Setting ports input impedances; ";
         std::cout << "trig port: " << ADQ_descriptions::input_impedance.at(trig_port_input_impedance) << "; ";
-        std::cout << "sync port: " << ADQ_descriptions::input_impedance.at(trig_port_input_impedance) << "; ";
+        std::cout << "sync port: " << ADQ_descriptions::input_impedance.at(sync_port_input_impedance) << "; ";
         std::cout << std::endl;
     }
 
@@ -708,7 +673,7 @@ int ABCD::ADQ14_FWPD::Configure()
     return DIGITIZER_SUCCESS;
 }
 
-//==========================================================================================
+//==============================================================================
 
 void ABCD::ADQ14_FWPD::SetChannelsNumber(unsigned int n)
 {
@@ -733,7 +698,7 @@ void ABCD::ADQ14_FWPD::SetChannelsNumber(unsigned int n)
 
 }
 
-//================================================c=========================================
+//==============================================================================
 
 int ABCD::ADQ14_FWPD::StartAcquisition()
 {
@@ -799,7 +764,7 @@ int ABCD::ADQ14_FWPD::StartAcquisition()
     return DIGITIZER_SUCCESS;
 }
 
-//================================================c=========================================
+//==============================================================================
 
 int ABCD::ADQ14_FWPD::RearmTrigger()
 {
@@ -829,7 +794,8 @@ int ABCD::ADQ14_FWPD::RearmTrigger()
     return 0;
 }
 
-//==========================================================================================
+//==============================================================================
+
 bool ABCD::ADQ14_FWPD::AcquisitionReady()
 {
     if (GetVerbosity() > 1)
@@ -887,7 +853,8 @@ bool ABCD::ADQ14_FWPD::AcquisitionReady()
     }
 }
 
-//==========================================================================================
+//==============================================================================
+
 int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms)
 {
     if (GetVerbosity() > 1)
@@ -1181,7 +1148,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
     return DIGITIZER_SUCCESS;
 }
 
-//==========================================================================================
+//==============================================================================
 int ABCD::ADQ14_FWPD::StopAcquisition()
 {
     if (GetVerbosity() > 0)
@@ -1216,7 +1183,7 @@ int ABCD::ADQ14_FWPD::StopAcquisition()
     return DIGITIZER_SUCCESS;
 }
 
-//=====================================================================================================
+//==============================================================================
 
 int ABCD::ADQ14_FWPD::ForceSoftwareTrigger()
 {
@@ -1234,7 +1201,7 @@ int ABCD::ADQ14_FWPD::ForceSoftwareTrigger()
     return DIGITIZER_SUCCESS;
 }
 
-//=========================================================================
+//==============================================================================
 
 int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
 {
@@ -1305,9 +1272,9 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
 
     json_object_set_nocheck(config, "timestamp_bit_shift", json_integer(timestamp_bit_shift));
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Starting the transfer configuration                                    //
-    ////////////////////////////////////////////////////////////////////////////
+    // -------------------------------------------------------------------------
+    //  Starting the transfer configuration
+    // -------------------------------------------------------------------------
     json_t *transfer_config = json_object_get(config, "transfer");
 
     if (!json_is_object(transfer_config)) {
@@ -1369,9 +1336,9 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
 
     json_object_set_nocheck(transfer_config, "timeout", json_integer(transfer_timeout));
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Starting the trigger configuration                                     //
-    ////////////////////////////////////////////////////////////////////////////
+    // -------------------------------------------------------------------------
+    //  Starting the trigger configuration
+    // -------------------------------------------------------------------------
     json_t *trigger_config = json_object_get(config, "trigger");
 
     if (!json_is_object(trigger_config)) {
@@ -1434,7 +1401,7 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
     if (tii_result != ADQ_descriptions::input_impedance.end() && str_trigger_impedance.length() > 0) {
         trig_port_input_impedance = tii_result->first;
     } else {
-        trig_port_input_impedance = ADQ_IMPEDANCE_50_OHM;
+        trig_port_input_impedance = ADQ_IMPEDANCE_HIGH;
 
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
@@ -1446,128 +1413,57 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
 
     json_object_set_nocheck(trigger_config, "impedance", json_string(ADQ_descriptions::input_impedance.at(trig_port_input_impedance).c_str()));
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Starting the timestamp synchronization configuration                   //
-    ////////////////////////////////////////////////////////////////////////////
-    json_t *timestamp_sync_config = json_object_get(config, "timestamp_sync");
+    // -------------------------------------------------------------------------
+    //  Starting the sync configuration
+    // -------------------------------------------------------------------------
+    json_t *sync_config = json_object_get(config, "sync");
 
-    if (!json_is_object(timestamp_sync_config)) {
+    if (!json_is_object(sync_config)) {
         if (GetVerbosity() > 0)
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
             std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
-            std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Missing \"timestamp_sync\" entry in configuration; ";
+            std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Missing \"sync\" entry in configuration; ";
             std::cout << std::endl;
         }
 
-        timestamp_sync_config = json_object();
-        json_object_set_new_nocheck(config, "timestamp_sync", timestamp_sync_config);
+        sync_config = json_object();
+        json_object_set_new_nocheck(config, "sync", sync_config);
     }
 
-    timestamp_sync_enabled = json_is_true(json_object_get(timestamp_sync_config, "enable"));
-
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-        std::cout << "Timestamp synchronization is " << (timestamp_sync_enabled ? "enabled" : "disabled") << "; ";
-        std::cout << std::endl;
-    }
-
-    json_object_set_nocheck(timestamp_sync_config, "enable", json_boolean(timestamp_sync_enabled));
-
-    const char *cstr_timestamp_sync_mode = json_string_value(json_object_get(timestamp_sync_config, "mode"));
-    const std::string str_timestamp_sync_mode = (cstr_timestamp_sync_mode) ? std::string(cstr_timestamp_sync_mode) : std::string();
+    const char *cstr_sync_impedance = json_string_value(json_object_get(sync_config, "impedance"));
+    const std::string str_sync_impedance = (cstr_sync_impedance) ? std::string(cstr_sync_impedance) : std::string();
 
     if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-        std::cout << "Timestamp synchronization mode: " << str_timestamp_sync_mode<< "; ";
+        std::cout << "Sync port impedance: " << str_sync_impedance<< "; ";
         std::cout << std::endl;
     }
 
     // Looking for the settings in the description map
-    const auto tsm_result = map_utilities::find_item(ADQ_descriptions::timestamp_synchronization_mode, str_timestamp_sync_mode);
+    const auto tsii_result = map_utilities::find_item(ADQ_descriptions::input_impedance, str_sync_impedance);
 
-    if (tsm_result != ADQ_descriptions::timestamp_synchronization_mode.end() && str_timestamp_sync_mode.length() > 0) {
-        timestamp_sync_mode = tsm_result->first;
-    } else {
-        timestamp_sync_mode = ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_ALL;
-
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid timestamp_sync mode; ";
-        std::cout << "Got: " << str_timestamp_sync_mode << "; ";
-        std::cout << std::endl;
-    }
-
-    json_object_set_nocheck(timestamp_sync_config, "mode", json_string(ADQ_descriptions::timestamp_synchronization_mode.at(timestamp_sync_mode).c_str()));
-
-    const char *cstr_timestamp_sync_source = json_string_value(json_object_get(timestamp_sync_config, "source"));
-    const std::string str_timestamp_sync_source = (cstr_timestamp_sync_source) ? std::string(cstr_timestamp_sync_source) : std::string();
-
-    if (GetVerbosity() > 0) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-        std::cout << "Timestamp synchronization source: " << str_timestamp_sync_source<< "; ";
-        std::cout << std::endl;
-    }
-
-    // Looking for the settings in the description map
-    const auto tss_result = map_utilities::find_item(ADQ_descriptions::timestamp_synchronization_source, str_timestamp_sync_source);
-
-    if (tss_result != ADQ_descriptions::timestamp_synchronization_source.end() && str_timestamp_sync_source.length() > 0) {
-        timestamp_sync_source = tss_result->first;
-    } else {
-        timestamp_sync_source = ADQ_EVENT_SOURCE_SYNC;
-
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid timestamp_sync source; ";
-        std::cout << "Got: " << str_timestamp_sync_source << "; ";
-        std::cout << std::endl;
-    }
-
-    json_object_set_nocheck(timestamp_sync_config, "source", json_string(ADQ_descriptions::timestamp_synchronization_source.at(timestamp_sync_source).c_str()));
-
-    const char *cstr_timestamp_sync_impedance = json_string_value(json_object_get(timestamp_sync_config, "impedance"));
-    const std::string str_timestamp_sync_impedance = (cstr_timestamp_sync_impedance) ? std::string(cstr_timestamp_sync_impedance) : std::string();
-
-    if (GetVerbosity() > 0) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-        std::cout << "Sync port impedance: " << str_timestamp_sync_impedance<< "; ";
-        std::cout << std::endl;
-    }
-
-    // Looking for the settings in the description map
-    const auto tsii_result = map_utilities::find_item(ADQ_descriptions::input_impedance, str_timestamp_sync_impedance);
-
-    if (tsii_result != ADQ_descriptions::input_impedance.end() && str_timestamp_sync_impedance.length() > 0) {
+    if (tsii_result != ADQ_descriptions::input_impedance.end() && str_sync_impedance.length() > 0) {
         sync_port_input_impedance = tsii_result->first;
     } else {
-        sync_port_input_impedance = ADQ_IMPEDANCE_50_OHM;
+        sync_port_input_impedance = ADQ_IMPEDANCE_HIGH;
 
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid timestamp_sync impedance; ";
-        std::cout << "Got: " << str_timestamp_sync_impedance << "; ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid sync impedance; ";
+        std::cout << "Got: " << str_sync_impedance << "; ";
         std::cout << std::endl;
     }
 
-    json_object_set_nocheck(timestamp_sync_config, "impedance", json_string(ADQ_descriptions::input_impedance.at(sync_port_input_impedance).c_str()));
+    json_object_set_nocheck(sync_config, "impedance", json_string(ADQ_descriptions::input_impedance.at(sync_port_input_impedance).c_str()));
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Starting the single channels configuration                             //
-    ////////////////////////////////////////////////////////////////////////////
+    // -------------------------------------------------------------------------
+    //  Starting the single channels configuration
+    // -------------------------------------------------------------------------
     // First resetting the channels statuses
     for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
         SetChannelEnabled(channel, false);
@@ -1584,7 +1480,7 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
             json_t *json_id = json_object_get(value, "id");
 
             if (json_id != NULL && json_is_integer(json_id)) {
-                const unsigned int id = json_integer_value(json_id);
+                const int id = json_integer_value(json_id);
 
                 if (GetVerbosity() > 0)
                 {
@@ -1773,7 +1669,7 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
                     std::cout << std::endl;
                 }
 
-                if (0 <= id && id < GetChannelsNumber()) {
+                if (0 <= id && id < static_cast<int>(GetChannelsNumber())) {
                     SetChannelEnabled(id, enabled);
                     desired_input_ranges[id] = input_range;
                     trig_levels[id] = trig_level;
@@ -1856,6 +1752,105 @@ int ABCD::ADQ14_FWPD::SpecificCommand(json_t *json_command)
         std::this_thread::sleep_for(std::chrono::microseconds(width));
 
         CHECKZERO(ADQ_WriteGPIOPort(adq_cu_ptr, adq14_num, port, pin_value_off, mask));
+    } else if (command == std::string("timestamp_reset")) {
+        // ---------------------------------------------------------------------
+        //  Timestamp reset
+        // ---------------------------------------------------------------------
+
+        const bool timestamp_reset_arm = json_is_true(json_object_get(json_command, "arm"));
+
+        if (timestamp_reset_arm) {
+            // -----------------------------------------------------------------
+            //  Arming the timestamp reset
+            // -----------------------------------------------------------------
+            unsigned int timestamp_reset_mode = ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_FIRST;
+
+            const char *cstr_timestamp_reset_mode = json_string_value(json_object_get(json_command, "mode"));
+            const std::string str_timestamp_reset_mode = (cstr_timestamp_reset_mode) ? std::string(cstr_timestamp_reset_mode) : std::string();
+
+            if (GetVerbosity() > 0) {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::SpecificCommand() ";
+                std::cout << "Timestamp reset mode: " << str_timestamp_reset_mode<< "; ";
+                std::cout << std::endl;
+            }
+
+            // Looking for the settings in the description map
+            const auto tsm_result = map_utilities::find_item(ADQ_descriptions::timestamp_synchronization_mode, str_timestamp_reset_mode);
+
+            if (tsm_result != ADQ_descriptions::timestamp_synchronization_mode.end() && str_timestamp_reset_mode.length() > 0) {
+                timestamp_reset_mode = tsm_result->first;
+            } else {
+                timestamp_reset_mode = ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_FIRST;
+
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::SpecificCommand() ";
+                std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid timestamp_reset mode; ";
+                std::cout << "Got: " << str_timestamp_reset_mode << "; ";
+                std::cout << std::endl;
+            }
+
+            unsigned int timestamp_reset_source = ADQ_EVENT_SOURCE_SYNC;
+
+            const char *cstr_timestamp_reset_source = json_string_value(json_object_get(json_command, "source"));
+            const std::string str_timestamp_reset_source = (cstr_timestamp_reset_source) ? std::string(cstr_timestamp_reset_source) : std::string();
+
+            if (GetVerbosity() > 0) {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::SpecificCommand() ";
+                std::cout << "Timestamp synchronization source: " << str_timestamp_reset_source<< "; ";
+                std::cout << std::endl;
+            }
+
+            // Looking for the settings in the description map
+            const auto tss_result = map_utilities::find_item(ADQ_descriptions::timestamp_synchronization_source, str_timestamp_reset_source);
+
+            if (tss_result != ADQ_descriptions::timestamp_synchronization_source.end() && str_timestamp_reset_source.length() > 0) {
+                timestamp_reset_source = tss_result->first;
+            } else {
+                timestamp_reset_source = ADQ_EVENT_SOURCE_SYNC;
+
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::SpecificCommand() ";
+                std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid timestamp_reset source; ";
+                std::cout << "Got: " << str_timestamp_reset_source << "; ";
+                std::cout << std::endl;
+            }
+
+            if (GetVerbosity() > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::SpecificCommand() ";
+                std::cout << "Arming timestamp synchronization; ";
+                std::cout << "mode: " << ADQ_descriptions::timestamp_synchronization_mode.at(timestamp_reset_mode) << "; ";
+                std::cout << "source: " << ADQ_descriptions::timestamp_synchronization_source.at(timestamp_reset_source) << "; ";
+                std::cout << std::endl;
+            }
+
+            CHECKZERO(ADQ_DisarmTimestampSync(adq_cu_ptr, adq14_num));
+            CHECKZERO(ADQ_SetupTimestampSync(adq_cu_ptr, adq14_num, timestamp_reset_mode, timestamp_reset_source));
+            CHECKZERO(ADQ_ArmTimestampSync(adq_cu_ptr, adq14_num));
+
+        } else {
+            // -----------------------------------------------------------------
+            //  Disarming the timestamp reset
+            // -----------------------------------------------------------------
+            if (GetVerbosity() > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::SpecificCommand() ";
+                std::cout << "Disarming timestamp reset; ";
+                std::cout << std::endl;
+            }
+
+            CHECKZERO(ADQ_DisarmTimestampSync(adq_cu_ptr, adq14_num));
+        }
     }
 
     return DIGITIZER_SUCCESS;

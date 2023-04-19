@@ -99,11 +99,7 @@ public:
     // Value to change a delay of the external trigger, not used
     int trig_external_delay;
 
-    // Settings for the synchronization of the timestamps
-    bool timestamp_sync_enabled;
-    unsigned int timestamp_sync_mode;
-    unsigned int timestamp_sync_source;
-
+    // Settings for the input impedances of the front connectors
     int trig_port_input_impedance;
     int sync_port_input_impedance;
 
