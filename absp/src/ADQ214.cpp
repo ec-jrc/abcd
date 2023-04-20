@@ -305,6 +305,7 @@ int ABCD::ADQ214::Configure()
     // -------------------------------------------------------------------------
 
     CHECKZERO(ADQ_DisarmTrigger(adq_cu_ptr, adq_num));
+
     if (GetVerbosity() > 0)
     {
         char time_buffer[BUFFER_SIZE];
@@ -528,7 +529,7 @@ int ABCD::ADQ214::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
     if (retval == 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ214::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::GetWaveformsFromCard() ";
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Error in fetching data; ";
         std::cout << std::endl;
 
