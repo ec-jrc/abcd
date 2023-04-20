@@ -47,7 +47,7 @@ public:
     void* adq_cu_ptr;
 
     // Number of the ADQ14_FWPD card 
-    int adq14_num;
+    int adq_num;
 
     // Flag to select the clock source of the digitizer
     int clock_source;
