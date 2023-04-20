@@ -28,22 +28,26 @@ private:
     using ABCD::Digitizer::Initialize;
 
 public:
-    //--------------------------------------------------------------------------
-    // Card settings
-    //--------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    //  Card settings
+    // -------------------------------------------------------------------------
 
     // Pointer to the control unit of the ADQ cards
     void* adq_cu_ptr;
 
     // Number of the ADQ14_FWDAQ card
-    int adq_num;
+    int adq14_num;
 
     // Flag to select the clock source of the digitizer
     int clock_source;
 
-    //--------------------------------------------------------------------------
-    // Trigger settings
-    //--------------------------------------------------------------------------
+    // Settings for the input impedances of the front connectors
+    int trig_port_input_impedance;
+    int sync_port_input_impedance;
+
+    // -------------------------------------------------------------------------
+    //  Trigger settings
+    // -------------------------------------------------------------------------
 
     // Flag to select the trigger mode
     unsigned int trig_mode;
@@ -51,21 +55,22 @@ public:
     unsigned int trig_slope;
     // Value to change a delay of the external trigger, not used
     int trig_external_delay;
+
     // Value of the trigger level for the channels, in ADC samples
     int trig_level;
 
     // Enable channels self triggering flag
     int channels_triggering_mask;
 
-    //--------------------------------------------------------------------------
-    // Channels settings
-    //--------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    //  Channels settings
+    // -------------------------------------------------------------------------
 
     // The desired input ranges as requested by the user
     static const float default_input_range;
     std::vector<float> desired_input_ranges;
 
-    // The hardware DC offsets set on the channels
+    // The hardware DC offsets set on the channels as requested by the user
     static const int default_DC_offset;
     std::vector<int16_t> DC_offsets;
 
@@ -77,9 +82,9 @@ public:
     std::vector<bool> DBS_disableds;
     std::vector<uint32_t> baseline_samples;
 
-    //--------------------------------------------------------------------------
-    // Waveforms settings
-    //--------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    //  Waveforms settings
+    // -------------------------------------------------------------------------
 
     // Number of samples to acquire in the waveforms before the trigger
     int32_t pretrigger;
@@ -88,9 +93,9 @@ public:
     // Number of waveforms per channel to store in the digitizer buffer
     unsigned int records_number;
 
-    //--------------------------------------------------------------------------
-    // Transfer settings
-    //--------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    //  Transfer settings
+    // -------------------------------------------------------------------------
     // The size of the buffers in terms of int16_t samples. Each data buffer
     // must contain enough samples to store all the records consecutively.
     size_t buffers_size;
@@ -103,14 +108,16 @@ public:
     std::vector<uint8_t> target_headers;
     std::vector<int64_t> target_timestamps;
 
-    //--------------------------------------------------------------------------
-    // Streaming settings
-    //--------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    //  Streaming settings
+    // -------------------------------------------------------------------------
     unsigned int channels_acquisition_mask;
 
-    //--------------------------------------------------------------------------
-    // Timestamps settings
-    //--------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    //  Timestamps settings
+    // -------------------------------------------------------------------------
+    // Applied bit shift to the read timestamp values
+    unsigned int timestamp_bit_shift;
 
     // Variables to keep track of timestamp overflows during acquisitions
     int64_t timestamp_last;
@@ -122,7 +129,7 @@ public:
     ADQ14_FWDAQ(int verbosity = 0);
     virtual ~ADQ14_FWDAQ();
 
-    int Initialize(void* adq_cu_ptr, int adq_num);
+    int Initialize(void* adq_cu_ptr, int adq14_num);
     int ReadConfig(json_t* config);
     int Configure();
 
@@ -141,6 +148,10 @@ public:
 
     void SetDBSInstancesNumber(unsigned int n) { DBS_instances_number = n; }
     unsigned int GetDBSInstancesNumber() const { return DBS_instances_number; }
+
+    //--------------------------------------------------------------------------
+
+    int SpecificCommand(json_t* json_command);
 };
 }
 

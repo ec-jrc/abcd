@@ -3,6 +3,7 @@
         {
             "id": 0,
             "model": "ADQ14DC-4A-VG",
+            "model_note": "This model has the FWDAQ",
             "serial": "SPD-05333",
             "enable": true,
             "scope_samples": 1400,
@@ -16,6 +17,8 @@
             "clock_source_possible_value1": "external_10MHz",
             "clock_source_possible_value2": "external",
             "clock_source_possible_value3": "external_PXI",
+            "timestamp_bit_shift": 0,
+            "timestamp_bit_shift_note": "the timestamp may be shifted in order to align it with the waan analysis module",
             "trigger": {
                 "source": "channels",
                 "source_possible_value1": "software",
@@ -26,6 +29,17 @@
                 "slope_possible_value1": "falling",
                 "level": 32600,
                 "level_note": "absolute value of the waveform display, in ADC channels",
+                "impedance": "50_Ohm",
+                "impedance_note": "input impedance of the 'trig' port",
+                "impedance_possible_value1": "50_Ohm",
+                "impedance_possible_value2": "high",
+                "zzz": null
+            },
+            "sync": {
+                "impedance": "high",
+                "impedance_possible_value1": "50_Ohm",
+                "impedance_possible_value2": "high",
+                "impedance_note": "input impedance of the 'sync' port",
                 "zzz": null
             },
             "channels": [

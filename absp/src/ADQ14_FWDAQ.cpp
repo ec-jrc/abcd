@@ -5,6 +5,9 @@
 #include <iostream>
 #include <stdexcept>
 
+#include <thread>
+#include <chrono>
+
 extern "C" {
 #include <jansson.h>
 
@@ -27,7 +30,7 @@ const float ABCD::ADQ14_FWDAQ::default_input_range = 1000;
 const int ABCD::ADQ14_FWDAQ::default_DC_offset = 0;
 // Defined in ADC samples
 const int ABCD::ADQ14_FWDAQ::default_DBS_target = 0;
-// If left at zero the FWPD will use its default values
+// If left at zero the FWDAQ will use its default values
 const int ABCD::ADQ14_FWDAQ::default_DBS_saturation_level_lower = 0;
 const int ABCD::ADQ14_FWDAQ::default_DBS_saturation_level_upper = 0;
 
@@ -44,7 +47,7 @@ ABCD::ADQ14_FWDAQ::ADQ14_FWDAQ(int Verbosity) : Digitizer(Verbosity)
     SetModel("ADQ14_FWDAQ");
 
     adq_cu_ptr = NULL;
-    adq_num = 0;
+    adq14_num = 0;
 
     SetEnabled(false);
 
@@ -68,35 +71,35 @@ ABCD::ADQ14_FWDAQ::ADQ14_FWDAQ(int Verbosity) : Digitizer(Verbosity)
     timestamp_overflows = 0;
 }
 
-//==================================================================
+//==============================================================================
 
 ABCD::ADQ14_FWDAQ::~ADQ14_FWDAQ() {
 }
 
-//==================================================================
+//==============================================================================
 
 int ABCD::ADQ14_FWDAQ::Initialize(void* adq, int num)
 {
     adq_cu_ptr = adq;
-    adq_num = num;
+    adq14_num = num;
 
-    CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_POWER_ON));
-    CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_COMMUNICATION));
-    CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_ADC_DATA));
+    CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq14_num, RESET_POWER_ON));
+    CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq14_num, RESET_COMMUNICATION));
+    CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq14_num, RESET_ADC_DATA));
 
-    const std::string board_name = ADQ_GetBoardSerialNumber(adq_cu_ptr, adq_num);
+    const std::string board_name = ADQ_GetBoardSerialNumber(adq_cu_ptr, adq14_num);
 
     SetName(board_name);
 
-    const unsigned int number_of_channels = ADQ_GetNofChannels(adq_cu_ptr, adq_num);
+    const unsigned int number_of_channels = ADQ_GetNofChannels(adq_cu_ptr, adq14_num);
 
     SetChannelsNumber(number_of_channels);
 
     unsigned int adc_cores = 0;
-    CHECKZERO(ADQ_GetNofAdcCores(adq_cu_ptr, adq_num, &adc_cores));
+    CHECKZERO(ADQ_GetNofAdcCores(adq_cu_ptr, adq14_num, &adc_cores));
 
     unsigned int dbs_inst = 0;
-    CHECKZERO(ADQ_GetNofDBSInstances(adq_cu_ptr, adq_num, &dbs_inst));
+    CHECKZERO(ADQ_GetNofDBSInstances(adq_cu_ptr, adq14_num, &dbs_inst));
 
     SetDBSInstancesNumber(dbs_inst);
 
@@ -109,19 +112,19 @@ int ABCD::ADQ14_FWDAQ::Initialize(void* adq, int num)
         std::cout << std::endl;
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Initialize() ";
         std::cout << "Card name (serial number): " << GetName() << "; ";
-        std::cout << "Product name: " << ADQ_GetBoardProductName(adq_cu_ptr, adq_num) << "; ";
-        std::cout << "Card option: " << ADQ_GetCardOption(adq_cu_ptr, adq_num) << "; ";
+        std::cout << "Product name: " << ADQ_GetBoardProductName(adq_cu_ptr, adq14_num) << "; ";
+        std::cout << "Card option: " << ADQ_GetCardOption(adq_cu_ptr, adq14_num) << "; ";
         std::cout << std::endl;
 
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Initialize() ";
-        std::cout << "USB address: " << ADQ_GetUSBAddress(adq_cu_ptr, adq_num) << "; ";
-        std::cout << "PCIe address: " << ADQ_GetPCIeAddress(adq_cu_ptr, adq_num) << "; ";
+        std::cout << "USB address: " << ADQ_GetUSBAddress(adq_cu_ptr, adq14_num) << "; ";
+        std::cout << "PCIe address: " << ADQ_GetPCIeAddress(adq_cu_ptr, adq14_num) << "; ";
         std::cout << std::endl;
 
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Initialize() ";
         std::cout << "ADQAPI Revision: " << ADQAPI_GetRevision() << "; ";
         std::cout << "ADQ14 Revision: {";
-        int* revision = ADQ_GetRevision(adq_cu_ptr, adq_num);
+        int* revision = ADQ_GetRevision(adq_cu_ptr, adq14_num);
         for (int i = 0; i < 6; i++) {
             std::cout << revision[i] << ", ";
         }
@@ -135,14 +138,14 @@ int ABCD::ADQ14_FWDAQ::Initialize(void* adq, int num)
         std::cout << std::endl;
 
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Initialize() ";
-        std::cout << "Has adjustable input range: " << (ADQ_HasAdjustableInputRange(adq_cu_ptr, adq_num) > 0 ? "true" : "false") << "; ";
-        std::cout << "Has adjustable offset: " << (ADQ_HasAdjustableBias(adq_cu_ptr, adq_num) > 0 ? "true" : "false") << "; ";
+        std::cout << "Has adjustable input range: " << (ADQ_HasAdjustableInputRange(adq_cu_ptr, adq14_num) > 0 ? "true" : "false") << "; ";
+        std::cout << "Has adjustable offset: " << (ADQ_HasAdjustableBias(adq_cu_ptr, adq14_num) > 0 ? "true" : "false") << "; ";
         // TODO: Add trignums
-        //std::cout << "Has adjustable external trigger threshold: " << (ADQ_HasVariableTrigThreshold(adq_cu_ptr, adq_num) > 0 ? "true" : "false") << "; ";
+        //std::cout << "Has adjustable external trigger threshold: " << (ADQ_HasVariableTrigThreshold(adq_cu_ptr, adq14_num) > 0 ? "true" : "false") << "; ";
         std::cout << std::endl;
 
         for (auto &pair : ADQ_descriptions::ADQ14_temperatures) {
-            const double temperature = ADQ_GetTemperature(adq_cu_ptr, adq_num, pair.first) / 256.0;
+            const double temperature = ADQ_GetTemperature(adq_cu_ptr, adq14_num, pair.first) / 256.0;
 
             std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Initialize() ";
             std::cout << pair.second << " temperature: " << temperature << "; ";
@@ -150,12 +153,12 @@ int ABCD::ADQ14_FWDAQ::Initialize(void* adq, int num)
         }
     }
 
-    CHECKZERO(ADQ_SetOvervoltageProtection(adq_cu_ptr, adq_num, ADQ_OVERVOLTAGE_PROTECTION_ENABLE));
+    CHECKZERO(ADQ_SetOvervoltageProtection(adq_cu_ptr, adq14_num, ADQ_OVERVOLTAGE_PROTECTION_ENABLE));
 
     return DIGITIZER_SUCCESS;
 }
 
-//==========================================================================================
+//==============================================================================
 
 int ABCD::ADQ14_FWDAQ::Configure()
 {
@@ -187,13 +190,17 @@ int ABCD::ADQ14_FWDAQ::Configure()
         std::cout << std::endl;
     }
 
-    CHECKZERO(ADQ_SetClockSource(adq_cu_ptr, adq_num, clock_source));
+    CHECKZERO(ADQ_SetClockSource(adq_cu_ptr, adq14_num, clock_source));
 
     if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Configure() ";
-        std::cout << "Clock source from device: " << ADQ_descriptions::clock_source.at(ADQ_GetClockSource(adq_cu_ptr, adq_num)) << "; ";
+        std::cout << "Clock source from device: " << ADQ_GetClockSource(adq_cu_ptr, adq14_num) << "; ";
+        try {
+            std::cout << ADQ_descriptions::clock_source.at(ADQ_GetClockSource(adq_cu_ptr, adq14_num)) << "; ";
+        } catch (...) {
+        }
         std::cout << std::endl;
     }
 
@@ -209,7 +216,7 @@ int ABCD::ADQ14_FWDAQ::Configure()
     // Disable test data and forward normal data to channels
     // in the example it is repeated at each channel, but to me it seems
     // unnecessary.
-    CHECKZERO(ADQ_SetTestPatternMode(adq_cu_ptr, adq_num, 0));
+    CHECKZERO(ADQ_SetTestPatternMode(adq_cu_ptr, adq14_num, 0));
 
     // -------------------------------------------------------------------------
     //  Channels settings
@@ -236,7 +243,7 @@ int ABCD::ADQ14_FWDAQ::Configure()
             channels_acquisition_mask += (1 << channel);
         }
 
-        if (ADQ_HasAdjustableInputRange(adq_cu_ptr, adq_num) > 0) {
+        if (ADQ_HasAdjustableInputRange(adq_cu_ptr, adq14_num) > 0) {
             if (GetVerbosity() > 0)
             {
                 char time_buffer[BUFFER_SIZE];
@@ -249,7 +256,7 @@ int ABCD::ADQ14_FWDAQ::Configure()
             const float desired = desired_input_ranges[channel];
             float result = 0;
 
-            CHECKZERO(ADQ_SetInputRange(adq_cu_ptr, adq_num, channel + 1, desired, &result));
+            CHECKZERO(ADQ_SetInputRange(adq_cu_ptr, adq14_num, channel + 1, desired, &result));
 
             if (GetVerbosity() > 0)
             {
@@ -261,7 +268,7 @@ int ABCD::ADQ14_FWDAQ::Configure()
             }
         }
 
-        if (ADQ_HasAdjustableBias(adq_cu_ptr, adq_num) > 0) {
+        if (ADQ_HasAdjustableBias(adq_cu_ptr, adq14_num) > 0) {
             const int DC_offset = DC_offsets[channel];
 
             if (GetVerbosity() > 0)
@@ -275,12 +282,17 @@ int ABCD::ADQ14_FWDAQ::Configure()
 
             // This is a physical DC offset added to the signal
             // while ADQ_SetGainAndOffset is a digital calculation
-            CHECKZERO(ADQ_SetAdjustableBias(adq_cu_ptr, adq_num, channel + 1, DC_offset));
+            CHECKZERO(ADQ_SetAdjustableBias(adq_cu_ptr, adq14_num, channel + 1, DC_offset));
         }
     }
 
+    // -------------------------------------------------------------------------
+    //  DBS settings
+    // -------------------------------------------------------------------------
+
     for (unsigned int instance = 0; instance < GetDBSInstancesNumber(); instance++) {
         const bool DBS_disabled = DBS_disableds[instance];
+        // We are assuming that the channels correspond to the DBS instances
         const int DC_offset = DC_offsets[instance];
 
         if (GetVerbosity() > 0)
@@ -294,11 +306,11 @@ int ABCD::ADQ14_FWDAQ::Configure()
         }
 
         // TODO: Enable these features
-        CHECKZERO(ADQ_SetupDBS(adq_cu_ptr, adq_num, instance,
-                                                     DBS_disabled,
-                                                     DC_offset,
-                                                     default_DBS_saturation_level_lower,
-                                                     default_DBS_saturation_level_upper));
+        CHECKZERO(ADQ_SetupDBS(adq_cu_ptr, adq14_num, instance,
+                                                      DBS_disabled,
+                                                      DC_offset,
+                                                      default_DBS_saturation_level_lower,
+                                                      default_DBS_saturation_level_upper));
     }
 
     if (GetVerbosity() > 0)
@@ -336,14 +348,14 @@ int ABCD::ADQ14_FWDAQ::Configure()
     // -------------------------------------------------------------------------
 
     // TODO: Enable this feature
-    CHECKZERO(ADQ_DisarmTriggerBlocking(adq_cu_ptr, adq_num));
-    //CHECKZERO(ADQ_SetupTriggerBlocking(adq_cu_ptr, adq_num, ADQ_TRIG_BLOCKING_DISABLE, 0, 0, 0));
+    CHECKZERO(ADQ_DisarmTriggerBlocking(adq_cu_ptr, adq14_num));
+    //CHECKZERO(ADQ_SetupTriggerBlocking(adq_cu_ptr, adq14_num, ADQ_TRIG_BLOCKING_DISABLE, 0, 0, 0));
 
     // TODO: Enable this feature
-    CHECKZERO(ADQ_DisarmTimestampSync(adq_cu_ptr, adq_num));
-    //CHECKZERO(ADQ_SetupTimestampSync(adq_cu_ptr, adq_num, ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_DISABLE, trig_mode));
+    CHECKZERO(ADQ_DisarmTimestampSync(adq_cu_ptr, adq14_num));
+    //CHECKZERO(ADQ_SetupTimestampSync(adq_cu_ptr, adq14_num, ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_DISABLE, trig_mode));
 
-    CHECKZERO(ADQ_DisarmTrigger(adq_cu_ptr, adq_num));
+    CHECKZERO(ADQ_DisarmTrigger(adq_cu_ptr, adq14_num));
 
     if (GetVerbosity() > 0)
     {
@@ -355,7 +367,7 @@ int ABCD::ADQ14_FWDAQ::Configure()
         std::cout << std::endl;
     }
 
-    CHECKZERO(ADQ_SetTriggerMode(adq_cu_ptr, adq_num, trig_mode));
+    CHECKZERO(ADQ_SetTriggerMode(adq_cu_ptr, adq14_num, trig_mode));
 
     if (trig_mode == ADQ_EXT_TRIGGER_MODE) {
         if (GetVerbosity() > 0)
@@ -367,9 +379,9 @@ int ABCD::ADQ14_FWDAQ::Configure()
             std::cout << std::endl;
         }
 
-        CHECKZERO(ADQ_SetExternTrigEdge(adq_cu_ptr, adq_num, trig_slope));
-        CHECKZERO(ADQ_SetExtTrigThreshold(adq_cu_ptr, adq_num, 1, trig_level));
-        //CHECKZERO(ADQ_SetExternalTriggerDelay(adq_cu_ptr, adq_num,  trig_external_delay));
+        CHECKZERO(ADQ_SetExternTrigEdge(adq_cu_ptr, adq14_num, trig_slope));
+        CHECKZERO(ADQ_SetExtTrigThreshold(adq_cu_ptr, adq14_num, 1, trig_level));
+        //CHECKZERO(ADQ_SetExternalTriggerDelay(adq_cu_ptr, adq14_num,  trig_external_delay));
     } else if (trig_mode == ADQ_LEVEL_TRIGGER_MODE) {
         if (GetVerbosity() > 0)
         {
@@ -380,10 +392,10 @@ int ABCD::ADQ14_FWDAQ::Configure()
             std::cout << std::endl;
         }
 
-        CHECKZERO(ADQ_SetTriggerMode(adq_cu_ptr,  adq_num, trig_mode));
-        CHECKZERO(ADQ_SetLvlTrigLevel(adq_cu_ptr, adq_num, trig_level));
-        CHECKZERO(ADQ_SetLvlTrigEdge(adq_cu_ptr,  adq_num, trig_slope));
-        CHECKZERO(ADQ_SetLvlTrigChannel(adq_cu_ptr, adq_num, channels_triggering_mask));
+        CHECKZERO(ADQ_SetTriggerMode(adq_cu_ptr,  adq14_num, trig_mode));
+        CHECKZERO(ADQ_SetLvlTrigLevel(adq_cu_ptr, adq14_num, trig_level));
+        CHECKZERO(ADQ_SetLvlTrigEdge(adq_cu_ptr,  adq14_num, trig_slope));
+        CHECKZERO(ADQ_SetLvlTrigChannel(adq_cu_ptr, adq14_num, channels_triggering_mask));
     }
 
     if (GetVerbosity() > 0) {
@@ -391,12 +403,30 @@ int ABCD::ADQ14_FWDAQ::Configure()
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Configure() ";
         std::cout << "Trigger from device: ";
-        std::cout << ADQ_descriptions::trig_mode.at(ADQ_GetTriggerMode(adq_cu_ptr, adq_num)) << "; ";
-        std::cout << "Channels triggering mask: " << ADQ_GetLvlTrigChannel(adq_cu_ptr, adq_num) << "; ";
-        std::cout << "Level: " << ADQ_GetLvlTrigLevel(adq_cu_ptr, adq_num) << "; ";
-        std::cout << "Edge: " << ADQ_descriptions::trig_slope.at(ADQ_GetLvlTrigEdge(adq_cu_ptr, adq_num)) << "; ";
+        std::cout << ADQ_descriptions::trig_mode.at(ADQ_GetTriggerMode(adq_cu_ptr, adq14_num)) << "; ";
+        std::cout << "Channels triggering mask: " << ADQ_GetLvlTrigChannel(adq_cu_ptr, adq14_num) << "; ";
+        std::cout << "Level: " << ADQ_GetLvlTrigLevel(adq_cu_ptr, adq14_num) << "; ";
+        std::cout << "Edge: " << ADQ_descriptions::trig_slope.at(ADQ_GetLvlTrigEdge(adq_cu_ptr, adq14_num)) << "; ";
         std::cout << std::endl;
     }
+
+    // -------------------------------------------------------------------------
+    //  Input impedances
+    // -------------------------------------------------------------------------
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Configure() ";
+        std::cout << "Setting ports input impedances; ";
+        std::cout << "trig port: " << ADQ_descriptions::input_impedance.at(trig_port_input_impedance) << "; ";
+        std::cout << "sync port: " << ADQ_descriptions::input_impedance.at(sync_port_input_impedance) << "; ";
+        std::cout << std::endl;
+    }
+
+    CHECKZERO(ADQ_SetTriggerInputImpedance(adq_cu_ptr, adq14_num, 1, trig_port_input_impedance));
+    CHECKZERO(ADQ_SetTriggerInputImpedance(adq_cu_ptr, adq14_num, 2, sync_port_input_impedance));
 
     // -------------------------------------------------------------------------
     //  Waveforms settings
@@ -411,7 +441,7 @@ int ABCD::ADQ14_FWDAQ::Configure()
         std::cout << std::endl;
     }
 
-    CHECKZERO(ADQ_SetPreTrigSamples(adq_cu_ptr, adq_num, pretrigger));
+    CHECKZERO(ADQ_SetPreTrigSamples(adq_cu_ptr, adq14_num, pretrigger));
 
     // -------------------------------------------------------------------------
     //  Transfer settings
@@ -435,13 +465,13 @@ int ABCD::ADQ14_FWDAQ::Configure()
     //  Streaming setup
     // -------------------------------------------------------------------------
 
-    CHECKZERO(ADQ_MultiRecordClose(adq_cu_ptr, adq_num));
-    CHECKZERO(ADQ_MultiRecordSetup(adq_cu_ptr, adq_num, records_number, samples_per_record));
+    CHECKZERO(ADQ_MultiRecordClose(adq_cu_ptr, adq14_num));
+    CHECKZERO(ADQ_MultiRecordSetup(adq_cu_ptr, adq14_num, records_number, samples_per_record));
 
     return DIGITIZER_SUCCESS;
 }
 
-//==========================================================================================
+//==============================================================================
 
 void ABCD::ADQ14_FWDAQ::SetChannelsNumber(unsigned int n)
 {
@@ -453,7 +483,7 @@ void ABCD::ADQ14_FWDAQ::SetChannelsNumber(unsigned int n)
 
 }
 
-//================================================c=========================================
+//==============================================================================
 
 int ABCD::ADQ14_FWDAQ::StartAcquisition()
 {
@@ -472,7 +502,7 @@ int ABCD::ADQ14_FWDAQ::StartAcquisition()
     return DIGITIZER_SUCCESS;
 }
 
-//==========================================================================================
+//==============================================================================
 
 int ABCD::ADQ14_FWDAQ::RearmTrigger()
 {
@@ -486,8 +516,8 @@ int ABCD::ADQ14_FWDAQ::RearmTrigger()
         std::cout << std::endl;
     }
 
-    CHECKZERO(ADQ_DisarmTrigger(adq_cu_ptr, adq_num));
-    CHECKZERO(ADQ_ArmTrigger(adq_cu_ptr, adq_num));
+    CHECKZERO(ADQ_DisarmTrigger(adq_cu_ptr, adq14_num));
+    CHECKZERO(ADQ_ArmTrigger(adq_cu_ptr, adq14_num));
 
     if (trig_mode == ADQ_SW_TRIGGER_MODE) {
         ForceSoftwareTrigger();
@@ -496,11 +526,12 @@ int ABCD::ADQ14_FWDAQ::RearmTrigger()
     return DIGITIZER_SUCCESS;
 }
 
-//==========================================================================================
+//==============================================================================
+
 bool ABCD::ADQ14_FWDAQ::AcquisitionReady()
 {
 
-    const unsigned int retval = ADQ_GetAcquiredAll(adq_cu_ptr, adq_num);
+    const unsigned int retval = ADQ_GetAcquiredAll(adq_cu_ptr, adq14_num);
 
     if (GetVerbosity() > 1)
     {
@@ -514,11 +545,12 @@ bool ABCD::ADQ14_FWDAQ::AcquisitionReady()
     return retval == 1 ? true : false;
 }
 
-//==========================================================================================
+//==============================================================================
+
 bool ABCD::ADQ14_FWDAQ::DataOverflow()
 {
 
-    const unsigned int retval = ADQ_GetStreamOverflow(adq_cu_ptr, adq_num);
+    const unsigned int retval = ADQ_GetStreamOverflow(adq_cu_ptr, adq14_num);
 
     if (GetVerbosity() > 1)
     {
@@ -532,10 +564,11 @@ bool ABCD::ADQ14_FWDAQ::DataOverflow()
     return retval == 0 ? false : true;
 }
 
-//==========================================================================================
+//==============================================================================
+
 int ABCD::ADQ14_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms)
 {
-    const int retval = ADQ_GetDataWHTS(adq_cu_ptr, adq_num,
+    const int retval = ADQ_GetDataWHTS(adq_cu_ptr, adq14_num,
                                        target_buffers,
                                        target_headers.data(),
                                        target_timestamps.data(),
@@ -548,7 +581,7 @@ int ABCD::ADQ14_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
     if (retval == 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::GetWaveformsFromCard() ";
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Error in fetching data; ";
         std::cout << std::endl;
 
@@ -604,7 +637,7 @@ int ABCD::ADQ14_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
                     std::cout << "Negative difference: " << (long long)timestamp_negative_difference << "; ";
                     std::cout << std::endl;
                 }
-    
+
                 timestamp_offset += ADQ14_FWDAQ_TIMESTAMP_MAX;
                 timestamp_overflows += 1;
             }
@@ -613,7 +646,7 @@ int ABCD::ADQ14_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
             // behaviour and not the correction.
             timestamp_last = target_timestamps[record_index];
 
-            const uint64_t timestamp_waveform = target_timestamps[record_index] + timestamp_offset;
+            const uint64_t timestamp_waveform = (target_timestamps[record_index] + timestamp_offset) << timestamp_bit_shift;
 
             for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
                 if (GetVerbosity() > 2)
@@ -657,21 +690,22 @@ int ABCD::ADQ14_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
         std::cout << "Timestamp overflows: " << timestamp_overflows << "; ";
         std::cout << std::endl;
     }
-    
-    //ADQ_GetOverflow(adq_cu_ptr, adq_num);
+
+    //ADQ_GetOverflow(adq_cu_ptr, adq14_num);
 
     return DIGITIZER_SUCCESS;
 }
 
-//==========================================================================================
+//==============================================================================
+
 int ABCD::ADQ14_FWDAQ::StopAcquisition()
 {
-    CHECKZERO(ADQ_DisarmTrigger(adq_cu_ptr, adq_num));
+    CHECKZERO(ADQ_DisarmTrigger(adq_cu_ptr, adq14_num));
 
     return DIGITIZER_SUCCESS;
 }
 
-//=====================================================================================================
+//==============================================================================
 
 int ABCD::ADQ14_FWDAQ::ForceSoftwareTrigger()
 {
@@ -684,14 +718,14 @@ int ABCD::ADQ14_FWDAQ::ForceSoftwareTrigger()
         std::cout << std::endl;
     }
 
-    CHECKZERO(ADQ_DisarmTrigger(adq_cu_ptr, adq_num));
-    CHECKZERO(ADQ_ArmTrigger(adq_cu_ptr, adq_num));
-    CHECKZERO(ADQ_SWTrig(adq_cu_ptr, adq_num));
+    CHECKZERO(ADQ_DisarmTrigger(adq_cu_ptr, adq14_num));
+    CHECKZERO(ADQ_ArmTrigger(adq_cu_ptr, adq14_num));
+    CHECKZERO(ADQ_SWTrig(adq_cu_ptr, adq14_num));
 
     return DIGITIZER_SUCCESS;
 }
 
-//=====================================================================================================
+//==============================================================================
 
 int ABCD::ADQ14_FWDAQ::ResetOverflow()
 {
@@ -704,12 +738,12 @@ int ABCD::ADQ14_FWDAQ::ResetOverflow()
         std::cout << std::endl;
     }
 
-    CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_OVERFLOW));
+    CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq14_num, RESET_OVERFLOW));
 
     return DIGITIZER_SUCCESS;
 }
 
-//=========================================================================
+//==============================================================================
 
 int ABCD::ADQ14_FWDAQ::ReadConfig(json_t *config)
 {
@@ -767,10 +801,37 @@ int ABCD::ADQ14_FWDAQ::ReadConfig(json_t *config)
         std::cout << std::endl;
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Reading the trigger configuration                                      //
-    ////////////////////////////////////////////////////////////////////////////
+    timestamp_bit_shift = json_number_value(json_object_get(config, "timestamp_bit_shift"));
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::ReadConfig() ";
+        std::cout << "Timestamp bit shift: " << timestamp_bit_shift << " bits; ";
+        std::cout << std::endl;
+    }
+
+    json_object_set_nocheck(config, "timestamp_bit_shift", json_integer(timestamp_bit_shift));
+
+    // -------------------------------------------------------------------------
+    //  Reading the trigger configuration
+    // -------------------------------------------------------------------------
     json_t *trigger_config = json_object_get(config, "trigger");
+
+    if (!json_is_object(trigger_config)) {
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Configure() ";
+            std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Missing \"trigger\" entry in configuration; ";
+            std::cout << std::endl;
+        }
+
+        trigger_config = json_object();
+        json_object_set_new_nocheck(config, "trigger", trigger_config);
+    }
 
     const char *cstr_trigger_source = json_string_value(json_object_get(trigger_config, "source"));
     const std::string str_trigger_source = (cstr_trigger_source) ? std::string(cstr_trigger_source) : std::string();
@@ -786,7 +847,7 @@ int ABCD::ADQ14_FWDAQ::ReadConfig(json_t *config)
     // Looking for the settings in the description map
     const auto tm_result = map_utilities::find_item(ADQ_descriptions::trig_mode, str_trigger_source);
 
-    if (tm_result != ADQ_descriptions::trig_mode.end()) {
+    if (tm_result != ADQ_descriptions::trig_mode.end() && str_trigger_source.length() > 0) {
         trig_mode = tm_result->first;
     } else {
         trig_mode = ADQ_LEVEL_TRIGGER_MODE;
@@ -858,9 +919,86 @@ int ABCD::ADQ14_FWDAQ::ReadConfig(json_t *config)
         std::cout << std::endl;
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Reading the single channels configuration                              //
-    ////////////////////////////////////////////////////////////////////////////
+    const char *cstr_trigger_impedance = json_string_value(json_object_get(trigger_config, "impedance"));
+    const std::string str_trigger_impedance = (cstr_trigger_impedance) ? std::string(cstr_trigger_impedance) : std::string();
+
+    if (GetVerbosity() > 0) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::ReadConfig() ";
+        std::cout << "Trig port impedance: " << str_trigger_impedance<< "; ";
+        std::cout << std::endl;
+    }
+
+    // Looking for the settings in the description map
+    const auto tii_result = map_utilities::find_item(ADQ_descriptions::input_impedance, str_trigger_impedance);
+
+    if (tii_result != ADQ_descriptions::input_impedance.end() && str_trigger_impedance.length() > 0) {
+        trig_port_input_impedance = tii_result->first;
+    } else {
+        trig_port_input_impedance = ADQ_IMPEDANCE_HIGH;
+
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::ReadConfig() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid trigger impedance; ";
+        std::cout << "Got: " << str_trigger_impedance << "; ";
+        std::cout << std::endl;
+    }
+
+    json_object_set_nocheck(trigger_config, "impedance", json_string(ADQ_descriptions::input_impedance.at(trig_port_input_impedance).c_str()));
+
+    // -------------------------------------------------------------------------
+    //  Starting the sync configuration
+    // -------------------------------------------------------------------------
+    json_t *sync_config = json_object_get(config, "sync");
+
+    if (!json_is_object(sync_config)) {
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Configure() ";
+            std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Missing \"sync\" entry in configuration; ";
+            std::cout << std::endl;
+        }
+
+        sync_config = json_object();
+        json_object_set_new_nocheck(config, "sync", sync_config);
+    }
+
+    const char *cstr_sync_impedance = json_string_value(json_object_get(sync_config, "impedance"));
+    const std::string str_sync_impedance = (cstr_sync_impedance) ? std::string(cstr_sync_impedance) : std::string();
+
+    if (GetVerbosity() > 0) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::ReadConfig() ";
+        std::cout << "Sync port impedance: " << str_sync_impedance<< "; ";
+        std::cout << std::endl;
+    }
+
+    // Looking for the settings in the description map
+    const auto tsii_result = map_utilities::find_item(ADQ_descriptions::input_impedance, str_sync_impedance);
+
+    if (tsii_result != ADQ_descriptions::input_impedance.end() && str_sync_impedance.length() > 0) {
+        sync_port_input_impedance = tsii_result->first;
+    } else {
+        sync_port_input_impedance = ADQ_IMPEDANCE_HIGH;
+
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::ReadConfig() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid sync impedance; ";
+        std::cout << "Got: " << str_sync_impedance << "; ";
+        std::cout << std::endl;
+    }
+
+    json_object_set_nocheck(sync_config, "impedance", json_string(ADQ_descriptions::input_impedance.at(sync_port_input_impedance).c_str()));
+
+    // -------------------------------------------------------------------------
+    //  Reading the single channels configuration
+    // -------------------------------------------------------------------------
     // First resetting the channels statuses
     for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
         SetChannelEnabled(channel, false);
@@ -878,7 +1016,7 @@ int ABCD::ADQ14_FWDAQ::ReadConfig(json_t *config)
             json_t *json_id = json_object_get(value, "id");
 
             if (json_id != NULL && json_is_integer(json_id)) {
-                const unsigned int id = json_integer_value(json_id);
+                const int id = json_integer_value(json_id);
 
                 if (GetVerbosity() > 0)
                 {
@@ -956,7 +1094,7 @@ int ABCD::ADQ14_FWDAQ::ReadConfig(json_t *config)
                     std::cout << std::endl;
                 }
 
-                if (0 <= id && id < GetChannelsNumber()) {
+                if (0 <= id && id < static_cast<int>(GetChannelsNumber())) {
                     SetChannelEnabled(id, enabled);
                     SetChannelTriggering(id, triggering);
                     desired_input_ranges[id] = input_range;
@@ -973,9 +1111,9 @@ int ABCD::ADQ14_FWDAQ::ReadConfig(json_t *config)
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Reading the waveforms settings                                         //
-    ////////////////////////////////////////////////////////////////////////////
+    // -------------------------------------------------------------------------
+    //  Reading the waveforms settings
+    // -------------------------------------------------------------------------
 
     pretrigger = json_integer_value(json_object_get(config, "pretrigger"));
 
@@ -1021,7 +1159,7 @@ int ABCD::ADQ14_FWDAQ::ReadConfig(json_t *config)
     }
 
     unsigned int max_records_number = 0;
-    CHECKZERO(ADQ_GetMaxNofRecordsFromNofSamples(adq_cu_ptr, adq_num,
+    CHECKZERO(ADQ_GetMaxNofRecordsFromNofSamples(adq_cu_ptr, adq14_num,
                                                  samples_per_record,
                                                  &max_records_number));
     if (GetVerbosity() > 0)
@@ -1063,4 +1201,164 @@ int ABCD::ADQ14_FWDAQ::ReadConfig(json_t *config)
     return DIGITIZER_SUCCESS;
 }
 
-//======================================================================
+//==============================================================================
+
+int ABCD::ADQ14_FWDAQ::SpecificCommand(json_t *json_command)
+{
+    const char *cstr_command = json_string_value(json_object_get(json_command, "command"));
+    const std::string command = (cstr_command) ? std::string(cstr_command) : std::string();
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::SpecificCommand() ";
+        std::cout << "Specific command: " << command << "; ";
+        std::cout << std::endl;
+    }
+
+    if (command == std::string("GPIO_set_direction")) {
+        const int port = json_number_value(json_object_get(json_command, "port"));
+        const int direction = json_number_value(json_object_get(json_command, "direction"));
+        const int mask = json_number_value(json_object_get(json_command, "mask"));
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::SpecificCommand() ";
+            std::cout << "Setting GPIO direction: " << direction << "; ";
+            std::cout << "mask: " << mask << "; ";
+            std::cout << std::endl;
+        }
+
+        CHECKZERO(ADQ_EnableGPIOPort(adq_cu_ptr, adq14_num, port, 1));
+        CHECKZERO(ADQ_SetDirectionGPIOPort(adq_cu_ptr, adq14_num, port, direction, mask));
+
+    } else if (command == std::string("GPIO_pulse")) {
+        const int port = json_integer_value(json_object_get(json_command, "port"));
+        const int width = json_integer_value(json_object_get(json_command, "width"));
+        const int mask = json_number_value(json_object_get(json_command, "mask"));
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::SpecificCommand() ";
+            std::cout << "Pulse on GPIO of width: " << width << " us; ";
+            std::cout << std::endl;
+        }
+
+        const uint16_t pin_value_on = 1;
+        const uint16_t pin_value_off = 0;
+
+        CHECKZERO(ADQ_WriteGPIOPort(adq_cu_ptr, adq14_num, port, pin_value_on, mask));
+
+        std::this_thread::sleep_for(std::chrono::microseconds(width));
+
+        CHECKZERO(ADQ_WriteGPIOPort(adq_cu_ptr, adq14_num, port, pin_value_off, mask));
+    } else if (command == std::string("timestamp_reset")) {
+        // ---------------------------------------------------------------------
+        //  Timestamp reset
+        // ---------------------------------------------------------------------
+
+        const bool timestamp_reset_arm = json_is_true(json_object_get(json_command, "arm"));
+
+        if (timestamp_reset_arm) {
+            // -----------------------------------------------------------------
+            //  Arming the timestamp reset
+            // -----------------------------------------------------------------
+            unsigned int timestamp_reset_mode = ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_FIRST;
+
+            const char *cstr_timestamp_reset_mode = json_string_value(json_object_get(json_command, "mode"));
+            const std::string str_timestamp_reset_mode = (cstr_timestamp_reset_mode) ? std::string(cstr_timestamp_reset_mode) : std::string();
+
+            if (GetVerbosity() > 0) {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::SpecificCommand() ";
+                std::cout << "Timestamp reset mode: " << str_timestamp_reset_mode<< "; ";
+                std::cout << std::endl;
+            }
+
+            // Looking for the settings in the description map
+            const auto tsm_result = map_utilities::find_item(ADQ_descriptions::timestamp_synchronization_mode, str_timestamp_reset_mode);
+
+            if (tsm_result != ADQ_descriptions::timestamp_synchronization_mode.end() && str_timestamp_reset_mode.length() > 0) {
+                timestamp_reset_mode = tsm_result->first;
+            } else {
+                timestamp_reset_mode = ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_FIRST;
+
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::SpecificCommand() ";
+                std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid timestamp_reset mode; ";
+                std::cout << "Got: " << str_timestamp_reset_mode << "; ";
+                std::cout << std::endl;
+            }
+
+            unsigned int timestamp_reset_source = ADQ_EVENT_SOURCE_SYNC;
+
+            const char *cstr_timestamp_reset_source = json_string_value(json_object_get(json_command, "source"));
+            const std::string str_timestamp_reset_source = (cstr_timestamp_reset_source) ? std::string(cstr_timestamp_reset_source) : std::string();
+
+            if (GetVerbosity() > 0) {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::SpecificCommand() ";
+                std::cout << "Timestamp synchronization source: " << str_timestamp_reset_source<< "; ";
+                std::cout << std::endl;
+            }
+
+            // Looking for the settings in the description map
+            const auto tss_result = map_utilities::find_item(ADQ_descriptions::timestamp_synchronization_source, str_timestamp_reset_source);
+
+            if (tss_result != ADQ_descriptions::timestamp_synchronization_source.end() && str_timestamp_reset_source.length() > 0) {
+                timestamp_reset_source = tss_result->first;
+            } else {
+                timestamp_reset_source = ADQ_EVENT_SOURCE_SYNC;
+
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::SpecificCommand() ";
+                std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid timestamp_reset source; ";
+                std::cout << "Got: " << str_timestamp_reset_source << "; ";
+                std::cout << std::endl;
+            }
+
+            if (GetVerbosity() > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::SpecificCommand() ";
+                std::cout << "Arming timestamp synchronization; ";
+                std::cout << "mode: " << ADQ_descriptions::timestamp_synchronization_mode.at(timestamp_reset_mode) << "; ";
+                std::cout << "source: " << ADQ_descriptions::timestamp_synchronization_source.at(timestamp_reset_source) << "; ";
+                std::cout << std::endl;
+            }
+
+            CHECKZERO(ADQ_DisarmTimestampSync(adq_cu_ptr, adq14_num));
+            CHECKZERO(ADQ_SetupTimestampSync(adq_cu_ptr, adq14_num, timestamp_reset_mode, timestamp_reset_source));
+            CHECKZERO(ADQ_ArmTimestampSync(adq_cu_ptr, adq14_num));
+
+        } else {
+            // -----------------------------------------------------------------
+            //  Disarming the timestamp reset
+            // -----------------------------------------------------------------
+            if (GetVerbosity() > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::SpecificCommand() ";
+                std::cout << "Disarming timestamp reset; ";
+                std::cout << std::endl;
+            }
+
+            CHECKZERO(ADQ_DisarmTimestampSync(adq_cu_ptr, adq14_num));
+        }
+    }
+
+    return DIGITIZER_SUCCESS;
+}
+
+//==============================================================================
