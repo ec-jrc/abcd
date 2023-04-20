@@ -323,63 +323,10 @@ void actions::generic::destroy_digitizer(status &global_status)
 
 
     // TODO: Reset USB3 devices with ADQControlUnit_ResetDevice() and reset level 18
-
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Deleting the ADQ control unit; ";
-        std::cout << std::endl;
-    }
-
-    DeleteADQControlUnit(global_status.adq_cu_ptr);
-    global_status.adq_cu_ptr = NULL;
 }
 
 bool actions::generic::create_digitizer(status &global_status)
 {
-    const int API_revision = ADQAPI_GetRevision();
-
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "API revision: " << API_revision << "; ";
-        std::cout << std::endl;
-    }
-
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Creating the ADQ control unit; ";
-        std::cout << std::endl;
-    }
-
-    global_status.adq_cu_ptr = CreateADQControlUnit();
-    if(!global_status.adq_cu_ptr)
-    {
-        std::cout << "Failed to create adq_cu!" << std::endl;
-        return 0;
-    }
-
-    // This creates a file with the error trace when the program is executed
-    //if (global_status.verbosity > 0)
-    //{
-    //    char time_buffer[BUFFER_SIZE];
-    //    time_string(time_buffer, BUFFER_SIZE, NULL);
-    //    std::cout << '[' << time_buffer << "] ";
-    //    std::cout << "Enabling error trace; ";
-    //    std::cout << std::endl;
-    //}
-
-    //ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, LOG_LEVEL_INFO, ".");
-    // This is to enable all possible log levels
-    //ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, 0x7FFFFFFF, ".");
-
     if (global_status.verbosity > 0)
     {
         char time_buffer[BUFFER_SIZE];
@@ -1021,6 +968,53 @@ state actions::bind_sockets(status &global_status)
     zmq_delay.tv_sec = defaults_abcd_zmq_delay / 1000;
     zmq_delay.tv_nsec = (defaults_abcd_zmq_delay % 1000) * 1000000L;
     nanosleep(&zmq_delay, NULL);
+
+    return states::create_control_unit;
+}
+
+state actions::create_control_unit(status &global_status)
+{
+    const int API_revision = ADQAPI_GetRevision();
+
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "API revision: " << API_revision << "; ";
+        std::cout << std::endl;
+    }
+
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Creating the ADQ control unit; ";
+        std::cout << std::endl;
+    }
+
+    global_status.adq_cu_ptr = CreateADQControlUnit();
+    if(!global_status.adq_cu_ptr)
+    {
+        std::cout << "Failed to create adq_cu!" << std::endl;
+
+        return states::configure_error;
+    }
+
+    // This creates a file with the error trace when the program is executed
+    //if (global_status.verbosity > 0)
+    //{
+    //    char time_buffer[BUFFER_SIZE];
+    //    time_string(time_buffer, BUFFER_SIZE, NULL);
+    //    std::cout << '[' << time_buffer << "] ";
+    //    std::cout << "Enabling error trace; ";
+    //    std::cout << std::endl;
+    //}
+
+    //ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, LOG_LEVEL_INFO, ".");
+    // This is to enable all possible log levels
+    //ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, 0x7FFFFFFF, ".");
 
     return states::create_digitizer;
 }
@@ -1799,6 +1793,23 @@ state actions::reconfigure_clear_memory(status &global_status)
 state actions::destroy_digitizer(status &global_status)
 {
     actions::generic::destroy_digitizer(global_status);
+
+    return states::destroy_control_unit;
+}
+
+state actions::destroy_control_unit(status &global_status)
+{
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Deleting the ADQ control unit; ";
+        std::cout << std::endl;
+    }
+
+    DeleteADQControlUnit(global_status.adq_cu_ptr);
+    global_status.adq_cu_ptr = NULL;
 
     return states::close_sockets;
 }

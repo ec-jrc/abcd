@@ -31,6 +31,7 @@ namespace states
     extern const state create_sockets;
     extern const state bind_sockets;
     extern const state read_config;
+    extern const state create_control_unit;
     extern const state create_digitizer;
     extern const state recreate_digitizer;
     extern const state configure_digitizer;
@@ -64,6 +65,7 @@ namespace states
     // Closing states are 8xx
     extern const state clear_memory;
     extern const state destroy_digitizer;
+    extern const state destroy_control_unit;
     extern const state close_sockets;
     extern const state destroy_context;
     extern const state stop;
