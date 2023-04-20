@@ -158,7 +158,7 @@ int ABCD::ADQ14_FWDAQ::Initialize(void* adq, int num)
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Initialize() ";
         std::cout << "Has adjustable input range: " << (ADQ_HasAdjustableInputRange(adq_cu_ptr, adq_num) > 0 ? "true" : "false") << "; ";
         std::cout << "Has adjustable offset: " << (ADQ_HasAdjustableBias(adq_cu_ptr, adq_num) > 0 ? "true" : "false") << "; ";
-        // TODO: Add trignums
+        // FIXME: Find out what trigger_num is to be used
         //std::cout << "Has adjustable external trigger threshold: " << (ADQ_HasVariableTrigThreshold(adq_cu_ptr, adq_num) > 0 ? "true" : "false") << "; ";
         std::cout << std::endl;
 
@@ -303,6 +303,13 @@ int ABCD::ADQ14_FWDAQ::Configure()
             CHECKZERO(ADQ_SetAdjustableBias(adq_cu_ptr, adq_num, channel + 1, DC_offset));
         }
     }
+
+    // FIXME: This wait time, after the bias is adjusted, seems important for
+    //        the new settings to take place. It might me, though, that the ABCD
+    //        internal delays are enough for it.
+    //if (ADQ_HasAdjustableBias(adq_cu_ptr, adq_num) > 0) {
+    //    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    //}
 
     // -------------------------------------------------------------------------
     //  DBS settings
