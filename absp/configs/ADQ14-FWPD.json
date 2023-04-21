@@ -39,6 +39,8 @@
                 "buffers_number_note": "suggested minimum value is 8",
                 "timeout": 60000,
                 "timeout_note": "in ms units",
+                "DMA_flush_timeout": 1000,
+                "DMA_flush_timeout_note": "in ms units",
                 "zzz": null
             },
             "channels": [
