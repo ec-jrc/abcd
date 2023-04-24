@@ -41,7 +41,7 @@ const int ABCD::ADQ14_FWPD::default_DBS_target = 31000;
 const int ABCD::ADQ14_FWPD::default_DBS_saturation_level_lower = 0;
 const int ABCD::ADQ14_FWPD::default_DBS_saturation_level_upper = 0;
 
-const unsigned int ABCD::ADQ14_FWPD::DMA_flush_timeout = 100;
+const unsigned int ABCD::ADQ14_FWPD::default_DMA_flush_timeout = 1000;
 
 ABCD::ADQ14_FWPD::ADQ14_FWPD(int Verbosity) : Digitizer(Verbosity)
 {
@@ -1387,6 +1387,23 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
     }
 
     json_object_set_nocheck(transfer_config, "timeout", json_integer(transfer_timeout));
+
+    DMA_flush_timeout = json_number_value(json_object_get(transfer_config, "DMA_flush_timeout"));
+
+    if (DMA_flush_timeout <= 0) {
+        DMA_flush_timeout = default_DMA_flush_timeout;
+    }
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
+        std::cout << "DMA flush timeout: " << DMA_flush_timeout << " ms; ";
+        std::cout << std::endl;
+    }
+
+    json_object_set_nocheck(transfer_config, "DMA_flush_timeout", json_integer(DMA_flush_timeout));
 
     // -------------------------------------------------------------------------
     //  Reading the trigger configuration
