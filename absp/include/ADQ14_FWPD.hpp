@@ -123,6 +123,8 @@ public:
     std::vector<unsigned int> added_samples;
     std::vector<unsigned int> added_headers;
     std::vector<unsigned int> status_headers;
+    std::vector<std::vector<int16_t>> incomplete_records;
+    std::vector<unsigned int> remaining_samples;
 
     int64_t transfer_buffer_size;
     unsigned int transfer_buffers_number;

@@ -392,7 +392,7 @@ int ABCD::ADQ14_FWPD::Configure()
     // -------------------------------------------------------------------------
     //  Input impedances
     // -------------------------------------------------------------------------
-    
+
     if (GetVerbosity() > 0)
     {
         char time_buffer[BUFFER_SIZE];
@@ -727,6 +727,8 @@ void ABCD::ADQ14_FWPD::SetChannelsNumber(unsigned int n)
     added_samples.resize(n, 0);
     added_headers.resize(n, 0);
     status_headers.resize(n, 0);
+    incomplete_records.resize(n, std::vector<int16_t>());
+    remaining_samples.resize(n, 0);
 
 }
 
@@ -791,6 +793,12 @@ int ABCD::ADQ14_FWPD::StartAcquisition()
         for (int i = 0; i < max_records_number; i++) {
             ForceSoftwareTrigger();
         }
+    }
+
+    for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
+            remaining_samples[channel] = 0;
+
+            incomplete_records[channel].resize(scope_samples[channel], 0);
     }
 
     return DIGITIZER_SUCCESS;
@@ -1030,20 +1038,65 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
 
                         uint16_t * const samples = waveform_samples_get(&this_waveform);
 
-                        for (uint32_t sample_index = 0; sample_index < samples_per_record; sample_index++) {
-                            const int16_t value = target_buffers[channel][samples_offset + sample_index];
+                        // There is the possibility that there is an incomplete
+                        // buffer left from the previous call of GetDataStreaming()
+                        // If there was such an incomplete buffer then there are
+                        // remaining_samples from before.
+                        if (remaining_samples[channel] > 0) {
+                            // Copy at the beginning of this new record the
+                            // remaining samples from the previous call of
+                            // GetDataStreaming()
+                            for (uint32_t sample_index = 0; sample_index < remaining_samples[channel]; sample_index++)
+                            {
+                                const int16_t value = incomplete_records[channel][sample_index];
 
-                            // We add an offset to match it to the rest of ABCD
-                            // The 14 bit data is aligned to the MSB thus we should push it back
-                            samples[sample_index] = ((value >> 2) + (1 << 15));
+                                // We add an offset to match it to the rest of ABCD
+                                // The 14 bit data is aligned to the MSB thus we should push it back
+                                samples[sample_index] = ((value >> 2) + (1 << 15));
+                            }
+                            for (uint32_t sample_index = remaining_samples[channel]; sample_index < samples_per_record; sample_index++) {
+                                const int16_t value = target_buffers[channel][samples_offset + sample_index - remaining_samples[channel]];
+
+                                // We add an offset to match it to the rest of ABCD
+                                // The 14 bit data is aligned to the MSB thus we should push it back
+                                samples[sample_index] = ((value >> 2) + (1 << 15));
+                            }
+
+                            samples_offset += (samples_per_record - remaining_samples[channel]);
+                        } else {
+                            for (uint32_t sample_index = 0; sample_index < samples_per_record; sample_index++) {
+                                const int16_t value = target_buffers[channel][samples_offset + sample_index];
+
+                                // We add an offset to match it to the rest of ABCD
+                                // The 14 bit data is aligned to the MSB thus we should push it back
+                                samples[sample_index] = ((value >> 2) + (1 << 15));
+                            }
+
+                            samples_offset += samples_per_record;
                         }
-
-                        samples_offset += samples_per_record;
 
                         waveforms.push_back(this_waveform);
                     }
 
-                    // Copy the incomplete ehader to the start of the target_headers buffer
+                    // The last record is incomplete and we should store it for
+                    // the next call of GetDataStreaming
+                    if (status_headers[channel] == 0) {
+                        // Copying the incomplete record at the end
+                        for (uint32_t sample_index = samples_offset; sample_index < added_samples[channel]; sample_index++)
+                        {
+                            incomplete_records[channel][sample_index - samples_offset] = target_buffers[channel][sample_index];
+                        }
+
+                        // This is the number of samples that are left from
+                        // this call of GetDataStreaming() that should be stored
+                        // in the next wavefrom from the next call of
+                        // GetDataStreaming()
+                        remaining_samples[channel] = added_samples[channel] - samples_offset;
+                    } else {
+                        remaining_samples[channel] = 0;
+                    }
+
+                    // Copy the incomplete header to the start of the target_headers buffer
                     memcpy(target_headers[channel], target_headers[channel] + (added_headers[channel]), sizeof(StreamingHeader_t));
                 }
             }
