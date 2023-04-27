@@ -972,7 +972,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                     }
 
                     if (!status_headers[channel]) {
-                        if (GetVerbosity() > 1)
+                        if (GetVerbosity() > 0)
                         {
                             char time_buffer[BUFFER_SIZE];
                             time_string(time_buffer, BUFFER_SIZE, NULL);
@@ -1043,6 +1043,16 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                         // If there was such an incomplete buffer then there are
                         // remaining_samples from before.
                         if (remaining_samples[channel] > 0) {
+                            if (GetVerbosity() > 0)
+                            {
+                                char time_buffer[BUFFER_SIZE];
+                                time_string(time_buffer, BUFFER_SIZE, NULL);
+                                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
+                                std::cout << "Collecting an incomplete record from previous call; ";
+                                std::cout << "Remaining samples: " << remaining_samples[channel] << "; ";
+                                std::cout << std::endl;
+                            }
+
                             // Copy at the beginning of this new record the
                             // remaining samples from the previous call of
                             // GetDataStreaming()
@@ -1063,6 +1073,8 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                             }
 
                             samples_offset += (samples_per_record - remaining_samples[channel]);
+
+                            remaining_samples[channel] = 0;
                         } else {
                             for (uint32_t sample_index = 0; sample_index < samples_per_record; sample_index++) {
                                 const int16_t value = target_buffers[channel][samples_offset + sample_index];
