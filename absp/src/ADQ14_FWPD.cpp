@@ -900,15 +900,15 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
 
     if (streaming_generation == 1) {
         while (AcquisitionReady()) {
-            if (GetVerbosity() > 0)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
-                std::cout << "Issuing a flush of the DMA; ";
-                std::cout << std::endl;
-            }
-
+            // Putting a flush here makes the digitizer unstable and sometimes it gives an error.
+            //if (GetVerbosity() > 0)
+            //{
+            //    char time_buffer[BUFFER_SIZE];
+            //    time_string(time_buffer, BUFFER_SIZE, NULL);
+            //    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
+            //    std::cout << "Issuing a flush of the DMA; ";
+            //    std::cout << std::endl;
+            //}
             //CHECKZERO(ADQ_FlushDMA(adq_cu_ptr, adq_num));
 
             // When this fails a subsequent flush of the DMA causes a segfault,
