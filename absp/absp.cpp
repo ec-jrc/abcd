@@ -235,9 +235,12 @@ int main(int argc, char *argv[])
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
                 std::cout << '[' << time_buffer << "] ";
-                std::cout << "Running script: " << script_source_pre << "; ";
+                std::cout << "Running pre script: " << script_source_pre << "; ";
                 std::cout << std::endl;
             }
+
+	    global_status.lua_manager.run_script(script_source_pre);
+
         } catch (...) {}
 
         current_state = current_state.act(global_status);
@@ -251,9 +254,12 @@ int main(int argc, char *argv[])
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
                 std::cout << '[' << time_buffer << "] ";
-                std::cout << "Running script: " << script_source_post << "; ";
+                std::cout << "Running post script: " << script_source_post << "; ";
                 std::cout << std::endl;
             }
+
+	    global_status.lua_manager.run_script(script_source_post);
+
         } catch (...) {}
 
         //std::this_thread::sleep_for(std::chrono::milliseconds(base_period));
