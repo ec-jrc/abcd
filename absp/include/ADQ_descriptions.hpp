@@ -2,6 +2,7 @@
 #define __ADQ_DESCRIPTIONS_HPP__
 
 #include <map>
+#include <string>
 
 #define LINUX
 #include "ADQAPI.h"
