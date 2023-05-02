@@ -62,6 +62,16 @@ parser.add_argument('-D',
                     type = float,
                     default = None,
                     help = 'Maximum time difference, if not specified the absolute maximum is used')
+parser.add_argument('-t',
+                    '--timestamp_min',
+                    type = float,
+                    default = 0,
+                    help = 'Minimum value accepted for the timestamps, in seconds or timestamp unit (default: 0)')
+parser.add_argument('-T',
+                    '--timestamp_max',
+                    type = float,
+                    default = None,
+                    help = 'Maximum value to the timestamps, if not specified the absolute maximum is used')
 parser.add_argument('-B',
                     '--buffer_size',
                     type = int,
@@ -127,13 +137,20 @@ with open(file_name, "rb") as input_file:
 
             this_timestamps = data['timestamp']
 
+            timestamp_selection = (args.timestamp_min / conversion_factor) <= this_timestamps
+
+            if args.timestamp_max is not None:
+                timestamp_selection = np.logical_and(timestamp_selection, this_timestamps < (args.timestamp_max /  conversion_factor))
+
             for channel in args.channels:
                 channel_selection = data['channel'] == channel
 
-                events_counter[channel] += channel_selection.sum()
+                selection = np.logical_and(channel_selection, timestamp_selection)
 
-                indexes_timestamps[channel].extend(indexes[channel_selection])
-                partial_timestamps[channel].extend(this_timestamps[channel_selection])
+                events_counter[channel] += selection.sum()
+
+                indexes_timestamps[channel].extend(indexes[selection])
+                partial_timestamps[channel].extend(this_timestamps[selection])
 
                 min_times[channel].append(min(partial_timestamps[channel]))
                 max_times[channel].append(max(partial_timestamps[channel]))
@@ -242,7 +259,7 @@ else:
     ts_ax.set_ylabel('Timestamps [{}]'.format(unit))
     ts_ax.set_xlabel('Timestamp index')
     ts_ax.grid()
-    ts_ax.legend()
+    ts_ax.legend(loc = 2)
 
     fig = plt.figure()
 
