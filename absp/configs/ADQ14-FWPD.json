@@ -124,5 +124,18 @@
         },
         {}
     ],
+    "scripts": [
+        {
+            "enable": true,
+            "state": [203, 204],
+            "when": "pre",
+            "when_possible_value0": "pre",
+            "when_possible_value1": "post",
+            "source": "print(\"LUA MESSAGE: Either start or stop of acquisition!!!\")",
+            "source_note": "This can be a file name or the actual script as a string",
+            "zzz": null
+        },
+        {}
+    ],
     "zzz": null
 }

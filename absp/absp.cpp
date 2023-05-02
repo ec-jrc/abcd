@@ -34,12 +34,15 @@
 // For std::this_thread::sleep_for
 #include <thread>
 
+#include <lua.hpp>
+
 extern "C" {
 #include "defaults.h"
 #include "utilities_functions.h"
 }
 
 #include "ADQ_utilities.hpp"
+#include "LuaManager.hpp"
 
 #include "states.hpp"
 
@@ -223,7 +226,35 @@ int main(int argc, char *argv[])
         if (current_state == states::stop)
             stop_execution = true;
 
+        try {
+            const std::pair<unsigned int, unsigned int> script_key_pre(current_state.ID, SCRIPT_WHEN_PRE);
+            const std::string script_source_pre = global_status.user_scripts.at(script_key_pre);
+
+            if (global_status.verbosity > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << "Running script: " << script_source_pre << "; ";
+                std::cout << std::endl;
+            }
+        } catch (...) {}
+
         current_state = current_state.act(global_status);
+
+        try {
+            const std::pair<unsigned int, unsigned int> script_key_post(current_state.ID, SCRIPT_WHEN_POST);
+            const std::string script_source_post = global_status.user_scripts.at(script_key_post);
+
+            if (global_status.verbosity > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << "Running script: " << script_source_post << "; ";
+                std::cout << std::endl;
+            }
+        } catch (...) {}
 
         //std::this_thread::sleep_for(std::chrono::milliseconds(base_period));
         struct timespec base_delay;
@@ -231,7 +262,6 @@ int main(int argc, char *argv[])
         base_delay.tv_nsec = (base_period % 1000) * 1000000L;
         nanosleep(&base_delay, NULL);
     }
-
 
     return 0;
 }

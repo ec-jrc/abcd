@@ -26,6 +26,8 @@
 #include <queue>
 #include <vector>
 #include <map>
+// For std::pair
+#include <utility>
 
 #include <jansson.h>
 #include <zmq.h>
@@ -33,6 +35,11 @@
 #include "defaults.h"
 
 #include "Digitizer.hpp"
+
+#include "LuaManager.hpp"
+
+#define SCRIPT_WHEN_PRE 0
+#define SCRIPT_WHEN_POST 1
 
 struct status
 {
@@ -53,6 +60,8 @@ struct status
     bool identification_only;
     
     json_t *config;
+
+    std::map<std::pair<unsigned int, unsigned int>, std::string> user_scripts;
     
     // -------------------------------------------------------------------------
     //  Digitizer specific variables
@@ -83,6 +92,8 @@ struct status
 
     // We are using a vector because it guarantees that the buffer is contiguous.
     std::vector<uint8_t> waveforms_buffer;
+
+    LuaManager lua_manager;
 };
 
 struct state

@@ -21,9 +21,15 @@
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include <chrono>
+#include <vector>
+#include <map>
+// For std::pair
+#include <utility>
 #include <cmath>
 #include <cstring>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <unistd.h>
@@ -788,6 +794,117 @@ bool actions::generic::configure_digitizer(status &global_status)
         std::cout << "Digitizers configuration completed successfully!";
         std::cout << std::endl;
     }
+
+    json_t *json_scripts = json_object_get(config, "scripts");
+
+    if (json_scripts != NULL && json_is_array(json_scripts))
+    {
+        size_t index;
+        json_t *json_script;
+
+        json_array_foreach(json_scripts, index, json_script) {
+            const bool enabled = json_is_true(json_object_get(json_script, "enable"));
+
+            if (verbosity > 0 && enabled)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << "Script is enabled; ";
+                std::cout << std::endl;
+            }
+            else if (verbosity > 0 && !enabled)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << "Script is disabled; ";
+                std::cout << std::endl;
+            }
+
+            if (enabled) {
+                // The state may be a single integer or an array of integers
+                json_t *json_state = json_object_get(json_script, "state");
+
+                std::vector<unsigned int> script_states;
+
+                if (json_state != NULL && json_is_integer(json_state)) {
+                    const unsigned int state = json_number_value(json_state);
+                    script_states.push_back(state);
+                } else if (json_state != NULL && json_is_array(json_state)) {
+                    size_t state_index;
+                    json_t *state_value;
+
+                    json_array_foreach(json_state, state_index, state_value) {
+                        if (state_value != NULL && json_is_integer(state_value)) {
+                            const unsigned int state = json_number_value(state_value);
+                            script_states.push_back(state);
+                        }
+                    }
+                }
+
+                const char *cstr_when = json_string_value(json_object_get(json_script, "when"));
+                const std::string str_when = (cstr_when) ? std::string(cstr_when) : std::string();
+                int when = SCRIPT_WHEN_POST;
+
+                if (str_when == "pre") {
+                        when = SCRIPT_WHEN_PRE;
+                } else if (str_when == "post") {
+                        when = SCRIPT_WHEN_POST;
+                } else {
+                        when = SCRIPT_WHEN_POST;
+                }
+
+                const char *cstr_source = json_string_value(json_object_get(json_script, "source"));
+                std::string str_source = (cstr_source) ? std::string(cstr_source) : std::string();
+
+                std::ifstream source_file(str_source);
+
+                // If the source entry contains the name of an existing file, then
+                // we read the content of the file in the string.
+                if (source_file.good()) {
+                    if (verbosity > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "The source of this script is in the file: " << str_source << "; ";
+                        std::cout << std::endl;
+                    }
+
+                    std::stringstream buffer;
+                    buffer << source_file.rdbuf();
+
+                    str_source = buffer.str();
+                } else {
+                    if (verbosity > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "The source of this script is: " << str_source << "; ";
+                        std::cout << std::endl;
+                    }
+                }
+
+                for (const auto& script_state : script_states) {
+                    if (verbosity > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "Found script for state: " << script_state << "; ";
+                        std::cout << "When: " << str_when << "; ";
+                        std::cout << std::endl;
+                    }
+
+                    global_status.user_scripts[std::pair<unsigned int, unsigned int>(script_state, when)] = str_source;
+                }
+            }
+        }
+    }
+
+     global_status.lua_manager.update_digitizers(global_status.digitizers);
 
     return true;
 }
