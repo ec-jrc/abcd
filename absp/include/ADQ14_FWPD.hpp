@@ -31,15 +31,6 @@ private:
 
 public:
     // -------------------------------------------------------------------------
-    //  Descriptions of the flag values
-    // -------------------------------------------------------------------------
-    static const std::map<int, std::string> description_errors;
-    static const std::map<unsigned int, std::string> description_clock_source;
-    static const std::map<unsigned int, std::string> description_trig_mode;
-    static const std::map<unsigned int, std::string> description_trig_slope;
-    static const std::map<unsigned int, std::string> description_collection_mode;
-
-    // -------------------------------------------------------------------------
     //  Card settings
     // -------------------------------------------------------------------------
 
