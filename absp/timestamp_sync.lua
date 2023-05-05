@@ -4,6 +4,9 @@
 -- with other models and firmwares.
 -- To see what methods are supported by the other interfaces, see their header
 -- files in include/
+-- This timestamp synchronization could be run right after every configuration
+-- of the digitizers, see the configuration ADQ14-FWPD.json for an example on
+-- how to select the state.
 
 print("Current state:")
 print("    ID: " .. current_state["ID"])
