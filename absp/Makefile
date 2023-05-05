@@ -22,7 +22,7 @@ all: $(EXEC)
 	$(CXX) -c $(CXXFLAGS) $< -o $@
 
 $(SRC_DIR)/Digitizers_wrap.cpp: $(INCLUDE_DIR)/Digitizers.i
-	swig -c++ -lua -o $@ $<
+	swig -c++ -lua -I/usr/include/ -I$(COMMON_INCLUDE_DIR) -o $@ $<
 
 $(INCLUDE_DIR)/swigluarun.h: $(INCLUDE_DIR)/Digitizers.i
 	swig -c++ -lua -external-runtime $(INCLUDE_DIR)/swigluarun.h
@@ -34,10 +34,10 @@ $(SRC_DIR)/Digitizers_wrap.o: $(SRC_DIR)/Digitizers_wrap.cpp $(INCLUDE_DIR)/swig
 $(EXEC): $(INCLUDE_DIR)/LuaManager.hpp $(OBJECTS) $(EXEC).cpp
 	$(CXX) $(CXXFLAGS) $(EXEC).cpp $(OBJECTS) $(LDFLAGS) -o $(EXEC)
 
-# To remove generated files
-clean:
-	rm -f $(EXEC) $(OBJECTS)
-
 clean-swig:
 	rm -f $(INCLUDE_DIR)/swigluarun.h
 	rm -f $(SRC_DIR)/Digitizers_wrap.cpp
+
+# To remove generated files
+clean:
+	rm -f $(EXEC) $(OBJECTS)
