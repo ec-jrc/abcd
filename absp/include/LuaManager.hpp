@@ -65,6 +65,12 @@ public:
         lua_newtable(Lua);
         lua_setglobal(Lua, "current_state");
 
+        lua_pushinteger(Lua, DIGITIZER_SUCCESS);
+        lua_setglobal(Lua, "DIGITIZER_SUCCESS");
+
+        lua_pushinteger(Lua, DIGITIZER_FAILURE);
+        lua_setglobal(Lua, "DIGITIZER_FAILURE");
+
         // I put these here, otherwise they give a segfault if put in the
         // update_digitizers() method
         // FIXME: Understand why is it the case...
