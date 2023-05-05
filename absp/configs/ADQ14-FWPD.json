@@ -137,7 +137,7 @@
         },
         {
             "enable": true,
-            "state": 108,
+            "state": [108, 406],
             "state_note": "This will run in the configuration state",
             "when": "post",
             "source": "display_digitizers.lua",
