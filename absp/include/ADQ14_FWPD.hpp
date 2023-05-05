@@ -29,7 +29,6 @@ private:
     // method but we do not want the user to call the base method.
     using ABCD::Digitizer::Initialize;
 
-public:
     // -------------------------------------------------------------------------
     //  Card settings
     // -------------------------------------------------------------------------
@@ -40,6 +39,7 @@ public:
     // Number of the ADQ14_FWPD card 
     int adq_num;
 
+public:
     // Flag to select the clock source of the digitizer
     int clock_source;
 
