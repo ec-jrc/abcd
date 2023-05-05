@@ -226,8 +226,13 @@ int main(int argc, char *argv[])
         if (current_state == states::stop)
             stop_execution = true;
 
+        // Storing this information here because they will change during the
+        // state action, but for the post script they need to remain.
+        const unsigned int current_state_ID = current_state.ID;
+        const std::string current_state_description = current_state.description;
+
         try {
-            const std::pair<unsigned int, unsigned int> script_key_pre(current_state.ID, SCRIPT_WHEN_PRE);
+            const std::pair<unsigned int, unsigned int> script_key_pre(current_state_ID, SCRIPT_WHEN_PRE);
             const std::string script_source_pre = global_status.user_scripts.at(script_key_pre);
 
             if (global_status.verbosity > 0)
@@ -235,18 +240,21 @@ int main(int argc, char *argv[])
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
                 std::cout << '[' << time_buffer << "] ";
-                std::cout << "Running pre script: " << script_source_pre << "; ";
+                std::cout << "Running pre script; ";
                 std::cout << std::endl;
             }
 
-	    global_status.lua_manager.run_script(script_source_pre);
+            global_status.lua_manager.run_script(current_state_ID,
+                                                 current_state_description,
+                                                 "pre",
+                                                 script_source_pre);
 
         } catch (...) {}
 
         current_state = current_state.act(global_status);
 
         try {
-            const std::pair<unsigned int, unsigned int> script_key_post(current_state.ID, SCRIPT_WHEN_POST);
+            const std::pair<unsigned int, unsigned int> script_key_post(current_state_ID, SCRIPT_WHEN_POST);
             const std::string script_source_post = global_status.user_scripts.at(script_key_post);
 
             if (global_status.verbosity > 0)
@@ -254,11 +262,14 @@ int main(int argc, char *argv[])
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
                 std::cout << '[' << time_buffer << "] ";
-                std::cout << "Running post script: " << script_source_post << "; ";
+                std::cout << "Running post script; ";
                 std::cout << std::endl;
             }
 
-	    global_status.lua_manager.run_script(script_source_post);
+            global_status.lua_manager.run_script(current_state_ID,
+                                                 current_state_description,
+                                                 "post",
+                                                 script_source_post);
 
         } catch (...) {}
 

@@ -104,7 +104,7 @@ void actions::generic::publish_events(status &global_status)
                                               topic.c_str(),
                                               global_status.waveforms_buffer.data(),
                                               waveforms_buffer_size,
-                                              1);
+                                              0);
 
         if (result == EXIT_FAILURE)
         {
@@ -168,7 +168,7 @@ void actions::generic::publish_message(status &global_status,
             std::cout << std::endl;
         }
 
-        send_byte_message(status_socket, topic.c_str(), output_buffer, total_size, 1);
+        send_byte_message(status_socket, topic.c_str(), output_buffer, total_size, 0);
 
         free(output_buffer);
     }
@@ -644,6 +644,7 @@ bool actions::generic::configure_digitizer(status &global_status)
     }
 
     global_status.digitizers_user_ids.clear();
+    global_status.user_scripts.clear();
 
     // -------------------------------------------------------------------------
     //  Starting the global configuration
@@ -848,11 +849,11 @@ bool actions::generic::configure_digitizer(status &global_status)
                 int when = SCRIPT_WHEN_POST;
 
                 if (str_when == "pre") {
-                        when = SCRIPT_WHEN_PRE;
+                    when = SCRIPT_WHEN_PRE;
                 } else if (str_when == "post") {
-                        when = SCRIPT_WHEN_POST;
+                    when = SCRIPT_WHEN_POST;
                 } else {
-                        when = SCRIPT_WHEN_POST;
+                    when = SCRIPT_WHEN_POST;
                 }
 
                 const char *cstr_source = json_string_value(json_object_get(json_script, "source"));
@@ -894,7 +895,7 @@ bool actions::generic::configure_digitizer(status &global_status)
                         time_string(time_buffer, BUFFER_SIZE, NULL);
                         std::cout << '[' << time_buffer << "] ";
                         std::cout << "Found script for state: " << script_state << "; ";
-                        std::cout << "When: " << str_when << "; ";
+                        std::cout << "When: " << str_when << " (code: " << when << "); ";
                         std::cout << std::endl;
                     }
 
@@ -904,7 +905,26 @@ bool actions::generic::configure_digitizer(status &global_status)
         }
     }
 
-     global_status.lua_manager.update_digitizers(global_status.digitizers);
+    if (verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Adding the digitizer objects to the Lua runtime environment; ";
+        std::cout << "Number of digitizers: " << global_status.digitizers.size() << "; ";
+        std::cout << std::endl;
+    }
+
+    global_status.lua_manager.update_digitizers(global_status.digitizers);
+
+    if (verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Finished configuration; ";
+        std::cout << std::endl;
+    }
 
     return true;
 }

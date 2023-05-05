@@ -135,6 +135,14 @@
             "source_note": "This can be a file name or the actual script as a string",
             "zzz": null
         },
+        {
+            "enable": true,
+            "state": 108,
+            "state_note": "This will run in the configuration state",
+            "when": "post",
+            "source": "display_digitizers.lua",
+            "zzz": null
+        },
         {}
     ],
     "zzz": null
