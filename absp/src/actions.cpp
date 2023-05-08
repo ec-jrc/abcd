@@ -1512,6 +1512,14 @@ state actions::start_acquisition(status &global_status)
 
         actions::generic::start_acquisition(global_status, digitizer_index);
         actions::generic::rearm_trigger(global_status, digitizer_index);
+
+        // Sometimes when the digitizers are started, the controller PC shuts
+        // itself off abruptly. It has happened both with an internal controller
+        // in a PXI chassis as well as with an external desktop connected to the PXI bus.
+        // I try to put a bit of delay between the starts to try to solve this,
+        // maybe if they are started too close together they interfere with each
+        // other.
+        std::this_thread::sleep_for(std::chrono::milliseconds(defaults_absp_start_acquisition_delay));
     }
 
     global_status.start_time = start_time;
