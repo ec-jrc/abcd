@@ -140,7 +140,9 @@
             "state": [108, 406],
             "state_note": "This will run in the configuration state",
             "when": "post",
-            "source": "display_digitizers.lua",
+            "source": "absp/scripts/display_digitizers.lua",
+            "source_note1": "If using a file name as the script source, make sure that it is accessible by absp.",
+            "source_note1": "If the script file is not accessible, this string will be treated as the script itself.",
             "zzz": null
         },
         {}
