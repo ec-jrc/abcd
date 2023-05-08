@@ -103,10 +103,10 @@ public:
     unsigned int timestamp_overflows;
 
 
-    ADQ412(int verbosity = 0);
+    ADQ412(void* adq_cu_ptr, int adq_num, int verbosity = 0);
     virtual ~ADQ412();
 
-    int Initialize(void* adq_cu_ptr, int adq_num);
+    int Initialize();
     int ReadConfig(json_t* config);
     int Configure();
 
