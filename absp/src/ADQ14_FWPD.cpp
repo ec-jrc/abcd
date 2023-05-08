@@ -43,7 +43,9 @@ const int ABCD::ADQ14_FWPD::default_DBS_saturation_level_upper = 0;
 
 const unsigned int ABCD::ADQ14_FWPD::default_DMA_flush_timeout = 1000;
 
-ABCD::ADQ14_FWPD::ADQ14_FWPD(int Verbosity) : Digitizer(Verbosity)
+ABCD::ADQ14_FWPD::ADQ14_FWPD(void* adq, int num, int Verbosity) : ABCD::Digitizer(Verbosity),
+                                                                  adq_cu_ptr(adq),
+                                                                  adq_num(num)
 {
     if (GetVerbosity() > 0)
     {
@@ -54,9 +56,6 @@ ABCD::ADQ14_FWPD::ADQ14_FWPD(int Verbosity) : Digitizer(Verbosity)
     }
 
     SetModel("ADQ14_FWPD");
-
-    adq_cu_ptr = NULL;
-    adq_num = 0;
 
     streaming_generation = 1;
 
@@ -94,7 +93,7 @@ ABCD::ADQ14_FWPD::~ADQ14_FWPD() {
 
 //==============================================================================
 
-int ABCD::ADQ14_FWPD::Initialize(void* adq, int num)
+int ABCD::ADQ14_FWPD::Initialize()
 {
     if (GetVerbosity() > 0)
     {
@@ -103,9 +102,6 @@ int ABCD::ADQ14_FWPD::Initialize(void* adq, int num)
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Initialize() ";
         std::cout << std::endl;
     }
-
-    adq_cu_ptr = adq;
-    adq_num = num;
 
     CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_POWER_ON));
     CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_COMMUNICATION));

@@ -146,10 +146,10 @@ public:
     // Counter of overflows, used only for debugging
     unsigned int timestamp_overflows;
 
-    ADQ14_FWPD(int verbosity = 0);
+    ADQ14_FWPD(void* adq_cu_ptr, int adq14_num, int verbosity = 0);
     ~ADQ14_FWPD();
 
-    int Initialize(void* adq_cu_ptr, int adq14_num);
+    int Initialize();
     int ReadConfig(json_t* config);
     int Configure();
 
