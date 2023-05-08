@@ -523,18 +523,18 @@ bool actions::generic::create_digitizer(status &global_status)
             // WARNING: boards numbering start from 1 in the next functions
             const int adq214_index = device_index + 1;
 
-            ABCD::ADQ214 *adq214_ptr = new ABCD::ADQ214(global_status.verbosity);
+            ABCD::ADQ214 *adq214_ptr = new ABCD::ADQ214(global_status.adq_cu_ptr, adq214_index, global_status.verbosity);
 
-            adq214_ptr->Initialize(global_status.adq_cu_ptr, adq214_index);
+            adq214_ptr->Initialize();
 
             global_status.digitizers.push_back(adq214_ptr);
         } else if (ADQlist[device_index].ProductID == PID_ADQ412) {
             // WARNING: boards numbering start from 1 in the next functions
             const int adq412_index = device_index + 1;
 
-            ABCD::ADQ412 *adq412_ptr = new ABCD::ADQ412(global_status.verbosity);
+            ABCD::ADQ412 *adq412_ptr = new ABCD::ADQ412(global_status.adq_cu_ptr, adq412_index, global_status.verbosity);
 
-            adq412_ptr->Initialize(global_status.adq_cu_ptr, adq412_index);
+            adq412_ptr->Initialize();
 
             global_status.digitizers.push_back(adq412_ptr);
         } else if (ADQlist[device_index].ProductID == PID_ADQ14) {
@@ -580,17 +580,17 @@ bool actions::generic::create_digitizer(status &global_status)
             //if (ADQ_descriptions::ADQ_firmware_revisions.at(revision[0]) == "ADQ14_FWPD")
 
             if (has_FWPD) {
-                ABCD::ADQ14_FWPD *adq14_ptr = new ABCD::ADQ14_FWPD(global_status.verbosity);
+                ABCD::ADQ14_FWPD *adq14_ptr = new ABCD::ADQ14_FWPD(global_status.adq_cu_ptr, adq14_index, global_status.verbosity);
 
-                adq14_ptr->Initialize(global_status.adq_cu_ptr, adq14_index);
+                adq14_ptr->Initialize();
 
                 global_status.digitizers.push_back(adq14_ptr);
 
 
             } else {
-                ABCD::ADQ14_FWDAQ *adq14_ptr = new ABCD::ADQ14_FWDAQ(global_status.verbosity);
+                ABCD::ADQ14_FWDAQ *adq14_ptr = new ABCD::ADQ14_FWDAQ(global_status.adq_cu_ptr, adq14_index, global_status.verbosity);
 
-                adq14_ptr->Initialize(global_status.adq_cu_ptr, adq14_index);
+                adq14_ptr->Initialize();
 
                 global_status.digitizers.push_back(adq14_ptr);
             }
