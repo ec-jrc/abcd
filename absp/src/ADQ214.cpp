@@ -26,7 +26,9 @@ extern "C" {
 #define BUFFER_SIZE 32
 
 
-ABCD::ADQ214::ADQ214(int Verbosity) : ABCD::Digitizer(Verbosity)
+ABCD::ADQ214::ADQ214(void* adq, int num, int Verbosity) : ABCD::Digitizer(Verbosity),
+                                                          adq_cu_ptr(adq),
+                                                          adq_num(num)
 {
     if (GetVerbosity() > 0)
     {
@@ -37,9 +39,6 @@ ABCD::ADQ214::ADQ214(int Verbosity) : ABCD::Digitizer(Verbosity)
     }
 
     SetModel("ADQ214");
-
-    adq_cu_ptr = NULL;
-    adq_num = 0;
 
     SetEnabled(false);
 
@@ -67,7 +66,7 @@ ABCD::ADQ214::~ADQ214() { }
 
 //==============================================================================
 
-int ABCD::ADQ214::Initialize(void* adq, int num)
+int ABCD::ADQ214::Initialize()
 {
     if (GetVerbosity() > 0)
     {
@@ -76,9 +75,6 @@ int ABCD::ADQ214::Initialize(void* adq, int num)
         std::cout << '[' << time_buffer << "] ABCD::ADQ214::Initialize() ";
         std::cout << std::endl;
     }
-
-    adq_cu_ptr = adq;
-    adq_num = num;
 
     CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_POWER_ON));
     CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_COMMUNICATION));

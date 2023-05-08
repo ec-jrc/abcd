@@ -23,9 +23,9 @@ private:
     // method but we do not want the user to call the base method.
     using ABCD::Digitizer::Initialize;
 
-    //--------------------------------------------------------------------------
-    // Card settings
-    //--------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    //  Card settings
+    // -------------------------------------------------------------------------
 
     // Pointer to the control unit of the ADQ cards
     void* adq_cu_ptr;
@@ -40,9 +40,9 @@ public:
     // Settings of the clock PLL divider
     int PLL_divider;
 
-    //--------------------------------------------------------------------------
-    // Trigger settings
-    //--------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    //  Trigger settings
+    // -------------------------------------------------------------------------
 
     // Flag to select the trigger mode
     unsigned int trig_mode;
@@ -50,23 +50,24 @@ public:
     unsigned int trig_slope;
     // Value to change a delay of the external trigger, not used
     int trig_external_delay;
+
     // Value of the trigger level for the channels, in ADC samples
     int trig_level;
 
     // Enable channels self triggering flag
     int channels_triggering_mask;
 
-    //--------------------------------------------------------------------------
-    // Channels settings
-    //--------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    //  Channels settings
+    // -------------------------------------------------------------------------
 
     // Channels couplings in the analong front ends
     uint8_t channels_analog_front_end_mask;
     std::vector<uint8_t> analog_front_end_couplings;
 
-    //--------------------------------------------------------------------------
-    // Waveforms settings
-    //--------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    //  Waveforms settings
+    // -------------------------------------------------------------------------
 
     // Number of samples to acquire in the waveforms before the trigger
     int32_t pretrigger;
@@ -75,9 +76,9 @@ public:
     // Number of waveforms per channel to store in the digitizer buffer
     unsigned int records_number;
 
-    //--------------------------------------------------------------------------
-    // Transfer settings
-    //--------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    //  Transfer settings
+    // -------------------------------------------------------------------------
     // The size of the buffers in terms of int16_t samples. Each data buffer
     // must contain enough samples to store all the records consecutively.
     size_t buffers_size;
@@ -90,14 +91,14 @@ public:
     std::vector<uint8_t> target_headers;
     std::vector<int64_t> target_timestamps;
 
-    //--------------------------------------------------------------------------
-    // Streaming settings
-    //--------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    //  Streaming settings
+    // -------------------------------------------------------------------------
     unsigned int channels_acquisition_mask;
 
-    //--------------------------------------------------------------------------
-    // Timestamps settings
-    //--------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    //  Timestamps settings
+    // -------------------------------------------------------------------------
 
     // Variables to keep track of timestamp overflows during acquisitions
     int64_t timestamp_last;
@@ -107,10 +108,10 @@ public:
     unsigned int timestamp_overflows;
 
 
-    ADQ214(int verbosity = 1);
+    ADQ214(void* adq_cu_ptr, int adq_num, int verbosity = 0);
     virtual ~ADQ214();
 
-    int Initialize(void* adq_cu_ptr, int adq_num);
+    int Initialize();
     int ReadConfig(json_t* config);
     int Configure();
 
