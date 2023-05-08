@@ -15,8 +15,8 @@
 -- That is a table with the keys defined as the digitizers names (i.e. their
 -- serial numbers). This example shows the general methods of the Digitizer
 -- class, but each digitizer might have more functions. Refer to the interfaces
--- in the include/ folder. The information of the digitizer model informs which
--- interface in the include/ folder is used.
+-- in the include/ folder. The GetModel() method programmatically informs which
+-- interface of the include/ folder is used.
 --
 -- See the example configuration of the ADQ14_FWPD interface to see how to
 -- enable a Lua script.
