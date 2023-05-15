@@ -1,4 +1,13 @@
 {
+    "global": {
+        "waveforms_buffer_max_size": 4096,
+        "waveforms_buffer_max_size_note1": "This value is in number of waveforms in the buffer",
+        "waveforms_buffer_max_size_note2": "It is not a strict threshold, if more are available in the readout they are not discarded.",
+        "waveforms_buffer_max_size_note3": "If too big, the following analysis steps might slow down",
+        "waveforms_buffer_max_size_note4": "If too small, then the overhead might be too much",
+        "waveforms_buffer_max_size_note5": "Waveform minimum dimension: 14 B (header) + 2 B * samples_number",
+        "zzz": null
+    },
     "cards": [
         {
             "id": 0,
