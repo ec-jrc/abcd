@@ -81,13 +81,13 @@ extern "C" {
 
 void actions::generic::publish_events(status &global_status)
 {
-    const size_t waveforms_buffer_size = global_status.waveforms_buffer.size();
+    const size_t waveforms_buffer_size_Bytes = global_status.waveforms_buffer.size();
 
-    if (waveforms_buffer_size > 0)
+    if (waveforms_buffer_size_Bytes > 0)
     {
         std::string topic = defaults_abcd_data_waveforms_topic;
         topic += "_v0_s";
-        topic += std::to_string((long long unsigned int)waveforms_buffer_size);
+        topic += std::to_string((long long unsigned int)waveforms_buffer_size_Bytes);
 
         if (global_status.verbosity > 0)
         {
@@ -96,14 +96,14 @@ void actions::generic::publish_events(status &global_status)
             std::cout << '[' << time_buffer << "] ";
             std::cout << "Sending waveforms buffer; ";
             std::cout << "Topic: " << topic << "; ";
-            std::cout << "waveforms: " << waveforms_buffer_size << "; ";
+            std::cout << "waveforms: " << waveforms_buffer_size_Bytes << "; ";
             std::cout << std::endl;
         }
 
         const bool result = send_byte_message(global_status.data_socket,
                                               topic.c_str(),
                                               global_status.waveforms_buffer.data(),
-                                              waveforms_buffer_size,
+                                              waveforms_buffer_size_Bytes,
                                               0);
 
         if (result == EXIT_FAILURE)
@@ -115,10 +115,12 @@ void actions::generic::publish_events(status &global_status)
             std::cout << std::endl;
         }
 
+        global_status.waveforms_buffer_size_Number = 0;
+
         // Cleanup vector
         global_status.waveforms_buffer.clear();
         // Initialize vector size to its last size
-        global_status.waveforms_buffer.reserve(waveforms_buffer_size);
+        global_status.waveforms_buffer.reserve(waveforms_buffer_size_Bytes);
     }
 }
 
@@ -284,6 +286,8 @@ void actions::generic::stop_acquisition(status &global_status)
 
 void actions::generic::clear_memory(status &global_status)
 {
+    global_status.waveforms_buffer_size_Number = 0;
+
     global_status.counts.clear();
     global_status.partial_counts.clear();
     global_status.waveforms_buffer.clear();
@@ -651,6 +655,48 @@ bool actions::generic::configure_digitizer(status &global_status)
     // -------------------------------------------------------------------------
     json_t *config = global_status.config;
 
+    json_t *json_global = json_object_get(config, "global");
+
+    if (!json_global)
+    {
+        json_object_set_new_nocheck(config, "global", json_object());
+        json_global = json_object_get(config, "global");
+
+        if (verbosity > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Missing \"global\" entry in configuration; ";
+            std::cout << std::endl;
+        }
+
+
+    }
+
+    if (json_global != NULL && json_is_object(json_global))
+    {
+        // WARNING: The key has a different spelling for the user convenience
+        int waveforms_buffer_size_max_Number = json_number_value(json_object_get(json_global, "waveforms_buffer_max_size"));
+
+        if (waveforms_buffer_size_max_Number <= 0) {
+            waveforms_buffer_size_max_Number = defaults_absp_waveforms_buffer_size_max_Number;
+        }
+
+        if (verbosity > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Waveforms buffer max size: " << waveforms_buffer_size_max_Number << "; ";
+            std::cout << std::endl;
+        }
+
+        global_status.waveforms_buffer_size_max_Number = waveforms_buffer_size_max_Number;
+
+        json_object_set_new_nocheck(json_global, "waveforms_buffer_max_size", json_integer(waveforms_buffer_size_max_Number));
+    }
+
     unsigned int max_channel_number = 0;
 
     json_t *json_cards = json_object_get(config, "cards");
@@ -947,9 +993,11 @@ bool actions::generic::allocate_memory(status &global_status)
         std::cout << std::endl;
     }
 
-    // Reserve the events_buffer in order to have a good starting size of its buffer
-    global_status.waveforms_buffer.reserve((global_status.events_buffer_max_size
-                                            + global_status.events_buffer_max_size / 10) * 14);
+    global_status.waveforms_buffer_size_Number = 0;
+
+    // Reserve the waveforms_buffer in order to have a good starting size of its buffer
+    global_status.waveforms_buffer.reserve(global_status.waveforms_buffer_size_max_Number
+                                           * (waveform_header_size() + sizeof(uint16_t) * defaults_absp_waveforms_expected_number_of_samples));
 
     return true;
 }
@@ -1724,6 +1772,8 @@ state actions::read_data(status &global_status)
                     this_waveform.channel = global_channel;
                     global_status.counts[global_channel] += 1;
                     global_status.partial_counts[global_channel] += 1;
+                    global_status.waveforms_buffer_size_Number += 1;
+
 
                     const size_t current_waveform_buffer_size = global_status.waveforms_buffer.size();
                     const size_t this_waveform_size = waveform_size(&this_waveform);
@@ -1756,13 +1806,13 @@ state actions::read_data(status &global_status)
         }
     }
 
-    const size_t waveforms_buffer_size = global_status.waveforms_buffer.size();
+    const size_t waveforms_buffer_size_Bytes = global_status.waveforms_buffer.size();
 
     if (verbosity > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "Waveforms buffer size: " << waveforms_buffer_size << "; ";
+        std::cout << "Waveforms buffer size: " << global_status.waveforms_buffer_size_Number << " (" << waveforms_buffer_size_Bytes << " B); ";
         std::cout << std::endl;
     }
 
@@ -1773,7 +1823,7 @@ state actions::read_data(status &global_status)
     const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
 
     if (now - global_status.last_publication > std::chrono::seconds(defaults_abcd_publish_timeout) ||
-        waveforms_buffer_size >= global_status.events_buffer_max_size) {
+        global_status.waveforms_buffer_size_Number >= global_status.waveforms_buffer_size_max_Number) {
         return states::publish_events;
     }
 

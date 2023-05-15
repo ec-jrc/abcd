@@ -98,8 +98,6 @@ void print_usage(const std::string &name = std::string("abcdrp")) {
     std::cout << defaults_abcd_config_file << std::endl;
     std::cout << "\t-T <period>: Set base period in milliseconds, default: ";
     std::cout << defaults_abcd_base_period << std::endl;
-    std::cout << "\t-B <size>: Events buffer maximum size, default: ";
-    std::cout << defaults_abcd_events_buffer_max_size << std::endl;
     std::cout << "\t-v: Set verbose execution" << std::endl;
     std::cout << "\t-V: Set more verbose execution" << std::endl;
 
@@ -127,11 +125,10 @@ int main(int argc, char *argv[])
     std::string config_file = defaults_abcd_config_file;
     unsigned int base_period = defaults_abcd_base_period;
 
-    unsigned int events_buffer_max_size = defaults_abcd_events_buffer_max_size;
     bool identification_only = false;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hIS:D:C:f:T:B:vV")) != -1) {
+    while ((c = getopt(argc, argv, "hIS:D:C:f:T:vV")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
@@ -164,9 +161,6 @@ int main(int argc, char *argv[])
             case 'V':
                 verbosity = 2;
                 break;
-            case 'B':
-                events_buffer_max_size = std::stoul(optarg);
-                break;
             default:
                 std::cout << "Unknown command: " << c << std::endl;
                 break;
@@ -177,7 +171,6 @@ int main(int argc, char *argv[])
 
     global_status.verbosity = verbosity;
     global_status.base_period = base_period;
-    global_status.events_buffer_max_size = events_buffer_max_size;
     global_status.config = NULL;
     global_status.config_file = config_file;
     global_status.status_address = status_address;
@@ -193,7 +186,6 @@ int main(int argc, char *argv[])
         std::cout << "Digitizer configuration file: " << config_file << std::endl;
         std::cout << "Verbosity: " << verbosity << std::endl;
         std::cout << "Base period: " << base_period << std::endl;
-        std::cout << "Events buffer size: " << events_buffer_max_size << std::endl;
         if (identification_only) {
             std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Identification only, the program will quit afterwards" << std::endl;
         }
