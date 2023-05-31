@@ -88,6 +88,7 @@ void print_usage(const std::string &name = std::string("abcdrp")) {
     std::cout << std::endl;
     std::cout << "Optional arguments:" << std::endl;
     std::cout << "\t-h: Display this message" << std::endl;
+    std::cout << "\t-I: Digitizers identification only" << std::endl;
     std::cout << "\t-S <address>: Status socket address, default: ";
     std::cout << defaults_abcd_status_address << std::endl;
     std::cout << "\t-D <address>: Data socket address, default: ";
