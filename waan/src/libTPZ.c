@@ -24,6 +24,8 @@
  *   compensation.
  * - `trapezoid_risetime`: the risetime of the resulting trapezoid.
  * - `trapezoid_flattop`: the width of the trapezoid top.
+ * - `peak_position`: a string describing the determation method of the
+ *   trapezoid height, can be `maximum` or `peaking_time`, default: `maximum`.
  * - `peaking_time`: the position of the trapezoid top relative to the
  *   trigger_position, the trapezoid height is stored in the qshort entry of
  *   the event_PSD structure.
@@ -46,6 +48,9 @@
 #include "analysis_functions.h"
 #include "DSP_functions.h"
 
+#define PEAK_POSITION_MAXIMUM 0
+#define PEAK_POSITION_PEAKING_TIME 1
+
 /*! \brief Sctructure that holds the configuration for the `energy_analysis` function.
  */
 struct TPZ_config
@@ -56,6 +61,7 @@ struct TPZ_config
     int64_t peaking_time;
     uint32_t baseline_samples;
     enum pulse_polarity_t pulse_polarity;
+    int peak_position;
     double height_scaling;
     double energy_threshold;
 
@@ -129,6 +135,21 @@ void energy_init(json_t *json_config, void **user_config)
                      strstr(pulse_polarity, "positive"))
             {
                 config->pulse_polarity = POLARITY_POSITIVE;
+            }
+        }
+
+        config->peak_position = PEAK_POSITION_MAXIMUM;
+
+        if (json_is_string(json_object_get(json_config, "peak_position"))) {
+            const char *pulse_polarity = json_string_value(json_object_get(json_config, "peak_position"));
+
+            if (strstr(pulse_polarity, "maximum"))
+            {
+                config->peak_position = PEAK_POSITION_MAXIMUM;
+            }
+            else if (strstr(pulse_polarity, "peaking_time"))
+            {
+                config->peak_position = PEAK_POSITION_PEAKING_TIME;
             }
         }
 
@@ -260,8 +281,13 @@ void energy_analysis(const uint16_t *samples,
         // Output
         // We have to assume that this was taken care earlier
         //(*events_buffer)[0].timestamp = waveform->timestamp;
-        (*events_buffer)[0].qshort = int_at_peaking;
-        (*events_buffer)[0].qlong = int_maximum;
+        if (config->peak_position == PEAK_POSITION_PEAKING_TIME) {
+            (*events_buffer)[0].qshort = int_maximum;
+            (*events_buffer)[0].qlong = int_at_peaking;
+        } else {
+            (*events_buffer)[0].qshort = int_at_peaking;
+            (*events_buffer)[0].qlong = int_maximum;
+        }
         (*events_buffer)[0].baseline = int_baseline;
         (*events_buffer)[0].channel = waveform->channel;
         (*events_buffer)[0].group_counter = group_counter;
