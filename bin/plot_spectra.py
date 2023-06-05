@@ -119,6 +119,8 @@ spectra_derivatives = list()
 buffer_size = args.buffer_size - (args.buffer_size % 16)
 print("Using buffer size: {:d}".format(buffer_size))
 
+print("Selected channel: {}".format(args.channel))
+
 min_energy = args.energy_min
 max_energy = args.energy_max
 energy_resolution = args.energy_resolution
