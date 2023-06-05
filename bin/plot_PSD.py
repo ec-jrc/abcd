@@ -299,7 +299,7 @@ else:
 
     fig = plt.figure()
 
-    bihisto_ax = fig.add_subplot(111)
+    bihisto_ax = fig.add_subplot(111, sharex = spect_energy_ax)
 
     cax = bihisto_ax.imshow(histo2d,
           origin = 'lower',
