@@ -52,6 +52,7 @@ extern "C" {
 #define LINUX
 #include "ADQAPI.h"
 #include "ADQ_utilities.hpp"
+#include "ADQ_descriptions.hpp"
 
 #include "Digitizer.hpp"
 #include "ADQ412.hpp"
@@ -322,63 +323,10 @@ void actions::generic::destroy_digitizer(status &global_status)
 
 
     // TODO: Reset USB3 devices with ADQControlUnit_ResetDevice() and reset level 18
-
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Deleting the ADQ control unit; ";
-        std::cout << std::endl;
-    }
-
-    DeleteADQControlUnit(global_status.adq_cu_ptr);
-    global_status.adq_cu_ptr = NULL;
 }
 
 bool actions::generic::create_digitizer(status &global_status)
 {
-    const int API_revision = ADQAPI_GetRevision();
-
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "API revision: " << API_revision << "; ";
-        std::cout << std::endl;
-    }
-
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Creating the ADQ control unit; ";
-        std::cout << std::endl;
-    }
-
-    global_status.adq_cu_ptr = CreateADQControlUnit();
-    if(!global_status.adq_cu_ptr)
-    {
-        std::cout << "Failed to create adq_cu!" << std::endl;
-        return 0;
-    }
-
-    // This creates a file with the error trace when the program is executed
-    //if (global_status.verbosity > 0)
-    //{
-    //    char time_buffer[BUFFER_SIZE];
-    //    time_string(time_buffer, BUFFER_SIZE, NULL);
-    //    std::cout << '[' << time_buffer << "] ";
-    //    std::cout << "Enabling error trace; ";
-    //    std::cout << std::endl;
-    //}
-
-    //ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, LOG_LEVEL_INFO, ".");
-    // This is to enable all possible log levels
-    //ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, 0x7FFFFFFF, ".");
-
     if (global_status.verbosity > 0)
     {
         char time_buffer[BUFFER_SIZE];
@@ -518,6 +466,53 @@ bool actions::generic::create_digitizer(status &global_status)
 
         CHECKZERO(ADQControlUnit_SetupDevice(global_status.adq_cu_ptr, device_index));
 
+        if (global_status.verbosity > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Information about device: " << device_index << "; ";
+            std::cout << std::endl;
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "ADQ type: " << ADQ_GetADQType(global_status.adq_cu_ptr, device_index + 1) << "; ";
+            std::cout << "Board product name: " << ADQ_GetBoardProductName(global_status.adq_cu_ptr, device_index + 1) << "; ";
+            // This is not supported for all cards, and it might generate a
+            // segfault since it returns a string that might not have been
+            // initialized.
+            //std::cout << "Card option: " << ADQ_GetCardOption(global_status.adq_cu_ptr, device_index + 1) << "; ";
+            std::cout << std::endl;
+
+            unsigned int family = 0;
+            CHECKZERO(ADQ_GetProductFamily(global_status.adq_cu_ptr, device_index + 1, &family));
+
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Product ID: " << ADQ_GetProductID(global_status.adq_cu_ptr, device_index + 1) << "; ";
+            std::cout << "Product family: " << family << "; ";
+            std::cout << std::endl;
+
+            int *revision = ADQ_GetRevision(global_status.adq_cu_ptr, device_index + 1);
+
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Revision: {";
+            for (int i = 0; i < 6; i++) {
+                std::cout << revision[i] << ", ";
+            }
+            std::cout << "}; ";
+            std::cout << "Firmware type: ";
+            try {
+                std::cout << ADQ_descriptions::ADQ_firmware_revisions.at(revision[0]);
+            } catch (const std::out_of_range& error) {
+                std::cout << "unknown";
+            }
+
+            std::cout << "; ";
+            std::cout << std::endl;
+
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Serial number: " << ADQ_GetBoardSerialNumber(global_status.adq_cu_ptr, device_index + 1) << "; ";
+            std::cout << std::endl;
+        }
+
         if (ADQlist[device_index].ProductID == PID_ADQ214) {
             // WARNING: boards numbering start from 1 in the next functions
             const int adq214_index = device_index + 1;
@@ -557,28 +552,35 @@ bool actions::generic::create_digitizer(status &global_status)
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
                 std::cout << '[' << time_buffer << "] ";
-                std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") Does not have the Pulse Detect firmware; ";
+                std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") does not have the Pulse Detect firmware; ";
                 std::cout << std::endl;
             } else if (has_FWPD == 0) {
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
                 std::cout << '[' << time_buffer << "] ";
-                std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") Did not respond to the firmware request; ";
+                std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") did not respond to the firmware request; ";
                 std::cout << std::endl;
             } else {
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
                 std::cout << '[' << time_buffer << "] ";
-                std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") Unexpected value from the firmware request: " << has_FWPD << "; ";
+                std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") unexpected value from the firmware request: " << has_FWPD << "; ";
                 std::cout << std::endl;
             }
 
-            if (has_FWPD == 1 ) {
+            // FIXME: This might be more reliable with older cards, but we would
+            //        need to know all the firmware versions
+            //int *revision = ADQ_GetRevision(global_status.adq_cu_ptr, device_index + 1);
+            //if (ADQ_descriptions::ADQ_firmware_revisions.at(revision[0]) == "ADQ14_FWPD")
+
+            if (has_FWPD) {
                 ABCD::ADQ14_FWPD *adq14_ptr = new ABCD::ADQ14_FWPD(global_status.verbosity);
 
                 adq14_ptr->Initialize(global_status.adq_cu_ptr, adq14_index);
 
                 global_status.digitizers.push_back(adq14_ptr);
+
+
             } else {
                 ABCD::ADQ14_FWDAQ *adq14_ptr = new ABCD::ADQ14_FWDAQ(global_status.verbosity);
 
@@ -637,9 +639,9 @@ bool actions::generic::configure_digitizer(status &global_status)
 
     global_status.digitizers_user_ids.clear();
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Starting the global configuration                                      //
-    ////////////////////////////////////////////////////////////////////////////
+    // -------------------------------------------------------------------------
+    //  Starting the global configuration
+    // -------------------------------------------------------------------------
     json_t *config = global_status.config;
 
     unsigned int max_channel_number = 0;
@@ -967,7 +969,72 @@ state actions::bind_sockets(status &global_status)
     zmq_delay.tv_nsec = (defaults_abcd_zmq_delay % 1000) * 1000000L;
     nanosleep(&zmq_delay, NULL);
 
-    return states::read_config;
+    return states::create_control_unit;
+}
+
+state actions::create_control_unit(status &global_status)
+{
+    const int API_revision = ADQAPI_GetRevision();
+
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "API revision: " << API_revision << "; ";
+        std::cout << std::endl;
+    }
+
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Creating the ADQ control unit; ";
+        std::cout << std::endl;
+    }
+
+    global_status.adq_cu_ptr = CreateADQControlUnit();
+    if(!global_status.adq_cu_ptr)
+    {
+        std::cout << "Failed to create adq_cu!" << std::endl;
+
+        return states::configure_error;
+    }
+
+    // This creates a file with the error trace when the program is executed
+    //if (global_status.verbosity > 0)
+    //{
+    //    char time_buffer[BUFFER_SIZE];
+    //    time_string(time_buffer, BUFFER_SIZE, NULL);
+    //    std::cout << '[' << time_buffer << "] ";
+    //    std::cout << "Enabling error trace; ";
+    //    std::cout << std::endl;
+    //}
+
+    //ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, LOG_LEVEL_INFO, ".");
+    // This is to enable all possible log levels
+    //ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, 0x7FFFFFFF, ".");
+
+    return states::create_digitizer;
+}
+
+state actions::create_digitizer(status &global_status)
+{
+    const bool success = actions::generic::create_digitizer(global_status);
+
+    if (global_status.identification_only) {
+        return states::clear_memory;
+    }
+
+    if (success)
+    {
+        return states::read_config;
+    }
+    else
+    {
+        return states::configure_error;
+    }
 }
 
 state actions::read_config(status &global_status)
@@ -1011,21 +1078,7 @@ state actions::read_config(status &global_status)
     {
         global_status.config = new_config;
 
-        return states::create_digitizer;
-    }
-}
-
-state actions::create_digitizer(status &global_status)
-{
-    const bool success = actions::generic::create_digitizer(global_status);
-
-    if (success)
-    {
         return states::configure_digitizer;
-    }
-    else
-    {
-        return states::configure_error;
     }
 }
 
@@ -1714,8 +1767,18 @@ state actions::clear_memory(status &global_status)
 {
     actions::generic::clear_memory(global_status);
 
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Clearing the json configuration; ";
+        std::cout << std::endl;
+    }
+
     // Remember to clean up the json configuration
     json_decref(global_status.config);
+    global_status.config = NULL;
 
     return states::destroy_digitizer;
 }
@@ -1730,6 +1793,23 @@ state actions::reconfigure_clear_memory(status &global_status)
 state actions::destroy_digitizer(status &global_status)
 {
     actions::generic::destroy_digitizer(global_status);
+
+    return states::destroy_control_unit;
+}
+
+state actions::destroy_control_unit(status &global_status)
+{
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Deleting the ADQ control unit; ";
+        std::cout << std::endl;
+    }
+
+    DeleteADQControlUnit(global_status.adq_cu_ptr);
+    global_status.adq_cu_ptr = NULL;
 
     return states::close_sockets;
 }

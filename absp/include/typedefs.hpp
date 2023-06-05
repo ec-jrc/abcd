@@ -36,49 +36,42 @@
 
 struct status
 {
-    unsigned int base_period;// defaults_abcd_base_period;
-    std::string status_address;// defaults_abcd_status_address;
-    std::string data_address;// defaults_abcd_data_address;
-    std::string commands_address;// defaults_abcd_commands_address;
+    unsigned int base_period;
+    std::string status_address;
+    std::string data_address;
+    std::string commands_address;
     
-    void *context;// nullptr;
-    void *status_socket;// nullptr;
-    void *data_socket;// nullptr;
-    void *commands_socket;// nullptr;
+    void *context;
+    void *status_socket;
+    void *data_socket;
+    void *commands_socket;
     
-    unsigned int verbosity;// 0;
-    unsigned long int status_msg_ID;// 0;
-    unsigned long int data_msg_ID;// 0;
-    
-    json_t *config;// nullptr;
-    
-    //std::vector<rp_channel_t> enabled_channels;
+    unsigned int verbosity;
+    unsigned long int status_msg_ID;
+    unsigned long int data_msg_ID;
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Digitizer specific variables                                           //
-    ////////////////////////////////////////////////////////////////////////////
+    bool identification_only;
+    
+    json_t *config;
+    
+    // -------------------------------------------------------------------------
+    //  Digitizer specific variables
+    // -------------------------------------------------------------------------
     void *adq_cu_ptr;
     std::vector<ABCD::Digitizer*> digitizers;
 
     std::map<unsigned int, unsigned int> digitizers_user_ids;
 
-    unsigned int channels_number;// 2;
-    uint32_t samples_number;// defaults_abrp_scope_samples;
-    uint32_t pretrigger;// defaults_abrp_pretrigger;
-    int32_t trigger_delay;// 0;
-    unsigned int decimation;// 1;
+    unsigned int channels_number;
 
-    bool trigger_mode_normal;// true;
-    //rp_acq_trig_src_t trigger_source;//  RP_TRIG_SRC_CHA_NE;
+    unsigned int poll_timeout;
+    unsigned int rearm_timeout;
 
-    unsigned int poll_timeout;// defaults_abcd_base_period;
-    unsigned int rearm_timeout;// 0;
-
-    ////////////////////////////////////////////////////////////////////////////
-    // DAQ specific variables                                                 //
-    ////////////////////////////////////////////////////////////////////////////
+    // -------------------------------------------------------------------------
+    //  DAQ specific variables
+    // -------------------------------------------------------------------------
     unsigned int events_buffer_max_size;
-    std::string config_file;// defaults_abcd_config_file;
+    std::string config_file;
     
     std::chrono::time_point<std::chrono::system_clock> start_time;
     std::chrono::time_point<std::chrono::system_clock> stop_time;

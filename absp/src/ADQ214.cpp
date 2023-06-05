@@ -114,6 +114,9 @@ int ABCD::ADQ214::Initialize(void* adq, int num)
         std::cout << '[' << time_buffer << "] ABCD::ADQ214::Initialize() ";
         std::cout << "Card name (serial number): " << GetName() << "; ";
         std::cout << "Product name: " << ADQ_GetBoardProductName(adq_cu_ptr, adq_num) << "; ";
+        std::cout << std::endl;
+
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::Initialize() ";
         std::cout << "USB address: " << ADQ_GetUSBAddress(adq_cu_ptr, adq_num) << "; ";
         std::cout << "PCIe address: " << ADQ_GetPCIeAddress(adq_cu_ptr, adq_num) << "; ";
         std::cout << std::endl;
@@ -218,7 +221,6 @@ int ABCD::ADQ214::Configure()
     // unnecessary.
     CHECKZERO(ADQ_SetTestPatternMode(adq_cu_ptr, adq_num, 0));
 
-
     // -------------------------------------------------------------------------
     //  Channels settings
     // -------------------------------------------------------------------------
@@ -303,6 +305,7 @@ int ABCD::ADQ214::Configure()
     // -------------------------------------------------------------------------
 
     CHECKZERO(ADQ_DisarmTrigger(adq_cu_ptr, adq_num));
+
     if (GetVerbosity() > 0)
     {
         char time_buffer[BUFFER_SIZE];
@@ -526,7 +529,7 @@ int ABCD::ADQ214::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
     if (retval == 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ214::ReadConfig() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::GetWaveformsFromCard() ";
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Error in fetching data; ";
         std::cout << std::endl;
 
@@ -600,7 +603,7 @@ int ABCD::ADQ214::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
         std::cout << "Timestamp overflows: " << timestamp_overflows << "; ";
         std::cout << std::endl;
     }
-    
+
     //ADQ_GetOverflow(adq_cu_ptr, adq_num);
 
     return DIGITIZER_SUCCESS;
@@ -737,9 +740,9 @@ int ABCD::ADQ214::ReadConfig(json_t *config)
         std::cout << std::endl;
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Reading the trigger configuration                                      //
-    ////////////////////////////////////////////////////////////////////////////
+    // -------------------------------------------------------------------------
+    //  Reading the trigger configuration
+    // -------------------------------------------------------------------------
     json_t *trigger_config = json_object_get(config, "trigger");
 
     const char *cstr_trigger_source = json_string_value(json_object_get(trigger_config, "source"));
@@ -828,9 +831,9 @@ int ABCD::ADQ214::ReadConfig(json_t *config)
         std::cout << std::endl;
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Reading the single channels configuration                              //
-    ////////////////////////////////////////////////////////////////////////////
+    // -------------------------------------------------------------------------
+    //  Reading the single channels configuration
+    // -------------------------------------------------------------------------
     // First resetting the channels statuses
     for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
         SetChannelEnabled(channel, false);
@@ -849,7 +852,7 @@ int ABCD::ADQ214::ReadConfig(json_t *config)
             json_t *json_id = json_object_get(value, "id");
 
             if (json_id != NULL && json_is_integer(json_id)) {
-                const unsigned int id = json_integer_value(json_id);
+                const int id = json_integer_value(json_id);
 
                 if (GetVerbosity() > 0)
                 {
@@ -917,7 +920,7 @@ int ABCD::ADQ214::ReadConfig(json_t *config)
 
                 json_object_set_nocheck(value, "coupling", json_string(ADQ_descriptions::analog_front_end_coupling.at(analog_front_end_coupling).c_str()));
 
-                if (0 <= id && id < GetChannelsNumber()) {
+                if (0 <= id && id < static_cast<int>(GetChannelsNumber())) {
                     SetChannelEnabled(id, enabled);
                     SetChannelTriggering(id, triggering);
                     analog_front_end_couplings[id] = analog_front_end_coupling;
@@ -932,9 +935,9 @@ int ABCD::ADQ214::ReadConfig(json_t *config)
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Reading the waveforms settings                                         //
-    ////////////////////////////////////////////////////////////////////////////
+    // -------------------------------------------------------------------------
+    //  Reading the waveforms settings
+    // -------------------------------------------------------------------------
 
     pretrigger = json_integer_value(json_object_get(config, "pretrigger"));
 

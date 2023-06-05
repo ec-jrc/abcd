@@ -48,6 +48,7 @@ namespace actions
     state create_sockets(status&);
     state bind_sockets(status&);
 
+    state create_control_unit(status&);
     state create_digitizer(status&);
     state recreate_digitizer(status&);
     state read_config(status&);
@@ -68,6 +69,7 @@ namespace actions
     state stop_acquisition(status&);
     state clear_memory(status&);
     state destroy_digitizer(status&);
+    state destroy_control_unit(status&);
 
     state restart_publish_events(status&);
     state restart_stop_acquisition(status&);

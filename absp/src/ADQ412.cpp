@@ -112,6 +112,11 @@ int ABCD::ADQ412::Initialize(void* adq, int num)
         std::cout << '[' << time_buffer << "] ABCD::ADQ412::Initialize() ";
         std::cout << "Card name (serial number): " << GetName() << "; ";
         std::cout << "Product name: " << ADQ_GetBoardProductName(adq_cu_ptr, adq_num) << "; ";
+        std::cout << "Card option: " << ADQ_GetCardOption(adq_cu_ptr, adq_num) << "; ";
+        std::cout << "Motheboard option: " << ADQ_GetADQDSPOption(adq_cu_ptr, adq_num) << "; ";
+        std::cout << std::endl;
+
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Initialize() ";
         std::cout << "USB address: " << ADQ_GetUSBAddress(adq_cu_ptr, adq_num) << "; ";
         std::cout << "PCIe address: " << ADQ_GetPCIeAddress(adq_cu_ptr, adq_num) << "; ";
         std::cout << std::endl;
@@ -230,7 +235,6 @@ int ABCD::ADQ412::Configure()
     // in the example it is repeated at each channel, but to me it seems
     // unnecessary.
     CHECKZERO(ADQ_SetTestPatternMode(adq_cu_ptr, adq_num, 0));
-
 
     // -------------------------------------------------------------------------
     //  Channels settings
@@ -601,7 +605,7 @@ int ABCD::ADQ412::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
         std::cout << "Timestamp overflows: " << timestamp_overflows << "; ";
         std::cout << std::endl;
     }
-    
+
     //ADQ_GetOverflow(adq_cu_ptr, adq_num);
 
     return DIGITIZER_SUCCESS;
@@ -727,9 +731,9 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
 
     //json_object_set_nocheck(config, "sampling_frequency", json_integer(sSampling[iSampling]));
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Reading the trigger configuration                                      //
-    ////////////////////////////////////////////////////////////////////////////
+    // -------------------------------------------------------------------------
+    //  Reading the trigger configuration
+    // -------------------------------------------------------------------------
     json_t *trigger_config = json_object_get(config, "trigger");
 
     const char *cstr_trigger_source = json_string_value(json_object_get(trigger_config, "source"));
@@ -818,9 +822,9 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
         std::cout << std::endl;
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Reading the single channels configuration                              //
-    ////////////////////////////////////////////////////////////////////////////
+    // -------------------------------------------------------------------------
+    //  Reading the single channels configuration
+    // -------------------------------------------------------------------------
     // First resetting the channels statuses
     for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
         SetChannelEnabled(channel, false);
@@ -838,7 +842,7 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
             json_t *json_id = json_object_get(value, "id");
 
             if (json_id != NULL && json_is_integer(json_id)) {
-                const unsigned int id = json_integer_value(json_id);
+                const int id = json_integer_value(json_id);
 
                 if (GetVerbosity() > 0)
                 {
@@ -876,7 +880,7 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
                 json_object_set_new_nocheck(value, "triggering", json_boolean(triggering));
 
 
-                if (0 <= id && id < GetChannelsNumber()) {
+                if (0 <= id && id < static_cast<int>(GetChannelsNumber())) {
                     SetChannelEnabled(id, enabled);
                     SetChannelTriggering(id, triggering);
                 } else {
@@ -890,9 +894,9 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
         }
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-    // Reading the waveforms settings                                         //
-    ////////////////////////////////////////////////////////////////////////////
+    // -------------------------------------------------------------------------
+    //  Reading the waveforms settings
+    // -------------------------------------------------------------------------
 
     pretrigger = json_integer_value(json_object_get(config, "pretrigger"));
 
@@ -1103,7 +1107,5 @@ int ABCD::ADQ412::SpecificCommand(json_t *json_command)
 
     return DIGITIZER_SUCCESS;
 }
-
-//==============================================================================
 
 //==============================================================================

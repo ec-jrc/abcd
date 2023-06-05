@@ -1,0 +1,88 @@
+{
+    "cards": [
+        {
+            "id": 0,
+            "model": "ADQ14DC-4A-VG",
+            "model_note": "This model has the FWDAQ",
+            "serial": "SPD-05333",
+            "enable": true,
+            "scope_samples": 1400,
+            "scope_samples_note": "this setting is shared between all the channels",
+            "pretrigger": 300,
+            "pretrigger_note": "this setting is shared between all the channels",
+            "records_number": 1000,
+            "records_number_note": "better to use a number comparable to the expected rate",
+            "clock_source": "internal",
+            "clock_source_possible_value0": "internal",
+            "clock_source_possible_value1": "external_10MHz",
+            "clock_source_possible_value2": "external",
+            "clock_source_possible_value3": "external_PXI",
+            "timestamp_bit_shift": 0,
+            "timestamp_bit_shift_note": "the timestamp may be shifted in order to align it with the waan analysis module",
+            "trigger": {
+                "source": "channels",
+                "source_possible_value1": "software",
+                "source_possible_value2": "external",
+                "source_possible_value3": "channels",
+                "slope": "falling",
+                "slope_possible_value0": "rising",
+                "slope_possible_value1": "falling",
+                "level": 32600,
+                "level_note": "absolute value of the waveform display, in ADC channels",
+                "impedance": "50_Ohm",
+                "impedance_note": "input impedance of the 'trig' port",
+                "impedance_possible_value1": "50_Ohm",
+                "impedance_possible_value2": "high",
+                "zzz": null
+            },
+            "sync": {
+                "impedance": "high",
+                "impedance_possible_value1": "50_Ohm",
+                "impedance_possible_value2": "high",
+                "impedance_note": "input impedance of the 'sync' port",
+                "zzz": null
+            },
+            "channels": [
+                {
+                    "id": 0,
+                    "enable": true,
+                    "triggering": true,
+                    "triggering_note": "only a set of possible triggering channels combinations are allowed, check the digitizer documentation",
+                    "input_range": 1000,
+                    "input_range_note": "in mV units, it is adapted by the firwmware to the closest possible value",
+                    "DC_offset": 0,
+                    "DC_offset_note": "this setting is used both in the input bias and in the DBS target, ADC channels",
+                    "DBS_disable": false
+                },
+                {
+                    "id": 1,
+                    "enable": true,
+                    "triggering": true,
+                    "input_range": 1000,
+                    "DC_offset": 0,
+                    "DBS_disable": false
+                },
+                {
+                    "id": 2,
+                    "enable": false,
+                    "triggering": false,
+                    "input_range": 1000,
+                    "DC_offset": 0,
+                    "DBS_disable": false
+                },
+                {
+                    "id": 3,
+                    "enable": false,
+                    "triggering": false,
+                    "input_range": 1000,
+                    "DC_offset": 0,
+                    "DBS_disable": false
+                },
+                {}
+            ],
+            "zzz": null
+        },
+        {}
+    ],
+    "zzz": null
+}

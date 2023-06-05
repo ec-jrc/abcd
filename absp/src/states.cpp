@@ -35,18 +35,20 @@ const state states::bind_sockets = \
     {103, "Bind sockets", actions::bind_sockets };
 const state states::read_config = \
     {104, "Read configuration", actions::read_config };
+const state states::create_control_unit = \
+    {105, "Create control unit", actions::create_control_unit };
 const state states::create_digitizer = \
-    {105, "Create digitizer", actions::create_digitizer };
+    {106, "Create digitizer", actions::create_digitizer };
 const state states::recreate_digitizer = \
-    {106, "Create digitizer", actions::recreate_digitizer };
+    {107, "Recreate digitizer", actions::recreate_digitizer };
 const state states::configure_digitizer = \
-    {107, "Configure digitizer", actions::configure_digitizer };
+    {108, "Configure digitizer", actions::configure_digitizer };
 const state states::allocate_memory = \
-    {108, "Allocate memory", actions::allocate_memory };
+    {109, "Allocate memory", actions::allocate_memory };
 const state states::reconfigure_clear_memory = \
-    {109, "Reconfigure destroy digitizer", actions::reconfigure_clear_memory };
+    {110, "Reconfigure destroy digitizer", actions::reconfigure_clear_memory };
 const state states::reconfigure_destroy_digitizer = \
-    {110, "Reconfigure destroy digitizer", actions::reconfigure_destroy_digitizer };
+    {111, "Reconfigure destroy digitizer", actions::reconfigure_destroy_digitizer };
 
 // Normal states are 2xx
 const state states::receive_commands = \
@@ -88,13 +90,15 @@ const state states::restart_allocate_memory = \
 
 // Closing states are 8xx
 const state states::clear_memory = \
-    {801, "Destroy digitizer object", actions::clear_memory };
+    {801, "Clearing memory", actions::clear_memory };
 const state states::destroy_digitizer = \
     {802, "Destroy digitizer object", actions::destroy_digitizer };
+const state states::destroy_control_unit = \
+    {803, "Destroy control_unit object", actions::destroy_control_unit };
 const state states::close_sockets = \
-    {803, "Close sockets", actions::close_sockets };
+    {804, "Close sockets", actions::close_sockets };
 const state states::destroy_context = \
-    {804, "Destroy ZeroMQ context", actions::destroy_context };
+    {805, "Destroy ZeroMQ context", actions::destroy_context };
 const state states::stop = \
     {899, "Stop", actions::stop };
 

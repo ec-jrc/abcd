@@ -1,6 +1,8 @@
 #ifndef __ADQ_UTILITIES_HPP__
 #define __ADQ_UTILITIES_HPP__
 
+#include <vector>
+
 #define LINUX
 #include "ADQAPI.h"
 

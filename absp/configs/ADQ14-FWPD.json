@@ -2,20 +2,34 @@
     "cards": [
         {
             "id": 0,
-            "model": "ADQ14",
+            "model": "ADQ14DC-4A-VG",
             "model_note": "This model has the FWPD generation 1",
-            "serial": "SPD-07720",
+            "serial": "SPD-07721",
             "enable": true,
             "clock_source": "internal",
             "clock_source_possible_value0": "internal",
             "clock_source_possible_value1": "external_10MHz",
             "clock_source_possible_value2": "external",
             "clock_source_possible_value3": "external_PXI",
+            "timestamp_bit_shift": 0,
+            "timestamp_bit_shift_note": "the timestamp may be shifted in order to align it with the waan analysis module",
             "trigger": {
                 "source": "channels",
                 "source_possible_value1": "software",
                 "source_possible_value2": "external",
                 "source_possible_value3": "channels",
+                "impedance": "50_Ohm",
+                "impedance_note": "input impedance of the 'trig' port",
+                "impedance_possible_value1": "50_Ohm",
+                "impedance_possible_value2": "high",
+                "zzz": null
+            },
+            "sync": {
+                "impedance": "high",
+                "impedance_note": "input impedance of the 'sync' port",
+                "impedance_possible_value1": "50_Ohm",
+                "impedance_possible_value2": "high",
+                "impedance_WARNING": "when using 50_Ohm, the board does not seem to trigger",
                 "zzz": null
             },
             "transfer": {
@@ -25,6 +39,8 @@
                 "buffers_number_note": "suggested minimum value is 8",
                 "timeout": 60000,
                 "timeout_note": "in ms units",
+                "DMA_flush_timeout": 1000,
+                "DMA_flush_timeout_note": "in ms units",
                 "zzz": null
             },
             "channels": [
@@ -104,8 +120,7 @@
                     "zzz": null
                 },
                 {}
-            ],
-            "zzz": null
+            ]
         },
         {}
     ],

@@ -67,11 +67,15 @@ public:
     static const std::map<unsigned int, std::string> clock_source;
     static const std::map<unsigned int, std::string> trig_mode;
     static const std::map<unsigned int, std::string> trig_slope;
+    static const std::map<unsigned int, std::string> timestamp_synchronization_mode;
+    static const std::map<unsigned int, std::string> timestamp_synchronization_source;
     static const std::map<unsigned int, std::string> collection_mode;
     static const std::map<unsigned int, std::string> analog_front_end_coupling;
+    static const std::map<unsigned int, std::string> input_impedance;
     static const std::map<unsigned int, std::string> ADQ14_temperatures;
     static const std::map<unsigned int, std::string> ADQ412_temperatures;
     static const std::map<unsigned int, std::string> ADQ214_temperatures;
+    static const std::map<unsigned int, std::string> ADQ_firmware_revisions;
 };
 
 #endif
