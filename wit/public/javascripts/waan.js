@@ -127,6 +127,27 @@ function page_loaded() {
         create_and_download_file(new_text_config, file_name, "txt");
     }
 
+    function waan_upload_config() {
+        const files = $("#input_config_file")[0].files;
+
+        // If the user clicked on 'cancel' then the array should be empty
+        if (files.length > 0) {
+            const file_name = files[0].name;
+
+            console.log("Opening file with name: " + file_name);
+
+            let reader = new FileReader();
+            reader.readAsText(files[0]);
+
+            reader.onload = function () {
+                console.log("Finished reading file with name: " + file_name);
+
+                const content = reader.result;
+                waan_config_editor.getSession().setValue(content);
+            };
+        }
+    }
+
     socket_io.on("connect", socket_io_connection(socket_io, module_name, on_status, update_events_log(), null));
 
     window.setInterval(function () {
@@ -136,6 +157,11 @@ function page_loaded() {
     $("#button_config_send").on("click", send_command(socket_io, 'reconfigure', waan_arguments_config));
     $("#button_config_get").on("click", waan_get_config);
     $("#button_config_download").on("click", waan_download_config);
+    $("#input_config_file").on("change", waan_upload_config);
+    $("#button_config_upload").on("click", function() {
+        // Trigger a click on the hidden input
+        $("#input_config_file").click();
+    });
 }
 
 $(page_loaded);
