@@ -792,9 +792,9 @@ int ABCD::ADQ14_FWPD::StartAcquisition()
     }
 
     for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
-            remaining_samples[channel] = 0;
+        remaining_samples[channel] = 0;
 
-            incomplete_records[channel].resize(scope_samples[channel], 0);
+        incomplete_records[channel].resize(scope_samples[channel], 0);
     }
 
     return DIGITIZER_SUCCESS;
@@ -1045,14 +1045,14 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                                 time_string(time_buffer, BUFFER_SIZE, NULL);
                                 std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
                                 std::cout << "Collecting an incomplete record from previous call; ";
-                                std::cout << "Remaining samples: " << remaining_samples[channel] << "; ";
+                                std::cout << "Remaining samples: " << (long)remaining_samples[channel] << "; ";
                                 std::cout << std::endl;
                             }
 
                             // Copy at the beginning of this new record the
                             // remaining samples from the previous call of
                             // GetDataStreaming()
-                            for (uint32_t sample_index = 0; sample_index < remaining_samples[channel]; sample_index++)
+                            for (int64_t sample_index = 0; sample_index < remaining_samples[channel]; sample_index++)
                             {
                                 const int16_t value = incomplete_records[channel][sample_index];
 
@@ -1060,7 +1060,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                                 // The 14 bit data is aligned to the MSB thus we should push it back
                                 samples[sample_index] = ((value >> 2) + (1 << 15));
                             }
-                            for (uint32_t sample_index = remaining_samples[channel]; sample_index < samples_per_record; sample_index++) {
+                            for (int64_t sample_index = remaining_samples[channel]; sample_index < samples_per_record; sample_index++) {
                                 const int16_t value = target_buffers[channel][samples_offset + sample_index - remaining_samples[channel]];
 
                                 // We add an offset to match it to the rest of ABCD
