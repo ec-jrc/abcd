@@ -980,7 +980,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                         added_headers[channel] -= 1;
                     }
 
-                    uint32_t samples_offset = 0;
+                    int64_t samples_offset = 0;
 
                     for (unsigned int index = 0; index < added_headers[channel]; index++) {
                         const uint32_t record_number = target_headers[channel][index].RecordNumber;
@@ -1072,7 +1072,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
 
                             remaining_samples[channel] = 0;
                         } else {
-                            for (uint32_t sample_index = 0; sample_index < samples_per_record; sample_index++) {
+                            for (int64_t sample_index = 0; sample_index < samples_per_record; sample_index++) {
                                 const int16_t value = target_buffers[channel][samples_offset + sample_index];
 
                                 // We add an offset to match it to the rest of ABCD
@@ -1090,7 +1090,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                     // the next call of GetDataStreaming
                     if (status_headers[channel] == 0) {
                         // Copying the incomplete record at the end
-                        for (uint32_t sample_index = samples_offset; sample_index < added_samples[channel]; sample_index++)
+                        for (int64_t sample_index = samples_offset; sample_index < added_samples[channel]; sample_index++)
                         {
                             incomplete_records[channel][sample_index - samples_offset] = target_buffers[channel][sample_index];
                         }
