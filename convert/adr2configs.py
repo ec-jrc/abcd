@@ -32,7 +32,7 @@ parser.add_argument('file_name',
                     help = 'Input file name')
 parser.add_argument('output_name',
                     type = str,
-                    help = 'Basename of the output files')
+                    help = 'Basename of the output files, json extension will be added automatically')
 parser.add_argument('-v',
                     '--verbose',
                     action = "store_true",
@@ -46,12 +46,10 @@ else:
     logging.basicConfig(level=logging.INFO)
 
 inputfile_basename, inputfile_extension = os.path.splitext(args.file_name)
-outputfile_basename, outputfile_extension = os.path.splitext(args.output_name)
 
 logging.debug("input file basename: {}; file extension: {}".format(inputfile_basename, inputfile_extension))
-logging.debug("output file basename: {}; file extension: {}".format(outputfile_basename, outputfile_extension))
 
-file_name_config = outputfile_basename + r'_config_{}_{:d}_{}.json'
+file_name_config = args.output_name + r'_config_{}_{:d}_{}.json'
 
 if inputfile_extension == ".gz":
     logging.debug("Using gzip file opener")
