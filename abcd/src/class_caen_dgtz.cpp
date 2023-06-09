@@ -266,7 +266,6 @@ void CAENDgtz::Activate(int connection_type,
             }
 
             switch ((firmware & 0xFF00) >> 8) {
-	      std::cout << "   setting FW " << ((firmware & 0xFF00) >> 8) << std::endl;
             case 136:
                 // 0x88 DPP_PSD x730
                 boardInfo.dppVersion = 3;
