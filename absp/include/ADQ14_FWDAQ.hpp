@@ -27,7 +27,6 @@ private:
     // method but we do not want the user to call the base method.
     using ABCD::Digitizer::Initialize;
 
-public:
     // -------------------------------------------------------------------------
     //  Card settings
     // -------------------------------------------------------------------------
@@ -38,6 +37,7 @@ public:
     // Number of the ADQ14_FWDAQ card
     int adq_num;
 
+public:
     // Flag to select the clock source of the digitizer
     int clock_source;
 
@@ -126,10 +126,10 @@ public:
     // Counter of overflows, used only for debugging
     unsigned int timestamp_overflows;
 
-    ADQ14_FWDAQ(int verbosity = 0);
+    ADQ14_FWDAQ(void* adq_cu_ptr, int adq14_num, int verbosity = 0);
     virtual ~ADQ14_FWDAQ();
 
-    int Initialize(void* adq_cu_ptr, int adq14_num);
+    int Initialize();
     int ReadConfig(json_t* config);
     int Configure();
 
@@ -152,6 +152,12 @@ public:
     //--------------------------------------------------------------------------
 
     int SpecificCommand(json_t* json_command);
+
+    int GPIOSetDirection(int port, int direction, int mask);
+    int GPIOPulse(int port, int width, int mask);
+
+    int TimestampResetArm(std::string mode, std::string source);
+    int TimestampResetDisarm();
 };
 }
 

@@ -116,10 +116,16 @@ function page_loaded() {
     
         let kwargs = {"enable": enable};
 
+        let datetime = "";
+
+        if ($("#file_automatic_name").prop("checked")) {
+            datetime = dayjs().format("YYYY-MM-DDTHH:mm:ss") + "_";
+        }
+
         const file_name = (String($("#file_name").val())).trim();
 
         if (file_name.length > 0) {
-            kwargs["file_name"] = file_name;
+            kwargs["file_name"] = datetime + file_name;
         }
 
         return kwargs;

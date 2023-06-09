@@ -34,12 +34,15 @@
 // For std::this_thread::sleep_for
 #include <thread>
 
+#include <lua.hpp>
+
 extern "C" {
 #include "defaults.h"
 #include "utilities_functions.h"
 }
 
 #include "ADQ_utilities.hpp"
+#include "LuaManager.hpp"
 
 #include "states.hpp"
 
@@ -85,6 +88,7 @@ void print_usage(const std::string &name = std::string("abcdrp")) {
     std::cout << std::endl;
     std::cout << "Optional arguments:" << std::endl;
     std::cout << "\t-h: Display this message" << std::endl;
+    std::cout << "\t-I: Digitizers identification only" << std::endl;
     std::cout << "\t-S <address>: Status socket address, default: ";
     std::cout << defaults_abcd_status_address << std::endl;
     std::cout << "\t-D <address>: Data socket address, default: ";
@@ -95,8 +99,6 @@ void print_usage(const std::string &name = std::string("abcdrp")) {
     std::cout << defaults_abcd_config_file << std::endl;
     std::cout << "\t-T <period>: Set base period in milliseconds, default: ";
     std::cout << defaults_abcd_base_period << std::endl;
-    std::cout << "\t-B <size>: Events buffer maximum size, default: ";
-    std::cout << defaults_abcd_events_buffer_max_size << std::endl;
     std::cout << "\t-v: Set verbose execution" << std::endl;
     std::cout << "\t-V: Set more verbose execution" << std::endl;
 
@@ -124,11 +126,10 @@ int main(int argc, char *argv[])
     std::string config_file = defaults_abcd_config_file;
     unsigned int base_period = defaults_abcd_base_period;
 
-    unsigned int events_buffer_max_size = defaults_abcd_events_buffer_max_size;
     bool identification_only = false;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hIS:D:C:f:T:B:vV")) != -1) {
+    while ((c = getopt(argc, argv, "hIS:D:C:f:T:vV")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
@@ -161,9 +162,6 @@ int main(int argc, char *argv[])
             case 'V':
                 verbosity = 2;
                 break;
-            case 'B':
-                events_buffer_max_size = std::stoul(optarg);
-                break;
             default:
                 std::cout << "Unknown command: " << c << std::endl;
                 break;
@@ -174,7 +172,6 @@ int main(int argc, char *argv[])
 
     global_status.verbosity = verbosity;
     global_status.base_period = base_period;
-    global_status.events_buffer_max_size = events_buffer_max_size;
     global_status.config = NULL;
     global_status.config_file = config_file;
     global_status.status_address = status_address;
@@ -190,7 +187,6 @@ int main(int argc, char *argv[])
         std::cout << "Digitizer configuration file: " << config_file << std::endl;
         std::cout << "Verbosity: " << verbosity << std::endl;
         std::cout << "Base period: " << base_period << std::endl;
-        std::cout << "Events buffer size: " << events_buffer_max_size << std::endl;
         if (identification_only) {
             std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Identification only, the program will quit afterwards" << std::endl;
         }
@@ -223,7 +219,52 @@ int main(int argc, char *argv[])
         if (current_state == states::stop)
             stop_execution = true;
 
+        // Storing this information here because they will change during the
+        // state action, but for the post script they need to remain.
+        const unsigned int current_state_ID = current_state.ID;
+        const std::string current_state_description = current_state.description;
+
+        try {
+            const std::pair<unsigned int, unsigned int> script_key_pre(current_state_ID, SCRIPT_WHEN_PRE);
+            const std::string script_source_pre = global_status.user_scripts.at(script_key_pre);
+
+            if (global_status.verbosity > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << "Running pre script; ";
+                std::cout << std::endl;
+            }
+
+            global_status.lua_manager.run_script(current_state_ID,
+                                                 current_state_description,
+                                                 "pre",
+                                                 script_source_pre);
+
+        } catch (...) {}
+
         current_state = current_state.act(global_status);
+
+        try {
+            const std::pair<unsigned int, unsigned int> script_key_post(current_state_ID, SCRIPT_WHEN_POST);
+            const std::string script_source_post = global_status.user_scripts.at(script_key_post);
+
+            if (global_status.verbosity > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << "Running post script; ";
+                std::cout << std::endl;
+            }
+
+            global_status.lua_manager.run_script(current_state_ID,
+                                                 current_state_description,
+                                                 "post",
+                                                 script_source_post);
+
+        } catch (...) {}
 
         //std::this_thread::sleep_for(std::chrono::milliseconds(base_period));
         struct timespec base_delay;
@@ -231,7 +272,6 @@ int main(int argc, char *argv[])
         base_delay.tv_nsec = (base_period % 1000) * 1000000L;
         nanosleep(&base_delay, NULL);
     }
-
 
     return 0;
 }

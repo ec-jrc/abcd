@@ -159,6 +159,10 @@
 #define defaults_abps5000a_publish_timeout 60
 #define defaults_abps5000a_baseline_check_timeout 60
 
+#define defaults_absp_start_acquisition_delay 10
+#define defaults_absp_waveforms_buffer_size_max_Number 4096
+#define defaults_absp_waveforms_expected_number_of_samples 1024
+
 #define defaults_efg_publish_timeout 3
 
 #define defaults_hijk_config_file "config_hv.json"

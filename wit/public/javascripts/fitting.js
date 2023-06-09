@@ -40,6 +40,8 @@ class Fitter {
 
         const N = Math.min(xs.length, ys.length);
 
+        let sum_y = 0;
+
         let selected_xs = [];
         let selected_ys = [];
 
@@ -47,10 +49,12 @@ class Fitter {
             if (fitting_region.range[0] < xs[i] && xs[i] < fitting_region.range[1]) {
                 selected_xs.push(xs[i]);
                 selected_ys.push(ys[i]);
+
+                sum_y += ys[i];
             }
         }
 
-        return {"xs": selected_xs, "ys": selected_ys};
+        return {"xs": selected_xs, "ys": selected_ys, "sum_y": sum_y};
     }
 
     estimate_params(xs, ys) {
@@ -144,6 +148,12 @@ class Fitter {
 
         fitting_region.N = data.xs.length;
 
+        if (data.xs.length > 2) {
+            fitting_region.bin_width = (data.xs[1] - data.xs[0]);
+        } else {
+            fitting_region.bin_width = null;
+        }
+
         let starting_params = fitting_region.last_params;
 
         if (_.isNil(fitting_region.last_params)) {
@@ -162,6 +172,7 @@ class Fitter {
         const solution = fmin.nelderMead(params => {counter_calls += 1; return this.residuals(data.xs, data.ys, params)}, starting_params);
 
         fitting_region.last_params = solution.x;
+        fitting_region.sum_y = data.sum_y;
 
         return solution;
     }
@@ -221,7 +232,9 @@ class Fitter {
             "A": fitting_region.last_params[2],
             "mu": fitting_region.last_params[3],
             "sigma": fitting_region.last_params[4],
-            "range": fitting_region.range
+            "range": fitting_region.range,
+            "sum_y": fitting_region.sum_y,
+            "bin_width": fitting_region.bin_width
         }
     }
 
@@ -246,6 +259,7 @@ class Fitter {
 
             const integral = Math.sqrt(2 * Math.PI) * p.sigma * p.A;
             const FWHM = 2 * Math.sqrt(2 * Math.log(2)) * p.sigma;
+            const counts_in_peak = integral / p.bin_width;
 
             fit.append($("<li>", {text: "Fit range: [" + p.range[0].toFixed(2) + " ch, " + p.range[1].toFixed(2) + " ch]"}));
             fit.append($("<li>", {text: "Lin. background slope: " + p.m.toFixed(4) + " counts/ch"}));
@@ -256,6 +270,8 @@ class Fitter {
             fit.append($("<li>", {text: "Gaussian area: " + integral.toFixed(2) + " counts * ch"}));
             fit.append($("<li>", {text: "FWHM: " + FWHM.toFixed(2) + " ch"}));
             fit.append($("<li>", {text: "Resolution: " + (FWHM / p.mu * 100).toFixed(2) + "%"}));
+            fit.append($("<li>", {text: "Total counts in range: " + p.sum_y.toFixed(2) + " counts"}));
+            fit.append($("<li>", {text: "Counts in the peak: " + counts_in_peak.toFixed(2) + " counts"}));
 
             let label = $("<strong>", {text: "Fit n." + (p.data_index + 1)});
 

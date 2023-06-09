@@ -21,9 +21,15 @@
 // PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 
 #include <chrono>
+#include <vector>
+#include <map>
+// For std::pair
+#include <utility>
 #include <cmath>
 #include <cstring>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <unistd.h>
@@ -75,13 +81,13 @@ extern "C" {
 
 void actions::generic::publish_events(status &global_status)
 {
-    const size_t waveforms_buffer_size = global_status.waveforms_buffer.size();
+    const size_t waveforms_buffer_size_Bytes = global_status.waveforms_buffer.size();
 
-    if (waveforms_buffer_size > 0)
+    if (waveforms_buffer_size_Bytes > 0)
     {
         std::string topic = defaults_abcd_data_waveforms_topic;
         topic += "_v0_s";
-        topic += std::to_string((long long unsigned int)waveforms_buffer_size);
+        topic += std::to_string((long long unsigned int)waveforms_buffer_size_Bytes);
 
         if (global_status.verbosity > 0)
         {
@@ -90,15 +96,15 @@ void actions::generic::publish_events(status &global_status)
             std::cout << '[' << time_buffer << "] ";
             std::cout << "Sending waveforms buffer; ";
             std::cout << "Topic: " << topic << "; ";
-            std::cout << "waveforms: " << waveforms_buffer_size << "; ";
+            std::cout << "waveforms: " << waveforms_buffer_size_Bytes << "; ";
             std::cout << std::endl;
         }
 
         const bool result = send_byte_message(global_status.data_socket,
                                               topic.c_str(),
                                               global_status.waveforms_buffer.data(),
-                                              waveforms_buffer_size,
-                                              1);
+                                              waveforms_buffer_size_Bytes,
+                                              0);
 
         if (result == EXIT_FAILURE)
         {
@@ -109,10 +115,12 @@ void actions::generic::publish_events(status &global_status)
             std::cout << std::endl;
         }
 
+        global_status.waveforms_buffer_size_Number = 0;
+
         // Cleanup vector
         global_status.waveforms_buffer.clear();
         // Initialize vector size to its last size
-        global_status.waveforms_buffer.reserve(waveforms_buffer_size);
+        global_status.waveforms_buffer.reserve(waveforms_buffer_size_Bytes);
     }
 }
 
@@ -162,7 +170,7 @@ void actions::generic::publish_message(status &global_status,
             std::cout << std::endl;
         }
 
-        send_byte_message(status_socket, topic.c_str(), output_buffer, total_size, 1);
+        send_byte_message(status_socket, topic.c_str(), output_buffer, total_size, 0);
 
         free(output_buffer);
     }
@@ -278,6 +286,8 @@ void actions::generic::stop_acquisition(status &global_status)
 
 void actions::generic::clear_memory(status &global_status)
 {
+    global_status.waveforms_buffer_size_Number = 0;
+
     global_status.counts.clear();
     global_status.partial_counts.clear();
     global_status.waveforms_buffer.clear();
@@ -517,18 +527,18 @@ bool actions::generic::create_digitizer(status &global_status)
             // WARNING: boards numbering start from 1 in the next functions
             const int adq214_index = device_index + 1;
 
-            ABCD::ADQ214 *adq214_ptr = new ABCD::ADQ214(global_status.verbosity);
+            ABCD::ADQ214 *adq214_ptr = new ABCD::ADQ214(global_status.adq_cu_ptr, adq214_index, global_status.verbosity);
 
-            adq214_ptr->Initialize(global_status.adq_cu_ptr, adq214_index);
+            adq214_ptr->Initialize();
 
             global_status.digitizers.push_back(adq214_ptr);
         } else if (ADQlist[device_index].ProductID == PID_ADQ412) {
             // WARNING: boards numbering start from 1 in the next functions
             const int adq412_index = device_index + 1;
 
-            ABCD::ADQ412 *adq412_ptr = new ABCD::ADQ412(global_status.verbosity);
+            ABCD::ADQ412 *adq412_ptr = new ABCD::ADQ412(global_status.adq_cu_ptr, adq412_index, global_status.verbosity);
 
-            adq412_ptr->Initialize(global_status.adq_cu_ptr, adq412_index);
+            adq412_ptr->Initialize();
 
             global_status.digitizers.push_back(adq412_ptr);
         } else if (ADQlist[device_index].ProductID == PID_ADQ14) {
@@ -574,17 +584,17 @@ bool actions::generic::create_digitizer(status &global_status)
             //if (ADQ_descriptions::ADQ_firmware_revisions.at(revision[0]) == "ADQ14_FWPD")
 
             if (has_FWPD) {
-                ABCD::ADQ14_FWPD *adq14_ptr = new ABCD::ADQ14_FWPD(global_status.verbosity);
+                ABCD::ADQ14_FWPD *adq14_ptr = new ABCD::ADQ14_FWPD(global_status.adq_cu_ptr, adq14_index, global_status.verbosity);
 
-                adq14_ptr->Initialize(global_status.adq_cu_ptr, adq14_index);
+                adq14_ptr->Initialize();
 
                 global_status.digitizers.push_back(adq14_ptr);
 
 
             } else {
-                ABCD::ADQ14_FWDAQ *adq14_ptr = new ABCD::ADQ14_FWDAQ(global_status.verbosity);
+                ABCD::ADQ14_FWDAQ *adq14_ptr = new ABCD::ADQ14_FWDAQ(global_status.adq_cu_ptr, adq14_index, global_status.verbosity);
 
-                adq14_ptr->Initialize(global_status.adq_cu_ptr, adq14_index);
+                adq14_ptr->Initialize();
 
                 global_status.digitizers.push_back(adq14_ptr);
             }
@@ -638,11 +648,54 @@ bool actions::generic::configure_digitizer(status &global_status)
     }
 
     global_status.digitizers_user_ids.clear();
+    global_status.user_scripts.clear();
 
     // -------------------------------------------------------------------------
     //  Starting the global configuration
     // -------------------------------------------------------------------------
     json_t *config = global_status.config;
+
+    json_t *json_global = json_object_get(config, "global");
+
+    if (!json_global)
+    {
+        json_object_set_new_nocheck(config, "global", json_object());
+        json_global = json_object_get(config, "global");
+
+        if (verbosity > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Missing \"global\" entry in configuration; ";
+            std::cout << std::endl;
+        }
+
+
+    }
+
+    if (json_global != NULL && json_is_object(json_global))
+    {
+        // WARNING: The key has a different spelling for the user convenience
+        int waveforms_buffer_size_max_Number = json_number_value(json_object_get(json_global, "waveforms_buffer_max_size"));
+
+        if (waveforms_buffer_size_max_Number <= 0) {
+            waveforms_buffer_size_max_Number = defaults_absp_waveforms_buffer_size_max_Number;
+        }
+
+        if (verbosity > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Waveforms buffer max size: " << waveforms_buffer_size_max_Number << "; ";
+            std::cout << std::endl;
+        }
+
+        global_status.waveforms_buffer_size_max_Number = waveforms_buffer_size_max_Number;
+
+        json_object_set_new_nocheck(json_global, "waveforms_buffer_max_size", json_integer(waveforms_buffer_size_max_Number));
+    }
 
     unsigned int max_channel_number = 0;
 
@@ -789,6 +842,136 @@ bool actions::generic::configure_digitizer(status &global_status)
         std::cout << std::endl;
     }
 
+    json_t *json_scripts = json_object_get(config, "scripts");
+
+    if (json_scripts != NULL && json_is_array(json_scripts))
+    {
+        size_t index;
+        json_t *json_script;
+
+        json_array_foreach(json_scripts, index, json_script) {
+            const bool enabled = json_is_true(json_object_get(json_script, "enable"));
+
+            if (verbosity > 0 && enabled)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << "Script is enabled; ";
+                std::cout << std::endl;
+            }
+            else if (verbosity > 0 && !enabled)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << "Script is disabled; ";
+                std::cout << std::endl;
+            }
+
+            if (enabled) {
+                // The state may be a single integer or an array of integers
+                json_t *json_state = json_object_get(json_script, "state");
+
+                std::vector<unsigned int> script_states;
+
+                if (json_state != NULL && json_is_integer(json_state)) {
+                    const unsigned int state = json_number_value(json_state);
+                    script_states.push_back(state);
+                } else if (json_state != NULL && json_is_array(json_state)) {
+                    size_t state_index;
+                    json_t *state_value;
+
+                    json_array_foreach(json_state, state_index, state_value) {
+                        if (state_value != NULL && json_is_integer(state_value)) {
+                            const unsigned int state = json_number_value(state_value);
+                            script_states.push_back(state);
+                        }
+                    }
+                }
+
+                const char *cstr_when = json_string_value(json_object_get(json_script, "when"));
+                const std::string str_when = (cstr_when) ? std::string(cstr_when) : std::string();
+                int when = SCRIPT_WHEN_POST;
+
+                if (str_when == "pre") {
+                    when = SCRIPT_WHEN_PRE;
+                } else if (str_when == "post") {
+                    when = SCRIPT_WHEN_POST;
+                } else {
+                    when = SCRIPT_WHEN_POST;
+                }
+
+                const char *cstr_source = json_string_value(json_object_get(json_script, "source"));
+                std::string str_source = (cstr_source) ? std::string(cstr_source) : std::string();
+
+                std::ifstream source_file(str_source);
+
+                // If the source entry contains the name of an existing file, then
+                // we read the content of the file in the string.
+                if (source_file.good()) {
+                    if (verbosity > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "The source of this script is in the file: " << str_source << "; ";
+                        std::cout << std::endl;
+                    }
+
+                    std::stringstream buffer;
+                    buffer << source_file.rdbuf();
+
+                    str_source = buffer.str();
+                } else {
+                    if (verbosity > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "The source of this script is: " << str_source << "; ";
+                        std::cout << std::endl;
+                    }
+                }
+
+                for (const auto& script_state : script_states) {
+                    if (verbosity > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "Found script for state: " << script_state << "; ";
+                        std::cout << "When: " << str_when << " (code: " << when << "); ";
+                        std::cout << std::endl;
+                    }
+
+                    global_status.user_scripts[std::pair<unsigned int, unsigned int>(script_state, when)] = str_source;
+                }
+            }
+        }
+    }
+
+    if (verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Adding the digitizer objects to the Lua runtime environment; ";
+        std::cout << "Number of digitizers: " << global_status.digitizers.size() << "; ";
+        std::cout << std::endl;
+    }
+
+    global_status.lua_manager.update_digitizers(global_status.digitizers);
+
+    if (verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Finished configuration; ";
+        std::cout << std::endl;
+    }
+
     return true;
 }
 
@@ -810,9 +993,11 @@ bool actions::generic::allocate_memory(status &global_status)
         std::cout << std::endl;
     }
 
-    // Reserve the events_buffer in order to have a good starting size of its buffer
-    global_status.waveforms_buffer.reserve((global_status.events_buffer_max_size
-                                            + global_status.events_buffer_max_size / 10) * 14);
+    global_status.waveforms_buffer_size_Number = 0;
+
+    // Reserve the waveforms_buffer in order to have a good starting size of its buffer
+    global_status.waveforms_buffer.reserve(global_status.waveforms_buffer_size_max_Number
+                                           * (waveform_header_size() + sizeof(uint16_t) * defaults_absp_waveforms_expected_number_of_samples));
 
     return true;
 }
@@ -1375,6 +1560,14 @@ state actions::start_acquisition(status &global_status)
 
         actions::generic::start_acquisition(global_status, digitizer_index);
         actions::generic::rearm_trigger(global_status, digitizer_index);
+
+        // Sometimes when the digitizers are started, the controller PC shuts
+        // itself off abruptly. It has happened both with an internal controller
+        // in a PXI chassis as well as with an external desktop connected to the PXI bus.
+        // I try to put a bit of delay between the starts to try to solve this,
+        // maybe if they are started too close together they interfere with each
+        // other.
+        std::this_thread::sleep_for(std::chrono::milliseconds(defaults_absp_start_acquisition_delay));
     }
 
     global_status.start_time = start_time;
@@ -1579,6 +1772,8 @@ state actions::read_data(status &global_status)
                     this_waveform.channel = global_channel;
                     global_status.counts[global_channel] += 1;
                     global_status.partial_counts[global_channel] += 1;
+                    global_status.waveforms_buffer_size_Number += 1;
+
 
                     const size_t current_waveform_buffer_size = global_status.waveforms_buffer.size();
                     const size_t this_waveform_size = waveform_size(&this_waveform);
@@ -1611,13 +1806,13 @@ state actions::read_data(status &global_status)
         }
     }
 
-    const size_t waveforms_buffer_size = global_status.waveforms_buffer.size();
+    const size_t waveforms_buffer_size_Bytes = global_status.waveforms_buffer.size();
 
     if (verbosity > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "Waveforms buffer size: " << waveforms_buffer_size << "; ";
+        std::cout << "Waveforms buffer size: " << global_status.waveforms_buffer_size_Number << " (" << waveforms_buffer_size_Bytes << " B); ";
         std::cout << std::endl;
     }
 
@@ -1628,7 +1823,7 @@ state actions::read_data(status &global_status)
     const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
 
     if (now - global_status.last_publication > std::chrono::seconds(defaults_abcd_publish_timeout) ||
-        waveforms_buffer_size >= global_status.events_buffer_max_size) {
+        global_status.waveforms_buffer_size_Number >= global_status.waveforms_buffer_size_max_Number) {
         return states::publish_events;
     }
 

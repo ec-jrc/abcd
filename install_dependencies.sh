@@ -110,7 +110,7 @@ else
             elif [[ 22 -eq "${release_major}" ]]
             then
                 print_message "Installing required packages, for Ubuntu 22 Jammy Jellyfish..."
-                sudo apt-get install lsb-release vim git tmux clang libc++1 libc++-dev libc++abi-dev libzmq5 libzmq3-dev libjsoncpp-dev libjsoncpp25 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq python3-numpy python3-scipy python3-matplotlib nodejs npm linux-headers-generic build-essential dkms libgsl-dev
+                sudo apt-get install lsb-release vim git tmux clang libc++1 libc++-dev libc++abi-dev libzmq5 libzmq3-dev libjsoncpp-dev libjsoncpp25 libjansson-dev libjansson4 zlib1g zlib1g-dev libbz2-1.0 libbz2-dev python3 python3-zmq python3-numpy python3-scipy python3-matplotlib nodejs npm linux-headers-generic build-essential dkms libgsl-dev lua5.4 liblua5.4-dev liblua5.4-0 swig
 
                 installation_successfull=$?
             else

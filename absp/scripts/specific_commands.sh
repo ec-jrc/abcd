@@ -1,5 +1,12 @@
 #! /bin/bash
 
+# Some digitizers support specific commands that are not part of their regular
+# configuration. Refer to the constructor's documentation of the specific
+# digitizers to see the meaning of the commands.
+# Commands may be sent with the send_command.py script as JSON formatted
+# strings. To see the supported commands by the absp interfaces see the source
+# code of their interfaces in the SpecificCommand() method.
+
 # Examples of specific commands for the ADQ214
 
 #~/abcd/bin/send_command.py specific -a '{"serial": "SPD-01373", "command": "timestamp_reset", "mode": "pulse"}'

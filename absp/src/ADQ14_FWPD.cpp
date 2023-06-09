@@ -43,7 +43,9 @@ const int ABCD::ADQ14_FWPD::default_DBS_saturation_level_upper = 0;
 
 const unsigned int ABCD::ADQ14_FWPD::default_DMA_flush_timeout = 1000;
 
-ABCD::ADQ14_FWPD::ADQ14_FWPD(int Verbosity) : Digitizer(Verbosity)
+ABCD::ADQ14_FWPD::ADQ14_FWPD(void* adq, int num, int Verbosity) : ABCD::Digitizer(Verbosity),
+                                                                  adq_cu_ptr(adq),
+                                                                  adq_num(num)
 {
     if (GetVerbosity() > 0)
     {
@@ -54,9 +56,6 @@ ABCD::ADQ14_FWPD::ADQ14_FWPD(int Verbosity) : Digitizer(Verbosity)
     }
 
     SetModel("ADQ14_FWPD");
-
-    adq_cu_ptr = NULL;
-    adq_num = 0;
 
     streaming_generation = 1;
 
@@ -94,7 +93,7 @@ ABCD::ADQ14_FWPD::~ADQ14_FWPD() {
 
 //==============================================================================
 
-int ABCD::ADQ14_FWPD::Initialize(void* adq, int num)
+int ABCD::ADQ14_FWPD::Initialize()
 {
     if (GetVerbosity() > 0)
     {
@@ -103,9 +102,6 @@ int ABCD::ADQ14_FWPD::Initialize(void* adq, int num)
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Initialize() ";
         std::cout << std::endl;
     }
-
-    adq_cu_ptr = adq;
-    adq_num = num;
 
     CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_POWER_ON));
     CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_COMMUNICATION));
@@ -796,9 +792,9 @@ int ABCD::ADQ14_FWPD::StartAcquisition()
     }
 
     for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
-            remaining_samples[channel] = 0;
+        remaining_samples[channel] = 0;
 
-            incomplete_records[channel].resize(scope_samples[channel], 0);
+        incomplete_records[channel].resize(scope_samples[channel], 0);
     }
 
     return DIGITIZER_SUCCESS;
@@ -984,7 +980,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                         added_headers[channel] -= 1;
                     }
 
-                    uint32_t samples_offset = 0;
+                    int64_t samples_offset = 0;
 
                     for (unsigned int index = 0; index < added_headers[channel]; index++) {
                         const uint32_t record_number = target_headers[channel][index].RecordNumber;
@@ -1049,14 +1045,14 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                                 time_string(time_buffer, BUFFER_SIZE, NULL);
                                 std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
                                 std::cout << "Collecting an incomplete record from previous call; ";
-                                std::cout << "Remaining samples: " << remaining_samples[channel] << "; ";
+                                std::cout << "Remaining samples: " << (long)remaining_samples[channel] << "; ";
                                 std::cout << std::endl;
                             }
 
                             // Copy at the beginning of this new record the
                             // remaining samples from the previous call of
                             // GetDataStreaming()
-                            for (uint32_t sample_index = 0; sample_index < remaining_samples[channel]; sample_index++)
+                            for (int64_t sample_index = 0; sample_index < remaining_samples[channel]; sample_index++)
                             {
                                 const int16_t value = incomplete_records[channel][sample_index];
 
@@ -1064,7 +1060,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                                 // The 14 bit data is aligned to the MSB thus we should push it back
                                 samples[sample_index] = ((value >> 2) + (1 << 15));
                             }
-                            for (uint32_t sample_index = remaining_samples[channel]; sample_index < samples_per_record; sample_index++) {
+                            for (int64_t sample_index = remaining_samples[channel]; sample_index < samples_per_record; sample_index++) {
                                 const int16_t value = target_buffers[channel][samples_offset + sample_index - remaining_samples[channel]];
 
                                 // We add an offset to match it to the rest of ABCD
@@ -1076,7 +1072,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
 
                             remaining_samples[channel] = 0;
                         } else {
-                            for (uint32_t sample_index = 0; sample_index < samples_per_record; sample_index++) {
+                            for (int64_t sample_index = 0; sample_index < samples_per_record; sample_index++) {
                                 const int16_t value = target_buffers[channel][samples_offset + sample_index];
 
                                 // We add an offset to match it to the rest of ABCD
@@ -1094,7 +1090,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                     // the next call of GetDataStreaming
                     if (status_headers[channel] == 0) {
                         // Copying the incomplete record at the end
-                        for (uint32_t sample_index = samples_offset; sample_index < added_samples[channel]; sample_index++)
+                        for (int64_t sample_index = samples_offset; sample_index < added_samples[channel]; sample_index++)
                         {
                             incomplete_records[channel][sample_index - samples_offset] = target_buffers[channel][sample_index];
                         }
@@ -1851,18 +1847,9 @@ int ABCD::ADQ14_FWPD::SpecificCommand(json_t *json_command)
         const int direction = json_number_value(json_object_get(json_command, "direction"));
         const int mask = json_number_value(json_object_get(json_command, "mask"));
 
-        if (GetVerbosity() > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::SpecificCommand() ";
-            std::cout << "Setting GPIO direction: " << direction << "; ";
-            std::cout << "mask: " << mask << "; ";
-            std::cout << std::endl;
-        }
+        const int result = GPIOSetDirection(port, direction, mask);
 
-        CHECKZERO(ADQ_EnableGPIOPort(adq_cu_ptr, adq_num, port, 1));
-        CHECKZERO(ADQ_SetDirectionGPIOPort(adq_cu_ptr, adq_num, port, direction, mask));
+        return result;
 
     } else if (command == std::string("GPIO_pulse")) {
         const int port = json_integer_value(json_object_get(json_command, "port"));
@@ -1878,14 +1865,10 @@ int ABCD::ADQ14_FWPD::SpecificCommand(json_t *json_command)
             std::cout << std::endl;
         }
 
-        const uint16_t pin_value_on = 1;
-        const uint16_t pin_value_off = 0;
+        const int result = GPIOPulse(port, width, mask);
 
-        CHECKZERO(ADQ_WriteGPIOPort(adq_cu_ptr, adq_num, port, pin_value_on, mask));
+        return result;
 
-        std::this_thread::sleep_for(std::chrono::microseconds(width));
-
-        CHECKZERO(ADQ_WriteGPIOPort(adq_cu_ptr, adq_num, port, pin_value_off, mask));
     } else if (command == std::string("timestamp_reset")) {
         // ---------------------------------------------------------------------
         //  Timestamp reset
@@ -1897,78 +1880,15 @@ int ABCD::ADQ14_FWPD::SpecificCommand(json_t *json_command)
             // -----------------------------------------------------------------
             //  Arming the timestamp reset
             // -----------------------------------------------------------------
-            unsigned int timestamp_reset_mode = ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_FIRST;
-
             const char *cstr_timestamp_reset_mode = json_string_value(json_object_get(json_command, "mode"));
             const std::string str_timestamp_reset_mode = (cstr_timestamp_reset_mode) ? std::string(cstr_timestamp_reset_mode) : std::string();
-
-            if (GetVerbosity() > 0) {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::SpecificCommand() ";
-                std::cout << "Timestamp reset mode: " << str_timestamp_reset_mode<< "; ";
-                std::cout << std::endl;
-            }
-
-            // Looking for the settings in the description map
-            const auto tsm_result = map_utilities::find_item(ADQ_descriptions::timestamp_synchronization_mode, str_timestamp_reset_mode);
-
-            if (tsm_result != ADQ_descriptions::timestamp_synchronization_mode.end() && str_timestamp_reset_mode.length() > 0) {
-                timestamp_reset_mode = tsm_result->first;
-            } else {
-                timestamp_reset_mode = ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_FIRST;
-
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::SpecificCommand() ";
-                std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid timestamp_reset mode; ";
-                std::cout << "Got: " << str_timestamp_reset_mode << "; ";
-                std::cout << std::endl;
-            }
-
-            unsigned int timestamp_reset_source = ADQ_EVENT_SOURCE_SYNC;
 
             const char *cstr_timestamp_reset_source = json_string_value(json_object_get(json_command, "source"));
             const std::string str_timestamp_reset_source = (cstr_timestamp_reset_source) ? std::string(cstr_timestamp_reset_source) : std::string();
 
-            if (GetVerbosity() > 0) {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::SpecificCommand() ";
-                std::cout << "Timestamp synchronization source: " << str_timestamp_reset_source<< "; ";
-                std::cout << std::endl;
-            }
+            const int result = TimestampResetArm(str_timestamp_reset_mode, str_timestamp_reset_source);
 
-            // Looking for the settings in the description map
-            const auto tss_result = map_utilities::find_item(ADQ_descriptions::timestamp_synchronization_source, str_timestamp_reset_source);
-
-            if (tss_result != ADQ_descriptions::timestamp_synchronization_source.end() && str_timestamp_reset_source.length() > 0) {
-                timestamp_reset_source = tss_result->first;
-            } else {
-                timestamp_reset_source = ADQ_EVENT_SOURCE_SYNC;
-
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::SpecificCommand() ";
-                std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid timestamp_reset source; ";
-                std::cout << "Got: " << str_timestamp_reset_source << "; ";
-                std::cout << std::endl;
-            }
-
-            if (GetVerbosity() > 0)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::SpecificCommand() ";
-                std::cout << "Arming timestamp synchronization; ";
-                std::cout << "mode: " << ADQ_descriptions::timestamp_synchronization_mode.at(timestamp_reset_mode) << "; ";
-                std::cout << "source: " << ADQ_descriptions::timestamp_synchronization_source.at(timestamp_reset_source) << "; ";
-                std::cout << std::endl;
-            }
-
-            CHECKZERO(ADQ_DisarmTimestampSync(adq_cu_ptr, adq_num));
-            CHECKZERO(ADQ_SetupTimestampSync(adq_cu_ptr, adq_num, timestamp_reset_mode, timestamp_reset_source));
-            CHECKZERO(ADQ_ArmTimestampSync(adq_cu_ptr, adq_num));
+            return result;
 
         } else {
             // -----------------------------------------------------------------
@@ -1983,9 +1903,154 @@ int ABCD::ADQ14_FWPD::SpecificCommand(json_t *json_command)
                 std::cout << std::endl;
             }
 
-            CHECKZERO(ADQ_DisarmTimestampSync(adq_cu_ptr, adq_num));
+            const int result = TimestampResetDisarm();
+
+            return result;
         }
     }
+
+    return DIGITIZER_SUCCESS;
+}
+
+//==============================================================================
+
+int ABCD::ADQ14_FWPD::GPIOSetDirection(int port, int direction, int mask)
+{
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GPIOSetDirection() ";
+        std::cout << "Setting GPIO direction: " << direction << "; ";
+        std::cout << "mask: " << mask << "; ";
+        std::cout << std::endl;
+    }
+
+    CHECKZERO(ADQ_EnableGPIOPort(adq_cu_ptr, adq_num, port, 1));
+    CHECKZERO(ADQ_SetDirectionGPIOPort(adq_cu_ptr, adq_num, port, direction, mask));
+
+    return DIGITIZER_SUCCESS;
+}
+
+//==============================================================================
+
+int ABCD::ADQ14_FWPD::GPIOPulse(int port, int width, int mask)
+{
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GPIOPulse() ";
+        std::cout << "Pulse on GPIO of width: " << width << " us; ";
+        std::cout << std::endl;
+    }
+
+    const uint16_t pin_value_on = 1;
+    const uint16_t pin_value_off = 0;
+
+    CHECKZERO(ADQ_WriteGPIOPort(adq_cu_ptr, adq_num, port, pin_value_on, mask));
+
+    std::this_thread::sleep_for(std::chrono::microseconds(width));
+
+    CHECKZERO(ADQ_WriteGPIOPort(adq_cu_ptr, adq_num, port, pin_value_off, mask));
+
+    return DIGITIZER_SUCCESS;
+}
+
+//==============================================================================
+
+int ABCD::ADQ14_FWPD::TimestampResetArm(std::string mode, std::string source)
+{
+    // -----------------------------------------------------------------
+    //  Arming the timestamp reset
+    // -----------------------------------------------------------------
+    unsigned int timestamp_reset_mode = ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_FIRST;
+
+    if (GetVerbosity() > 0) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::TimestampResetArm() ";
+        std::cout << "Timestamp reset mode: " << mode << "; ";
+        std::cout << std::endl;
+    }
+
+    // Looking for the settings in the description map
+    const auto tsm_result = map_utilities::find_item(ADQ_descriptions::timestamp_synchronization_mode, mode);
+
+    if (tsm_result != ADQ_descriptions::timestamp_synchronization_mode.end() && mode.length() > 0) {
+        timestamp_reset_mode = tsm_result->first;
+    } else {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::TimestampResetArm() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid timestamp_reset mode; ";
+        std::cout << "Got: " << mode << "; ";
+        std::cout << std::endl;
+
+        return DIGITIZER_FAILURE;
+    }
+
+    unsigned int timestamp_reset_source = ADQ_EVENT_SOURCE_SYNC;
+
+    if (GetVerbosity() > 0) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::TimestampResetArm() ";
+        std::cout << "Timestamp synchronization source: " << source<< "; ";
+        std::cout << std::endl;
+    }
+
+    // Looking for the settings in the description map
+    const auto tss_result = map_utilities::find_item(ADQ_descriptions::timestamp_synchronization_source, source);
+
+    if (tss_result != ADQ_descriptions::timestamp_synchronization_source.end() && source.length() > 0) {
+        timestamp_reset_source = tss_result->first;
+    } else {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::TimestampResetArm() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid timestamp_reset source; ";
+        std::cout << "Got: " << source << "; ";
+        std::cout << std::endl;
+
+        return DIGITIZER_FAILURE;
+    }
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::TimestampResetArm() ";
+        std::cout << "Arming timestamp synchronization; ";
+        std::cout << "mode: " << ADQ_descriptions::timestamp_synchronization_mode.at(timestamp_reset_mode) << "; ";
+        std::cout << "source: " << ADQ_descriptions::timestamp_synchronization_source.at(timestamp_reset_source) << "; ";
+        std::cout << std::endl;
+    }
+
+    CHECKZERO(ADQ_DisarmTimestampSync(adq_cu_ptr, adq_num));
+    CHECKZERO(ADQ_SetupTimestampSync(adq_cu_ptr, adq_num, timestamp_reset_mode, timestamp_reset_source));
+    CHECKZERO(ADQ_ArmTimestampSync(adq_cu_ptr, adq_num));
+
+    return DIGITIZER_SUCCESS;
+}
+
+//==============================================================================
+
+int ABCD::ADQ14_FWPD::TimestampResetDisarm()
+{
+    // -----------------------------------------------------------------
+    //  Disarming the timestamp reset
+    // -----------------------------------------------------------------
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::TimestampResetDisarm() ";
+        std::cout << "Disarming timestamp reset; ";
+        std::cout << std::endl;
+    }
+
+    CHECKZERO(ADQ_DisarmTimestampSync(adq_cu_ptr, adq_num));
 
     return DIGITIZER_SUCCESS;
 }

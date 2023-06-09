@@ -46,7 +46,7 @@ const state states::configure_digitizer = \
 const state states::allocate_memory = \
     {109, "Allocate memory", actions::allocate_memory };
 const state states::reconfigure_clear_memory = \
-    {110, "Reconfigure destroy digitizer", actions::reconfigure_clear_memory };
+    {110, "Reconfigure clear memory", actions::reconfigure_clear_memory };
 const state states::reconfigure_destroy_digitizer = \
     {111, "Reconfigure destroy digitizer", actions::reconfigure_destroy_digitizer };
 
@@ -86,7 +86,7 @@ const state states::restart_create_digitizer = \
 const state states::restart_configure_digitizer = \
     {406, "Restart configure digitizer", actions::restart_configure_digitizer};
 const state states::restart_allocate_memory = \
-    {407, "Restart configure digitizer", actions::restart_allocate_memory};
+    {407, "Restart allocate memory", actions::restart_allocate_memory};
 
 // Closing states are 8xx
 const state states::clear_memory = \

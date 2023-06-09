@@ -191,8 +191,8 @@ int main(int argc, char *argv[])
         reference_channels[i] = atoi(argv[optind + i]);
     }
 
-    const uint64_t left_coincidence_window = (uint64_t)(left_coincidence_window_ns / ns_per_sample);
-    const uint64_t right_coincidence_window = (uint64_t)(right_coincidence_window_ns / ns_per_sample);
+    const int64_t left_coincidence_window = (int64_t)(left_coincidence_window_ns / ns_per_sample);
+    const int64_t right_coincidence_window = (int64_t)(right_coincidence_window_ns / ns_per_sample);
 
     if (verbosity > 0) {
         printf("Input socket address: %s\n", input_address);
