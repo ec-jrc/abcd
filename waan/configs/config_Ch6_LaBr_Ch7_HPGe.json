@@ -2,6 +2,7 @@
     "module": "waan",
     "forward_waveforms": true,
     "enable_additional": true,
+    "high_water_mark": "no limit",
     "channels": [
         {
             "id": 6,

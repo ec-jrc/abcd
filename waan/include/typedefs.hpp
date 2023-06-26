@@ -50,6 +50,8 @@ struct status
     bool forward_waveforms;
     bool enable_additional;
 
+    int high_water_mark;
+
     std::set<unsigned int> active_channels;
     std::set<unsigned int> disabled_channels;
 

@@ -196,22 +196,30 @@ bool actions::generic::configure(status &global_status)
     global_status.forward_waveforms = json_is_true(json_object_get(config, "forward_waveforms"));
     global_status.enable_additional = json_is_true(json_object_get(config, "enable_additional"));
 
-    const bool discard_messages = json_is_true(json_object_get(config, "discard_messages"));
+    if (json_is_string(json_object_get(config, "high_water_mark"))) {
+        const char *high_water_mark_str = json_string_value(json_object_get(config, "high_water_mark"));
+        const std::string high_water_mark = high_water_mark_str ? high_water_mark_str : "";
 
-    if (discard_messages) {
-        const int conflate = discard_messages ? 1 : 0;
+        if (high_water_mark == std::string("no limit")) {
+            // According to the ZeroMQ documentation a zero means no limit.
+            global_status.high_water_mark = 0;
+        } else {
+            // FIXME: What should the default value be? No limit? Then it's the previous case
+            global_status.high_water_mark = 0;
+        }
+    } else {
+        global_status.high_water_mark = json_number_value(json_object_get(config, "high_water_mark"));
+    }
 
-        zmq_setsockopt(global_status.data_input_socket,
-                       ZMQ_CONFLATE,
-                       &conflate,
-                       sizeof(conflate));
+    zmq_setsockopt(global_status.data_input_socket,
+                   ZMQ_RCVHWM,
+                   &global_status.high_water_mark,
+                   sizeof(global_status.high_water_mark));
 
-        //const int high_water_mark = 10;
-
-        //zmq_setsockopt(global_status.data_input_socket,
-        //               ZMQ_RCVHWM,
-        //               &high_water_mark,
-        //               sizeof(high_water_mark));
+    if (global_status.high_water_mark == 0) {
+        json_object_set(config, "high_water_mark", json_string("no limit"));
+    } else {
+        json_object_set(config, "high_water_mark", json_integer(global_status.high_water_mark));
     }
 
     if (global_status.verbosity > 0) {
@@ -224,7 +232,11 @@ bool actions::generic::configure(status &global_status)
         std::cout << "Enable additional: " << (global_status.enable_additional ? "true" : "false") << "; ";
         std::cout << std::endl;
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "Discarding messages: " << (discard_messages ? "true" : "false") << "; ";
+	if (global_status.high_water_mark > 0) {
+            std::cout << "High water mark: " << global_status.high_water_mark << "; ";
+	} else {
+            std::cout << "High water mark: " << "no limit" << "; ";
+	}
         std::cout << std::endl;
     }
 
@@ -886,7 +898,7 @@ state actions::read_config(status &global_status)
     }
 
     if (json_is_object(global_status.config)) {
-    	json_decref(global_status.config);
+        json_decref(global_status.config);
     }
 
     global_status.config = new_config;
@@ -1132,7 +1144,9 @@ state actions::read_socket(status &global_status)
     char *topic = NULL;
     char *input_buffer = NULL;
     size_t size;
-    size_t inner_counter = 0;
+    // Using int here instead of size_t to be compatible with the
+    // high_water_mark, that for the ZeroMQ must be an int.
+    int inner_counter = 0;
 
     int result = receive_byte_message(data_input_socket, &topic, (void **)(&input_buffer), &size, true, global_status.verbosity);
 
@@ -1161,317 +1175,332 @@ state actions::read_socket(status &global_status)
         }
 
         if (topic_string.find(defaults_abcd_data_waveforms_topic) == 0) {
-            if (verbosity > 1)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Waveform message to be analyzed; ";
-                std::cout << std::endl;
-            }
 
-            const clock_t event_start = clock();
-            size_t waveforms_number = 0;
-
-            std::vector<struct event_PSD> output_events;
-            std::vector<uint8_t> output_waveforms;
-
-            // We reserve the memory for the output events using a big enough
-            // number, to reduce it we arbitrarily divide it by the event size.
-            output_events.reserve(size / sizeof(struct event_PSD));
-            // We reserve the memory for the output buffer twice as big as the
-            // input buffer that is most likely to be big enough for the output
-            // waveforms data as the gates are half as big as the samples.
-            output_waveforms.reserve(size * defaults_waan_waveforms_buffer_multiplier);
-
-            size_t input_offset = 0;
-
-            // We add 14 bytes to the input_offset because we want to be sure to read at least
-            // the first header of the waveform
-            while ((input_offset + 14) < size)
-            {
+            // According to the ZeroMQ documentation a high_water_mark of zero
+            // means no limit, so we use the same convention.
+            if (inner_counter > global_status.high_water_mark && global_status.high_water_mark > 0) {
                 if (verbosity > 1)
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
                     std::cout << '[' << time_buffer << "] ";
-                    std::cout << "Message size: " << (unsigned long)size << "; ";
-                    std::cout << "Input offset: " << (unsigned long)input_offset << "; ";
+                    std::cout << YELLOW_COLOR << "ERROR" << NO_COLOR << ": ";
+                    std::cout << "Reached the high water mark, consuming message but not analysing it; ";
                     std::cout << std::endl;
                 }
-
-                uint64_t timestamp = *((uint64_t *)(input_buffer + input_offset));
-                const uint8_t this_channel = *((uint8_t *)(input_buffer + input_offset + 8));
-                const uint32_t samples_number = *((uint32_t *)(input_buffer + input_offset + 9));
-                const uint8_t gates_number = *((uint8_t *)(input_buffer + input_offset + 13));
-
+            } else {
                 if (verbosity > 1)
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
                     std::cout << '[' << time_buffer << "] ";
-                    std::cout << "Channel: " << (unsigned int)this_channel << "; ";
-                    std::cout << "Samples number: " << (unsigned int)samples_number << "; ";
+                    std::cout << "Waveform message to be analyzed; ";
                     std::cout << std::endl;
                 }
 
-                const bool is_active = std::find(global_status.active_channels.begin(),
-                                                 global_status.active_channels.end(),
-                                                 this_channel) != global_status.active_channels.end();
-                const size_t needed_offset = input_offset + 14
-                                           + (samples_number * sizeof(uint16_t))
-                                           + (samples_number * gates_number * sizeof(uint8_t));
+                const clock_t event_start = clock();
+                size_t waveforms_number = 0;
 
-                if (!is_active) {
-                    if (verbosity > 0)
+                std::vector<struct event_PSD> output_events;
+                std::vector<uint8_t> output_waveforms;
+
+                // We reserve the memory for the output events using a big enough
+                // number, to reduce it we arbitrarily divide it by the event size.
+                output_events.reserve(size / sizeof(struct event_PSD));
+                // We reserve the memory for the output buffer twice as big as the
+                // input buffer that is most likely to be big enough for the output
+                // waveforms data as the gates are half as big as the samples.
+                output_waveforms.reserve(size * defaults_waan_waveforms_buffer_multiplier);
+
+                size_t input_offset = 0;
+
+                // We add 14 bytes to the input_offset because we want to be sure to read at least
+                // the first header of the waveform
+                while ((input_offset + 14) < size)
+                {
+                    if (verbosity > 1)
                     {
                         char time_buffer[BUFFER_SIZE];
                         time_string(time_buffer, BUFFER_SIZE, NULL);
                         std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Channel " << (unsigned int)this_channel << " is disabled; ";
+                        std::cout << "Message size: " << (unsigned long)size << "; ";
+                        std::cout << "Input offset: " << (unsigned long)input_offset << "; ";
                         std::cout << std::endl;
                     }
 
-                    global_status.disabled_channels.insert(this_channel);
-                }
-
-                if  (needed_offset > size) {
-                    if (verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "WARNING: Uncomplete waveform in buffer; ";
-                        std::cout << "needed offset: " << needed_offset << "; size:" << size << "; ";
-                        std::cout << std::endl;
-                    }
-                }
-
-                if (is_active && (needed_offset <= size)) {
+                    uint64_t timestamp = *((uint64_t *)(input_buffer + input_offset));
+                    const uint8_t this_channel = *((uint8_t *)(input_buffer + input_offset + 8));
+                    const uint32_t samples_number = *((uint32_t *)(input_buffer + input_offset + 9));
+                    const uint8_t gates_number = *((uint8_t *)(input_buffer + input_offset + 13));
 
                     if (verbosity > 1)
                     {
                         char time_buffer[BUFFER_SIZE];
                         time_string(time_buffer, BUFFER_SIZE, NULL);
                         std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Channel is active, reading samples; ";
-                        std::cout << std::endl;
-                    }
-
-                    waveforms_number += 1;
-
-                    const uint16_t *samples = (uint16_t *)(input_buffer + input_offset + 14);
-                    // Should I store the digitizer gates to the waveform?
-                    // They are not standard and not quantitative, let's not bother
-                    //const uint8_t *gates = (uint8_t *)(input_buffer + input_offset + 14 + samples_number * sizeof(uint16_t));
-
-                    struct event_waveform this_waveform = waveform_create(timestamp,
-                                                                          this_channel,
-                                                                          samples_number,
-                                                                          0);
-
-                    waveform_samples_set(&this_waveform, samples);
-
-                    //for (uint8_t i = 0; i < gates_number; i++) {
-                    //    waveform_additional_set(&this_waveform,
-                    //                            i,
-                    //                            gates + samples_number * i * sizeof(uint8_t));
-                    //}
-
-                    if (verbosity > 1)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Allocating events buffer; ";
-                        std::cout << std::endl;
-                    }
-
-                    struct event_PSD *events_buffer = (struct event_PSD *)calloc(1, sizeof(struct event_PSD));
-                    uint32_t *trigger_positions = (uint32_t*)calloc(1, sizeof(uint32_t));
-                    size_t events_number = 1;
-
-                    events_buffer[0].timestamp = timestamp;
-                    events_buffer[0].channel = this_channel;
-
-                    if (verbosity > 1)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Timestamp analysis; ";
-                        std::cout << std::endl;
-                    }
-
-                    global_status.channels_timestamp_analysis[this_channel].
-                        fn(samples,
-                           samples_number,
-                           &this_waveform,
-                           &trigger_positions,
-                           &events_buffer,
-                           &events_number,
-                           global_status.channels_timestamp_user_config[this_channel]);
-
-                    if (verbosity > 1)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "Channel: " << (unsigned int)this_channel << "; ";
                         std::cout << "Samples number: " << (unsigned int)samples_number << "; ";
-                        std::cout << "Events number: " << (unsigned int)events_number << "; ";
-                        std::cout << std::endl;
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Energy analysis; ";
                         std::cout << std::endl;
                     }
 
-                    global_status.channels_energy_analysis[this_channel].
-                        fn(samples,
-                           samples_number,
-                           &this_waveform,
-                           &trigger_positions,
-                           &events_buffer,
-                           &events_number,
-                           global_status.channels_energy_user_config[this_channel]);
+                    const bool is_active = std::find(global_status.active_channels.begin(),
+                                                     global_status.active_channels.end(),
+                                                     this_channel) != global_status.active_channels.end();
+                    const size_t needed_offset = input_offset + 14
+                                               + (samples_number * sizeof(uint16_t))
+                                               + (samples_number * gates_number * sizeof(uint8_t));
 
-                    if (events_number > 0 && global_status.forward_waveforms) {
-                        if (!global_status.enable_additional) {
-                            waveform_additional_set_number(&this_waveform, 0);
+                    if (!is_active) {
+                        if (verbosity > 0)
+                        {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "Channel " << (unsigned int)this_channel << " is disabled; ";
+                            std::cout << std::endl;
                         }
 
-                        const size_t current_waveform_buffer_size = output_waveforms.size();
-                        const size_t this_waveform_size = waveform_size(&this_waveform);
-
-                        output_waveforms.resize(current_waveform_buffer_size + this_waveform_size);
-
-                        memcpy(output_waveforms.data() + current_waveform_buffer_size,
-                               reinterpret_cast<void*>(waveform_serialize(&this_waveform)),
-                               this_waveform_size);
+                        global_status.disabled_channels.insert(this_channel);
                     }
 
-                    if (events_number > 0) {
-                        global_status.partial_counts[this_channel] += events_number;
-
-                        const size_t current_events_buffer_size = output_events.size();
-
-                        output_events.resize(current_events_buffer_size + events_number);
-
-                        memcpy(output_events.data() + current_events_buffer_size,
-                               events_buffer,
-                               events_number * sizeof(struct event_PSD));
+                    if  (needed_offset > size) {
+                        if (verbosity > 0)
+                        {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "WARNING: Uncomplete waveform in buffer; ";
+                            std::cout << "needed offset: " << needed_offset << "; size:" << size << "; ";
+                            std::cout << std::endl;
+                        }
                     }
 
-                    if (verbosity > 1)
+                    if (is_active && (needed_offset <= size)) {
+
+                        if (verbosity > 1)
+                        {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "Channel is active, reading samples; ";
+                            std::cout << std::endl;
+                        }
+
+                        waveforms_number += 1;
+
+                        const uint16_t *samples = (uint16_t *)(input_buffer + input_offset + 14);
+                        // Should I store the digitizer gates to the waveform?
+                        // They are not standard and not quantitative, let's not bother
+                        //const uint8_t *gates = (uint8_t *)(input_buffer + input_offset + 14 + samples_number * sizeof(uint16_t));
+
+                        struct event_waveform this_waveform = waveform_create(timestamp,
+                                                                              this_channel,
+                                                                              samples_number,
+                                                                              0);
+
+                        waveform_samples_set(&this_waveform, samples);
+
+                        //for (uint8_t i = 0; i < gates_number; i++) {
+                        //    waveform_additional_set(&this_waveform,
+                        //                            i,
+                        //                            gates + samples_number * i * sizeof(uint8_t));
+                        //}
+
+                        if (verbosity > 1)
+                        {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "Allocating events buffer; ";
+                            std::cout << std::endl;
+                        }
+
+                        struct event_PSD *events_buffer = (struct event_PSD *)calloc(1, sizeof(struct event_PSD));
+                        uint32_t *trigger_positions = (uint32_t*)calloc(1, sizeof(uint32_t));
+                        size_t events_number = 1;
+
+                        events_buffer[0].timestamp = timestamp;
+                        events_buffer[0].channel = this_channel;
+
+                        if (verbosity > 1)
+                        {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "Timestamp analysis; ";
+                            std::cout << std::endl;
+                        }
+
+                        global_status.channels_timestamp_analysis[this_channel].
+                            fn(samples,
+                               samples_number,
+                               &this_waveform,
+                               &trigger_positions,
+                               &events_buffer,
+                               &events_number,
+                               global_status.channels_timestamp_user_config[this_channel]);
+
+                        if (verbosity > 1)
+                        {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "Samples number: " << (unsigned int)samples_number << "; ";
+                            std::cout << "Events number: " << (unsigned int)events_number << "; ";
+                            std::cout << std::endl;
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "Energy analysis; ";
+                            std::cout << std::endl;
+                        }
+
+                        global_status.channels_energy_analysis[this_channel].
+                            fn(samples,
+                               samples_number,
+                               &this_waveform,
+                               &trigger_positions,
+                               &events_buffer,
+                               &events_number,
+                               global_status.channels_energy_user_config[this_channel]);
+
+                        if (events_number > 0 && global_status.forward_waveforms) {
+                            if (!global_status.enable_additional) {
+                                waveform_additional_set_number(&this_waveform, 0);
+                            }
+
+                            const size_t current_waveform_buffer_size = output_waveforms.size();
+                            const size_t this_waveform_size = waveform_size(&this_waveform);
+
+                            output_waveforms.resize(current_waveform_buffer_size + this_waveform_size);
+
+                            memcpy(output_waveforms.data() + current_waveform_buffer_size,
+                                   reinterpret_cast<void*>(waveform_serialize(&this_waveform)),
+                                   this_waveform_size);
+                        }
+
+                        if (events_number > 0) {
+                            global_status.partial_counts[this_channel] += events_number;
+
+                            const size_t current_events_buffer_size = output_events.size();
+
+                            output_events.resize(current_events_buffer_size + events_number);
+
+                            memcpy(output_events.data() + current_events_buffer_size,
+                                   events_buffer,
+                                   events_number * sizeof(struct event_PSD));
+                        }
+
+                        if (verbosity > 1)
+                        {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "Events number: " << (unsigned int)events_number << "; ";
+                            std::cout << std::endl;
+                        }
+
+                        if (trigger_positions) {
+                            free(trigger_positions);
+                            trigger_positions = NULL;
+                        }
+                        if (events_buffer) {
+                            free(events_buffer);
+                            events_buffer = NULL;
+                        }
+
+                        waveform_destroy_samples(&this_waveform);
+                    }
+
+                    // Compute the waveform event size
+                    const size_t this_size = 14 + samples_number * sizeof(uint16_t) + gates_number * samples_number * sizeof(uint8_t);
+                    input_offset += this_size;
+                }
+
+                const size_t total_waveforms_size = output_waveforms.size();
+
+                if (total_waveforms_size > 0) {
+                    std::string topic = defaults_abcd_data_waveforms_topic;
+                    topic += "_v0";
+                    topic += "_n";
+                    topic += std::to_string(global_status.waveforms_msg_ID);
+                    topic += "_s";
+                    topic += std::to_string(total_waveforms_size);
+
+                    if (global_status.verbosity > 0)
                     {
                         char time_buffer[BUFFER_SIZE];
                         time_string(time_buffer, BUFFER_SIZE, NULL);
                         std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Events number: " << (unsigned int)events_number << "; ";
+                        std::cout << "Sending waveforms buffer; ";
+                        std::cout << "Topic: " << topic << "; ";
+                        std::cout << "buffer size: " << total_waveforms_size << "; ";
                         std::cout << std::endl;
                     }
 
-                    if (trigger_positions) {
-                        free(trigger_positions);
-                        trigger_positions = NULL;
+                    const int result = send_byte_message(global_status.data_output_socket,
+                                                         topic.c_str(),
+                                                         reinterpret_cast<void*>(output_waveforms.data()),
+                                                         total_waveforms_size, 1);
+
+                    global_status.waveforms_msg_ID += 1;
+
+                    if (result == EXIT_FAILURE)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "ZeroMQ Error publishing events waveforms";
+                        std::cout << std::endl;
                     }
-                    if (events_buffer) {
-                        free(events_buffer);
-                        events_buffer = NULL;
+                }
+
+                const size_t total_events_size = output_events.size() * sizeof(struct event_PSD);
+
+                if (total_events_size > 0) {
+                    std::string topic = defaults_abcd_data_events_topic;
+                    topic += "_v0";
+                    topic += "_n";
+                    topic += std::to_string(global_status.events_msg_ID);
+                    topic += "_s";
+                    topic += std::to_string(total_events_size);
+
+                    if (global_status.verbosity > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "Sending events buffer; ";
+                        std::cout << "Topic: " << topic << "; ";
+                        std::cout << "buffer size: " << total_events_size << "; ";
+                        std::cout << std::endl;
                     }
 
-                    waveform_destroy_samples(&this_waveform);
+                    const int result = send_byte_message(global_status.data_output_socket,
+                                                         topic.c_str(),
+                                                         reinterpret_cast<void*>(output_events.data()),
+                                                         total_events_size, 1);
+
+                    global_status.events_msg_ID += 1;
+
+                    if (result == EXIT_FAILURE)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "ZeroMQ Error publishing events PSDs";
+                        std::cout << std::endl;
+                    }
                 }
 
-                // Compute the waveform event size
-                const size_t this_size = 14 + samples_number * sizeof(uint16_t) + gates_number * samples_number * sizeof(uint8_t);
-                input_offset += this_size;
-            }
+                const clock_t event_stop = clock();
 
-            const size_t total_waveforms_size = output_waveforms.size();
-
-            if (total_waveforms_size > 0) {
-                std::string topic = defaults_abcd_data_waveforms_topic;
-                topic += "_v0";
-                topic += "_n";
-                topic += std::to_string(global_status.waveforms_msg_ID);
-                topic += "_s";
-                topic += std::to_string(total_waveforms_size);
-
-                if (global_status.verbosity > 0)
+                if (verbosity > 0)
                 {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ";
-                    std::cout << "Sending waveforms buffer; ";
-                    std::cout << "Topic: " << topic << "; ";
-                    std::cout << "buffer size: " << total_waveforms_size << "; ";
-                    std::cout << std::endl;
+                    const float elaboration_time = (float)(event_stop - event_start) / CLOCKS_PER_SEC * 1000;
+                    const float elaboration_speed = size / elaboration_time * 1000.0 / 1024.0 / 1024.0;
+                    const float elaboration_rate = waveforms_number / elaboration_time * 1000.0;
+
+                    printf("size: %zu; waveforms_number: %zu; elaboration_time: %f ms; elaboration_speed: %f MBi/s, %f evts/s\n", size, waveforms_number, elaboration_time, elaboration_speed, elaboration_rate);
                 }
-
-                const int result = send_byte_message(global_status.data_output_socket,
-                                                     topic.c_str(),
-                                                     reinterpret_cast<void*>(output_waveforms.data()),
-                                                     total_waveforms_size, 1);
-
-                global_status.waveforms_msg_ID += 1;
-
-                if (result == EXIT_FAILURE)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ";
-                    std::cout << "ZeroMQ Error publishing events waveforms";
-                    std::cout << std::endl;
-                }
-            }
-
-            const size_t total_events_size = output_events.size() * sizeof(struct event_PSD);
-
-            if (total_events_size > 0) {
-                std::string topic = defaults_abcd_data_events_topic;
-                topic += "_v0";
-                topic += "_n";
-                topic += std::to_string(global_status.events_msg_ID);
-                topic += "_s";
-                topic += std::to_string(total_events_size);
-
-                if (global_status.verbosity > 0)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ";
-                    std::cout << "Sending events buffer; ";
-                    std::cout << "Topic: " << topic << "; ";
-                    std::cout << "buffer size: " << total_events_size << "; ";
-                    std::cout << std::endl;
-                }
-
-                const int result = send_byte_message(global_status.data_output_socket,
-                                                     topic.c_str(),
-                                                     reinterpret_cast<void*>(output_events.data()),
-                                                     total_events_size, 1);
-
-                global_status.events_msg_ID += 1;
-
-                if (result == EXIT_FAILURE)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ";
-                    std::cout << "ZeroMQ Error publishing events PSDs";
-                    std::cout << std::endl;
-                }
-            }
-
-            const clock_t event_stop = clock();
-
-            if (verbosity > 0)
-            {
-                const float elaboration_time = (float)(event_stop - event_start) / CLOCKS_PER_SEC * 1000;
-                const float elaboration_speed = size / elaboration_time * 1000.0 / 1024.0 / 1024.0;
-                const float elaboration_rate = waveforms_number / elaboration_time * 1000.0;
-
-                printf("size: %zu; waveforms_number: %zu; elaboration_time: %f ms; elaboration_speed: %f MBi/s, %f evts/s\n", size, waveforms_number, elaboration_time, elaboration_speed, elaboration_rate);
             }
         }
 
@@ -1504,7 +1533,7 @@ state actions::clear_memory(status &global_status)
     actions::generic::clear_memory(global_status);
 
     if (json_is_object(global_status.config)) {
-    	json_decref(global_status.config);
+        json_decref(global_status.config);
 
         global_status.config = NULL;
     }

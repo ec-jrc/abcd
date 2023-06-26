@@ -1,6 +1,9 @@
 {
     "module": "waan",
-    "discard_messages": true,
+    "high_water_mark": "no limit",
+    "high_water_mark_note1": "This sets the maximum number of messages that may be analyzed in one loop cycle.",
+    "high_water_mark_note2": "If there are more messages in the ZeroMQ buffer they will be discarded and not analyzed.",
+    "high_water_mark_note3": "Possible values: 'no limit' or a number",
     "forward_waveforms": true,
     "enable_additional": true,
     "channels": [
