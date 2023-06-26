@@ -500,12 +500,12 @@ bool actions::generic::create_digitizer(status &global_status)
             std::cout << "Product family: " << family << "; ";
             std::cout << std::endl;
 
-            int *revision = ADQ_GetRevision(global_status.adq_cu_ptr, device_index + 1);
+            uint32_t *revision = ADQ_GetRevision(global_status.adq_cu_ptr, device_index + 1);
 
             std::cout << '[' << time_buffer << "] ";
             std::cout << "Revision: {";
             for (int i = 0; i < 6; i++) {
-                std::cout << revision[i] << ", ";
+                std::cout << (unsigned int)revision[i] << ", ";
             }
             std::cout << "}; ";
             std::cout << "Firmware type: ";

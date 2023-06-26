@@ -138,9 +138,9 @@ int ABCD::ADQ14_FWDAQ::Initialize()
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Initialize() ";
         std::cout << "ADQAPI Revision: " << ADQAPI_GetRevision() << "; ";
         std::cout << "ADQ14 Revision: {";
-        int* revision = ADQ_GetRevision(adq_cu_ptr, adq_num);
+        uint32_t* revision = ADQ_GetRevision(adq_cu_ptr, adq_num);
         for (int i = 0; i < 6; i++) {
-            std::cout << revision[i] << ", ";
+            std::cout << (unsigned int)revision[i] << ", ";
         }
         std::cout << "}; ";
         std::cout << std::endl;
