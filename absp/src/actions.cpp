@@ -1159,14 +1159,42 @@ state actions::bind_sockets(status &global_status)
 
 state actions::create_control_unit(status &global_status)
 {
-    const int API_revision = ADQAPI_GetRevision();
+    const int validation = ADQAPI_ValidateVersion(ADQAPI_VERSION_MAJOR, ADQAPI_VERSION_MINOR);
 
     if (global_status.verbosity > 0)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "API revision: " << API_revision << "; ";
+        std::cout << "API validation: " << validation << "; ";
+        std::cout << std::endl;
+    }
+
+    if (validation == -1) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " ADQAPI version is incompatible. The application needs to be recompiled and relinked against the installed ADQAPI; ";
+        std::cout << std::endl;
+
+        return states::configure_error;
+    }
+    if (validation == -2) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << " ADQAPI version is backwards compatible. It's suggested to recompile and relink the application against the installed ADQAPI; ";
+        std::cout << std::endl;
+    }
+
+    const uint32_t API_revision = ADQAPI_GetRevision();
+
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "API revision: " << (unsigned int)API_revision << "; ";
         std::cout << std::endl;
     }
 
