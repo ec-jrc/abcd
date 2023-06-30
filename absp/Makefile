@@ -4,7 +4,7 @@ include ../common_definitions.mk
 EXEC = absp
 
 SOURCES = $(SRC_DIR)/ADQ_descriptions.cpp
-SOURCES += $(SRC_DIR)/ADQ214.cpp $(SRC_DIR)/ADQ412.cpp $(SRC_DIR)/ADQ14_FWDAQ.cpp $(SRC_DIR)/ADQ14_FWPD.cpp
+SOURCES += $(SRC_DIR)/ADQ214.cpp $(SRC_DIR)/ADQ412.cpp $(SRC_DIR)/ADQ14_FWDAQ.cpp $(SRC_DIR)/ADQ14_FWPD.cpp $(SRC_DIR)/ADQ36_FWDAQ.cpp
 SOURCES += $(SRC_DIR)/Digitizers_wrap.cpp
 SOURCES += $(SRC_DIR)/actions.cpp $(SRC_DIR)/states.cpp
 
