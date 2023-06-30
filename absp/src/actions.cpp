@@ -65,6 +65,7 @@ extern "C" {
 #include "ADQ214.hpp"
 #include "ADQ14_FWDAQ.hpp"
 #include "ADQ14_FWPD.hpp"
+#include "ADQ36_FWDAQ.hpp"
 
 #define WRITE_RED "\033[0;31m"
 #define WRITE_YELLOW "\033[0;33m"
@@ -373,6 +374,7 @@ bool actions::generic::create_digitizer(status &global_status)
     unsigned int number_of_ADQ214 = 0;
     unsigned int number_of_ADQ412 = 0;
     unsigned int number_of_ADQ14 = 0;
+    unsigned int number_of_ADQ36 = 0;
     unsigned int number_of_other = 0;
 
     for (unsigned int device_index = 0; device_index < number_of_devices; device_index++) {
@@ -385,6 +387,9 @@ bool actions::generic::create_digitizer(status &global_status)
                 break;
             case PID_ADQ14:
                 number_of_ADQ14 += 1;
+                break;
+            case PID_ADQ36:
+                number_of_ADQ36 += 1;
                 break;
             default:
                 number_of_other += 1;
@@ -403,6 +408,7 @@ bool actions::generic::create_digitizer(status &global_status)
         std::cout << "Number of ADQ214: " << number_of_ADQ214 << "; ";
         std::cout << "Number of ADQ412: " << number_of_ADQ412 << "; ";
         std::cout << "Number of ADQ14: " << number_of_ADQ14 << "; ";
+        std::cout << "Number of ADQ36: " << number_of_ADQ14 << "; ";
         std::cout << "Number of other devices: " << number_of_other << "; ";
         std::cout << std::endl;
     }
@@ -418,6 +424,9 @@ bool actions::generic::create_digitizer(status &global_status)
     }
     if (number_of_ADQ14 > 0) {
         initialization_string += "Number of ADQ14: " + std::to_string(number_of_ADQ14) + "; ";
+    }
+    if (number_of_ADQ36 > 0) {
+        initialization_string += "Number of ADQ36: " + std::to_string(number_of_ADQ36) + "; ";
     }
 
     json_t *json_event_message = json_object();
@@ -598,6 +607,15 @@ bool actions::generic::create_digitizer(status &global_status)
 
                 global_status.digitizers.push_back(adq14_ptr);
             }
+        } else if (ADQlist[device_index].ProductID == PID_ADQ36) {
+            // WARNING: boards numbering start from 1 in the next functions
+            const int adq36_index = device_index + 1;
+
+            ABCD::ADQ36_FWDAQ *adq36_ptr = new ABCD::ADQ36_FWDAQ(global_status.adq_cu_ptr, adq36_index, global_status.verbosity);
+
+            adq36_ptr->Initialize();
+
+            global_status.digitizers.push_back(adq36_ptr);
         }
     }
 
@@ -1225,9 +1243,18 @@ state actions::create_control_unit(status &global_status)
     //    std::cout << std::endl;
     //}
 
-    //ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, LOG_LEVEL_INFO, ".");
-    // This is to enable all possible log levels
-    //ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, 0x7FFFFFFF, ".");
+    if (global_status.verbosity > 1)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Enabling full error trace of the ADQAPI; ";
+        std::cout << std::endl;
+
+        //ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, LOG_LEVEL_INFO, ".");
+        // This is to enable all possible log levels
+        ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, 0x7FFFFFFF, ".");
+    }
 
     return states::create_digitizer;
 }
