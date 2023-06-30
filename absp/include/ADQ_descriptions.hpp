@@ -65,6 +65,11 @@ class ADQ_descriptions {
 public:
     // Descriptions of the flag values
     static const std::map<int, std::string> error;
+
+    static const std::map<enum ADQReferenceClockSource, std::string> ADQ36_clock_source;
+    static const std::map<enum ADQEventSource, std::string> ADQ36_trigger_source;
+    static const std::map<enum ADQEdge, std::string> ADQ36_slope;
+
     static const std::map<unsigned int, std::string> clock_source;
     static const std::map<unsigned int, std::string> trig_mode;
     static const std::map<unsigned int, std::string> trig_slope;
@@ -77,6 +82,7 @@ public:
     static const std::map<unsigned int, std::string> ADQ412_temperatures;
     static const std::map<unsigned int, std::string> ADQ214_temperatures;
     static const std::map<unsigned int, std::string> ADQ_firmware_revisions;
+    static const std::map<unsigned int, std::string> ADQ_firmware_type;
 };
 
 #endif

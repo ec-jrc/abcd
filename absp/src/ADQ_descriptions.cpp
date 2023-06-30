@@ -29,6 +29,36 @@ const std::map<unsigned int, std::string> ADQ_descriptions::clock_source = {
     {ADQ_CLOCK_SOURCE_PXIE_100M, "external_PXIe_100MHz"}
 };
 
+const std::map<enum ADQReferenceClockSource, std::string> ADQ_descriptions::ADQ36_clock_source = {
+    {ADQ_REFERENCE_CLOCK_SOURCE_INTERNAL, "internal"},
+    {ADQ_REFERENCE_CLOCK_SOURCE_PORT_CLK, "external"},
+    {ADQ_REFERENCE_CLOCK_SOURCE_PXIE_10M, "external_PXI"},
+    {ADQ_REFERENCE_CLOCK_SOURCE_PXIE_100M, "external_PXIe_100MHz"}
+};
+
+const std::map<enum ADQEventSource, std::string> ADQ_descriptions::ADQ36_trigger_source = {
+    {ADQ_EVENT_SOURCE_SOFTWARE, "software"},
+    {ADQ_EVENT_SOURCE_TRIG, "trig_port"},
+    {ADQ_EVENT_SOURCE_LEVEL, "self"},
+    {ADQ_EVENT_SOURCE_PERIODIC, "periodic"},
+    {ADQ_EVENT_SOURCE_SYNC, "sync_port"},
+    {ADQ_EVENT_SOURCE_GPIOA0, "GPIOA0"},
+    {ADQ_EVENT_SOURCE_LEVEL_CHANNEL0, "channel0"},
+    {ADQ_EVENT_SOURCE_LEVEL_CHANNEL1, "channel1"},
+    {ADQ_EVENT_SOURCE_LEVEL_CHANNEL2, "channel2"},
+    {ADQ_EVENT_SOURCE_LEVEL_CHANNEL3, "channel3"},
+    {ADQ_EVENT_SOURCE_LEVEL_CHANNEL4, "channel4"},
+    {ADQ_EVENT_SOURCE_LEVEL_CHANNEL5, "channel5"},
+    {ADQ_EVENT_SOURCE_LEVEL_CHANNEL6, "channel6"},
+    {ADQ_EVENT_SOURCE_LEVEL_CHANNEL7, "channel7"},
+};
+
+const std::map<enum ADQEdge, std::string> ADQ_descriptions::ADQ36_slope = {
+    {ADQ_EDGE_FALLING, "falling"},
+    {ADQ_EDGE_RISING, "rising"},
+    {ADQ_EDGE_BOTH, "both"}
+};
+
 const std::map<unsigned int, std::string> ADQ_descriptions::trig_mode = {
     {ADQ_SW_TRIGGER_MODE, "software"},
     {ADQ_EXT_TRIGGER_MODE, "external"},
@@ -107,4 +137,10 @@ const std::map<unsigned int, std::string> ADQ_descriptions::ADQ_firmware_revisio
     {61728, "ADQ14_FWDAQ"},
     {25201, "ADQ14_FWPD"},
     {53534, "ADQ14_FWPD"},
+};
+
+const std::map<unsigned int, std::string> ADQ_descriptions::ADQ_firmware_type = {
+    {ADQ_FIRMWARE_TYPE_INVALID, "invalid"},
+    {ADQ_FIRMWARE_TYPE_FWDAQ, "FWDAQ"},
+    {ADQ_FIRMWARE_TYPE_FWATD, "FWATD"},
 };
