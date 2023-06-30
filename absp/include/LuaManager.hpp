@@ -14,6 +14,7 @@
 #include "ADQ412.hpp"
 #include "ADQ14_FWDAQ.hpp"
 #include "ADQ14_FWPD.hpp"
+#include "ADQ36_FWDAQ.hpp"
 
 extern "C" {
 #include "swigluarun.h"
@@ -37,6 +38,7 @@ private:
     swig_type_info *SWIG_ABCD_ADQ412_t;
     swig_type_info *SWIG_ABCD_ADQ14_FWDAQ_t;
     swig_type_info *SWIG_ABCD_ADQ14_FWPD_t;
+    swig_type_info *SWIG_ABCD_ADQ36_FWDAQ_t;
 
 public:
     LuaManager(int V = 1) : verbosity(V), counter_updates(0), counter_runs(0) {
@@ -80,6 +82,7 @@ public:
         SWIG_ABCD_ADQ412_t = SWIG_TypeQuery(Lua, "ABCD::ADQ412 *");
         SWIG_ABCD_ADQ14_FWDAQ_t = SWIG_TypeQuery(Lua, "ABCD::ADQ14_FWDAQ *");
         SWIG_ABCD_ADQ14_FWPD_t = SWIG_TypeQuery(Lua, "ABCD::ADQ14_FWPD *");
+        SWIG_ABCD_ADQ36_FWDAQ_t = SWIG_TypeQuery(Lua, "ABCD::ADQ36_FWDAQ *");
 
         if (verbosity > 0) {
             run_string("print(\"LUA INTERPRETER DEBUG OUTPUT: LuaManager::LuaManager() Finished\");");
@@ -178,6 +181,13 @@ public:
                 SWIG_NewPointerObj(Lua, digitizer_adq, SWIG_ABCD_ADQ14_FWPD_t, 0);
 
                 lua_setfield(Lua, -2, digitizer->GetName().c_str());
+            } else if (digitizer->GetModel() == "ADQ36_FWDAQ") {
+                ABCD::ADQ36_FWDAQ *digitizer_adq = reinterpret_cast<ABCD::ADQ36_FWDAQ*>(digitizer);
+
+                SWIG_NewPointerObj(Lua, digitizer_adq, SWIG_ABCD_ADQ36_FWDAQ_t, 0);
+
+                lua_setfield(Lua, -2, digitizer->GetName().c_str());
+
             } else {
                 if (verbosity > 0) {
                     std::cout << "LuaManager::update_digitizers() ";
