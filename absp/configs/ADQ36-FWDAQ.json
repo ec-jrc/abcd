@@ -20,8 +20,10 @@
             "clock_source_possible_value0": "internal",
             "clock_source_possible_value2": "external",
             "clock_source_possible_value3": "external_PXI",
-            "timestamp_bit_shift": 0,
-            "timestamp_bit_shift_note": "the timestamp may be shifted in order to align it with the waan analysis module",
+            "timestamp_bit_shift": 4,
+            "timestamp_bit_shift_note1": "the timestamp may be shifted in order to align it with the waan analysis module",
+            "timestamp_bit_shift_note2": "with a shift of 4 bit the timestamps should have 8 fractional bits",
+            "timestamp_bit_shift_note3": "1 / (2.5 GHz * 256) = 0.4 ns / 256 = 1.5625 ps",
             "channels": [
                 {
                     "id": 0,
