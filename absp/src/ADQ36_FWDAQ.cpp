@@ -974,6 +974,12 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                     adq_parameters.acquisition.channel[id].record_length = scope_samples;
                     adq_parameters.acquisition.channel[id].nof_records = records_number;
 
+                    // According to the SPD support, setting nof_records to zero
+                    // will disable any data from the channel
+                    if (!enabled) {
+                        adq_parameters.acquisition.channel[id].nof_records = 0;
+                    }
+
                     adq_parameters.event_source.level.channel[id].level = trigger_level;
                     adq_parameters.event_source.level.channel[id].arm_hysteresis = trigger_hysteresis;
 
