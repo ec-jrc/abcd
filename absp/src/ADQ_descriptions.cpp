@@ -36,13 +36,19 @@ const std::map<enum ADQReferenceClockSource, std::string> ADQ_descriptions::ADQ3
     {ADQ_REFERENCE_CLOCK_SOURCE_PXIE_100M, "external_PXIe_100MHz"}
 };
 
-const std::map<enum ADQEventSource, std::string> ADQ_descriptions::ADQ36_trigger_source = {
+const std::map<enum ADQEventSource, std::string> ADQ_descriptions::event_source = {
+    {ADQ_EVENT_SOURCE_INVALID, "invalid"},
     {ADQ_EVENT_SOURCE_SOFTWARE, "software"},
     {ADQ_EVENT_SOURCE_TRIG, "trig_port"},
     {ADQ_EVENT_SOURCE_LEVEL, "self"},
     {ADQ_EVENT_SOURCE_PERIODIC, "periodic"},
+    {ADQ_EVENT_SOURCE_PXIE_STARB, "PXIe_STARB"},
     {ADQ_EVENT_SOURCE_SYNC, "sync_port"},
+    {ADQ_EVENT_SOURCE_DAISY_CHAIN, "daisy_chain"},
     {ADQ_EVENT_SOURCE_GPIOA0, "GPIOA0"},
+    {ADQ_EVENT_SOURCE_GPIOB0, "GPIOB0"},
+    {ADQ_EVENT_SOURCE_PXIE_TRIG0, "PXIe_TRIG0"},
+    {ADQ_EVENT_SOURCE_PXIE_TRIG1, "PXIe_TRIG1"},
     {ADQ_EVENT_SOURCE_LEVEL_CHANNEL0, "channel0"},
     {ADQ_EVENT_SOURCE_LEVEL_CHANNEL1, "channel1"},
     {ADQ_EVENT_SOURCE_LEVEL_CHANNEL2, "channel2"},
@@ -51,9 +57,29 @@ const std::map<enum ADQEventSource, std::string> ADQ_descriptions::ADQ36_trigger
     {ADQ_EVENT_SOURCE_LEVEL_CHANNEL5, "channel5"},
     {ADQ_EVENT_SOURCE_LEVEL_CHANNEL6, "channel6"},
     {ADQ_EVENT_SOURCE_LEVEL_CHANNEL7, "channel7"},
+    {ADQ_EVENT_SOURCE_REFERENCE_CLOCK, "reference_clock"},
+    {ADQ_EVENT_SOURCE_MATRIX, "source_matrix"},
+    {ADQ_EVENT_SOURCE_LEVEL_MATRIX, "level_matrix"},
 };
 
-const std::map<enum ADQEdge, std::string> ADQ_descriptions::ADQ36_slope = {
+const std::map<enum ADQTimestampSynchronizationMode, std::string> ADQ_descriptions::timestamp_synchronization_mode = {
+    {ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_DISABLE, "disable"},
+    {ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_FIRST, "first"},
+    {ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_ALL, "all"},
+};
+
+const std::map<enum ADQArm, std::string> ADQ_descriptions::arm = {
+    {ADQ_ARM_IMMEDIATELY, "immediately"},
+    {ADQ_ARM_AT_ACQUISITION_START, "acquisition_start"},
+};
+
+const std::map<enum ADQParameterId, std::string> ADQ_descriptions::ADQ36_port_ids = {
+    {ADQ_PARAMETER_ID_PORT_TRIG, "trig"},
+    {ADQ_PARAMETER_ID_PORT_SYNC, "sync"},
+    {ADQ_PARAMETER_ID_PORT_CLK, "clock"},
+};
+
+const std::map<enum ADQEdge, std::string> ADQ_descriptions::slope = {
     {ADQ_EDGE_FALLING, "falling"},
     {ADQ_EDGE_RISING, "rising"},
     {ADQ_EDGE_BOTH, "both"}
@@ -72,7 +98,7 @@ const std::map<unsigned int, std::string> ADQ_descriptions::trig_slope = {
     {ADQ_TRIG_SLOPE_RISING, "rising"}
 };
 
-const std::map<unsigned int, std::string> ADQ_descriptions::timestamp_synchronization_mode = {
+const std::map<unsigned int, std::string> ADQ_descriptions::ADQ14_timestamp_synchronization_mode = {
     // These settings do not seem to work
     //{ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_DISABLE, "disable"},
     //{ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_FIRST, "first"},
@@ -81,7 +107,7 @@ const std::map<unsigned int, std::string> ADQ_descriptions::timestamp_synchroniz
     {1, "all"}
 };
 
-const std::map<unsigned int, std::string> ADQ_descriptions::timestamp_synchronization_source = {
+const std::map<unsigned int, std::string> ADQ_descriptions::ADQ14_timestamp_synchronization_source = {
     {ADQ_EVENT_SOURCE_SOFTWARE, "software"},
     {ADQ_EVENT_SOURCE_TRIG, "trig_port"},
     {ADQ_EVENT_SOURCE_SYNC, "sync_port"}
@@ -100,10 +126,30 @@ const std::map<unsigned int, std::string> ADQ_descriptions::analog_front_end_cou
     {ADQ_ANALOG_FRONT_END_COUPLING_DC, "DC"}
 };
 
-const std::map<unsigned int, std::string> ADQ_descriptions::input_impedance = {
+const std::map<enum ADQImpedance, std::string> ADQ_descriptions::input_impedance = {
     {ADQ_IMPEDANCE_50_OHM, "50_Ohm"},
     {ADQ_IMPEDANCE_HIGH, "high"},
     {ADQ_IMPEDANCE_100_OHM, "100_Ohm"},
+};
+
+const std::map<enum ADQDirection, std::string> ADQ_descriptions::pin_direction = {
+    {ADQ_DIRECTION_IN, "in"},
+    {ADQ_DIRECTION_OUT, "out"},
+    {ADQ_DIRECTION_INOUT, "in/out"},
+};
+
+const std::map<enum ADQFunction, std::string> ADQ_descriptions::pin_function = {
+    {ADQ_FUNCTION_INVALID, "disabled"},
+    {ADQ_FUNCTION_PATTERN_GENERATOR0, "pattern_generator0"},
+    {ADQ_FUNCTION_PATTERN_GENERATOR1, "pattern_generator1"},
+    {ADQ_FUNCTION_GPIO, "gpio"},
+    {ADQ_FUNCTION_PULSE_GENERATOR0, "pulse_generator0"},
+    {ADQ_FUNCTION_PULSE_GENERATOR1, "pulse_generator1"},
+    {ADQ_FUNCTION_PULSE_GENERATOR2, "pulse_generator2"},
+    {ADQ_FUNCTION_PULSE_GENERATOR3, "pulse_generator3"},
+    {ADQ_FUNCTION_TIMESTAMP_SYNCHRONIZATION, "timestamp_synchronization"},
+    {ADQ_FUNCTION_USER_LOGIC, "user_logic"},
+    {ADQ_FUNCTION_DAISY_CHAIN, "daisy_chain"},
 };
 
 const std::map<unsigned int, std::string> ADQ_descriptions::ADQ14_temperatures = {

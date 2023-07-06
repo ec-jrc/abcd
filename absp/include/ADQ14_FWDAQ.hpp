@@ -42,8 +42,8 @@ public:
     int clock_source;
 
     // Settings for the input impedances of the front connectors
-    int trig_port_input_impedance;
-    int sync_port_input_impedance;
+    enum ADQImpedance trig_port_input_impedance;
+    enum ADQImpedance sync_port_input_impedance;
 
     // -------------------------------------------------------------------------
     //  Trigger settings

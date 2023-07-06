@@ -67,17 +67,23 @@ public:
     static const std::map<int, std::string> error;
 
     static const std::map<enum ADQReferenceClockSource, std::string> ADQ36_clock_source;
-    static const std::map<enum ADQEventSource, std::string> ADQ36_trigger_source;
-    static const std::map<enum ADQEdge, std::string> ADQ36_slope;
+    static const std::map<enum ADQEventSource, std::string> event_source;
+    static const std::map<enum ADQEdge, std::string> slope;
+    static const std::map<enum ADQTimestampSynchronizationMode, std::string> timestamp_synchronization_mode;
+    static const std::map<enum ADQArm, std::string> arm;
+    static const std::map<enum ADQImpedance, std::string> input_impedance;
+    static const std::map<enum ADQDirection, std::string> pin_direction;
+    static const std::map<enum ADQFunction, std::string> pin_function;
+
+    static const std::map<enum ADQParameterId, std::string> ADQ36_port_ids;
 
     static const std::map<unsigned int, std::string> clock_source;
     static const std::map<unsigned int, std::string> trig_mode;
     static const std::map<unsigned int, std::string> trig_slope;
-    static const std::map<unsigned int, std::string> timestamp_synchronization_mode;
-    static const std::map<unsigned int, std::string> timestamp_synchronization_source;
+    static const std::map<unsigned int, std::string> ADQ14_timestamp_synchronization_mode;
+    static const std::map<unsigned int, std::string> ADQ14_timestamp_synchronization_source;
     static const std::map<unsigned int, std::string> collection_mode;
     static const std::map<unsigned int, std::string> analog_front_end_coupling;
-    static const std::map<unsigned int, std::string> input_impedance;
     static const std::map<unsigned int, std::string> ADQ14_temperatures;
     static const std::map<unsigned int, std::string> ADQ412_temperatures;
     static const std::map<unsigned int, std::string> ADQ214_temperatures;
