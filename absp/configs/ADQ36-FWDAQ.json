@@ -16,10 +16,13 @@
             "enable": true,
             "native_note1": "by adding a 'native' entry it is possible to directly use a digitizer configuration, in that case the ABCD configuration will be done first and then this one will be applied",
             "native_note2": "WARNING: use it at your own risk",
-            "clock_source": "internal",
-            "clock_source_possible_value0": "internal",
-            "clock_source_possible_value2": "external",
-            "clock_source_possible_value3": "external_PXI",
+            "clock": {
+                "source": "internal",
+                "source_possible_value0": "internal",
+                "source_possible_value2": "external",
+                "source_possible_value3": "external_PXI",
+		"reference_frequency": 10e6
+	    },
             "timestamp_bit_shift": 4,
             "timestamp_bit_shift_note1": "the timestamp may be shifted in order to align it with the waan analysis module",
             "timestamp_bit_shift_note2": "with a shift of 0 bit the timestamps should have 4 fractional bits",
@@ -37,7 +40,7 @@
                     "DBS_level_note": "in ADC channels",
                     "skip_factor": 1,
                     "skip_factor_note": "ratio between the real ADC sampling rate and the desired sampling rate, by discarding samples",
-                    "trigger_source": "software",
+                    "trigger_source": "self",
                     "trigger_source_possible_value0": "software",
                     "trigger_source_possible_value1": "self",
                     "trigger_source_possible_value2": "trig_port",
@@ -110,6 +113,29 @@
                     "records_per_buffer": 1,
                     "records_number": -1,
                     "zzz": null
+                },
+                {}
+            ],
+            "ports": [
+                {
+                    "id": "trig",
+                    "input_impedance": "50_Ohm",
+                    "input_impedance_possible_value0": "50_Ohm",
+                    "input_impedance_possible_value1": "high",
+                    "input_impedance_possible_value2": "100_Ohm",
+                    "direction": "in",
+                    "direction_possible_value0": "in",
+                    "direction_possible_value1": "out",
+                    "function": "disabled",
+                    "function_possible_value0": "disabled",
+                    "function_possible_value1": "gpio",
+                    "function_possible_value2": "daisy_chain"
+                },
+                {
+                    "id": "sync",
+                    "input_impedance": "high",
+                    "direction": "out",
+                    "function": "gpio"
                 },
                 {}
             ]

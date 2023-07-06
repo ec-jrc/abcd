@@ -77,10 +77,9 @@ public:
 
     int SpecificCommand(json_t* json_command);
 
-    int GPIOSetDirection(int port, int direction, int mask);
-    int GPIOPulse(int port, int width, int mask);
+    int GPIOPulse(std::string port, int width);
 
-    int TimestampResetArm(std::string mode, std::string source);
+    int TimestampReset(std::string mode, std::string source, std::string when);
     int TimestampResetDisarm();
 };
 }
