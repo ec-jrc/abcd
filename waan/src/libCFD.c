@@ -32,6 +32,9 @@
  * - `disable_CFD_gates`: disable the display of the additional waveforms of
  *   the CFD calculation.
  *   Optional, default value: false
+ * - `time_offset`: value added to the timestamp after the determination, to
+ *   center the signals on the ToF distribution.
+ *   Optional, default value: 0
  */
 
 #include <stdio.h>
@@ -55,6 +58,7 @@ struct CFD_config
     int32_t delay;
     uint32_t zero_crossing_samples;
     uint8_t fractional_bits;
+    int64_t time_offset;
     bool disable_shift;
     bool disable_CFD_gates;
 
@@ -118,6 +122,12 @@ void timestamp_init(json_t *json_config, void **user_config)
             config->fractional_bits = json_number_value(json_object_get(json_config, "fractional_bits"));
         } else {
             config->fractional_bits = 10;
+        }
+
+        if (json_is_number(json_object_get(json_config, "time_offset"))) {
+            config->time_offset = json_number_value(json_object_get(json_config, "time_offset"));
+        } else {
+            config->time_offset = 0;
         }
 
         if (json_is_boolean(json_object_get(json_config, "disable_shift"))) {
@@ -245,7 +255,7 @@ void timestamp_analysis(const uint16_t *samples,
     // Converting to fixed-point number
     const uint64_t fine_timestamp = floor(fine_zero_crossing * (1 << config->fractional_bits)); 
 
-    uint64_t new_timestamp = fine_timestamp;
+    uint64_t new_timestamp = fine_timestamp + config->time_offset;
 
     // Bitmask to delete the last fractional_bits in the uint64_t numbers
     const uint64_t bitmask = UINT64_MAX - ((1 << config->fractional_bits) - 1);

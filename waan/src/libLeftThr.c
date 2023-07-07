@@ -38,6 +38,9 @@
  * - `disable_LeftThr_gates`: disable the display of the additional waveforms of
  *   the LeftThr calculation.
  *   Optional, default value: false
+ * - `time_offset`: value added to the timestamp after the determination, to
+ *   center the signals on the ToF distribution.
+ *   Optional, default value: 0
  */
 
 #include <stdio.h>
@@ -62,6 +65,7 @@ struct LeftThr_config
     double absolute_threshold;
     uint32_t zero_crossing_samples;
     uint8_t fractional_bits;
+    int64_t time_offset;
     bool disable_shift;
     bool disable_LeftThr_gates;
 
@@ -149,6 +153,12 @@ void timestamp_init(json_t *json_config, void **user_config)
             config->fractional_bits = 10;
         }
 
+        if (json_is_number(json_object_get(json_config, "time_offset"))) {
+            config->time_offset = json_number_value(json_object_get(json_config, "time_offset"));
+        } else {
+            config->time_offset = 0;
+        }
+
         if (json_is_boolean(json_object_get(json_config, "disable_shift"))) {
             config->disable_shift = json_is_true(json_object_get(json_config, "disable_shift"));
         } else {
@@ -209,6 +219,8 @@ void timestamp_analysis(const uint16_t *samples,
 {
     struct LeftThr_config *config = (struct LeftThr_config*)user_config;
 
+    //printf("libLeftThr timestamp_analysis(): Reallocating curves with samples number: %" PRIu32 "\n", samples_number);
+
     reallocate_curves(samples_number, &config);
 
     bool is_error = false;
@@ -230,13 +242,21 @@ void timestamp_analysis(const uint16_t *samples,
     struct event_PSD *this_event = (*events_buffer);
     uint32_t *this_position = (*trigger_positions);
 
+    //printf("libLeftThr timestamp_analysis(): Converting waveform to doubles with samples number: %" PRIu32 "\n", samples_number);
+
     to_double(samples, samples_number, &config->curve_samples);
 
+    //printf("libLeftThr timestamp_analysis(): Applying a running mean to the double curve with smooth_samples: %" PRIu32 "\n", config->smooth_samples);
+
     running_mean(config->curve_samples, samples_number, config->smooth_samples, &config->curve_smoothed);
+
+    //printf("libLeftThr timestamp_analysis(): Calculating the baseline\n");
 
     double baseline = 0;
 
     calculate_average(config->curve_smoothed, 0, config->baseline_samples, &baseline);
+
+    //printf("libLeftThr timestamp_analysis(): Baseline: %f\n", baseline);
 
     if (config->pulse_polarity == POLARITY_POSITIVE) {
         add_and_multiply_constant(config->curve_smoothed, samples_number, -1 * baseline, 1.0, &config->curve_offset);
@@ -310,6 +330,8 @@ void timestamp_analysis(const uint16_t *samples,
             new_timestamp += ((waveform->timestamp << config->fractional_bits) & bitmask);
         }
 
+        new_timestamp += config->time_offset;
+
         // Output
 
         this_event->timestamp = new_timestamp;
@@ -357,6 +379,8 @@ void reallocate_curves(uint32_t samples_number, struct LeftThr_config **user_con
 {
     struct LeftThr_config *config = (*user_config);
 
+    //printf("libLeftThr reallocate_curves(): Samples number: %" PRIu32 "; previous: %" PRIu32 "\n", samples_number, config->previous_samples_number);
+
     if (samples_number != config->previous_samples_number) {
         config->previous_samples_number = samples_number;
 
@@ -400,4 +424,6 @@ void reallocate_curves(uint32_t samples_number, struct LeftThr_config **user_con
             config->curve_LeftThr = new_curve_LeftThr;
         }
     }
+
+    //printf("libLeftThr reallocate_curves(): Reallocation error: %s\n", (config->is_error ? "true" : "false"));
 }

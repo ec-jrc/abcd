@@ -34,6 +34,9 @@
  * - `disable_RT_gates`: disable the display of the additional waveforms of
  *   the RT calculation.
  *   Optional, default value: false
+ * - `time_offset`: value added to the timestamp after the determination, to
+ *   center the signals on the ToF distribution.
+ *   Optional, default value: 0
  */
 
 #include <stdio.h>
@@ -57,6 +60,7 @@ struct RT_config
     double fraction;
     uint32_t zero_crossing_samples;
     uint8_t fractional_bits;
+    int64_t time_offset;
     bool disable_shift;
     bool disable_RT_gates;
 
@@ -138,6 +142,12 @@ void timestamp_init(json_t *json_config, void **user_config)
             config->fractional_bits = json_number_value(json_object_get(json_config, "fractional_bits"));
         } else {
             config->fractional_bits = 10;
+        }
+
+        if (json_is_number(json_object_get(json_config, "time_offset"))) {
+            config->time_offset = json_number_value(json_object_get(json_config, "time_offset"));
+        } else {
+            config->time_offset = 0;
         }
 
         if (json_is_boolean(json_object_get(json_config, "disable_shift"))) {
@@ -300,6 +310,8 @@ void timestamp_analysis(const uint16_t *samples,
         } else {
             new_timestamp += ((waveform->timestamp << config->fractional_bits) & bitmask);
         }
+
+        new_timestamp += config->time_offset;
 
         // Output
 
