@@ -166,9 +166,9 @@ int ABCD::ADQ14_FWPD::Initialize()
         std::cout << "PD Firmware generation: " << FWPD_generation << "; ";
         std::cout << "Streaming generation: " << streaming_generation << "; ";
         std::cout << "ADQ14 Revision: {";
-        int* revision = ADQ_GetRevision(adq_cu_ptr, adq_num);
+        uint32_t* revision = ADQ_GetRevision(adq_cu_ptr, adq_num);
         for (int i = 0; i < 6; i++) {
-            std::cout << revision[i] << ", ";
+            std::cout << (unsigned int)revision[i] << ", ";
         }
         std::cout << "}; ";
         std::cout << std::endl;
@@ -1975,9 +1975,9 @@ int ABCD::ADQ14_FWPD::TimestampResetArm(std::string mode, std::string source)
     }
 
     // Looking for the settings in the description map
-    const auto tsm_result = map_utilities::find_item(ADQ_descriptions::timestamp_synchronization_mode, mode);
+    const auto tsm_result = map_utilities::find_item(ADQ_descriptions::ADQ14_timestamp_synchronization_mode, mode);
 
-    if (tsm_result != ADQ_descriptions::timestamp_synchronization_mode.end() && mode.length() > 0) {
+    if (tsm_result != ADQ_descriptions::ADQ14_timestamp_synchronization_mode.end() && mode.length() > 0) {
         timestamp_reset_mode = tsm_result->first;
     } else {
         char time_buffer[BUFFER_SIZE];
@@ -2001,9 +2001,9 @@ int ABCD::ADQ14_FWPD::TimestampResetArm(std::string mode, std::string source)
     }
 
     // Looking for the settings in the description map
-    const auto tss_result = map_utilities::find_item(ADQ_descriptions::timestamp_synchronization_source, source);
+    const auto tss_result = map_utilities::find_item(ADQ_descriptions::ADQ14_timestamp_synchronization_source, source);
 
-    if (tss_result != ADQ_descriptions::timestamp_synchronization_source.end() && source.length() > 0) {
+    if (tss_result != ADQ_descriptions::ADQ14_timestamp_synchronization_source.end() && source.length() > 0) {
         timestamp_reset_source = tss_result->first;
     } else {
         char time_buffer[BUFFER_SIZE];
@@ -2022,8 +2022,8 @@ int ABCD::ADQ14_FWPD::TimestampResetArm(std::string mode, std::string source)
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::TimestampResetArm() ";
         std::cout << "Arming timestamp synchronization; ";
-        std::cout << "mode: " << ADQ_descriptions::timestamp_synchronization_mode.at(timestamp_reset_mode) << "; ";
-        std::cout << "source: " << ADQ_descriptions::timestamp_synchronization_source.at(timestamp_reset_source) << "; ";
+        std::cout << "mode: " << ADQ_descriptions::ADQ14_timestamp_synchronization_mode.at(timestamp_reset_mode) << "; ";
+        std::cout << "source: " << ADQ_descriptions::ADQ14_timestamp_synchronization_source.at(timestamp_reset_source) << "; ";
         std::cout << std::endl;
     }
 

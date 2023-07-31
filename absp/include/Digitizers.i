@@ -13,6 +13,7 @@
 #include "ADQ412.hpp"
 #include "ADQ14_FWDAQ.hpp"
 #include "ADQ14_FWPD.hpp"
+#include "ADQ36_FWDAQ.hpp"
 %}
 
 %include <std_string.i>
@@ -30,6 +31,9 @@
 %ignore ABCD::ADQ14_FWPD::ADQ14_FWPD;
 %ignore ABCD::ADQ14_FWPD::~ADQ14_FWPD;
 
+%ignore ABCD::ADQ36_FWDAQ::ADQ36_FWDAQ;
+%ignore ABCD::ADQ36_FWDAQ::~ADQ36_FWDAQ;
+
 // Include the header files for the SWIG parser
 
 %include "events.h"
@@ -39,3 +43,4 @@
 %include "ADQ412.hpp"
 %include "ADQ14_FWDAQ.hpp"
 %include "ADQ14_FWPD.hpp"
+%include "ADQ36_FWDAQ.hpp"
