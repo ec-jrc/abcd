@@ -78,8 +78,8 @@ public:
     static const std::map<enum ADQParameterId, std::string> ADQ36_port_ids;
 
     static const std::map<unsigned int, std::string> clock_source;
-    static const std::map<unsigned int, std::string> trig_mode;
-    static const std::map<unsigned int, std::string> trig_slope;
+    static const std::map<unsigned int, std::string> trigger_mode;
+    static const std::map<unsigned int, std::string> trigger_slope;
     static const std::map<unsigned int, std::string> ADQ14_timestamp_synchronization_mode;
     static const std::map<unsigned int, std::string> ADQ14_timestamp_synchronization_source;
     static const std::map<unsigned int, std::string> collection_mode;

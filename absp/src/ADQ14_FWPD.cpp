@@ -65,7 +65,7 @@ ABCD::ADQ14_FWPD::ADQ14_FWPD(void* adq, int num, int Verbosity) : ABCD::Digitize
 
     DBS_instances_number = 0;
 
-    trig_mode = ADQ_LEVEL_TRIGGER_MODE;
+    trigger_mode = ADQ_LEVEL_TRIGGER_MODE;
     trig_external_delay = 0;
 
     trig_port_input_impedance = ADQ_IMPEDANCE_HIGH;
@@ -354,22 +354,22 @@ int ABCD::ADQ14_FWPD::Configure()
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
         std::cout << "Setting trigger; ";
-        std::cout << "mode: " << ADQ_descriptions::trig_mode.at(trig_mode) << "; ";
+        std::cout << "mode: " << ADQ_descriptions::trigger_mode.at(trigger_mode) << "; ";
         std::cout << std::endl;
     }
 
-    CHECKZERO(ADQ_SetTriggerMode(adq_cu_ptr, adq_num, trig_mode));
+    CHECKZERO(ADQ_SetTriggerMode(adq_cu_ptr, adq_num, trigger_mode));
 
     if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
         std::cout << "Trigger from device: ";
-        std::cout << ADQ_descriptions::trig_mode.at(ADQ_GetTriggerMode(adq_cu_ptr, adq_num)) << "; ";
+        std::cout << ADQ_descriptions::trigger_mode.at(ADQ_GetTriggerMode(adq_cu_ptr, adq_num)) << "; ";
         std::cout << std::endl;
     }
 
-    if (trig_mode == ADQ_EXT_TRIGGER_MODE) {
+    if (trigger_mode == ADQ_EXT_TRIGGER_MODE) {
         if (GetVerbosity() > 0)
         {
             char time_buffer[BUFFER_SIZE];
@@ -441,14 +441,14 @@ int ABCD::ADQ14_FWPD::Configure()
             const int reset_hysteresis = trig_hysteresises[channel];
             const int trig_arm_hysteresis = trig_hysteresises[channel];
             const int reset_arm_hysteresis = trig_hysteresises[channel];
-            const int reset_polarity = (trig_slopes[channel] == ADQ_TRIG_SLOPE_RISING ? ADQ_TRIG_SLOPE_FALLING : ADQ_TRIG_SLOPE_RISING);
+            const int reset_polarity = (trigger_slopes[channel] == ADQ_TRIG_SLOPE_RISING ? ADQ_TRIG_SLOPE_FALLING : ADQ_TRIG_SLOPE_RISING);
 
             CHECKZERO(ADQ_PDSetupLevelTrig(adq_cu_ptr, adq_num, channel + 1,
-                                           trig_levels[channel],
+                                           trigger_levels[channel],
                                            reset_hysteresis,
                                            trig_arm_hysteresis,
                                            reset_arm_hysteresis,
-                                           trig_slopes[channel],
+                                           trigger_slopes[channel],
                                            reset_polarity));
 
 
@@ -480,8 +480,8 @@ int ABCD::ADQ14_FWPD::Configure()
             //                                          scope_samples[channel],
             //                                          padding_offset,
             //                                          minimum_frame_length,
-            //                                          trig_slopes[channel],
-            //                                          trig_mode, trig_mode));
+            //                                          trigger_slopes[channel],
+            //                                          trigger_mode, trigger_mode));
             //}
         }
     }
@@ -641,7 +641,7 @@ int ABCD::ADQ14_FWPD::Configure()
         ////CHECKZERO(ADQ_SetStreamConfig(adq_cu_ptr, adq_num, 1, 0));
         ////CHECKZERO(ADQ_SetStreamConfig(adq_cu_ptr, adq_num, 2, 0));
         ////CHECKZERO(ADQ_SetStreamConfig(adq_cu_ptr, adq_num, 3, channels_acquisition_mask));
-        ////CHECKZERO(ADQ_SetTriggerMode(adq_cu_ptr, adq_num, trig_mode));
+        ////CHECKZERO(ADQ_SetTriggerMode(adq_cu_ptr, adq_num, trigger_mode));
     } else {
         if (GetVerbosity() > 0)
         {
@@ -708,9 +708,9 @@ void ABCD::ADQ14_FWPD::SetChannelsNumber(unsigned int n)
     Digitizer::SetChannelsNumber(n);
 
     desired_input_ranges.resize(n, 1000);
-    trig_levels.resize(n, 0);
+    trigger_levels.resize(n, 0);
     trig_hysteresises.resize(n, 0);
-    trig_slopes.resize(n, ADQ_TRIG_SLOPE_RISING);
+    trigger_slopes.resize(n, ADQ_TRIG_SLOPE_RISING);
     pretriggers.resize(n, 0);
     DC_offsets.resize(n, default_DC_offset);
     DBS_disableds.resize(n, false);
@@ -738,7 +738,7 @@ int ABCD::ADQ14_FWPD::StartAcquisition()
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::StartAcquisition() ";
         std::cout << "Starting acquisition; ";
-        std::cout << "Trigger mode: " << ADQ_descriptions::trig_mode.at(trig_mode) << "; ";
+        std::cout << "Trigger mode: " << ADQ_descriptions::trigger_mode.at(trigger_mode) << "; ";
         std::cout << std::endl;
     }
 
@@ -776,7 +776,7 @@ int ABCD::ADQ14_FWPD::StartAcquisition()
     }
 
 
-    if (trig_mode == ADQ_SW_TRIGGER_MODE) {
+    if (trigger_mode == ADQ_SW_TRIGGER_MODE) {
         // We need to set it at least to 1 to force at least one trigger
         int max_records_number = 1;
 
@@ -810,11 +810,11 @@ int ABCD::ADQ14_FWPD::RearmTrigger()
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::RearmTrigger() ";
         std::cout << "Rearming trigger; ";
-        std::cout << "Trigger mode: " << ADQ_descriptions::trig_mode.at(trig_mode) << " (index: " << trig_mode << "); ";
+        std::cout << "Trigger mode: " << ADQ_descriptions::trigger_mode.at(trigger_mode) << " (index: " << trigger_mode << "); ";
         std::cout << std::endl;
     }
 
-    if (trig_mode == ADQ_SW_TRIGGER_MODE) {
+    if (trigger_mode == ADQ_SW_TRIGGER_MODE) {
         if (GetVerbosity() > 1)
         {
             char time_buffer[BUFFER_SIZE];
@@ -1497,12 +1497,12 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
     }
 
     // Looking for the settings in the description map
-    const auto tm_result = map_utilities::find_item(ADQ_descriptions::trig_mode, str_trigger_source);
+    const auto tm_result = map_utilities::find_item(ADQ_descriptions::trigger_mode, str_trigger_source);
 
-    if (tm_result != ADQ_descriptions::trig_mode.end() && str_trigger_source.length() > 0) {
-        trig_mode = tm_result->first;
+    if (tm_result != ADQ_descriptions::trigger_mode.end() && str_trigger_source.length() > 0) {
+        trigger_mode = tm_result->first;
     } else {
-        trig_mode = ADQ_LEVEL_TRIGGER_MODE;
+        trigger_mode = ADQ_LEVEL_TRIGGER_MODE;
 
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
@@ -1512,7 +1512,7 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
         std::cout << std::endl;
     }
 
-    json_object_set_nocheck(trigger_config, "source", json_string(ADQ_descriptions::trig_mode.at(trig_mode).c_str()));
+    json_object_set_nocheck(trigger_config, "source", json_string(ADQ_descriptions::trigger_mode.at(trigger_mode).c_str()));
 
     const char *cstr_trigger_impedance = json_string_value(json_object_get(trigger_config, "impedance"));
     const std::string str_trigger_impedance = (cstr_trigger_impedance) ? std::string(cstr_trigger_impedance) : std::string();
@@ -1674,15 +1674,15 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
                 }
 
                 // This level should be the relative to the baseline in the FWPD
-                const int trig_level = json_number_value(json_object_get(value, "trigger_level"));
+                const int trigger_level = json_number_value(json_object_get(value, "trigger_level"));
 
-                json_object_set_nocheck(value, "trigger_level", json_integer(trig_level));
+                json_object_set_nocheck(value, "trigger_level", json_integer(trigger_level));
 
                 if (GetVerbosity() > 0) {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
                     std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-                    std::cout << "Trigger level: " << trig_level << "; ";
+                    std::cout << "Trigger level: " << trigger_level << "; ";
                     std::cout << std::endl;
                 }
 
@@ -1710,20 +1710,20 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
                 }
 
                 // Looking for the settings in the description map
-                const auto ts_result = map_utilities::find_item(ADQ_descriptions::trig_slope, str_trigger_slope);
+                const auto ts_result = map_utilities::find_item(ADQ_descriptions::trigger_slope, str_trigger_slope);
 
-                if (ts_result != ADQ_descriptions::trig_slope.end() && str_trigger_slope.length() > 0) {
-                    trig_slope = ts_result->first;
+                if (ts_result != ADQ_descriptions::trigger_slope.end() && str_trigger_slope.length() > 0) {
+                    trigger_slope = ts_result->first;
 
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
                     std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
                     std::cout << "Found matching trigger slope; ";
                     std::cout << "Got: " << str_trigger_slope << "; ";
-                    std::cout << "index: " << trig_slope << "; ";
+                    std::cout << "index: " << trigger_slope << "; ";
                     std::cout << std::endl;
                 } else {
-                    trig_slope = ADQ_TRIG_SLOPE_FALLING;
+                    trigger_slope = ADQ_TRIG_SLOPE_FALLING;
 
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
@@ -1733,7 +1733,7 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
                     std::cout << std::endl;
                 }
 
-                json_object_set_nocheck(value, "trigger_slope", json_string(ADQ_descriptions::trig_slope.at(trig_slope).c_str()));
+                json_object_set_nocheck(value, "trigger_slope", json_string(ADQ_descriptions::trigger_slope.at(trigger_slope).c_str()));
 
                 const int pretrigger = json_number_value(json_object_get(value, "pretrigger"));
 
@@ -1802,9 +1802,9 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
                 if (0 <= id && id < static_cast<int>(GetChannelsNumber())) {
                     SetChannelEnabled(id, enabled);
                     desired_input_ranges[id] = input_range;
-                    trig_levels[id] = trig_level;
+                    trigger_levels[id] = trigger_level;
                     trig_hysteresises[id] = trig_hysteresis;
-                    trig_slopes[id] = trig_slope;
+                    trigger_slopes[id] = trigger_slope;
                     pretriggers[id] = pretrigger;
                     DC_offsets[id] = DC_offset;
                     DBS_disableds[id] = DBS_disable;

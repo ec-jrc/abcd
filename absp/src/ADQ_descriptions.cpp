@@ -85,7 +85,7 @@ const std::map<enum ADQEdge, std::string> ADQ_descriptions::slope = {
     {ADQ_EDGE_BOTH, "both"}
 };
 
-const std::map<unsigned int, std::string> ADQ_descriptions::trig_mode = {
+const std::map<unsigned int, std::string> ADQ_descriptions::trigger_mode = {
     {ADQ_SW_TRIGGER_MODE, "software"},
     {ADQ_EXT_TRIGGER_MODE, "external"},
     {ADQ_LEVEL_TRIGGER_MODE, "channels"},
@@ -93,7 +93,7 @@ const std::map<unsigned int, std::string> ADQ_descriptions::trig_mode = {
     {0, "none"}
 };
 
-const std::map<unsigned int, std::string> ADQ_descriptions::trig_slope = {
+const std::map<unsigned int, std::string> ADQ_descriptions::trigger_slope = {
     {ADQ_TRIG_SLOPE_FALLING, "falling"},
     {ADQ_TRIG_SLOPE_RISING, "rising"}
 };

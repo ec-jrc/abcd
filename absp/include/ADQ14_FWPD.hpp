@@ -56,15 +56,15 @@ public:
     // -------------------------------------------------------------------------
 
     // Flag to select the trigger mode
-    unsigned int trig_mode;
+    unsigned int trigger_mode;
     // Flag to select the trigger slope
-    unsigned int trig_slope;
+    unsigned int trigger_slope;
     // Value to change a delay of the external trigger, not used
     int trig_external_delay;
 
-    std::vector<int16_t> trig_levels;
+    std::vector<int16_t> trigger_levels;
     std::vector<int16_t> trig_hysteresises;
-    std::vector<int> trig_slopes;
+    std::vector<int> trigger_slopes;
 
     static const double default_trig_ext_threshold;
     static const unsigned int default_trig_ext_slope;

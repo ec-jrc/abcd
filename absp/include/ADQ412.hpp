@@ -45,13 +45,13 @@ public:
     //--------------------------------------------------------------------------
 
     // Flag to select the trigger mode
-    unsigned int trig_mode;
+    unsigned int trigger_mode;
     // Flag to select the trigger slope
-    unsigned int trig_slope;
+    unsigned int trigger_slope;
     // Value to change a delay of the external trigger, not used
     int trig_external_delay;
     // Value of the trigger level for the channels, in ADC samples
-    int trig_level;
+    int trigger_level;
 
     // Enable channels self triggering flag
     int channels_triggering_mask;
