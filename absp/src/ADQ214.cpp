@@ -76,8 +76,9 @@ int ABCD::ADQ214::Initialize()
         std::cout << std::endl;
     }
 
-    CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_POWER_ON));
-    CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_COMMUNICATION));
+    // The vendor says that these should be used only for USB digitizers
+    //CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_POWER_ON));
+    //CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_COMMUNICATION));
 
     const char *board_name = ADQ_GetBoardSerialNumber(adq_cu_ptr, adq_num);
 

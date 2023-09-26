@@ -87,9 +87,10 @@ int ABCD::ADQ14_FWDAQ::Initialize()
         std::cout << std::endl;
     }
 
-    CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_POWER_ON));
-    CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_COMMUNICATION));
-    CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_ADC_DATA));
+    // The vendor says that these should be used only for USB digitizers
+    //CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_POWER_ON));
+    //CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_COMMUNICATION));
+    //CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_ADC_DATA));
 
     const char *board_name = ADQ_GetBoardSerialNumber(adq_cu_ptr, adq_num);
 
