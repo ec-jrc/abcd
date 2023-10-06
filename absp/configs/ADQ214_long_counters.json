@@ -39,6 +39,18 @@
                 "slope": "rising",
                 "level": 32850
             },
+            "trigger_output": {
+                "enable": false,
+                "source": "channels",
+                "source_possible_value1": "channels",
+                "source_possible_value2": "event",
+                "source_note1": "'channels' uses the level triggering on the channels",
+                "source_note2": "'event' uses whatever trigger event of the board, check datasheet",
+                "width": 50,
+                "width_note1": "length of the output pulse in ns",
+                "width_note2": "minimum value 20 ns",
+                "zzz": null
+            },
             "zzz": null
         },
         {}
