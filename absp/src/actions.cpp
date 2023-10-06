@@ -472,7 +472,9 @@ bool actions::generic::create_digitizer(status &global_status)
             std::cout << std::endl;
         }
 
-        CHECKZERO(ADQControlUnit_OpenDeviceInterface(global_status.adq_cu_ptr, device_index));
+        void *adq_cu_ptr = global_status.adq_cu_ptr;
+
+        CHECKZERO(ADQControlUnit_OpenDeviceInterface(adq_cu_ptr, device_index));
 
         if (global_status.verbosity > 0)
         {
@@ -483,7 +485,7 @@ bool actions::generic::create_digitizer(status &global_status)
             std::cout << std::endl;
         }
 
-        CHECKZERO(ADQControlUnit_SetupDevice(global_status.adq_cu_ptr, device_index));
+        CHECKZERO(ADQControlUnit_SetupDevice(adq_cu_ptr, device_index));
 
         if (global_status.verbosity > 0)
         {
