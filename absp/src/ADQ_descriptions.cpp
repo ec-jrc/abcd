@@ -113,6 +113,24 @@ const std::map<unsigned int, std::string> ADQ_descriptions::ADQ14_timestamp_sync
     {ADQ_EVENT_SOURCE_SYNC, "sync_port"}
 };
 
+const std::map<unsigned int, std::string> ADQ_descriptions::ADQ214_trigger_output_mode = {
+    {ADQ_ADQ214_TRIGGER_OUTPUT_MODE_DISABLE, "disable"},
+    {ADQ_ADQ214_TRIGGER_OUTPUT_MODE_LEVEL_TRIGGER, "channels"},
+    {ADQ_ADQ214_TRIGGER_OUTPUT_MODE_TRIGGER_EVENT, "event"}
+};
+
+const std::map<unsigned int, std::string> ADQ_descriptions::ADQ14_trigger_output_port = {
+    {ADQ_ADQ14_TRIGGER_OUTPUT_PORT_TRIG, "trig"},
+    {ADQ_ADQ14_TRIGGER_OUTPUT_PORT_SYNC, "sync"}
+};
+
+const std::map<unsigned int, std::string> ADQ_descriptions::ADQ14_trigger_output_mode = {
+    {ADQ_ADQ14_TRIGGER_OUTPUT_MODE_DISABLE, "disable"},
+    {ADQ_ADQ14_TRIGGER_OUTPUT_MODE_RECORD_TRIGGER, "record"},
+    {ADQ_ADQ14_TRIGGER_OUTPUT_MODE_LEVEL_TRIGGER, "channels"},
+    {ADQ_ADQ14_TRIGGER_OUTPUT_MODE_TRIG_PORT, "trig_port"}
+};
+
 const std::map<unsigned int, std::string> ADQ_descriptions::collection_mode = {
     {ADQ_COLLECTION_MODE_RAW, "raw_pulse"},
     {ADQ_COLLECTION_MODE_METADATA, "pulse_metadata"},

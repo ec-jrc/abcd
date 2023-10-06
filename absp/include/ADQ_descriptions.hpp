@@ -51,6 +51,18 @@
 #define ADQ_ADQ14_TEMPERATURE_DCDC1 6
 #define ADQ_ADQ14_MAX_SMOOTH_SAMPLES 100
 
+#define ADQ_ADQ214_TRIGGER_OUTPUT_MODE_DISABLE 0
+#define ADQ_ADQ214_TRIGGER_OUTPUT_MODE_LEVEL_TRIGGER 0x19
+#define ADQ_ADQ214_TRIGGER_OUTPUT_MODE_TRIGGER_EVENT 0x11
+
+#define ADQ_ADQ14_TRIGGER_OUTPUT_PORT_TRIG 0
+#define ADQ_ADQ14_TRIGGER_OUTPUT_PORT_SYNC 12
+
+#define ADQ_ADQ14_TRIGGER_OUTPUT_MODE_DISABLE 0
+#define ADQ_ADQ14_TRIGGER_OUTPUT_MODE_RECORD_TRIGGER 3
+#define ADQ_ADQ14_TRIGGER_OUTPUT_MODE_LEVEL_TRIGGER 4
+#define ADQ_ADQ14_TRIGGER_OUTPUT_MODE_TRIG_PORT 8
+
 #define ADQ_ADQ412_TEMPERATURE_ADC0 1
 #define ADQ_ADQ412_TEMPERATURE_ADC1 2
 #define ADQ_ADQ412_TEMPERATURE_FPGA 3
@@ -82,6 +94,9 @@ public:
     static const std::map<unsigned int, std::string> trigger_slope;
     static const std::map<unsigned int, std::string> ADQ14_timestamp_synchronization_mode;
     static const std::map<unsigned int, std::string> ADQ14_timestamp_synchronization_source;
+    static const std::map<unsigned int, std::string> ADQ214_trigger_output_mode;
+    static const std::map<unsigned int, std::string> ADQ14_trigger_output_mode;
+    static const std::map<unsigned int, std::string> ADQ14_trigger_output_port;
     static const std::map<unsigned int, std::string> collection_mode;
     static const std::map<unsigned int, std::string> analog_front_end_coupling;
     static const std::map<unsigned int, std::string> ADQ14_temperatures;
