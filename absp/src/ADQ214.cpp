@@ -25,6 +25,7 @@ extern "C" {
 
 #define BUFFER_SIZE 32
 
+const int ABCD::ADQ214::default_trigger_output_width = 20;
 
 ABCD::ADQ214::ADQ214(void* adq, int num, int Verbosity) : ABCD::Digitizer(Verbosity),
                                                           adq_cu_ptr(adq),
@@ -46,7 +47,6 @@ ABCD::ADQ214::ADQ214(void* adq, int num, int Verbosity) : ABCD::Digitizer(Verbos
 
     trigger_mode = ADQ_LEVEL_TRIGGER_MODE;
     trigger_slope = ADQ_TRIG_SLOPE_FALLING;
-    trig_external_delay = 0;
     trigger_level = 0;
 
     records_number = 1024;
@@ -177,6 +177,19 @@ int ABCD::ADQ214::Configure()
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ214::Configure() ";
+        std::cout << "Setting PLL divider; ";
+        std::cout << "PLL_divider: " << PLL_divider << "; ";
+        std::cout << std::endl;
+    }
+
+    // This has to go before the SetClockSource
+    CHECKZERO(ADQ_SetPllFreqDivider(adq_cu_ptr, adq_num, PLL_divider));
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::Configure() ";
         std::cout << "Setting clock; ";
         std::cout << "clock_source: " << ADQ_descriptions::clock_source.at(clock_source) << "; ";
         std::cout << std::endl;
@@ -191,18 +204,6 @@ int ABCD::ADQ214::Configure()
         std::cout << "Clock source from device: " << ADQ_descriptions::clock_source.at(ADQ_GetClockSource(adq_cu_ptr, adq_num)) << "; ";
         std::cout << std::endl;
     }
-
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ214::Configure() ";
-        std::cout << "Setting PLL divider; ";
-        std::cout << "PLL_divider: " << PLL_divider << "; ";
-        std::cout << std::endl;
-    }
-
-    CHECKZERO(ADQ_SetPllFreqDivider(adq_cu_ptr, adq_num, PLL_divider));
 
     if (GetVerbosity() > 0)
     {
@@ -315,6 +316,15 @@ int ABCD::ADQ214::Configure()
 
     CHECKZERO(ADQ_SetTriggerMode(adq_cu_ptr, adq_num, trigger_mode));
 
+    if (GetVerbosity() > 0) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::Configure() ";
+        std::cout << "Trigger from device: ";
+        std::cout << ADQ_descriptions::trigger_mode.at(ADQ_GetTriggerMode(adq_cu_ptr, adq_num)) << "; ";
+        std::cout << std::endl;
+    }
+
     if (trigger_mode == ADQ_EXT_TRIGGER_MODE) {
         if (GetVerbosity() > 0)
         {
@@ -326,7 +336,7 @@ int ABCD::ADQ214::Configure()
         }
 
         CHECKZERO(ADQ_SetExternTrigEdge(adq_cu_ptr, adq_num, trigger_slope));
-        //CHECKZERO(ADQ_SetExternalTriggerDelay(adq_cu_ptr, adq_num,  trig_external_delay));
+        //CHECKZERO(ADQ_SetExternalTriggerDelay(adq_cu_ptr, adq_num,  trigger_external_delay));
     } else if (trigger_mode == ADQ_LEVEL_TRIGGER_MODE) {
         if (GetVerbosity() > 0)
         {
@@ -352,6 +362,37 @@ int ABCD::ADQ214::Configure()
         std::cout << "Level: " << ADQ_GetLvlTrigLevel(adq_cu_ptr, adq_num) << "; ";
         std::cout << "Edge: " << ADQ_descriptions::trigger_slope.at(ADQ_GetLvlTrigEdge(adq_cu_ptr, adq_num)) << "; ";
         std::cout << std::endl;
+    }
+
+    // -------------------------------------------------------------------------
+    //  Trigger output
+    // -------------------------------------------------------------------------
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::Configure() ";
+        std::cout << "Trigger output: " << (trigger_output_enable ? "true" : "false") << "; ";
+        std::cout << "mode: " <<                                               (trigger_output_mode) << "; ";
+        std::cout << "width: " << trigger_output_width << "; ";
+        std::cout << std::endl;
+    }
+
+    if (trigger_output_enable) {
+        // WriteTrig() needs to be set to 1, in order to enable the trigger output
+        CHECKZERO(ADQ_WriteTrig(adq_cu_ptr, adq_num, 1));
+        CHECKZERO(ADQ_SetConfigurationTrig(adq_cu_ptr, adq_num, trigger_output_mode,
+                                                                trigger_output_width, 0));
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ214::Configure() ";
+            std::cout << "Trigger output: enabled; ";
+            std::cout << std::endl;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -829,6 +870,96 @@ int ABCD::ADQ214::ReadConfig(json_t *config)
     }
 
     // -------------------------------------------------------------------------
+    //  Reading the trigger output configuration
+    // -------------------------------------------------------------------------
+    json_t *trigger_output_config = json_object_get(config, "trigger_output");
+
+    if (!json_is_object(trigger_output_config)) {
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ214::Configure() ";
+            std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Missing \"trigger_output\" entry in configuration; ";
+            std::cout << std::endl;
+        }
+
+        trigger_output_config = json_object();
+        json_object_set_new_nocheck(config, "trigger_output", trigger_output_config);
+    }
+
+    trigger_output_enable = json_is_true(json_object_get(trigger_output_config, "enable"));
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::ReadConfig() ";
+        std::cout << "Trigger output is " << (trigger_output_enable ? "enabled" : "disabled") << "; ";
+        std::cout << std::endl;
+    }
+
+    json_object_set_nocheck(trigger_output_config, "enable", trigger_output_enable ? json_true() : json_false());
+
+    const char *cstr_trigger_output_source = json_string_value(json_object_get(trigger_output_config, "source"));
+    const std::string str_trigger_output_source = (cstr_trigger_output_source) ? std::string(cstr_trigger_output_source) : std::string();
+
+    if (GetVerbosity() > 0) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::ReadConfig() ";
+        std::cout << "Trigger output source: " << str_trigger_output_source<< "; ";
+        std::cout << std::endl;
+    }
+
+    // Looking for the settings in the description map
+    const auto tom_result = map_utilities::find_item(ADQ_descriptions::ADQ214_trigger_output_mode, str_trigger_output_source);
+
+    if (tom_result != ADQ_descriptions::ADQ214_trigger_output_mode.end() && str_trigger_output_source.length() > 0) {
+        trigger_output_mode = tom_result->first;
+    } else {
+        trigger_output_mode = ADQ_ADQ214_TRIGGER_OUTPUT_MODE_DISABLE;
+
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::ReadConfig() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid trigger_output source; ";
+        std::cout << "Got: " << str_trigger_output_source << "; ";
+        std::cout << std::endl;
+    }
+
+    if (!trigger_output_enable) {
+        if (GetVerbosity() > 0) {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ214::ReadConfig() ";
+            std::cout << "Trigger output: forcing disable; ";
+            std::cout << std::endl;
+        }
+
+        trigger_output_mode = ADQ_ADQ214_TRIGGER_OUTPUT_MODE_DISABLE;
+    }
+
+    json_object_set_nocheck(trigger_output_config, "source", json_string(ADQ_descriptions::ADQ214_trigger_output_mode.at(trigger_output_mode).c_str()));
+
+    trigger_output_width = json_number_value(json_object_get(trigger_output_config, "width"));
+
+    if (trigger_output_width < ABCD::ADQ214::default_trigger_output_width) {
+       trigger_output_width = ABCD::ADQ214::default_trigger_output_width;
+    }
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::ReadConfig() ";
+        std::cout << "Trigger output width: " << trigger_output_width << " ns; ";
+        std::cout << std::endl;
+    }
+
+    json_object_set_nocheck(trigger_output_config, "width", json_integer(trigger_output_width));
+
+    // -------------------------------------------------------------------------
     //  Reading the single channels configuration
     // -------------------------------------------------------------------------
     // First resetting the channels statuses
@@ -940,7 +1071,7 @@ int ABCD::ADQ214::ReadConfig(json_t *config)
 
     // TODO: Decide whether to use the external trigger delay or not
     // The documentation says that the card should be able to take care of it.
-    // trig_external_delay = pretrigger
+    // trigger_external_delay = pretrigger
 
     if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];

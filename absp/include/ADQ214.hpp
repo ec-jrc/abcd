@@ -40,6 +40,13 @@ public:
     // Settings of the clock PLL divider
     int PLL_divider;
 
+    // Settings for the trigger output
+    bool trigger_output_enable;
+    unsigned int trigger_output_port;
+    unsigned int trigger_output_mode;
+    int trigger_output_width;
+    static const int default_trigger_output_width;
+
     // -------------------------------------------------------------------------
     //  Trigger settings
     // -------------------------------------------------------------------------
@@ -49,7 +56,7 @@ public:
     // Flag to select the trigger slope
     unsigned int trigger_slope;
     // Value to change a delay of the external trigger, not used
-    int trig_external_delay;
+    //int trigger_external_delay;
 
     // Value of the trigger level for the channels, in ADC samples
     int trigger_level;
@@ -129,9 +136,9 @@ public:
     int GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms);
 
     //--------------------------------------------------------------------------
-    
+
     int SpecificCommand(json_t* json_command);
-    
+
 };
 }
 
