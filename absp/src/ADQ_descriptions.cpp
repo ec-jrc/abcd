@@ -32,7 +32,7 @@ const std::map<unsigned int, std::string> ADQ_descriptions::clock_source = {
 const std::map<enum ADQReferenceClockSource, std::string> ADQ_descriptions::ADQ36_clock_source = {
     {ADQ_REFERENCE_CLOCK_SOURCE_INTERNAL, "internal"},
     {ADQ_REFERENCE_CLOCK_SOURCE_PORT_CLK, "external"},
-    {ADQ_REFERENCE_CLOCK_SOURCE_PXIE_10M, "external_PXI"},
+    {ADQ_REFERENCE_CLOCK_SOURCE_PXIE_10M, "external_PXIsync"},
     {ADQ_REFERENCE_CLOCK_SOURCE_PXIE_100M, "external_PXIe_100MHz"}
 };
 
