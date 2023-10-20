@@ -31,6 +31,8 @@ DELTA_MIN = 0
 # This should be 160 MB
 BUFFER_SIZE = 16 * 10 * 1024 * 1024
 
+PLOT_MARKER = '.'
+
 def exponential(t, A, tau):
     return A * np.exp(-t / tau)
 
@@ -84,6 +86,11 @@ parser.add_argument('-s',
 parser.add_argument('--relative_indexes',
                     action = "store_true",
                     help = 'Instead of plotting vs the aboslute indexes, use the consecutive indexes of the timestamps')
+parser.add_argument('-m',
+                    '--plot_marker',
+                    type = str,
+                    default = PLOT_MARKER,
+                    help = 'Marker for the plot (default: {})'.format(PLOT_MARKER))
 
 args = parser.parse_args()
 
@@ -245,12 +252,12 @@ else:
         try:
             if args.relative_indexes:
                 ts_ax.plot(np.asarray(partial_timestamps[channel]) * conversion_factor,
-                           linewidth = 0, marker = ',',
+                           linewidth = 0, marker = args.plot_marker,
                            label = "Ch: {:d}".format(channel))
             else:
                 ts_ax.plot(indexes_timestamps[channel],
                            np.asarray(partial_timestamps[channel]) * conversion_factor,
-                           linewidth = 0, marker = ',',
+                           linewidth = 0, marker = args.plot_marker,
                            label = "Ch: {:d}".format(channel))
         except Exception as error:
             print("    ERROR: {}".format(error))
