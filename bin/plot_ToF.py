@@ -125,7 +125,7 @@ parser.add_argument('-B',
                     '--buffer_size',
                     type = int,
                     default = BUFFER_SIZE,
-                    help = 'Buffer size for file reading (default: {:f})'.format(BUFFER_SIZE))
+                    help = 'Buffer size for file reading (default: {:d} B)'.format(BUFFER_SIZE))
 parser.add_argument('-s',
                     '--save_data',
                     action = "store_true",
