@@ -25,7 +25,8 @@
             "clock_source_possible_value0": "internal",
             "clock_source_possible_value1": "external_10MHz",
             "clock_source_possible_value2": "external",
-            "clock_source_possible_value3": "external_PXI",
+            "clock_source_possible_value3": "external_PXIsync",
+            "clock_source_possible_value4": "external_PXIe_100MHz",
             "timestamp_bit_shift": 0,
             "timestamp_bit_shift_note": "the timestamp may be shifted in order to align it with the waan analysis module",
             "trigger": {

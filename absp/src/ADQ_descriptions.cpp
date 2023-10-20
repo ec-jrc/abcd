@@ -25,7 +25,7 @@ const std::map<unsigned int, std::string> ADQ_descriptions::clock_source = {
     {ADQ_CLOCK_SOURCE_INTREF, "internal"},
     {ADQ_CLOCK_SOURCE_EXTREF, "external_10MHz"},
     {ADQ_CLOCK_SOURCE_EXTCLK, "external"},
-    {ADQ_CLOCK_SOURCE_PXIE_10M, "external_PXI"},
+    {ADQ_CLOCK_SOURCE_PXIE_10M, "external_PXIsync"},
     {ADQ_CLOCK_SOURCE_PXIE_100M, "external_PXIe_100MHz"}
 };
 

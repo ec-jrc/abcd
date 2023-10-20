@@ -20,7 +20,8 @@
                 "source": "internal",
                 "source_possible_value0": "internal",
                 "source_possible_value2": "external",
-                "source_possible_value3": "external_PXI",
+                "source_possible_value3": "external_PXIsync",
+                "source_possible_value4": "external_PXIe_100MHz",
 		"reference_frequency": 10e6
 	    },
             "timestamp_bit_shift": 4,

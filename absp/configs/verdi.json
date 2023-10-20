@@ -11,7 +11,7 @@
             "clock_source0": "internal",
             "clock_source1": "external_10MHz",
             "clock_source2": "external",
-            "clock_source3": "external_PXI",
+            "clock_source3": "external_PXIsync",
             "channels": [
                 {
                     "id": 0,
