@@ -224,7 +224,16 @@ void CAENDgtz::Activate(int connection_type,
                 boardInfo.vers = 730;
                 boardInfo.nsPerSample = 2;
                 boardInfo.nsPerTimetag = 8;
+		// Issuing a channel ADC calibration
                 WriteRegister(0x809C, 1);
+            }
+            // DT5730S (with new FPGA)
+	    else if (vers >= 0xc4 && vers <= 0xc5) {
+                boardInfo.vers = 730;
+                boardInfo.nsPerSample = 2;
+                boardInfo.nsPerTimetag = 8;
+		// For the DT5730S this does nothing
+                //WriteRegister(0x809C, 1);
             }
             // DT5790
 	    else if (vers >= 0xd0 && vers <= 0xd2) {
@@ -238,12 +247,11 @@ void CAENDgtz::Activate(int connection_type,
                 boardInfo.nsPerSample = 4;
                 boardInfo.nsPerTimetag = 8;
             }
-            // DT5730S with new FPGA
-	    else if (vers >= 0xc4 && vers <= 0xc5) {
-                boardInfo.vers = 730;
-                boardInfo.nsPerSample = 2;
+            // DT5725S (with new FPGA)
+	    else if (vers >= 0xf4 && vers <= 0xf5) {
+                boardInfo.vers = 725;
+                boardInfo.nsPerSample = 4;
                 boardInfo.nsPerTimetag = 8;
-                WriteRegister(0x809C, 1);
             }
 
             if (verboseDebug) {
