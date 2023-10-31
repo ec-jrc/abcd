@@ -507,7 +507,35 @@ bool actions::generic::read_socket(status &global_status)
                 // calculations using doubles anyways.
                 const double qshort = this_event.qshort;
                 const double qlong = this_event.qlong;
-                const double psd = (qlong != 0) ? ((qlong - qshort) / qlong) : (std::numeric_limits<double>::min());
+                const double baseline = this_event.baseline;
+                double energy = 0;
+                double psd = 0;
+
+                if (global_status.spectra_type == QLONG_SPECTRA) {
+                    energy = qlong;
+                } else if (global_status.spectra_type == QSHORT_SPECTRA) {
+                    energy = qshort;
+                } else if (global_status.spectra_type == BASELINE_SPECTRA) {
+                    energy = baseline;
+                } else {
+                    energy = qlong;
+                }
+
+                if (energy == 0) {
+                    psd = std::numeric_limits<double>::min();
+                } else {
+                    if (global_status.PSD_type == QTAIL_VS_ENERGY_PSD) {
+                        psd = (qlong - qshort) / energy;
+                    } else if (global_status.PSD_type == QSHORT_VS_ENERGY_PSD) {
+                        psd = qshort;
+                    } else if (global_status.PSD_type == QLONG_VS_ENERGY_PSD) {
+                        psd = qlong;
+                    } else if (global_status.PSD_type == BASELINE_VS_ENERGY_PSD) {
+                        psd = baseline;
+                    } else {
+                        psd = (qlong - qshort) / energy;
+                    }
+                }
 
                 add_channel(global_status, channel);
 
@@ -524,8 +552,8 @@ bool actions::generic::read_socket(status &global_status)
                     std::cout << std::endl;
                 }
 
-                histogram_fill(global_status.histos_E[channel], qlong);
-                histogram2D_fill(global_status.histos_PSD[channel], qlong, psd);
+                histogram_fill(global_status.histos_E[channel], energy);
+                histogram2D_fill(global_status.histos_PSD[channel], energy, psd);
                 global_status.counts_partial[channel] += 1;
                 global_status.counts_total[channel] += 1;
             }
@@ -786,6 +814,15 @@ state actions::read_config(status &global_status)
         json_t *new_config = json_object();
 
         json_object_set_new_nocheck(new_config, "time_decay", json_time_decay);
+        json_object_set_new_nocheck(new_config, "spectra_type", json_string("qlong"));
+        json_object_set_new_nocheck(new_config, "spectra_type_possible_value0", json_string("qlong"));
+        json_object_set_new_nocheck(new_config, "spectra_type_possible_value1", json_string("qshort"));
+        json_object_set_new_nocheck(new_config, "spectra_type_possible_value2", json_string("baseline"));
+        json_object_set_new_nocheck(new_config, "PSD_type", json_string("qtail_vs_energy"));
+        json_object_set_new_nocheck(new_config, "PSD_type_possible_value0", json_string("qtail_vs_energy"));
+        json_object_set_new_nocheck(new_config, "PSD_type_possible_value1", json_string("qshort_vs_energy"));
+        json_object_set_new_nocheck(new_config, "PSD_type_possible_value2", json_string("qlong_vs_energy"));
+        json_object_set_new_nocheck(new_config, "PSD_type_possible_value3", json_string("baseline_vs_energy"));
         json_object_set_new_nocheck(new_config, "channels", json_channels);
 
         global_status.config = new_config;
@@ -855,6 +892,68 @@ state actions::apply_config(status &global_status)
     global_status.time_decay_enabled = time_decay_enabled;
     global_status.time_decay_tau = time_decay_tau;
     global_status.time_decay_minimum = time_decay_minimum;
+
+    const char *cstr_spectra_type = json_string_value(json_object_get(config, "spectra_type"));
+    const std::string spectra_type = cstr_spectra_type ? std::string(cstr_spectra_type) : std::string();
+
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Found spectra type: '" << spectra_type << "'; ";
+        std::cout << std::endl;
+    }
+
+    if (spectra_type == std::string("qlong")) {
+        global_status.spectra_type = QLONG_SPECTRA;
+    } else if (spectra_type == std::string("qshort")) {
+        global_status.spectra_type = QSHORT_SPECTRA;
+    } else if (spectra_type == std::string("baseline")) {
+        global_status.spectra_type = BASELINE_SPECTRA;
+    } else {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "ERROR: Invalid spectra type, found: '" << spectra_type << "'; ";
+        std::cout << std::endl;
+
+        global_status.spectra_type = QLONG_SPECTRA;
+
+            json_object_set_nocheck(config, "spectra_type", json_string("qlong"));
+    }
+
+    const char *cstr_PSD_type = json_string_value(json_object_get(config, "PSD_type"));
+    const std::string PSD_type = cstr_PSD_type ? std::string(cstr_PSD_type) : std::string();
+
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Found PSD type: '" << PSD_type << "'; ";
+        std::cout << std::endl;
+    }
+
+    if (PSD_type == std::string("qtail_vs_energy")) {
+        global_status.PSD_type = QTAIL_VS_ENERGY_PSD;
+    } else if (PSD_type == std::string("qshort_vs_energy")) {
+        global_status.PSD_type = QSHORT_VS_ENERGY_PSD;
+    } else if (PSD_type == std::string("qlong_vs_energy")) {
+        global_status.PSD_type = QLONG_VS_ENERGY_PSD;
+    } else if (PSD_type == std::string("baseline_vs_energy")) {
+        global_status.PSD_type = BASELINE_VS_ENERGY_PSD;
+    } else {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "ERROR: Invalid PSD type, found: '" << PSD_type << "'; ";
+        std::cout << std::endl;
+
+        global_status.PSD_type = QTAIL_VS_ENERGY_PSD;
+
+        json_object_set_nocheck(config, "PSD_type", json_string("qtail_vs_energy"));
+    }
 
     json_t *json_channels = json_object_get(config, "channels");
 

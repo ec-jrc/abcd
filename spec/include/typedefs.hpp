@@ -19,6 +19,19 @@ extern "C" {
 #include "histogram2D.h"
 }
 
+enum spectra_types {
+    QLONG_SPECTRA = 0,
+    QSHORT_SPECTRA = 1,
+    BASELINE_SPECTRA = 2,
+};
+
+enum PSD_types {
+    QTAIL_VS_ENERGY_PSD = 0,
+    QSHORT_VS_ENERGY_PSD = 1,
+    QLONG_VS_ENERGY_PSD = 2,
+    BASELINE_VS_ENERGY_PSD = 3,
+};
+
 struct status
 {
     std::string status_address = defaults_spec_status_address;
@@ -43,6 +56,9 @@ struct status
 
     std::chrono::time_point<std::chrono::system_clock> system_start;
     std::chrono::time_point<std::chrono::system_clock> last_publication;
+
+    enum spectra_types spectra_type;
+    enum PSD_types PSD_type;
 
     std::set<unsigned int> active_channels;
 

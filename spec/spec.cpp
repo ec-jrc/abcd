@@ -168,6 +168,8 @@ int main(int argc, char *argv[])
     global_status.status_address = status_address;
     global_status.data_address = data_address;
     global_status.commands_address = commands_address;
+    global_status.spectra_type = QLONG_SPECTRA;
+    global_status.PSD_type = QTAIL_VS_ENERGY_PSD;
     global_status.config_file = config_file;
 
     if (global_status.verbosity > 0) {
