@@ -72,6 +72,8 @@ struct status
     bool time_decay_enabled = defaults_tofcalc_time_decay_enabled;
     double time_decay_tau = defaults_tofcalc_time_decay_tau;
     double time_decay_minimum = defaults_tofcalc_time_decay_minimum;
+
+    bool disable_PSD_plot = false;
 };
 
 struct state

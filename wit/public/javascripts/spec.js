@@ -239,52 +239,56 @@ function page_loaded() {
                 type: 'scatter'
             };
 
-            const histo_EPSD = spectra[selected_channel()].PSD;
+            const spectrum_data = [energy];
+            let PSD_data = [];
 
-            const delta_x = (histo_EPSD.config.max_x - histo_EPSD.config.min_x) / histo_EPSD.config.bins_x;
-            const delta_y = (histo_EPSD.config.max_y - histo_EPSD.config.min_y) / histo_EPSD.config.bins_y;
+            if (spectra[selected_channel()].hasOwnProperty("PSD")) {
+                const histo_EPSD = spectra[selected_channel()].PSD;
 
-            let edges_x = [];
+                const delta_x = (histo_EPSD.config.max_x - histo_EPSD.config.min_x) / histo_EPSD.config.bins_x;
+                const delta_y = (histo_EPSD.config.max_y - histo_EPSD.config.min_y) / histo_EPSD.config.bins_y;
 
-            for (let index_x = 0; index_x < histo_EPSD.config.bins_x; index_x++) {
-                edges_x.push(index_x * delta_x + histo_EPSD.config.min_x);
-            }
-
-            let edges_y = [];
-
-            for (let index_y = 0; index_y < histo_EPSD.config.bins_y; index_y++) {
-                edges_y.push(index_y * delta_y + histo_EPSD.config.min_y);
-            }
-
-            var heights = [];
-
-            for (let index_y = 0; index_y < histo_EPSD.config.bins_y; index_y++) {
-                let row = [];
+                let edges_x = [];
 
                 for (let index_x = 0; index_x < histo_EPSD.config.bins_x; index_x++) {
-                    const index = (index_x + histo_EPSD.config.bins_x * index_y);
-                    const counts = Math.log10(histo_EPSD.data[index]);
-
-                    row.push(counts);
+                    edges_x.push(index_x * delta_x + histo_EPSD.config.min_x);
                 }
 
-                heights.push(row);
+                let edges_y = [];
+
+                for (let index_y = 0; index_y < histo_EPSD.config.bins_y; index_y++) {
+                    edges_y.push(index_y * delta_y + histo_EPSD.config.min_y);
+                }
+
+                var heights = [];
+
+                for (let index_y = 0; index_y < histo_EPSD.config.bins_y; index_y++) {
+                    let row = [];
+
+                    for (let index_x = 0; index_x < histo_EPSD.config.bins_x; index_x++) {
+                        const index = (index_x + histo_EPSD.config.bins_x * index_y);
+                        const counts = Math.log10(histo_EPSD.data[index]);
+
+                        row.push(counts);
+                    }
+
+                    heights.push(row);
+                }
+
+                const PSD = {
+                    x: edges_x,
+                    y: edges_y,
+                    z: heights,
+                    xaxis: 'x',
+                    yaxis: 'y2',
+                    name: 'PSD vs E',
+                    colorscale: 'Viridis',
+                    showscale: false,
+                    type: 'heatmap'
+                };
+
+                PSD_data = [PSD];
             }
-
-            const PSD = {
-                x: edges_x,
-                y: edges_y,
-                z: heights,
-                xaxis: 'x',
-                yaxis: 'y2',
-                name: 'PSD vs E',
-                colorscale: 'Viridis',
-                showscale: false,
-                type: 'heatmap'
-            };
-
-            const spectrum_data = [energy];
-            const PSD_data = [PSD];
 
             if (force_update) {
                 // If forced, plotting without the fits so then the

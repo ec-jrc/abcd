@@ -163,7 +163,7 @@ void actions::generic::clear_memory(status &global_status)
     {
         histogram_t *const histo_E = pair.second;
 
-        if (histo_E != NULL)
+        if (histo_E)
         {
             histogram_destroy(histo_E);
         }
@@ -397,7 +397,7 @@ bool actions::generic::publish_data(status &global_status)
         const unsigned int channel_partial_counts = global_status.counts_partial[channel];
         const double channel_rate = channel_partial_counts / pubtime;
 
-        if (histo_E != NULL && histo_PSD) {
+        if (histo_E && histo_PSD) {
             if (global_status.verbosity > 0)
             {
                 char time_buffer[BUFFER_SIZE];
@@ -408,7 +408,6 @@ bool actions::generic::publish_data(status &global_status)
             }
 
             json_t *histo_E_data = histogram_to_json(histo_E);
-            json_t *histo_PSD_data = histogram2D_to_json(histo_PSD);
 
             json_t *channel_data = json_object();
 
@@ -417,7 +416,11 @@ bool actions::generic::publish_data(status &global_status)
             json_object_set_new_nocheck(channel_data, "rate", json_real(channel_rate));
             json_object_set_new_nocheck(channel_data, "counts", json_integer(channel_total_counts));
             json_object_set_new_nocheck(channel_data, "energy", histo_E_data);
-            json_object_set_new_nocheck(channel_data, "PSD", histo_PSD_data);
+
+            if (!global_status.disable_PSD_plot) {
+                json_t *histo_PSD_data = histogram2D_to_json(histo_PSD);
+                json_object_set_new_nocheck(channel_data, "PSD", histo_PSD_data);
+            }
 
             json_array_append_new(channels_data, channel_data);
 
@@ -802,6 +805,11 @@ state actions::read_config(status &global_status)
     else
     {
         // Creating empty config
+        json_t *new_config = json_object();
+
+        json_t *json_channels = json_array();
+
+        json_object_set_new_nocheck(new_config, "channels", json_channels);
 
         json_t *json_time_decay = json_object();
 
@@ -809,21 +817,20 @@ state actions::read_config(status &global_status)
         json_object_set_new_nocheck(json_time_decay, "tau", json_real(defaults_spec_time_decay_tau));
         json_object_set_new_nocheck(json_time_decay, "counts_minimum", json_real(defaults_spec_time_decay_minimum));
 
-        json_t *json_channels = json_array();
-
-        json_t *new_config = json_object();
-
         json_object_set_new_nocheck(new_config, "time_decay", json_time_decay);
+
+        json_object_set_new_nocheck(new_config, "disable_PSD_plot", json_false());
+
         json_object_set_new_nocheck(new_config, "spectra_type", json_string("qlong"));
         json_object_set_new_nocheck(new_config, "spectra_type_possible_value0", json_string("qlong"));
         json_object_set_new_nocheck(new_config, "spectra_type_possible_value1", json_string("qshort"));
         json_object_set_new_nocheck(new_config, "spectra_type_possible_value2", json_string("baseline"));
+
         json_object_set_new_nocheck(new_config, "PSD_type", json_string("qtail_vs_energy"));
         json_object_set_new_nocheck(new_config, "PSD_type_possible_value0", json_string("qtail_vs_energy"));
         json_object_set_new_nocheck(new_config, "PSD_type_possible_value1", json_string("qshort_vs_energy"));
         json_object_set_new_nocheck(new_config, "PSD_type_possible_value2", json_string("qlong_vs_energy"));
         json_object_set_new_nocheck(new_config, "PSD_type_possible_value3", json_string("baseline_vs_energy"));
-        json_object_set_new_nocheck(new_config, "channels", json_channels);
 
         global_status.config = new_config;
     }
@@ -836,6 +843,20 @@ state actions::apply_config(status &global_status)
     actions::generic::clear_memory(global_status);
 
     json_t * const config = global_status.config;
+
+    const bool disable_PSD_plot = json_is_true(json_object_get(config, "disable_PSD_plot"));
+
+    if (global_status.verbosity > 0) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Disable PSD plot: " << (disable_PSD_plot ? "true" : "false") << "; ";
+        std::cout << std::endl;
+    }
+
+    json_object_set_nocheck(config, "disable_PSD_plot", (disable_PSD_plot ? json_true() : json_false()));
+
+    global_status.disable_PSD_plot = disable_PSD_plot;
 
     json_t *json_time_decay = json_object_get(config, "time_decay");
 
@@ -1156,7 +1177,7 @@ state actions::receive_commands(status &global_status)
                         {
                             histogram_t *const histo_E = pair.second;
 
-                            if (histo_E != NULL)
+                            if (histo_E)
                             {
                                 histogram_reset(histo_E);
                             }
@@ -1206,7 +1227,7 @@ state actions::receive_commands(status &global_status)
 
                     histogram_t *const histo_E = global_status.histos_E[channel];
 
-                    if (histo_E != NULL)
+                    if (histo_E)
                     {
                         histogram_reset(histo_E);
                     }
