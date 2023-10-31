@@ -450,8 +450,6 @@ bool actions::generic::publish_data(status &global_status)
 
             json_t *histo_ToF_data = histogram_to_json(histo_ToF);
             json_t *histo_E_data = histogram_to_json(histo_E);
-            json_t *histo_EvsToF_data = histogram2D_to_json(histo_EvsToF);
-            json_t *histo_EvsE_data = histogram2D_to_json(histo_EvsE);
 
             json_t *channel_data = json_object();
 
@@ -462,8 +460,14 @@ bool actions::generic::publish_data(status &global_status)
             json_object_set_new_nocheck(channel_data, "counts", json_integer(channel_total_counts));
             json_object_set_new_nocheck(channel_data, "ToF", histo_ToF_data);
             json_object_set_new_nocheck(channel_data, "energy", histo_E_data);
-            json_object_set_new_nocheck(channel_data, "EvsToF", histo_EvsToF_data);
-            json_object_set_new_nocheck(channel_data, "EvsE", histo_EvsE_data);
+
+            if (!global_status.disable_bidimensional_plots) {
+                json_t *histo_EvsToF_data = histogram2D_to_json(histo_EvsToF);
+                json_t *histo_EvsE_data = histogram2D_to_json(histo_EvsE);
+
+                json_object_set_new_nocheck(channel_data, "EvsToF", histo_EvsToF_data);
+                json_object_set_new_nocheck(channel_data, "EvsE", histo_EvsE_data);
+            }
 
             json_array_append_new(channels_data, channel_data);
 
@@ -995,47 +999,68 @@ state actions::read_config(status &global_status)
 {
     const std::string config_file = global_status.config_file;
 
-    if (config_file.length() <= 0)
+    if (config_file.length() > 0)
     {
-        return states::PUBLISH_STATUS;
-    }
+        if (global_status.verbosity > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Reading file: ";
+            std::cout << config_file.c_str();
+            std::cout << std::endl;
+        }
 
-    if (global_status.verbosity > 0)
+        json_error_t error;
+
+        json_t *new_config = json_load_file(config_file.c_str(), 0, &error);
+
+        if (!new_config)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "ERROR: Parse error while reading config file: ";
+            std::cout << error.text;
+            std::cout << " (source: ";
+            std::cout << error.source;
+            std::cout << ", line: ";
+            std::cout << error.line;
+            std::cout << ", column: ";
+            std::cout << error.column;
+            std::cout << ", position: ";
+            std::cout << error.position;
+            std::cout << "); ";
+            std::cout << std::endl;
+
+            return states::PUBLISH_STATUS;
+        }
+
+        global_status.config = new_config;
+    }
+    else
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Reading file: ";
-        std::cout << config_file.c_str();
-        std::cout << std::endl;
+        // Creating empty config
+        json_t *new_config = json_object();
+
+        json_t *json_channels = json_array();
+
+        json_object_set_new_nocheck(new_config, "ns_per_sample", json_integer(1));
+
+        json_object_set_new_nocheck(new_config, "channels", json_channels);
+
+        json_t *json_time_decay = json_object();
+
+        json_object_set_new_nocheck(json_time_decay, "enable", json_false());
+        json_object_set_new_nocheck(json_time_decay, "tau", json_real(defaults_spec_time_decay_tau));
+        json_object_set_new_nocheck(json_time_decay, "counts_minimum", json_real(defaults_spec_time_decay_minimum));
+
+        json_object_set_new_nocheck(new_config, "time_decay", json_time_decay);
+
+        json_object_set_new_nocheck(new_config, "disable_bidimensional_plots", json_false());
+
+        global_status.config = new_config;
     }
-
-    json_error_t error;
-
-    json_t *new_config = json_load_file(config_file.c_str(), 0, &error);
-
-    if (!new_config)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: Parse error while reading config file: ";
-        std::cout << error.text;
-        std::cout << " (source: ";
-        std::cout << error.source;
-        std::cout << ", line: ";
-        std::cout << error.line;
-        std::cout << ", column: ";
-        std::cout << error.column;
-        std::cout << ", position: ";
-        std::cout << error.position;
-        std::cout << "); ";
-        std::cout << std::endl;
-
-        return states::PUBLISH_STATUS;
-    }
-
-    global_status.config = new_config;
 
     return states::APPLY_CONFIG;
 }
@@ -1064,6 +1089,21 @@ state actions::apply_config(status &global_status)
     json_object_set_nocheck(config, "ns_per_sample", json_real(ns_per_sample));
 
     global_status.ns_per_sample = ns_per_sample;
+
+    const bool disable_bidimensional_plots = json_is_true(json_object_get(config, "disable_bidimensional_plots"));
+
+    if (global_status.verbosity > 0) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Disable bidimensional plots: " << (disable_bidimensional_plots ? "true" : "false") << "; ";
+        std::cout << std::endl;
+    }
+
+    json_object_set_nocheck(config, "disable_bidimensional_plots", (disable_bidimensional_plots ? json_true() : json_false()));
+
+    global_status.disable_bidimensional_plots = disable_bidimensional_plots;
+
 
     json_t *json_time_decay = json_object_get(config, "time_decay");
 
