@@ -1,4 +1,4 @@
-// (C) Copyright 2016,2021 European Union, Cristiano Lino Fontana
+// (C) Copyright 2016,2021,2023 European Union, Cristiano Lino Fontana
 //
 // This file is part of ABCD.
 //
@@ -243,31 +243,31 @@ function page_loaded() {
             let PSD_data = [];
 
             if (spectra[selected_channel()].hasOwnProperty("PSD")) {
-                const histo_EPSD = spectra[selected_channel()].PSD;
+                const histo_EvsPSD = spectra[selected_channel()].PSD;
 
-                const delta_x = (histo_EPSD.config.max_x - histo_EPSD.config.min_x) / histo_EPSD.config.bins_x;
-                const delta_y = (histo_EPSD.config.max_y - histo_EPSD.config.min_y) / histo_EPSD.config.bins_y;
+                const delta_x = (histo_EvsPSD.config.max_x - histo_EvsPSD.config.min_x) / histo_EvsPSD.config.bins_x;
+                const delta_y = (histo_EvsPSD.config.max_y - histo_EvsPSD.config.min_y) / histo_EvsPSD.config.bins_y;
 
                 let edges_x = [];
 
-                for (let index_x = 0; index_x < histo_EPSD.config.bins_x; index_x++) {
-                    edges_x.push(index_x * delta_x + histo_EPSD.config.min_x);
+                for (let index_x = 0; index_x < histo_EvsPSD.config.bins_x; index_x++) {
+                    edges_x.push(index_x * delta_x + histo_EvsPSD.config.min_x);
                 }
 
                 let edges_y = [];
 
-                for (let index_y = 0; index_y < histo_EPSD.config.bins_y; index_y++) {
-                    edges_y.push(index_y * delta_y + histo_EPSD.config.min_y);
+                for (let index_y = 0; index_y < histo_EvsPSD.config.bins_y; index_y++) {
+                    edges_y.push(index_y * delta_y + histo_EvsPSD.config.min_y);
                 }
 
                 var heights = [];
 
-                for (let index_y = 0; index_y < histo_EPSD.config.bins_y; index_y++) {
+                for (let index_y = 0; index_y < histo_EvsPSD.config.bins_y; index_y++) {
                     let row = [];
 
-                    for (let index_x = 0; index_x < histo_EPSD.config.bins_x; index_x++) {
-                        const index = (index_x + histo_EPSD.config.bins_x * index_y);
-                        const counts = Math.log10(histo_EPSD.data[index]);
+                    for (let index_x = 0; index_x < histo_EvsPSD.config.bins_x; index_x++) {
+                        const index = (index_x + histo_EvsPSD.config.bins_x * index_y);
+                        const counts = Math.log10(histo_EvsPSD.data[index]);
 
                         row.push(counts);
                     }
