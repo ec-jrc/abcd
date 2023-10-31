@@ -850,7 +850,7 @@ state actions::apply_config(status &global_status)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "Disable PSD plot: " << (disable_bidimensional_plot ? "true" : "false") << "; ";
+        std::cout << "Disable bidimensional plot: " << (disable_bidimensional_plot ? "true" : "false") << "; ";
         std::cout << std::endl;
     }
 
