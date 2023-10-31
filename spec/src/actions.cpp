@@ -417,7 +417,7 @@ bool actions::generic::publish_data(status &global_status)
             json_object_set_new_nocheck(channel_data, "counts", json_integer(channel_total_counts));
             json_object_set_new_nocheck(channel_data, "energy", histo_E_data);
 
-            if (!global_status.disable_PSD_plot) {
+            if (!global_status.disable_bidimensional_plot) {
                 json_t *histo_PSD_data = histogram2D_to_json(histo_PSD);
                 json_object_set_new_nocheck(channel_data, "PSD", histo_PSD_data);
             }
@@ -819,7 +819,7 @@ state actions::read_config(status &global_status)
 
         json_object_set_new_nocheck(new_config, "time_decay", json_time_decay);
 
-        json_object_set_new_nocheck(new_config, "disable_PSD_plot", json_false());
+        json_object_set_new_nocheck(new_config, "disable_bidimensional_plot", json_false());
 
         json_object_set_new_nocheck(new_config, "spectra_type", json_string("qlong"));
         json_object_set_new_nocheck(new_config, "spectra_type_possible_value0", json_string("qlong"));
@@ -844,19 +844,19 @@ state actions::apply_config(status &global_status)
 
     json_t * const config = global_status.config;
 
-    const bool disable_PSD_plot = json_is_true(json_object_get(config, "disable_PSD_plot"));
+    const bool disable_bidimensional_plot = json_is_true(json_object_get(config, "disable_bidimensional_plot"));
 
     if (global_status.verbosity > 0) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "Disable PSD plot: " << (disable_PSD_plot ? "true" : "false") << "; ";
+        std::cout << "Disable PSD plot: " << (disable_bidimensional_plot ? "true" : "false") << "; ";
         std::cout << std::endl;
     }
 
-    json_object_set_nocheck(config, "disable_PSD_plot", (disable_PSD_plot ? json_true() : json_false()));
+    json_object_set_nocheck(config, "disable_bidimensional_plot", (disable_bidimensional_plot ? json_true() : json_false()));
 
-    global_status.disable_PSD_plot = disable_PSD_plot;
+    global_status.disable_bidimensional_plot = disable_bidimensional_plot;
 
     json_t *json_time_decay = json_object_get(config, "time_decay");
 

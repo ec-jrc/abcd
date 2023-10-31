@@ -1,27 +1,46 @@
 {
-    "module": "spec",
-    "gui_config": {
-        "publish_timeout": 3,
-        "sockets": [
+    "channels": [
         {
-            "type": "status",
-            "address": "tcp://*:16187",
-            "ip": "127.0.0.1",
-            "topic": "status_pqrs"
+            "id": 1,
+            "bins_E": 2200,
+            "min_E": 0,
+            "max_E": 66000,
+            "bins_PSD": 110,
+            "min_PSD": -0.1,
+            "max_PSD": 1
         },
         {
-            "type": "data",
-            "address": "tcp://*:16188",
-            "ip": "127.0.0.1",
-            "topic": "data_pqrs"
+            "id": 7,
+            "bins_E": 2200,
+            "min_E": 0,
+            "max_E": 66000,
+            "bins_PSD": 110,
+            "min_PSD": -0.1,
+            "max_PSD": 1
         },
         {
-            "type": "commands",
-            "address": "tcp://*:16189",
-            "ip": "127.0.0.1"
-        },
-        {}
-        ],
-        "zzz": null
-    }
+            "id": 6,
+            "bins_E": 2200,
+            "min_E": 0,
+            "max_E": 66000,
+            "bins_PSD": 110,
+            "min_PSD": -0.1,
+            "max_PSD": 1
+        }
+    ],
+    "time_decay": {
+        "enable": false,
+        "tau": 3,
+        "counts_minimum": 0.0001
+    },
+    "disable_bidimensional_plot": false,
+    "spectra_type": "qlong",
+    "spectra_type_possible_value0": "qlong",
+    "spectra_type_possible_value1": "qshort",
+    "spectra_type_possible_value2": "baseline",
+    "PSD_type": "qtail_vs_energy",
+    "PSD_type_possible_value0": "qtail_vs_energy",
+    "PSD_type_possible_value1": "qshort_vs_energy",
+    "PSD_type_possible_value2": "qlong_vs_energy",
+    "PSD_type_possible_value3": "baseline_vs_energy"
 }
