@@ -1,25 +1,25 @@
 {
-    "module": "tofcalc",
     "ns_per_sample": 0.009765625,
+    "channels": [
+        {
+            "id": 0,
+            "reference": true,
+            "note": "SiPM + LYSO trigger source"
+        },
+        {
+            "id": 1,
+            "reference": false,
+            "bins": 4000,
+            "min": -2000,
+            "max": 2000,
+            "note": "SiPM + LYSO"
+        },
+        {}
+    ],
     "time_decay": {
         "enable": false,
         "tau": 3.0,
         "counts_minimum": 0.0001
     },
-    "channels": [
-    {
-        "id": 0,
-        "reference": true,
-        "note": "SiPM + LYSO trigger source"
-    },
-    {
-        "id": 1,
-        "reference": false,
-        "bins": 4000,
-        "min": -2000,
-        "max": 2000,
-        "note": "SiPM + LYSO"
-    },
-    {}
-    ]
+    "disable_bidimensional_plots": false
 }

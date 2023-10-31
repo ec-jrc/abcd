@@ -1,11 +1,5 @@
 {
-    "module": "tofcalc",
     "ns_per_sample": 0.001953125,
-    "time_decay": {
-        "enable": false,
-        "tau": 3.0,
-        "counts_minimum": 0.0001
-    },
     "channels": [
     {
         "id": 0,
@@ -35,5 +29,11 @@
         "note": "Different detector"
     },
     {}
-    ]
+    ],
+    "time_decay": {
+        "enable": false,
+        "tau": 3.0,
+        "counts_minimum": 0.0001
+    },
+    "disable_bidimensional_plots": false
 }
