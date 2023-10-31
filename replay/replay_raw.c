@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2016, 2019, Cristiano Lino Fontana
+ * (C) Copyright 2016, 2019, 2023, European Union, Cristiano Lino Fontana
  *
  * This file is part of ABCD.
  *
@@ -65,8 +65,8 @@ void print_usage(const char *name) {
     printf("Optional arguments:\n");
     printf("\t-h: Display this message\n");
     printf("\t-v: Set verbose execution\n");
-    printf("\t-V: Set more verbose execution\n");
-    printf("\t-d: Enable continuous execution\n");
+    printf("\t-V: Set verbose execution with more details\n");
+    printf("\t-c: Enable continuous execution\n");
     printf("\t-S <address>: Status socket address, default: %s\n", defaults_abcd_status_address);
     printf("\t-D <address>: Data socket address, default: %s\n", defaults_abcd_data_address);
     printf("\t-T <period>: Set base period in milliseconds, default: %d\n", defaults_replay_base_period);
@@ -91,7 +91,7 @@ int main(int argc, char *argv[])
     bool continuous_execution = false;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hS:D:T:vVs:d")) != -1) {
+    while ((c = getopt(argc, argv, "hS:D:T:vVs:c")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
             case 's':
                 skip_packets = atoi(optarg);
                 break;
-            case 'd':
+            case 'c':
                 continuous_execution = true;
                 break;
             case 'v':
@@ -200,7 +200,7 @@ int main(int argc, char *argv[])
         }
 
         FILE *in_file = fopen(file_name, "rb");
-    
+
         if (!in_file)
         {
             printf("ERROR: Unable to open: %s\n", file_name);
@@ -215,14 +215,14 @@ int main(int argc, char *argv[])
             size_t data_packets_counter = 0;
             size_t zipped_packets_counter = 0;
             size_t unknown_packets_counter = 0;
-    
+
             memset(topic_buffer, '\0', defaults_all_topic_buffer_size);
-    
+
             int c;
             while ((c = fgetc(in_file)) != EOF && (terminate_flag == false))
             {
                 bytes_counter += 1;
-    
+
                 if (c != ' ')
                 {
                     if (partial_counter < defaults_all_topic_buffer_size)
@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
                     {
                         printf("Topic [%zu]: %s\n", topics_counter, topic_buffer);
                     }
-    
+
                     // Looking for the size of the message by searching for the last '_'
                     char *size_pointer = strrchr(topic_buffer,'_');
                     size_t size = 0;
@@ -254,45 +254,45 @@ int main(int argc, char *argv[])
                     {
                         size = atoi(size_pointer + 2);
                     }
-    
+
                     if (verbosity > 1)
                     {
                         printf("Message size: %zu\n", size);
                     }
-    
+
                     void *buffer = malloc(sizeof(char) * size);
-    
+
                     const size_t bytes_read = fread(buffer, sizeof(char), size, in_file);
-    
+
                     bytes_counter += sizeof(char) + size;
-    
+
                     if (verbosity > 1)
                     {
                         printf("read: %zu, requested: %zu\n", bytes_read, size * sizeof(char));
                     }
-    
+
                     if (bytes_read != (sizeof(char) * size))
                     {
                         printf("ERROR: Unable to read all the requested bytes: read: %zu, requested: %zu\n", bytes_read, size * sizeof(char));
                     }
-    
-    
+
+
                     const int status_compared = strncmp(topic_buffer, "status_abcd", strlen("status_abcd"));
                     const int events_compared = strncmp(topic_buffer, "events_abcd", strlen("events_abcd"));
                     const int data_compared = strncmp(topic_buffer, "data_abcd", strlen("data_abcd"));
                     const int zipped_compared = strncmp(topic_buffer, "compressed", strlen("compressed"));
-    
+
                     if (verbosity > 1)
                     {
                         printf("status_compared: %d; events_compared: %d; data_compared: %d; zipped_compared: %d\n", status_compared, events_compared, data_compared, zipped_compared);
                     }
-    
+
                     // If it is a status-like packet send it through the status socket...
                     if ((status_compared == 0 || events_compared == 0) &&
                          data_compared != 0 && zipped_compared != 0)
                     {
                         status_packets_counter += 1;
-    
+
                         if (topics_counter < skip_packets)
                         {
                             if (verbosity > 0)
@@ -312,7 +312,7 @@ int main(int argc, char *argv[])
                              zipped_compared != 0)
                     {
                         data_packets_counter += 1;
-    
+
                         if (topics_counter < skip_packets)
                         {
                             if (verbosity > 0)
@@ -332,7 +332,7 @@ int main(int argc, char *argv[])
                              zipped_compared == 0)
                     {
                         zipped_packets_counter += 1;
-    
+
                         if (topics_counter < skip_packets)
                         {
                             if (verbosity > 0)
@@ -348,29 +348,29 @@ int main(int argc, char *argv[])
                     else
                     {
                         unknown_packets_counter += 1;
-    
+
                         if (verbosity > 0)
                         {
                             printf("WARNING: Unknown packet type, skipping it.\n");
                         }
                     }
-    
+
                     free(buffer);
                     memset(topic_buffer, '\0', defaults_all_topic_buffer_size);
-    
+
                     partial_counter = 0;
                     topics_counter += 1;
-    
+
                     if (verbosity > 0)
                     {
                         printf("packets: %zu; status packets: %zu; data packets: %zu; compressed packets: %zu; unkown packets: %zu\n", topics_counter, status_packets_counter, data_packets_counter, zipped_packets_counter, unknown_packets_counter);
                     }
-    
+
                     if (verbosity > 0)
                     {
                         printf("Read size: %zu B\n", bytes_counter);
                     }
-    
+
                     // We do not use greater than equal because we already have incremented the counter
                     if (topics_counter > skip_packets )
                     {
@@ -378,13 +378,13 @@ int main(int argc, char *argv[])
                         nanosleep(&wait, NULL);
                     }
                 }
-    
+
                 if (verbosity > 2)
                 {
                     printf("partial_counter: %zu; c: %c\n", partial_counter, c);
                 }
             }
-    
+
             fclose(in_file);
         }
 
