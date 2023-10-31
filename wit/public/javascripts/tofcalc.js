@@ -1,4 +1,4 @@
-// (C) Copyright 2016,2021 European Union, Cristiano Lino Fontana
+// (C) Copyright 2016,2021,2023 European Union, Cristiano Lino Fontana
 //
 // This file is part of ABCD.
 //
@@ -316,105 +316,113 @@ function page_loaded() {
                 }
             };
 
-            const histo_EvsToF = spectra[selected_channel()].EvsToF;
+            const monodimensional_data = [ToF, energy];
+            let bidimensional_data = [];
+            layout_ToF.xaxis.anchor = 'y1';
+            layout_ToF.xaxis2.anchor = 'y3';
 
-            const EvsToF_delta_x = (histo_EvsToF.config.max_x - histo_EvsToF.config.min_x) / histo_EvsToF.config.bins_x;
-            const EvsToF_delta_y = (histo_EvsToF.config.max_y - histo_EvsToF.config.min_y) / histo_EvsToF.config.bins_y;
+            if (spectra[selected_channel()].hasOwnProperty("EvsToF") && spectra[selected_channel()].hasOwnProperty("EvsE")) {
+                const histo_EvsToF = spectra[selected_channel()].EvsToF;
 
-            let EvsToF_edges_x = [];
+                const EvsToF_delta_x = (histo_EvsToF.config.max_x - histo_EvsToF.config.min_x) / histo_EvsToF.config.bins_x;
+                const EvsToF_delta_y = (histo_EvsToF.config.max_y - histo_EvsToF.config.min_y) / histo_EvsToF.config.bins_y;
 
-            for (let index_x = 0; index_x < histo_EvsToF.config.bins_x; index_x++) {
-                EvsToF_edges_x.push(index_x * EvsToF_delta_x + histo_EvsToF.config.min_x);
-            }
-
-            let EvsToF_edges_y = [];
-
-            for (let index_y = 0; index_y < histo_EvsToF.config.bins_y; index_y++) {
-                EvsToF_edges_y.push(index_y * EvsToF_delta_y + histo_EvsToF.config.min_y);
-            }
-
-            var EvsToF_heights = [];
-
-            for (let index_y = 0; index_y < histo_EvsToF.config.bins_y; index_y++) {
-                let EvsToF_row = [];
+                let EvsToF_edges_x = [];
 
                 for (let index_x = 0; index_x < histo_EvsToF.config.bins_x; index_x++) {
-                    const index = (index_x + histo_EvsToF.config.bins_x * index_y);
-                    const counts = Math.log10(histo_EvsToF.data[index]);
-
-                    EvsToF_row.push(counts);
+                    EvsToF_edges_x.push(index_x * EvsToF_delta_x + histo_EvsToF.config.min_x);
                 }
 
-                EvsToF_heights.push(EvsToF_row);
-            }
+                let EvsToF_edges_y = [];
 
-            //console.log("Updated EvsToF; edges x: " + EvsToF_edges_x.length + "; edges y: " + EvsToF_edges_y.length + ";");
+                for (let index_y = 0; index_y < histo_EvsToF.config.bins_y; index_y++) {
+                    EvsToF_edges_y.push(index_y * EvsToF_delta_y + histo_EvsToF.config.min_y);
+                }
 
-            const EvsToF = {
-                x: EvsToF_edges_x,
-                y: EvsToF_edges_y,
-                z: EvsToF_heights,
-                xaxis: 'x1',
-                yaxis: 'y2',
-                name: 'E vs ToF',
-                colorscale: 'Viridis',
-                showscale: false,
-                type: 'heatmap'
-            };
+                var EvsToF_heights = [];
 
-            const histo_EvsE = spectra[selected_channel()].EvsE;
+                for (let index_y = 0; index_y < histo_EvsToF.config.bins_y; index_y++) {
+                    let EvsToF_row = [];
 
-            const EvsE_delta_x = (histo_EvsE.config.max_x - histo_EvsE.config.min_x) / histo_EvsE.config.bins_x;
-            const EvsE_delta_y = (histo_EvsE.config.max_y - histo_EvsE.config.min_y) / histo_EvsE.config.bins_y;
+                    for (let index_x = 0; index_x < histo_EvsToF.config.bins_x; index_x++) {
+                        const index = (index_x + histo_EvsToF.config.bins_x * index_y);
+                        const counts = Math.log10(histo_EvsToF.data[index]);
 
-            let EvsE_edges_x = [];
+                        EvsToF_row.push(counts);
+                    }
 
-            for (let index_x = 0; index_x < histo_EvsE.config.bins_x; index_x++) {
-                EvsE_edges_x.push(index_x * EvsE_delta_x + histo_EvsE.config.min_x);
-            }
+                    EvsToF_heights.push(EvsToF_row);
+                }
 
-            let EvsE_edges_y = [];
+                //console.log("Updated EvsToF; edges x: " + EvsToF_edges_x.length + "; edges y: " + EvsToF_edges_y.length + ";");
 
-            for (let index_y = 0; index_y < histo_EvsE.config.bins_y; index_y++) {
-                EvsE_edges_y.push(index_y * EvsE_delta_y + histo_EvsE.config.min_y);
-            }
+                const EvsToF = {
+                    x: EvsToF_edges_x,
+                    y: EvsToF_edges_y,
+                    z: EvsToF_heights,
+                    xaxis: 'x1',
+                    yaxis: 'y2',
+                    name: 'E vs ToF',
+                    colorscale: 'Viridis',
+                    showscale: false,
+                    type: 'heatmap'
+                };
 
-            var EvsE_heights = [];
+                const histo_EvsE = spectra[selected_channel()].EvsE;
 
-            for (let index_y = 0; index_y < histo_EvsE.config.bins_y; index_y++) {
-                let EvsE_row = [];
+                const EvsE_delta_x = (histo_EvsE.config.max_x - histo_EvsE.config.min_x) / histo_EvsE.config.bins_x;
+                const EvsE_delta_y = (histo_EvsE.config.max_y - histo_EvsE.config.min_y) / histo_EvsE.config.bins_y;
+
+                let EvsE_edges_x = [];
 
                 for (let index_x = 0; index_x < histo_EvsE.config.bins_x; index_x++) {
-                    const index = (index_x + histo_EvsE.config.bins_x * index_y);
-                    const counts = Math.log10(histo_EvsE.data[index]);
-
-                    EvsE_row.push(counts);
+                    EvsE_edges_x.push(index_x * EvsE_delta_x + histo_EvsE.config.min_x);
                 }
 
-                EvsE_heights.push(EvsE_row);
+                let EvsE_edges_y = [];
+
+                for (let index_y = 0; index_y < histo_EvsE.config.bins_y; index_y++) {
+                    EvsE_edges_y.push(index_y * EvsE_delta_y + histo_EvsE.config.min_y);
+                }
+
+                var EvsE_heights = [];
+
+                for (let index_y = 0; index_y < histo_EvsE.config.bins_y; index_y++) {
+                    let EvsE_row = [];
+
+                    for (let index_x = 0; index_x < histo_EvsE.config.bins_x; index_x++) {
+                        const index = (index_x + histo_EvsE.config.bins_x * index_y);
+                        const counts = Math.log10(histo_EvsE.data[index]);
+
+                        EvsE_row.push(counts);
+                    }
+
+                    EvsE_heights.push(EvsE_row);
+                }
+
+                //console.log("Updated EvsE; edges x: " + EvsE_edges_x.length + "; edges y: " + EvsE_edges_y.length + ";");
+
+                const EvsE = {
+                    x: EvsE_edges_x,
+                    y: EvsE_edges_y,
+                    z: EvsE_heights,
+                    xaxis: 'x2',
+                    yaxis: 'y4',
+                    name: 'E vs E',
+                    colorscale: 'Viridis',
+                    showscale: false,
+                    type: 'heatmap'
+                };
+
+                bidimensional_data = [EvsToF, EvsE];
+                layout_ToF.xaxis.anchor = 'y2';
+                layout_ToF.xaxis2.anchor = 'y4';
             }
-
-            //console.log("Updated EvsE; edges x: " + EvsE_edges_x.length + "; edges y: " + EvsE_edges_y.length + ";");
-
-            const EvsE = {
-                x: EvsE_edges_x,
-                y: EvsE_edges_y,
-                z: EvsE_heights,
-                xaxis: 'x2',
-                yaxis: 'y4',
-                name: 'E vs E',
-                colorscale: 'Viridis',
-                showscale: false,
-                type: 'heatmap'
-            };
-
-            const tofcalc_data = [ToF, energy];
-            const bidimensional_data = [EvsToF, EvsE];
 
             if (force_update) {
                 // If forced, plotting without the fits so then the
                 // data would be ready for the fit
-                Plotly.react('plot_ToF', tofcalc_data.concat(bidimensional_data), layout_ToF);
+                Plotly.react('plot_ToF', monodimensional_data.concat(bidimensional_data), layout_ToF);
             }
 
             let fitter = fitters[selected_channel()];
@@ -423,7 +431,7 @@ function page_loaded() {
 
             const other_data = fitter.get_all_plots();
 
-            Plotly.react('plot_ToF', tofcalc_data.concat(other_data).concat(bidimensional_data), layout_ToF);
+            Plotly.react('plot_ToF', monodimensional_data.concat(other_data).concat(bidimensional_data), layout_ToF);
 
             $("#fits_results").empty().append(fitter.get_html_ol());
 
