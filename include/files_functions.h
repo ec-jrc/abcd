@@ -159,8 +159,6 @@ extern inline int read_byte_message_from_raw(FILE *input_file, char **topic, voi
                     memcpy(*buffer, data_buffer, data_size);
 
                     *size = data_size;
-
-                    return EXIT_SUCCESS;
                 } else {
                     *topic = NULL;
 
@@ -169,7 +167,7 @@ extern inline int read_byte_message_from_raw(FILE *input_file, char **topic, voi
 
                     if (!(*buffer))
                     {
-                        printf("ERROR: Unable to allocate the topic buffer\n");
+                        printf("ERROR: Unable to allocate the buffer\n");
 
                         free(data_buffer);
 
@@ -184,9 +182,13 @@ extern inline int read_byte_message_from_raw(FILE *input_file, char **topic, voi
                     memcpy((void*)((char*)*buffer + (topic_size + 1)), data_buffer, data_size);
 
                     *size = topic_size + 1 + data_size;
-
-                    return EXIT_SUCCESS;
                 }
+
+                if (data_buffer) {
+                    free(data_buffer);
+                }
+
+                return EXIT_SUCCESS;
             }
         }
     }
