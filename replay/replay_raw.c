@@ -39,6 +39,7 @@
 #include <zmq.h>
 
 #include "defaults.h"
+#include "files_functions.h"
 #include "socket_functions.h"
 
 bool terminate_flag = false;
@@ -207,182 +208,121 @@ int main(int argc, char *argv[])
         }
         else
         {
-            char topic_buffer[defaults_all_topic_buffer_size];
             size_t topics_counter = 0;
-            size_t partial_counter = 0;
-            size_t bytes_counter = 0;
             size_t status_packets_counter = 0;
             size_t data_packets_counter = 0;
             size_t zipped_packets_counter = 0;
             size_t unknown_packets_counter = 0;
 
-            memset(topic_buffer, '\0', defaults_all_topic_buffer_size);
+            char *topic = NULL;
+            char *buffer = NULL;
+            size_t size;
 
-            int c;
-            while ((c = fgetc(in_file)) != EOF && (terminate_flag == false))
-            {
-                bytes_counter += 1;
+            int result = read_byte_message_from_raw(in_file, &topic, (void **)(&buffer), &size, true, 0);
 
-                if (c != ' ')
+            while (size > 0 && result == EXIT_SUCCESS && terminate_flag == false) {
+                topics_counter += 1;
+
+                if (verbosity > 0)
                 {
-                    if (partial_counter < defaults_all_topic_buffer_size)
+                    printf("Topic [%zu]: %s\n", topics_counter, topic);
+                }
+
+                const int status_compared = strncmp(topic, "status_abcd", strlen("status_abcd"));
+                const int events_compared = strncmp(topic, "events_abcd", strlen("events_abcd"));
+                const int data_compared = strncmp(topic, "data_abcd", strlen("data_abcd"));
+                const int zipped_compared = strncmp(topic, "compressed", strlen("compressed"));
+
+                if (verbosity > 1)
+                {
+                    printf("status_compared: %d; events_compared: %d; data_compared: %d; zipped_compared: %d\n", status_compared, events_compared, data_compared, zipped_compared);
+                }
+
+                // If it is a status-like packet send it through the status socket...
+                if ((status_compared == 0 || events_compared == 0) &&
+                       data_compared != 0 &&
+                     zipped_compared != 0)
+                {
+                    status_packets_counter += 1;
+
+                    if (topics_counter < skip_packets)
                     {
-                        topic_buffer[partial_counter] = (char)c;
-                        partial_counter += 1;
+                        if (verbosity > 0)
+                        {
+                            printf("INFO: Skipping packet\n");
+                        }
                     }
                     else
                     {
-                        printf("ERROR: Topic too long: %zu\n", partial_counter);
-                        return EXIT_SUCCESS;
+                        send_byte_message(status_socket, topic, buffer, size, verbosity);
+                    }
+                }
+                // If it is a data packet send it through the data socket...
+                else if (status_compared != 0 &&
+                         events_compared != 0 &&
+                           data_compared == 0 &&
+                         zipped_compared != 0)
+                {
+                    data_packets_counter += 1;
+
+                    if (topics_counter < skip_packets)
+                    {
+                        if (verbosity > 0)
+                        {
+                            printf("INFO: Skipping packet\n");
+                        }
+                    }
+                    else
+                    {
+                        send_byte_message(data_socket, topic, buffer, size, verbosity);
+                    }
+                }
+                // If it is a compressed packet send it through the data socket...
+                else if (status_compared != 0 &&
+                         events_compared != 0 &&
+                           data_compared != 0 &&
+                         zipped_compared == 0)
+                {
+                    zipped_packets_counter += 1;
+
+                    if (topics_counter < skip_packets)
+                    {
+                        if (verbosity > 0)
+                        {
+                            printf("INFO: Skipping packet\n");
+                        }
+                    }
+                    else
+                    {
+                        send_byte_message(data_socket, topic, buffer, size, verbosity);
                     }
                 }
                 else
                 {
-                    if (verbosity > 0)
-                    {
-                        printf("Topic [%zu]: %s\n", topics_counter, topic_buffer);
-                    }
-
-                    // Looking for the size of the message by searching for the last '_'
-                    char *size_pointer = strrchr(topic_buffer,'_');
-                    size_t size = 0;
-                    if (size_pointer == NULL)
-                    {
-                        printf("ERROR: Unable to find message size, topic: %s\n", topic_buffer);
-                    }
-                    else
-                    {
-                        size = atoi(size_pointer + 2);
-                    }
-
-                    if (verbosity > 1)
-                    {
-                        printf("Message size: %zu\n", size);
-                    }
-
-                    void *buffer = malloc(sizeof(char) * size);
-
-                    const size_t bytes_read = fread(buffer, sizeof(char), size, in_file);
-
-                    bytes_counter += sizeof(char) + size;
-
-                    if (verbosity > 1)
-                    {
-                        printf("read: %zu, requested: %zu\n", bytes_read, size * sizeof(char));
-                    }
-
-                    if (bytes_read != (sizeof(char) * size))
-                    {
-                        printf("ERROR: Unable to read all the requested bytes: read: %zu, requested: %zu\n", bytes_read, size * sizeof(char));
-                    }
-
-
-                    const int status_compared = strncmp(topic_buffer, "status_abcd", strlen("status_abcd"));
-                    const int events_compared = strncmp(topic_buffer, "events_abcd", strlen("events_abcd"));
-                    const int data_compared = strncmp(topic_buffer, "data_abcd", strlen("data_abcd"));
-                    const int zipped_compared = strncmp(topic_buffer, "compressed", strlen("compressed"));
-
-                    if (verbosity > 1)
-                    {
-                        printf("status_compared: %d; events_compared: %d; data_compared: %d; zipped_compared: %d\n", status_compared, events_compared, data_compared, zipped_compared);
-                    }
-
-                    // If it is a status-like packet send it through the status socket...
-                    if ((status_compared == 0 || events_compared == 0) &&
-                         data_compared != 0 && zipped_compared != 0)
-                    {
-                        status_packets_counter += 1;
-
-                        if (topics_counter < skip_packets)
-                        {
-                            if (verbosity > 0)
-                            {
-                                printf("INFO: Skipping packet\n");
-                            }
-                        }
-                        else
-                        {
-                            send_byte_message(status_socket, topic_buffer, buffer, size, verbosity);
-                        }
-                    }
-                    // If it is a data packet send it through the data socket...
-                    else if (status_compared != 0 &&
-                             events_compared != 0 &&
-                               data_compared == 0 &&
-                             zipped_compared != 0)
-                    {
-                        data_packets_counter += 1;
-
-                        if (topics_counter < skip_packets)
-                        {
-                            if (verbosity > 0)
-                            {
-                                printf("INFO: Skipping packet\n");
-                            }
-                        }
-                        else
-                        {
-                            send_byte_message(data_socket, topic_buffer, buffer, size, verbosity);
-                        }
-                    }
-                    // If it is a compressed packet send it through the data socket...
-                    else if (status_compared != 0 &&
-                             events_compared != 0 &&
-                               data_compared != 0 &&
-                             zipped_compared == 0)
-                    {
-                        zipped_packets_counter += 1;
-
-                        if (topics_counter < skip_packets)
-                        {
-                            if (verbosity > 0)
-                            {
-                                printf("INFO: Skipping packet\n");
-                            }
-                        }
-                        else
-                        {
-                            send_byte_message(data_socket, topic_buffer, buffer, size, verbosity);
-                        }
-                    }
-                    else
-                    {
-                        unknown_packets_counter += 1;
-
-                        if (verbosity > 0)
-                        {
-                            printf("WARNING: Unknown packet type, skipping it.\n");
-                        }
-                    }
-
-                    free(buffer);
-                    memset(topic_buffer, '\0', defaults_all_topic_buffer_size);
-
-                    partial_counter = 0;
-                    topics_counter += 1;
+                    unknown_packets_counter += 1;
 
                     if (verbosity > 0)
                     {
-                        printf("packets: %zu; status packets: %zu; data packets: %zu; compressed packets: %zu; unkown packets: %zu\n", topics_counter, status_packets_counter, data_packets_counter, zipped_packets_counter, unknown_packets_counter);
-                    }
-
-                    if (verbosity > 0)
-                    {
-                        printf("Read size: %zu B\n", bytes_counter);
-                    }
-
-                    // We do not use greater than equal because we already have incremented the counter
-                    if (topics_counter > skip_packets )
-                    {
-                        // Putting a delay in order not to fill-up the queues
-                        nanosleep(&wait, NULL);
+                        printf("WARNING: Unknown packet type, skipping it.\n");
                     }
                 }
 
-                if (verbosity > 2)
+                free(topic);
+                free(buffer);
+
+                if (verbosity > 0)
                 {
-                    printf("partial_counter: %zu; c: %c\n", partial_counter, c);
+                    printf("packets: %zu; status packets: %zu; data packets: %zu; compressed packets: %zu; unkown packets: %zu\n", topics_counter, status_packets_counter, data_packets_counter, zipped_packets_counter, unknown_packets_counter);
                 }
+
+                // We do not use greater than equal because we already have incremented the counter
+                if (topics_counter > skip_packets )
+                {
+                    // Putting a delay in order not to fill-up the queues
+                    nanosleep(&wait, NULL);
+                }
+
+                result = read_byte_message_from_raw(in_file, &topic, (void **)(&buffer), &size, true, 0);
             }
 
             fclose(in_file);
