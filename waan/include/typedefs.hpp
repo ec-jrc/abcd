@@ -5,6 +5,7 @@
 #include <string>
 #include <chrono>
 #include <map>
+#include <cstdio>
 #include <cstdint>
 #include <set>
 
@@ -18,6 +19,12 @@ extern "C" {
 
 #include "analysis_functions.h"
 }
+
+enum input_sources_t {
+    SOCKET_INPUT,
+    RAW_FILE_INPUT,
+    WAVEFORMS_FILE_INPUT, // Placeholder
+};
 
 struct status
 {
@@ -33,11 +40,15 @@ struct status
 
     json_t *config = nullptr;
 
+    enum input_sources_t data_input_source;
+
     void *context = nullptr;
     void *status_socket = nullptr;
     void *data_input_socket = nullptr;
     void *data_output_socket = nullptr;
     void *commands_socket = nullptr;
+
+    FILE *data_input_file = NULL;
 
     unsigned int verbosity = 0;
     unsigned long int status_msg_ID = 0;

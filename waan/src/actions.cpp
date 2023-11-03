@@ -50,6 +50,7 @@ extern "C" {
 extern "C" {
 #include "defaults.h"
 #include "utilities_functions.h"
+#include "files_functions.h"
 #include "socket_functions.h"
 #include "jansson_socket_functions.h"
 #include "events.h"
@@ -211,10 +212,12 @@ bool actions::generic::configure(status &global_status)
         global_status.high_water_mark = json_number_value(json_object_get(config, "high_water_mark"));
     }
 
-    zmq_setsockopt(global_status.data_input_socket,
-                   ZMQ_RCVHWM,
-                   &global_status.high_water_mark,
-                   sizeof(global_status.high_water_mark));
+    if (global_status.data_input_source == SOCKET_INPUT) {
+        zmq_setsockopt(global_status.data_input_socket,
+                       ZMQ_RCVHWM,
+                       &global_status.high_water_mark,
+                       sizeof(global_status.high_water_mark));
+    }
 
     if (global_status.high_water_mark == 0) {
         json_object_set(config, "high_water_mark", json_string("no limit"));
@@ -232,11 +235,11 @@ bool actions::generic::configure(status &global_status)
         std::cout << "Enable additional: " << (global_status.enable_additional ? "true" : "false") << "; ";
         std::cout << std::endl;
         std::cout << '[' << time_buffer << "] ";
-	if (global_status.high_water_mark > 0) {
+        if (global_status.high_water_mark > 0) {
             std::cout << "High water mark: " << global_status.high_water_mark << "; ";
-	} else {
+        } else {
             std::cout << "High water mark: " << "no limit" << "; ";
-	}
+        }
         std::cout << std::endl;
     }
 
@@ -754,6 +757,8 @@ state actions::create_sockets(status &global_status)
 
         return states::COMMUNICATION_ERROR;
     }
+    // Creating a data_input_socket even if we are going to read data from a
+    // file, it should not hurt and it makes things easier
     void *data_input_socket = zmq_socket(context, ZMQ_SUB);
     if (!data_input_socket)
     {
@@ -823,17 +828,61 @@ state actions::bind_sockets(status &global_status)
         return states::COMMUNICATION_ERROR;
     }
 
-    const int a = zmq_connect(global_status.data_input_socket, data_input_address.c_str());
-    if (a != 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on data socket binding: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+    const std::string file_prefix = "file://";
 
-        return states::COMMUNICATION_ERROR;
+    if (data_input_address.find(file_prefix) == 0) {
+        if (global_status.verbosity > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Opening data file: " << (data_input_address.c_str() + file_prefix.size()) << " ";
+            std::cout << std::endl;
+        }
+
+        global_status.data_input_file = fopen(data_input_address.c_str() + file_prefix.size(), "rb");
+
+        if (!global_status.data_input_file) {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to open file to be read";
+            std::cout << std::endl;
+
+            return states::COMMUNICATION_ERROR;
+        }
+
+        global_status.data_input_source = RAW_FILE_INPUT;
+
+    } else {
+        if (global_status.verbosity > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << "Connecting data input socket to: " << data_input_address << " ";
+            std::cout << std::endl;
+        }
+
+        const int a = zmq_connect(global_status.data_input_socket, data_input_address.c_str());
+        if (a != 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ";
+            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on data socket connection: ";
+            std::cout << zmq_strerror(errno);
+            std::cout << std::endl;
+
+            return states::COMMUNICATION_ERROR;
+        }
+
+        zmq_setsockopt(global_status.data_input_socket,
+                       ZMQ_SUBSCRIBE,
+                       defaults_abcd_data_waveforms_topic,
+                       strlen(defaults_abcd_data_waveforms_topic));
+
+        global_status.data_input_source = SOCKET_INPUT;
     }
 
     const int c = zmq_bind(global_status.commands_socket, commands_address.c_str());
@@ -848,11 +897,6 @@ state actions::bind_sockets(status &global_status)
 
         return states::COMMUNICATION_ERROR;
     }
-
-    zmq_setsockopt(global_status.data_input_socket,
-                   ZMQ_SUBSCRIBE,
-                   defaults_abcd_data_waveforms_topic,
-                   strlen(defaults_abcd_data_waveforms_topic));
 
     std::this_thread::sleep_for(std::chrono::milliseconds(defaults_abcd_zmq_delay));
 
@@ -1139,16 +1183,22 @@ state actions::receive_commands(status &global_status)
 state actions::read_socket(status &global_status)
 {
     void *data_input_socket = global_status.data_input_socket;
+    FILE *data_input_file = global_status.data_input_file;
     const int verbosity = global_status.verbosity;
 
     char *topic = NULL;
     char *input_buffer = NULL;
     size_t size;
+    int result = EXIT_FAILURE;
     // Using int here instead of size_t to be compatible with the
     // high_water_mark, that for the ZeroMQ must be an int.
     int inner_counter = 0;
 
-    int result = receive_byte_message(data_input_socket, &topic, (void **)(&input_buffer), &size, true, global_status.verbosity);
+    if (global_status.data_input_source == SOCKET_INPUT) {
+        result = receive_byte_message(data_input_socket, &topic, (void **)(&input_buffer), &size, true, global_status.verbosity);
+    } else {
+        result = read_byte_message_from_raw(data_input_file, &topic, (void **)(&input_buffer), &size, true, global_status.verbosity);
+    }
 
     const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
     const auto publish_period = std::chrono::seconds(global_status.publish_period);
@@ -1510,7 +1560,11 @@ state actions::read_socket(status &global_status)
         topic = NULL;
         input_buffer = NULL;
 
-        result = receive_byte_message(data_input_socket, &topic, (void **)(&input_buffer), &size, true, global_status.verbosity);
+        if (global_status.data_input_source == SOCKET_INPUT) {
+            result = receive_byte_message(data_input_socket, &topic, (void **)(&input_buffer), &size, true, global_status.verbosity);
+        } else {
+            result = read_byte_message_from_raw(data_input_file, &topic, (void **)(&input_buffer), &size, true, global_status.verbosity);
+        }
     }
 
     if (topic) {
@@ -1519,6 +1573,13 @@ state actions::read_socket(status &global_status)
     if (input_buffer) {
         free(input_buffer);
     }
+
+    // This error might be triggered if waan reached the EOF of the
+    // data_input_file, but we should not stop its execution in case there are
+    // still messages in the outgoing queue
+    //if (result == EXIT_FAILURE) {
+    //    return states::COMMUNICATION_ERROR;
+    //}
 
     if (now - global_status.last_publication > publish_period)
     {
@@ -1549,6 +1610,7 @@ state actions::close_sockets(status &global_status)
     void *data_input_socket = global_status.data_input_socket;
     void *data_output_socket = global_status.data_output_socket;
     void *commands_socket = global_status.commands_socket;
+    FILE *data_input_file = global_status.data_input_file;
 
     const int s = zmq_close(status_socket);
     if (s != 0)
@@ -1592,6 +1654,10 @@ state actions::close_sockets(status &global_status)
         std::cout << "ZeroMQ Error on commands socket close: ";
         std::cout << zmq_strerror(errno);
         std::cout << std::endl;
+    }
+
+    if (data_input_file) {
+        fclose(data_input_file);
     }
 
     return states::DESTROY_CONTEXT;
