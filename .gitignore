@@ -40,3 +40,4 @@ abps5000a/abps5000a
 package-lock.json
 examples/dummy_waveforms_publisher
 absp/absp
+bin/sort_ade
