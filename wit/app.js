@@ -7,7 +7,6 @@
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
-//var cookieParser = require('cookie-parser');
 var _ = require('lodash');
 var morgan = require('morgan');
 const dayjs = require('dayjs');
@@ -105,7 +104,6 @@ app.set('view engine', 'pug');
 app.use(logger);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-//app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 router_module.init_sockets(app, logger, config.modules);
