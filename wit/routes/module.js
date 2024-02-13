@@ -16,7 +16,6 @@ var logger = null;
 
 var clean_configs = [];
 
-//var zmq_sockets_sub = {};
 var zmq_sockets_push = {};
 var modules_events = {};
 
@@ -94,14 +93,12 @@ function create_zmq_socket(module_name, socket_config) {
       debug_messages('Received a message with topic: ' + topic);
 
       try {
-          let socket_io = app.get('socketio');
+          let socket_io = app.get('socket_io');
           socket_io.to(module_name).emit(socket_type, payload);
       } catch (error) {
         //console.error(error);
       }
     });
-
-    //zmq_sockets_sub[module_name].push(sock);
 
   } else if (socket_type === "events") {
     var sock = zmq.socket('sub');
@@ -119,14 +116,12 @@ function create_zmq_socket(module_name, socket_config) {
       modules_events[module_name].push(payload);
 
       try {
-          let socket_io = app.get('socketio');
+          let socket_io = app.get('socket_io');
           socket_io.to(module_name).emit(socket_type, modules_events[module_name]);
       } catch (error) {
         //console.error(error);
       }
     });
-
-    //zmq_sockets_sub[module_name].push(sock);
 
   } else if (socket_type === "commands") {
     var sock = zmq.socket('push');
@@ -151,7 +146,6 @@ function init_sockets(this_app, this_logger, modules_configs) {
 
     debug("Creating sockets for module: " + module_name + " of type: " + module_type);
 
-    //zmq_sockets_sub[module_name] = [];
     zmq_sockets_push[module_name] = [];
     modules_events[module_name] = [];
 
@@ -184,10 +178,15 @@ function create_router() {
   return router;
 }
 
+function get_module_events(module_name) {
+  return modules_events[module_name];
+}
+
 module.exports = {
   "set_config": modules_configs => { clean_configs = parse_configs(modules_configs); },
   "get_config": () => clean_configs,
   "init_sockets": init_sockets,
   "create_router": create_router,
-  "get_sockets_push": () => zmq_sockets_push
+  "get_sockets_push": () => zmq_sockets_push,
+  "get_module_events": get_module_events
 }

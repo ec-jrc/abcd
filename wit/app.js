@@ -56,12 +56,6 @@ const args = parser.parse_args();
 var logger = morgan('dev');
 
 /**
- * Definition of the reference to Socket.io
- */
-
-var io = {};
-
-/**
  * Load the settings
  */
 
@@ -71,9 +65,6 @@ const config_data = fs.readFileSync(args.config_file)
 const config = JSON.parse(config_data);
 
 const heartbeat = Number(_.get(config, "heartbeat", 500));
-
-var io_modules_associations = {};
-var modules_pushes_associations = {};
 
 /**
  * Express initialization
@@ -102,15 +93,20 @@ app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
 
 app.use(logger);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 router_module.init_sockets(app, logger, config.modules);
-modules_pushes_associations = router_module.get_sockets_push();
+
+/**
+ * Dictionary that returns the push sockets on which the modules are listening
+ */
+
+var modules_pushes_associations = router_module.get_sockets_push();
 
 app.use('/module', router_module.create_router());
-
 
 app.use('/', router_index(router_module.get_config()));
 
@@ -147,9 +143,16 @@ var server = http.createServer(app);
 /**
  * Enable socket.io.
  */
-io = new IOServer(server);
 
-io.on('connection', socket => {
+var socket_io = new IOServer(server);
+
+/**
+ * Dictionary that returns the modules to which the socket.io ids are connected
+ */
+
+var socket_io_modules_associations = {};
+
+socket_io.on('connection', socket => {
   debug("New socket id: " + socket.id);
 
   // Faking a request and response for morgan
@@ -167,13 +170,13 @@ io.on('connection', socket => {
     debug("Joining socket " + socket.id + " to room: " + module_name);
     socket.join(module_name);
 
-    io_modules_associations[socket.id] = module_name;
+    socket_io_modules_associations[socket.id] = module_name;
 
     socket.emit("acknowledge", "Joined to room: " + module_name);
 
     // Faking a request and response for morgan
     let req = {'method': 'SOCKET.IO',
-               'url': 'joining socket id: ' + socket.id + " to room: " + module_name};
+               'url': 'joined socket id: ' + socket.id + " to room: " + module_name};
     // With a true in headersSent morgan prints the status code
     let res = {'headersSent': true,
                'getHeader': (name) => '',
@@ -181,11 +184,25 @@ io.on('connection', socket => {
                'statusMessage': 'Created'};
 
     logger(req, res, (err) => res);
+
+    // Updating the joined socket with the previous list of module events
+    socket.emit("events", router_module.get_module_events(module_name));
+
+    // Faking a request and response for morgan
+    req = {'method': 'SOCKET.IO',
+           'url': 'sent to socket id: ' + socket.id + " (room: " + module_name + ") the events list"};
+    // With a true in headersSent morgan prints the status code
+    res = {'headersSent': true,
+           'getHeader': (name) => '',
+           'statusCode': 201,
+           'statusMessage': 'Created'};
+
+    logger(req, res, (err) => res);
   })
 
   socket.on('command', message => {
     try {
-      const module_name = io_modules_associations[socket.id];
+      const module_name = socket_io_modules_associations[socket.id];
       const zmq_sockets_push = modules_pushes_associations[module_name];
 
       debug("Sending message from id: " + socket.id + " to module: " + module_name);
@@ -207,7 +224,7 @@ io.on('connection', socket => {
   
     // Faking a request and response for morgan
     let req = {'method': 'SOCKET.IO',
-               'url': 'disconnection id: ' + socket.id + " ERROR: " + error};
+               'url': 'disconnection of socket id: ' + socket.id + " (ERROR: " + error + ")"};
     // With a true in headersSent morgan prints the status code
     let res = {'headersSent': true,
                'getHeader': (name) => '',
@@ -223,13 +240,13 @@ io.on('connection', socket => {
  */
  
 setInterval(function () {
-  io.emit('ping', { "timestamp" : dayjs() });
+  socket_io.emit('ping', { "timestamp" : dayjs() });
 }, heartbeat);
 
 /**
  * Registering the socket.io server to the app
  */
-app.set('socketio', io);
+app.set('socket_io', socket_io);
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -238,7 +255,6 @@ app.set('socketio', io);
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
-
  
  /**
   * Normalize a port into a number, string, or false.
