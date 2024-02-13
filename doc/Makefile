@@ -3,7 +3,7 @@ DOT = dot
 PANDOC = pandoc
 
 MARKDOWN = 
-GRAPH = abcd abcd_simplified absp hijk lmno pqrs fifo califo
+GRAPH = abcd abcd_simplified absp hivo dasa spec fifo califo
 
 PANDOC_FORMAT = html
 PANDOC_OUTPUT = $(MARKDOWN:=.$(PANDOC_FORMAT))
