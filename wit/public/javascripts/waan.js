@@ -1,4 +1,4 @@
-// (C) Copyright 2016,2021 European Union, Cristiano Lino Fontana
+// (C) Copyright 2016,2021,2023,2024 European Union, Cristiano Lino Fontana
 //
 // This file is part of ABCD.
 //
@@ -58,38 +58,40 @@ function page_loaded() {
                 last_waan_config = new_status["config"];
             }
 
-            const new_channels_statuses = new_status["statuses"];
+            if (new_status.hasOwnProperty("config")) {
+                const new_channels_statuses = new_status["statuses"];
 
-            let rates_list = $("<ul>");
+                let rates_list = $("<ul>");
 
-            new_channels_statuses.forEach(function (channel_status) {
-                const channel = channel_status["id"];
-                const rate = channel_status["rate"];
+                new_channels_statuses.forEach(function (channel_status) {
+                    const channel = channel_status["id"];
+                    const rate = channel_status["rate"];
 
-                rates_list.append($("<li>", {text: "Ch " + channel + ": " + rate.toFixed(2)}));
-            });
+                    rates_list.append($("<li>", {text: "Ch " + channel + ": " + rate.toFixed(2)}));
+                });
 
-            $("#channels_rates").empty().append(rates_list);
+                $("#channels_rates").empty().append(rates_list);
 
-            const new_channels_active = new_status["active_channels"];
+                const new_channels_active = new_status["active_channels"];
 
-            let active_list = $("<ul>");
+                let active_list = $("<ul>");
 
-            new_channels_active.forEach(function (channel) {
-                active_list.append($("<li>", {text: "Ch " + channel}).addClass("good_status"));
-            });
+                new_channels_active.forEach(function (channel) {
+                    active_list.append($("<li>", {text: "Ch " + channel}).addClass("good_status"));
+                });
 
-            $("#active_channels").empty().append(active_list);
+                $("#active_channels").empty().append(active_list);
 
-            const new_channels_disabled = new_status["disabled_channels"];
+                const new_channels_disabled = new_status["disabled_channels"];
 
-            let disabled_list = $("<ul>");
+                let disabled_list = $("<ul>");
 
-            new_channels_disabled.forEach(function (channel) {
-                disabled_list.append($("<li>", {text: "Ch " + channel}).addClass("bad_status"));
-            });
+                new_channels_disabled.forEach(function (channel) {
+                    disabled_list.append($("<li>", {text: "Ch " + channel}).addClass("bad_status"));
+                });
 
-            $("#disabled_channels").empty().append(disabled_list);
+                $("#disabled_channels").empty().append(disabled_list);
+            }
         }
     }
 

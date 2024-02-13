@@ -158,29 +158,31 @@ function page_loaded() {
                 update_selector(active_channels);
             } catch (error) { }
 
-            const new_channels_statuses = new_status["statuses"];
+            if (new_status.hasOwnProperty("statuses")) {
+                const new_channels_statuses = new_status["statuses"];
 
-            let rates_list = $("<ul>");
+                let rates_list = $("<ul>");
 
-            new_channels_statuses.forEach(function (channel_status) {
-                const channel = channel_status["id"];
-                const rate = channel_status["rate"];
+                new_channels_statuses.forEach(function (channel_status) {
+                    const channel = channel_status["id"];
+                    const rate = channel_status["rate"];
 
-                rates_list.append($("<li>", {text: "Ch " + channel + ": " + rate.toFixed(2)}));
-            });
+                    rates_list.append($("<li>", {text: "Ch " + channel + ": " + rate.toFixed(2)}));
+                });
 
-            $("#channels_rates").empty().append(rates_list);
+                $("#channels_rates").empty().append(rates_list);
 
-            let counts_list = $("<ul>");
+                let counts_list = $("<ul>");
 
-            new_channels_statuses.forEach(function (channel_status) {
-                const channel = channel_status["id"];
-                const counts = channel_status["counts"];
+                new_channels_statuses.forEach(function (channel_status) {
+                    const channel = channel_status["id"];
+                    const counts = channel_status["counts"];
 
-                counts_list.append($("<li>", {text: "Ch " + channel + ": " + counts.toFixed(0)}));
-            });
+                    counts_list.append($("<li>", {text: "Ch " + channel + ": " + counts.toFixed(0)}));
+                });
 
-            $("#channels_counts").empty().append(counts_list);
+                $("#channels_counts").empty().append(counts_list);
+            }
         }
     }
 
