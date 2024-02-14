@@ -1,5 +1,4 @@
 var express = require('express');
-var _ = require("lodash/core");
 var os = require("os");
 
 const hostname = os.hostname();
