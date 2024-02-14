@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2021, European Union, Cristiano Lino Fontana
+ * (C) Copyright 2021,2022,2023,2024 European Union, Cristiano Lino Fontana
  *
  * This file is part of ABCD.
  *
@@ -74,7 +74,7 @@ void signal_handler(int signum)
     }
 }
 
-void print_usage(const std::string &name = std::string("abcdrp")) {
+void print_usage(const std::string &name = std::string("waan")) {
     std::cout << "Usage: " << name << " [options]" << std::endl;
     std::cout << std::endl;
     std::cout << "Waveforms analysis software that generates processed events." << std::endl;
@@ -85,6 +85,8 @@ void print_usage(const std::string &name = std::string("abcdrp")) {
     std::cout << defaults_waan_status_address << std::endl;
     std::cout << "\t-A <address>: Data input socket address, default: ";
     std::cout << defaults_abcd_data_address_sub << std::endl;
+    std::cout << "\t              If it has the form 'file://<path_to_file>' then data will be read from a raw file." << std::endl;
+    std::cout << "\t              When the file is finished, waan will just to in idle mode and do nothing." << std::endl;
     std::cout << "\t-D <address>: Data output socket address, default: ";
     std::cout << defaults_waan_data_address << std::endl;
     std::cout << "\t-C <address>: Commands socket address, default: ";
