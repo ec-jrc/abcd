@@ -21,12 +21,12 @@ extern "C" {
 
 #include "typedefs.hpp"
 #include "states.hpp"
-#include "events.hpp"
 #include "actions.hpp"
 
 #define counter_type double
 
 extern "C" {
+#include "events.h"
 #include "utilities_functions.h"
 #include "socket_functions.h"
 #include "jansson_socket_functions.h"
