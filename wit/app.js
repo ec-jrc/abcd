@@ -209,7 +209,7 @@ socket_io.on('connection', socket => {
 
     // Faking a request and response for morgan
     req = {'method': 'SOCKET.IO',
-           'url': 'sent to socket id: ' + socket.id + " (room: " + module_name + ") the events list"};
+           'url': 'events list sent to socket id: ' + socket.id + " (room: " + module_name + ")"};
     // With a true in headersSent morgan prints the status code
     res = {'headersSent': true,
            'getHeader': (name) => '',
