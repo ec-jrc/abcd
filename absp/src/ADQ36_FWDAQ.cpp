@@ -373,10 +373,6 @@ int ABCD::ADQ36_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
         // Using a zero here should make the function return immediately
         const int timeout = 0;
 
-        // Since we set
-        //   adq_parameters.readout.channel[id].nof_record_buffers_in_array = 1;
-        // the return value represents the number of available records, not the
-        // number of available bytes.
         available_records = ADQ_WaitForRecordBuffer(adq_cu_ptr, adq_num,
                                                               &available_channel,
                                                               reinterpret_cast<void**>(&ADQ_records_array),
@@ -676,6 +672,14 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
             std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Wrong clock source";
             std::cout << std::endl;
         }
+
+        // If the clock source is set to external, then the clock generator
+        // should be set to external as well... maybe
+        //if (clock_system.reference_source == ADQ_REFERENCE_CLOCK_SOURCE_INTERNAL) {
+        //    clock_system.clock_generator = ADQ_CLOCK_GENERATOR_INTERNAL_PLL;
+        //} else {
+        //    clock_system.clock_generator = ADQ_CLOCK_GENERATOR_EXTERNAL_CLOCK;
+        //}
 
         json_object_set_nocheck(json_clock, "source", json_string(ADQ_descriptions::ADQ36_clock_source.at(adq_parameters.constant.clock_system.reference_source).c_str()));
 
@@ -1171,23 +1175,23 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
                     std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "Scope samples: " << records_per_buffer << "; ";
+                    std::cout << "Records per buffer: " << records_per_buffer << "; ";
                     std::cout << std::endl;
                 }
 
-                const int raw_records_number = json_number_value(json_object_get(value, "records_number"));
-
-                const int records_number = (raw_records_number < 1) ? ADQ_INFINITE_NOF_RECORDS : raw_records_number;
-
-                json_object_set_nocheck(value, "records_number", json_integer(records_number));
-
-                if (GetVerbosity() > 0) {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "Records number: " << records_number << "; ";
-                    std::cout << std::endl;
-                }
+                // This would limit the number of records read in an acquisition.
+                // We hide this setting from the user because it can be confusing.
+                // We will just use an infinite number of records in an acquisition.
+                //const int raw_records_number = json_number_value(json_object_get(value, "records_number"));
+                //const int records_number = (raw_records_number < 1) ? ADQ_INFINITE_NOF_RECORDS : raw_records_number;
+                //json_object_set_nocheck(value, "records_number", json_integer(records_number));
+                //if (GetVerbosity() > 0) {
+                //    char time_buffer[BUFFER_SIZE];
+                //    time_string(time_buffer, BUFFER_SIZE, NULL);
+                //    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
+                //    std::cout << "Records number: " << records_number << "; ";
+                //    std::cout << std::endl;
+                //}
 
                 // -------------------------------------------------------------------------
                 //  Setting the channel configuration
@@ -1211,7 +1215,7 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                     adq_parameters.acquisition.channel[id].trigger_edge = trigger_slope;
                     adq_parameters.acquisition.channel[id].horizontal_offset = -1 * pretrigger;
                     adq_parameters.acquisition.channel[id].record_length = scope_samples;
-                    adq_parameters.acquisition.channel[id].nof_records = records_number;
+                    adq_parameters.acquisition.channel[id].nof_records = ADQ_INFINITE_NOF_RECORDS;
 
                     // According to the SPD support, setting nof_records to zero
                     // will disable any data from the channel
@@ -1229,9 +1233,10 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                     adq_parameters.transfer.channel[id].metadata_buffer_size = sizeof(struct ADQGen4RecordHeader) * records_per_buffer;
                     adq_parameters.transfer.channel[id].record_length_infinite_enabled = 0;
                     adq_parameters.transfer.channel[id].metadata_enabled = 1;
-                    adq_parameters.transfer.channel[id].nof_buffers = 4;
+                    // Using the maximum value here, we have no reason to use a smaller value
+                    adq_parameters.transfer.channel[id].nof_buffers = ADQ_MAX_NOF_BUFFERS;
 
-                    adq_parameters.readout.channel[id].nof_record_buffers_in_array = 1;
+                    adq_parameters.readout.channel[id].nof_record_buffers_in_array = ADQ_FOLLOW_RECORD_TRANSFER_BUFFER;
 
                     if (trigger_source == ADQ_EVENT_SOURCE_SOFTWARE) {
                         using_software_trigger = true;
