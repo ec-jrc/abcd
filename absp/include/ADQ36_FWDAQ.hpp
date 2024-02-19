@@ -43,6 +43,13 @@ public:
     bool using_software_trigger;
 
     // -------------------------------------------------------------------------
+    //  Custom JRC-Geel firmware configuration
+    // -------------------------------------------------------------------------
+    bool custom_firmware_enabled;
+    uint32_t custom_firmware_pulse_length;
+    uint32_t custom_firmware_mode;
+
+    // -------------------------------------------------------------------------
     //  Timestamps settings
     // -------------------------------------------------------------------------
     // Applied bit shift to the read timestamp values

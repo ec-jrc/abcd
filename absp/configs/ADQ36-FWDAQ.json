@@ -16,6 +16,16 @@
             "enable": true,
             "native_note1": "by adding a 'native' entry it is possible to directly use a digitizer configuration, in that case the ABCD configuration will be done first and then this one will be applied",
             "native_note2": "WARNING: use it at your own risk",
+            "JRC_custom_firmware": {
+                "notes": "These settings are relative to the custom-firmare made by SP Devices for JRC-Geel",
+                "enable": false,
+                "pulse_length": 100,
+                "pulse_length_note": "Length of the output trigger pulse, maybe in samples",
+                "mode": 0,
+                "mode_possible_value0": "Set to 0 generate pulse on SYNC if incoming pulse on TRIG",
+                "mode_possible_value1": "Set to 1, as in mode 0 but generates also a pulse also if a record is created on any channel",
+                "zzz": null
+            },
             "clock": {
                 "source": "internal",
                 "source_possible_value0": "internal",

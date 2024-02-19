@@ -198,6 +198,78 @@ int ABCD::ADQ36_FWDAQ::Configure()
         return DIGITIZER_FAILURE;
     }
 
+    // -------------------------------------------------------------------------
+    //  Custom JRC-Geel firmware configuration
+    // -------------------------------------------------------------------------
+    // We write the registers only if the custom-firmware was enabled, otherwise
+    // we risk to write to registers that we are not supposed to for standard
+    // firmwares.
+    if (custom_firmware_enabled) {
+        // Identifies which user-logic core we want to write to
+        const int USER_LOGIC_TARGET = 2;
+
+        // The register number that sets the working mode
+        const uint32_t REGISTER_NUMBER_MODE = 1;
+        // The register number that sets the pulse length
+        const uint32_t REGISTER_NUMBER_PULSE_LENGTH = 2;
+        // The register number that enables the functioning of the custom firmware
+        const uint32_t REGISTER_NUMBER_ENABLE = 3;
+
+        const uint32_t CUSTOM_FIRMWARE_MASK = 0;
+
+        // This is the value returned from the WriteUserRegister() call.
+        // It should contain the same value that was written to the register.
+        uint32_t return_value;
+
+        CHECKZERO(ADQ_WriteUserRegister(adq_cu_ptr, adq_num,
+                                        USER_LOGIC_TARGET,
+                                        REGISTER_NUMBER_PULSE_LENGTH,
+                                        CUSTOM_FIRMWARE_MASK,
+                                        custom_firmware_pulse_length,
+                                        &return_value));
+
+        if (return_value != custom_firmware_pulse_length) {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Configure() ";
+            std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Custom firmware: Unable to set the pulse length; ";
+            std::cout << std::endl;
+        }
+
+        CHECKZERO(ADQ_WriteUserRegister(adq_cu_ptr, adq_num,
+                                        USER_LOGIC_TARGET,
+                                        REGISTER_NUMBER_MODE,
+                                        CUSTOM_FIRMWARE_MASK,
+                                        custom_firmware_mode,
+                                        &return_value));
+
+        if (return_value != custom_firmware_mode) {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Configure() ";
+            std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Custom firmware: Unable to set the mode; ";
+            std::cout << std::endl;
+        }
+
+        CHECKZERO(ADQ_WriteUserRegister(adq_cu_ptr, adq_num,
+                                        USER_LOGIC_TARGET,
+                                        REGISTER_NUMBER_ENABLE,
+                                        CUSTOM_FIRMWARE_MASK,
+                                        custom_firmware_enabled ? 1 : 0,
+                                        &return_value));
+
+        if (return_value != (custom_firmware_enabled ? 1 : 0)) {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Configure() ";
+            std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Custom firmware: Unable to enable the custom firmware functioning; ";
+            std::cout << std::endl;
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    //  Managing the native JSON configuration of the digitizer
+    // -------------------------------------------------------------------------
     if (GetVerbosity() > 1)
     {
         char time_buffer[BUFFER_SIZE];
@@ -621,6 +693,35 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
     //  Reading the ABCD-style configuration
     // -------------------------------------------------------------------------
     using_software_trigger = false;
+
+    // -------------------------------------------------------------------------
+    //  Custom JRC-Geel firmware configuration
+    // -------------------------------------------------------------------------
+    json_t *json_custom_firmware = json_object_get(config, "JRC_custom_firmware");
+
+    if (json_custom_firmware != NULL && json_is_object(json_custom_firmware)) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
+        std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": JRC-Geel custom firmware settings detected";
+        std::cout << std::endl;
+
+        custom_firmware_enabled = json_is_true(json_object_get(json_custom_firmware, "enable"));
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
+            std::cout << "Custom firmware settings are " << (custom_firmware_enabled ? "enabled" : "disabled") << "; ";
+            std::cout << std::endl;
+        }
+
+        if (custom_firmware_enabled) {
+            custom_firmware_pulse_length = json_number_value(json_object_get(json_custom_firmware, "pulse_length"));
+            custom_firmware_mode = json_number_value(json_object_get(json_custom_firmware, "mode"));
+        }
+    }
 
     // -------------------------------------------------------------------------
     //  Clock system part
