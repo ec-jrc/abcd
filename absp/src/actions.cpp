@@ -408,7 +408,7 @@ bool actions::generic::create_digitizer(status &global_status)
         std::cout << "Number of ADQ214: " << number_of_ADQ214 << "; ";
         std::cout << "Number of ADQ412: " << number_of_ADQ412 << "; ";
         std::cout << "Number of ADQ14: " << number_of_ADQ14 << "; ";
-        std::cout << "Number of ADQ36: " << number_of_ADQ14 << "; ";
+        std::cout << "Number of ADQ36: " << number_of_ADQ36 << "; ";
         std::cout << "Number of other devices: " << number_of_other << "; ";
         std::cout << std::endl;
     }
