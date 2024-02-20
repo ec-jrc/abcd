@@ -10,7 +10,7 @@ SOURCES += $(SRC_DIR)/actions.cpp $(SRC_DIR)/states.cpp
 
 OBJECTS = $(SOURCES:.cpp=.o)
 
-CXXFLAGS += -std=c++11 -I/usr/include/lua5.4
+CXXFLAGS += -I/usr/include/lua5.4
 LDFLAGS += -L /usr/lib -ljansson -ladq -llua5.4
 
 .PHONY: all clean
@@ -22,13 +22,13 @@ all: $(EXEC)
 	$(CXX) -c $(CXXFLAGS) $< -o $@
 
 $(SRC_DIR)/Digitizers_wrap.cpp: $(INCLUDE_DIR)/Digitizers.i
-	swig -c++ -lua -I/usr/include/ -I$(COMMON_INCLUDE_DIR) -o $@ $<
+	swig -D__linux__ -c++ -lua -I/usr/include/ -I$(COMMON_INCLUDE_DIR) -o $@ $<
 
 $(INCLUDE_DIR)/swigluarun.h: $(INCLUDE_DIR)/Digitizers.i
-	swig -c++ -lua -external-runtime $(INCLUDE_DIR)/swigluarun.h
+	swig -D__linux__ -c++ -lua -external-runtime $(INCLUDE_DIR)/swigluarun.h
 
 $(SRC_DIR)/Digitizers_wrap.o: $(SRC_DIR)/Digitizers_wrap.cpp $(INCLUDE_DIR)/swigluarun.h
-	$(CXX) -I/usr/include/lua5.4/ -c $(CXXFLAGS) $< -o $@
+	$(CXX) -I/usr/include/lua5.4/ -c -std=c++17 -O3 -I$(COMMON_INCLUDE_DIR) -I$(INCLUDE_DIR) -I/usr/include/lua5.4 $< -o $@
 
 # Main target
 $(EXEC): $(INCLUDE_DIR)/LuaManager.hpp $(OBJECTS) $(EXEC).cpp
