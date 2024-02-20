@@ -27,6 +27,7 @@ extern "C" {
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 #define BUFFER_SIZE 32
+// The dump of the default configuration has 47130 characters
 #define ADQAPI_JSON_BUFFER_SIZE 65536
 
 ABCD::ADQ36_FWDAQ::ADQ36_FWDAQ(void* adq, int num, int Verbosity) : ABCD::Digitizer(Verbosity),
@@ -1731,3 +1732,28 @@ int ABCD::ADQ36_FWDAQ::TimestampResetDisarm()
 }
 
 //==============================================================================
+
+std::string ABCD::ADQ36_FWDAQ::GetParametersString(enum ADQParameterId parameter_id)
+{
+    char parameters[ADQAPI_JSON_BUFFER_SIZE];
+
+    const int result = ADQ_GetParametersString(adq_cu_ptr, adq_num,
+                                               parameter_id, parameters, ADQAPI_JSON_BUFFER_SIZE, 1);
+
+    if (result < 0) {
+        // Making sure that the string has length zero
+        parameters[0] = '\0';
+    }
+
+    return std::string(parameters);
+}
+
+//==============================================================================
+
+int ABCD::ADQ36_FWDAQ::SetParametersString(std::string parameters)
+{
+    const int result = ADQ_SetParametersString(adq_cu_ptr, adq_num,
+                                               parameters.c_str(), parameters.length());
+
+    return result;
+}
