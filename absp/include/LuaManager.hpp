@@ -21,6 +21,7 @@ extern "C" {
 
 // Declaring the init function of the lua wrapped module.
 // It needs to be in an extern block, so the compiler does not mess up its name
+extern int luaopen_ADQAPI(lua_State* L);
 extern int luaopen_digitizers(lua_State* L);
 }
 
@@ -54,8 +55,9 @@ public:
         // Load the standard libraries
         luaL_openlibs(Lua);
 
-        // Load the SWIG wrapped module
+        // Load the SWIG wrapped modules
         // FIXME: Check whether we should use luaL_requiref() instead of calling directly
+        luaopen_ADQAPI(Lua);
         luaopen_digitizers(Lua);
 
         // Create a new table in which to store the digitizers
