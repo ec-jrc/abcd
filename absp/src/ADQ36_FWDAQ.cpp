@@ -1387,289 +1387,23 @@ int ABCD::ADQ36_FWDAQ::SpecificCommand(json_t *json_command)
         std::cout << std::endl;
     }
 
-    if (command == std::string("GPIO_pulse")) {
-        const char *cstr_port = json_string_value(json_object_get(json_command, "port"));
-        const std::string str_port = cstr_port ? std::string(cstr_port) : std::string("");
-
-        const int width = json_integer_value(json_object_get(json_command, "width"));
+    if (command == std::string("set_parameters")) {
+        // ---------------------------------------------------------------------
+        //  Set parameters
+        // ---------------------------------------------------------------------
+        const json_t *parameters = json_object_get(json_command, "parameters");
 
         if (GetVerbosity() > 0)
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
             std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SpecificCommand() ";
-            std::cout << "Pulse on port: " << str_port << " of width: " << width << " us; ";
+            std::cout << "Setting parameters; ";
             std::cout << std::endl;
         }
 
-        return GPIOPulse(str_port, width);
-
-    } else if (command == std::string("timestamp_reset")) {
-        // ---------------------------------------------------------------------
-        //  Timestamp reset
-        // ---------------------------------------------------------------------
-
-        const bool timestamp_reset_arm = json_is_true(json_object_get(json_command, "arm"));
-
-        if (timestamp_reset_arm) {
-            // -----------------------------------------------------------------
-            //  Arming the timestamp reset
-            // -----------------------------------------------------------------
-            const char *cstr_timestamp_reset_mode = json_string_value(json_object_get(json_command, "mode"));
-            const std::string str_timestamp_reset_mode = (cstr_timestamp_reset_mode) ? std::string(cstr_timestamp_reset_mode) : std::string();
-
-            const char *cstr_timestamp_reset_source = json_string_value(json_object_get(json_command, "source"));
-            const std::string str_timestamp_reset_source = (cstr_timestamp_reset_source) ? std::string(cstr_timestamp_reset_source) : std::string();
-
-            const int result = TimestampReset(str_timestamp_reset_mode, str_timestamp_reset_source, "immediately");
-
-            return result;
-
-        } else {
-            // -----------------------------------------------------------------
-            //  Disarming the timestamp reset
-            // -----------------------------------------------------------------
-            if (GetVerbosity() > 0)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SpecificCommand() ";
-                std::cout << "Disarming timestamp reset; ";
-                std::cout << std::endl;
-            }
-
-            const int result = TimestampResetDisarm();
-
-            return result;
-        }
+        return SetParametersJSON(parameters);
     }
-
-    return DIGITIZER_SUCCESS;
-}
-
-//==============================================================================
-
-int ABCD::ADQ36_FWDAQ::GPIOPulse(std::string port, int width)
-{
-    const auto pi_result = map_utilities::find_item(ADQ_descriptions::ADQ36_port_ids, port);
-
-    enum ADQParameterId port_id = ADQ_PARAMETER_ID_RESERVED;
-
-    if (pi_result != ADQ_descriptions::ADQ36_port_ids.end() && port.length() > 0) {
-        port_id = pi_result->first;
-
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GPIOPulse() ";
-        std::cout << "Found matching port; ";
-        std::cout << "Got: " << port << "; ";
-        std::cout << "index: " << static_cast<int>(port_id) << "; ";
-        std::cout << std::endl;
-    } else {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GPIOPulse() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid port; ";
-        std::cout << "Got: " << port << "; ";
-        std::cout << std::endl;
-
-        return DIGITIZER_FAILURE;
-    }
-
-    const uint16_t pin_value_on = 1;
-    const uint16_t pin_value_off = 0;
-
-    struct ADQPortParameters port_parameters;
-
-    if (ADQ_InitializeParameters(adq_cu_ptr, adq_num,
-                                 port_id,
-                                 &port_parameters) != sizeof(port_parameters))
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GPIOPulse() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to initialize port parameters; ";
-        std::cout << std::endl;
-
-        return DIGITIZER_FAILURE;
-    }
-
-    if (ADQ_GetParameters(adq_cu_ptr, adq_num,
-                          port_id,
-                          &port_parameters) != sizeof(port_parameters))
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GPIOPulse() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to get port parameters; ";
-        std::cout << std::endl;
-
-        return DIGITIZER_FAILURE;
-    }
-
-    port_parameters.pin[0].value = pin_value_on;
-
-    if (ADQ_SetParameters(adq_cu_ptr, adq_num,
-                          &port_parameters) != sizeof(port_parameters))
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GPIOPulse() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to set port parameters; ";
-        std::cout << std::endl;
-
-        return DIGITIZER_FAILURE;
-    }
-
-    std::this_thread::sleep_for(std::chrono::microseconds(width));
-
-    port_parameters.pin[0].value = pin_value_off;
-
-    if (ADQ_SetParameters(adq_cu_ptr, adq_num,
-                          &port_parameters) != sizeof(port_parameters))
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GPIOPulse() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to set port parameters; ";
-        std::cout << std::endl;
-
-        return DIGITIZER_FAILURE;
-    }
-
-    return DIGITIZER_SUCCESS;
-}
-
-//==============================================================================
-
-int ABCD::ADQ36_FWDAQ::TimestampReset(std::string mode, std::string source, std::string when)
-{
-    const auto s_result = map_utilities::find_item(ADQ_descriptions::event_source, source);
-
-    enum ADQEventSource source_id = ADQ_EVENT_SOURCE_INVALID;
-
-    if (s_result != ADQ_descriptions::event_source.end() && source.length() > 0) {
-        source_id = s_result->first;
-
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::TimestampReset() ";
-        std::cout << "Found matching source; ";
-        std::cout << "Got: " << source << "; ";
-        std::cout << "index: " << static_cast<int>(source_id) << "; ";
-        std::cout << std::endl;
-    } else {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::TimestampReset() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid source; ";
-        std::cout << "Got: " << source << "; ";
-        std::cout << std::endl;
-
-        return DIGITIZER_FAILURE;
-    }
-
-    const auto m_result = map_utilities::find_item(ADQ_descriptions::timestamp_synchronization_mode, mode);
-
-    enum ADQTimestampSynchronizationMode mode_id = ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_DISABLE;
-
-    if (m_result != ADQ_descriptions::timestamp_synchronization_mode.end() && mode.length() > 0) {
-        mode_id = m_result->first;
-
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::TimestampReset() ";
-        std::cout << "Found matching mode; ";
-        std::cout << "Got: " << mode << "; ";
-        std::cout << "index: " << static_cast<int>(mode_id) << "; ";
-        std::cout << std::endl;
-    } else {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::TimestampReset() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid mode; ";
-        std::cout << "Got: " << mode << "; ";
-        std::cout << std::endl;
-
-        return DIGITIZER_FAILURE;
-    }
-
-    const auto w_result = map_utilities::find_item(ADQ_descriptions::arm, when);
-
-    enum ADQArm when_id = ADQ_ARM_IMMEDIATELY;
-
-    if (w_result != ADQ_descriptions::arm.end() && when.length() > 0) {
-        when_id = w_result->first;
-
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::TimestampReset() ";
-        std::cout << "Found matching when; ";
-        std::cout << "Got: " << when << "; ";
-        std::cout << "index: " << static_cast<int>(when_id) << "; ";
-        std::cout << std::endl;
-    } else {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::TimestampReset() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid when; ";
-        std::cout << "Got: " << when << "; ";
-        std::cout << std::endl;
-
-        return DIGITIZER_FAILURE;
-    }
-
-    struct ADQTimestampSynchronizationParameters sync_parameters;
-
-    if (ADQ_InitializeParameters(adq_cu_ptr, adq_num,
-                                 ADQ_PARAMETER_ID_TIMESTAMP_SYNCHRONIZATION,
-                                 &sync_parameters) != sizeof(sync_parameters))
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::TimestampReset() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to initialize sync parameters; ";
-        std::cout << std::endl;
-
-        return DIGITIZER_FAILURE;
-    }
-
-    sync_parameters.source = source_id;
-    sync_parameters.edge = ADQ_EDGE_RISING;
-    sync_parameters.mode = mode_id;
-    sync_parameters.arm = when_id;
-    // This is the value the timestamp will have
-    sync_parameters.seed = 0;
-
-    if (ADQ_SetParameters(adq_cu_ptr, adq_num,
-                          &sync_parameters) != sizeof(sync_parameters))
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::TimestampReset() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to set sync parameters; ";
-        std::cout << std::endl;
-
-        return DIGITIZER_FAILURE;
-    }
-
-    return DIGITIZER_SUCCESS;
-}
-
-//==============================================================================
-
-int ABCD::ADQ36_FWDAQ::TimestampResetDisarm()
-{
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::TimestampResetDisarm() ";
-        std::cout << "Disarming timestamp reset; ";
-        std::cout << std::endl;
-    }
-
-    TimestampReset("disable", "invalid", "immediately");
 
     return DIGITIZER_SUCCESS;
 }
@@ -1693,12 +1427,45 @@ std::string ABCD::ADQ36_FWDAQ::GetParametersString(enum ADQParameterId parameter
 
 //==============================================================================
 
-int ABCD::ADQ36_FWDAQ::SetParametersString(std::string parameters)
+int ABCD::ADQ36_FWDAQ::SetParametersString(const std::string parameters)
 {
     const int result = ADQ_SetParametersString(adq_cu_ptr, adq_num,
                                                parameters.c_str(), parameters.length());
 
-    return result;
+    if (result < 0) {
+        return DIGITIZER_FAILURE;
+    } else {
+        return DIGITIZER_SUCCESS;
+    }
+}
+
+
+//==============================================================================
+
+int ABCD::ADQ36_FWDAQ::SetParametersJSON(const json_t *parameters)
+{
+    char *parameters_buffer = json_dumps(parameters, JSON_COMPACT);
+
+    if (!parameters_buffer) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SetParametersJSON() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Unable to create the JSON parameters buffer; ";
+        std::cout << std::endl;
+
+        return DIGITIZER_FAILURE;
+    }
+
+    const int result = ADQ_SetParametersString(adq_cu_ptr, adq_num,
+                                               parameters_buffer, strlen(parameters_buffer));
+
+    free(parameters_buffer);
+
+    if (result < 0) {
+        return DIGITIZER_FAILURE;
+    } else {
+        return DIGITIZER_SUCCESS;
+    }
 }
 
 //==============================================================================

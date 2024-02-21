@@ -85,12 +85,8 @@ public:
     int SpecificCommand(json_t* json_command);
 
     std::string GetParametersString(enum ADQParameterId parameter_id);
-    int SetParametersString(std::string parameters);
-
-    int GPIOPulse(std::string port, int width);
-
-    int TimestampReset(std::string mode, std::string source, std::string when);
-    int TimestampResetDisarm();
+    int SetParametersString(const std::string parameters);
+    int SetParametersJSON(const json_t *parameters);
 
     //--------------------------------------------------------------------------
 
