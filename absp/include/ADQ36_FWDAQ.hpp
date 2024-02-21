@@ -91,6 +91,12 @@ public:
 
     int TimestampReset(std::string mode, std::string source, std::string when);
     int TimestampResetDisarm();
+
+    //--------------------------------------------------------------------------
+
+    int CustomFirmwareSetMode(uint32_t mode);
+    int CustomFirmwareSetPulseLength(uint32_t pulse_length);
+    int CustomFirmwareEnable(bool enable);
 };
 }
 

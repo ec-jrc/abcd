@@ -203,69 +203,12 @@ int ABCD::ADQ36_FWDAQ::Configure()
     //  Custom JRC-Geel firmware configuration
     // -------------------------------------------------------------------------
     // We write the registers only if the custom-firmware was enabled, otherwise
-    // we risk to write to registers that we are not supposed to for standard
-    // firmwares.
+    // we risk to write over registers of standard firmwares that we are not
+    // supposed to.
     if (custom_firmware_enabled) {
-        // Identifies which user-logic core we want to write to
-        const int USER_LOGIC_TARGET = 2;
-
-        // The register number that sets the working mode
-        const uint32_t REGISTER_NUMBER_MODE = 1;
-        // The register number that sets the pulse length
-        const uint32_t REGISTER_NUMBER_PULSE_LENGTH = 2;
-        // The register number that enables the functioning of the custom firmware
-        const uint32_t REGISTER_NUMBER_ENABLE = 3;
-
-        const uint32_t CUSTOM_FIRMWARE_MASK = 0;
-
-        // This is the value returned from the WriteUserRegister() call.
-        // It should contain the same value that was written to the register.
-        uint32_t return_value;
-
-        CHECKZERO(ADQ_WriteUserRegister(adq_cu_ptr, adq_num,
-                                        USER_LOGIC_TARGET,
-                                        REGISTER_NUMBER_PULSE_LENGTH,
-                                        CUSTOM_FIRMWARE_MASK,
-                                        custom_firmware_pulse_length,
-                                        &return_value));
-
-        if (return_value != custom_firmware_pulse_length) {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Configure() ";
-            std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Custom firmware: Unable to set the pulse length; ";
-            std::cout << std::endl;
-        }
-
-        CHECKZERO(ADQ_WriteUserRegister(adq_cu_ptr, adq_num,
-                                        USER_LOGIC_TARGET,
-                                        REGISTER_NUMBER_MODE,
-                                        CUSTOM_FIRMWARE_MASK,
-                                        custom_firmware_mode,
-                                        &return_value));
-
-        if (return_value != custom_firmware_mode) {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Configure() ";
-            std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Custom firmware: Unable to set the mode; ";
-            std::cout << std::endl;
-        }
-
-        CHECKZERO(ADQ_WriteUserRegister(adq_cu_ptr, adq_num,
-                                        USER_LOGIC_TARGET,
-                                        REGISTER_NUMBER_ENABLE,
-                                        CUSTOM_FIRMWARE_MASK,
-                                        custom_firmware_enabled ? 1 : 0,
-                                        &return_value));
-
-        if (return_value != (custom_firmware_enabled ? 1 : 0)) {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Configure() ";
-            std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Custom firmware: Unable to enable the custom firmware functioning; ";
-            std::cout << std::endl;
-        }
+        CustomFirmwareSetMode(custom_firmware_mode);
+        CustomFirmwareSetPulseLength(custom_firmware_pulse_length);
+        CustomFirmwareEnable(custom_firmware_enabled);
     }
 
     // -------------------------------------------------------------------------
@@ -1756,4 +1699,112 @@ int ABCD::ADQ36_FWDAQ::SetParametersString(std::string parameters)
                                                parameters.c_str(), parameters.length());
 
     return result;
+}
+
+//==============================================================================
+
+int ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode(uint32_t mode)
+{
+    // Identifies which user-logic core we want to write to
+    const int USER_LOGIC_BLOCK_TARGET = 2;
+
+    // The register number that sets the working mode
+    const uint32_t REGISTER_NUMBER_MODE = 1;
+
+    const uint32_t CUSTOM_FIRMWARE_MASK = 0;
+
+    // This is the value returned from the WriteUserRegister() call.
+    // It should contain the same value that was written to the register.
+    uint32_t return_value;
+
+    CHECKZERO(ADQ_WriteUserRegister(adq_cu_ptr, adq_num,
+                                    USER_LOGIC_BLOCK_TARGET,
+                                    REGISTER_NUMBER_MODE,
+                                    CUSTOM_FIRMWARE_MASK,
+                                    mode,
+                                    &return_value));
+
+    if (return_value != mode) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Configure() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Custom firmware: Unable to set the mode; ";
+        std::cout << std::endl;
+
+        return DIGITIZER_FAILURE;
+    }
+
+    return DIGITIZER_SUCCESS;
+}
+
+//==============================================================================
+
+int ABCD::ADQ36_FWDAQ::CustomFirmwareSetPulseLength(uint32_t pulse_length)
+{
+    // Identifies which user-logic core we want to write to
+    const int USER_LOGIC_BLOCK_TARGET = 2;
+
+    // The register number that sets the pulse length
+    const uint32_t REGISTER_NUMBER_PULSE_LENGTH = 2;
+
+    const uint32_t CUSTOM_FIRMWARE_MASK = 0;
+
+    // This is the value returned from the WriteUserRegister() call.
+    // It should contain the same value that was written to the register.
+    uint32_t return_value;
+
+    CHECKZERO(ADQ_WriteUserRegister(adq_cu_ptr, adq_num,
+                                    USER_LOGIC_BLOCK_TARGET,
+                                    REGISTER_NUMBER_PULSE_LENGTH,
+                                    CUSTOM_FIRMWARE_MASK,
+                                    pulse_length,
+                                    &return_value));
+
+    if (return_value != pulse_length) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Configure() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Custom firmware: Unable to set the pulse length; ";
+        std::cout << std::endl;
+
+        return DIGITIZER_FAILURE;
+    }
+
+    return DIGITIZER_SUCCESS;
+}
+
+//==============================================================================
+
+int ABCD::ADQ36_FWDAQ::CustomFirmwareEnable(bool enable)
+{
+    // Identifies which user-logic core we want to write to
+    const int USER_LOGIC_BLOCK_TARGET = 2;
+
+    // The register number that enables the functioning of the custom firmware
+    const uint32_t REGISTER_NUMBER_ENABLE = 3;
+
+    const uint32_t CUSTOM_FIRMWARE_MASK = 0;
+
+    // This is the value returned from the WriteUserRegister() call.
+    // It should contain the same value that was written to the register.
+    uint32_t return_value;
+
+    CHECKZERO(ADQ_WriteUserRegister(adq_cu_ptr, adq_num,
+                                    USER_LOGIC_BLOCK_TARGET,
+                                    REGISTER_NUMBER_ENABLE,
+                                    CUSTOM_FIRMWARE_MASK,
+                                    enable ? 1 : 0,
+                                    &return_value));
+
+    if (return_value != (enable ? 1 : 0)) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Configure() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Custom firmware: Unable to enable the custom firmware functioning; ";
+        std::cout << std::endl;
+
+        return DIGITIZER_FAILURE;
+    }
+
+    return DIGITIZER_SUCCESS;
 }
