@@ -17,7 +17,7 @@ TOPIC = 'data_abcd'.encode('ascii')
 # Here be the command line parser #
 ###################################
 
-parser = argparse.ArgumentParser(description='Rescales the timestamp word of each event')
+parser = argparse.ArgumentParser(description='Rescales the timestamp word of each event in a data stream')
 parser.add_argument('-S',
                     '--sub_socket',
                     type = str,
