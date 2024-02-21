@@ -12,6 +12,7 @@
 %include <std_string.i>
 %include <std_vector.i>
 
-%rename(function_par) function;
+%rename(pin_function) ADQPortParametersPin::function;
+%rename(function_parameters) ADQParameters::function;
 
 %include "ADQAPI.h"
