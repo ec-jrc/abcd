@@ -86,6 +86,8 @@ public:
 
     std::string GetParametersString(enum ADQParameterId parameter_id);
     int SetParametersString(const std::string parameters);
+
+    json_t *GetParametersJSON(enum ADQParameterId parameter_id);
     int SetParametersJSON(const json_t *parameters);
 
     //--------------------------------------------------------------------------

@@ -1439,6 +1439,40 @@ int ABCD::ADQ36_FWDAQ::SetParametersString(const std::string parameters)
     }
 }
 
+//==============================================================================
+
+json_t *ABCD::ADQ36_FWDAQ::GetParametersJSON(enum ADQParameterId parameter_id)
+{
+    char parameters[ADQAPI_JSON_BUFFER_SIZE];
+
+    const int result = ADQ_GetParametersString(adq_cu_ptr, adq_num,
+                                               parameter_id, parameters, ADQAPI_JSON_BUFFER_SIZE, 1);
+
+    if (result < 0) {
+        // Making sure that the string has length zero
+        parameters[0] = '\0';
+    }
+
+    json_error_t error;
+    json_t *parameters_json = json_loads(parameters, 0, &error);
+
+    if (!parameters_json)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetParametersJSON() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << "Parse error while reading parameters string: ";
+        std::cout << error.text;
+        std::cout << " (source: " << error.source << ", line: " << error.line << ", column: " << error.column << ", position: " << error.position << ")";
+        std::cout << std::endl;
+
+        return NULL;
+    }
+    else
+    {
+        return parameters_json;
+    }
+}
 
 //==============================================================================
 
