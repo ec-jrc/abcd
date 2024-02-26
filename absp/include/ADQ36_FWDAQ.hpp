@@ -84,6 +84,9 @@ public:
 
     int SpecificCommand(json_t* json_command);
 
+    int GetParameters(enum ADQParameterId parameter_id, void *const parameters);
+    int SetParameters(void *const parameters);
+
     std::string GetParametersString(enum ADQParameterId parameter_id);
     int SetParametersString(const std::string parameters);
 

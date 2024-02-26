@@ -1410,6 +1410,46 @@ int ABCD::ADQ36_FWDAQ::SpecificCommand(json_t *json_command)
 
 //==============================================================================
 
+int ABCD::ADQ36_FWDAQ::GetParameters(enum ADQParameterId parameter_id, void *const parameters)
+{
+    const int result = ADQ_GetParameters(adq_cu_ptr, adq_num,
+                                         parameter_id, parameters);
+
+    if (result < 0) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetParameters() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << "Unable to get parameters with id: " << (int)parameter_id;
+        std::cout << std::endl;
+
+        return DIGITIZER_FAILURE;
+    }
+
+    return DIGITIZER_SUCCESS;
+}
+
+//==============================================================================
+
+int ABCD::ADQ36_FWDAQ::SetParameters(void *const parameters)
+{
+    const int result = ADQ_SetParameters(adq_cu_ptr, adq_num,
+                                         parameters);
+
+    if (result < 0) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetParameters() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << "Unable to set parameters";
+        std::cout << std::endl;
+
+        return DIGITIZER_FAILURE;
+    } else {
+        return DIGITIZER_SUCCESS;
+    }
+}
+
+//==============================================================================
+
 std::string ABCD::ADQ36_FWDAQ::GetParametersString(enum ADQParameterId parameter_id)
 {
     char parameters[ADQAPI_JSON_BUFFER_SIZE];
