@@ -101,8 +101,8 @@ public:
 
     //--------------------------------------------------------------------------
 
-    int CustomFirmwareSetMode(uint32_t mode);
-    int CustomFirmwareSetPulseLength(uint32_t pulse_length);
+    int CustomFirmwareSetMode(unsigned int mode);
+    int CustomFirmwareSetPulseLength(unsigned int pulse_length);
     int CustomFirmwareEnable(bool enable);
 };
 }

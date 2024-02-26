@@ -79,7 +79,7 @@ int ABCD::ADQ36_FWDAQ::Initialize()
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Failed to initialize digitizer parameters; ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to initialize digitizer parameters; ";
         std::cout << std::endl;
 
         return DIGITIZER_FAILURE;
@@ -193,7 +193,7 @@ int ABCD::ADQ36_FWDAQ::Configure()
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Configure() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Unable to set parameters; ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to set parameters; ";
         std::cout << std::endl;
 
         return DIGITIZER_FAILURE;
@@ -678,7 +678,7 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Failed to initialize clock_system parameters; ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to initialize clock_system parameters; ";
         std::cout << std::endl;
 
         return DIGITIZER_FAILURE;
@@ -761,7 +761,7 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Failed to initialize clock_system parameters; ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to initialize clock_system parameters; ";
         std::cout << std::endl;
 
         return DIGITIZER_FAILURE;
@@ -924,7 +924,7 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                         char time_buffer[BUFFER_SIZE];
                         time_string(time_buffer, BUFFER_SIZE, NULL);
                         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-                        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Failed to initialize port parameters; ";
+                        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to initialize port parameters; ";
                         std::cout << std::endl;
 
                         return DIGITIZER_FAILURE;
@@ -942,7 +942,7 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                         char time_buffer[BUFFER_SIZE];
                         time_string(time_buffer, BUFFER_SIZE, NULL);
                         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-                        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Failed to set port parameters; ";
+                        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to set port parameters; ";
                         std::cout << std::endl;
 
                         return DIGITIZER_FAILURE;
@@ -967,7 +967,7 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Failed to get digitizer parameters; ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to get digitizer parameters; ";
         std::cout << std::endl;
 
         return DIGITIZER_FAILURE;
@@ -1313,7 +1313,7 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Failure in parameters validation; ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failure in parameters validation; ";
         std::cout << std::endl;
 
         return DIGITIZER_FAILURE;
@@ -1454,7 +1454,7 @@ int ABCD::ADQ36_FWDAQ::GetParameters(enum ADQParameterId parameter_id, void *con
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetParameters() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << "Unable to get parameters with id: " << (int)parameter_id;
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to get parameters with id: " << (int)parameter_id;
         std::cout << std::endl;
 
         return DIGITIZER_FAILURE;
@@ -1480,10 +1480,14 @@ int ABCD::ADQ36_FWDAQ::SetParameters(void *const parameters)
                                          parameters);
 
     if (result < 0) {
+        char error_string[512];
+        ADQControlUnit_GetLastFailedDeviceErrorWithText(adq_cu_ptr, error_string);
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetParameters() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << "Unable to set parameters";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SetParameters() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to set parameters";
+        std::cout << " (code: " << WRITE_YELLOW << result << WRITE_NC << "); "; 
+        std::cout << "text: " << WRITE_YELLOW << error_string << WRITE_NC << "; "; 
         std::cout << std::endl;
 
         return DIGITIZER_FAILURE;
@@ -1535,6 +1539,16 @@ int ABCD::ADQ36_FWDAQ::SetParametersString(const std::string parameters)
                                                parameters.c_str(), parameters.length());
 
     if (result < 0) {
+        char error_string[512];
+        ADQControlUnit_GetLastFailedDeviceErrorWithText(adq_cu_ptr, error_string);
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SetParametersString() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to set parameters";
+        std::cout << " (code: " << WRITE_YELLOW << result << WRITE_NC << "); "; 
+        std::cout << "text: " << WRITE_YELLOW << error_string << WRITE_NC << "; "; 
+        std::cout << std::endl;
+
         return DIGITIZER_FAILURE;
     } else {
         return DIGITIZER_SUCCESS;
@@ -1572,7 +1586,7 @@ json_t *ABCD::ADQ36_FWDAQ::GetParametersJSON(enum ADQParameterId parameter_id)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetParametersJSON() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << "Parse error while reading parameters string: ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Parse error while reading parameters string: ";
         std::cout << error.text;
         std::cout << " (source: " << error.source << ", line: " << error.line << ", column: " << error.column << ", position: " << error.position << ")";
         std::cout << std::endl;
@@ -1604,7 +1618,7 @@ int ABCD::ADQ36_FWDAQ::SetParametersJSON(const json_t *parameters)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SetParametersJSON() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Unable to create the JSON parameters buffer; ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to create the JSON parameters buffer; ";
         std::cout << std::endl;
 
         return DIGITIZER_FAILURE;
@@ -1616,6 +1630,16 @@ int ABCD::ADQ36_FWDAQ::SetParametersJSON(const json_t *parameters)
     free(parameters_buffer);
 
     if (result < 0) {
+        char error_string[512];
+        ADQControlUnit_GetLastFailedDeviceErrorWithText(adq_cu_ptr, error_string);
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SetParametersJSON() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to set parameters";
+        std::cout << " (code: " << WRITE_YELLOW << result << WRITE_NC << "); "; 
+        std::cout << "text: " << WRITE_YELLOW << error_string << WRITE_NC << "; "; 
+        std::cout << std::endl;
+
         return DIGITIZER_FAILURE;
     } else {
         return DIGITIZER_SUCCESS;
@@ -1624,13 +1648,13 @@ int ABCD::ADQ36_FWDAQ::SetParametersJSON(const json_t *parameters)
 
 //==============================================================================
 
-int ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode(uint32_t mode)
+int ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode(unsigned int mode)
 {
     if (mode > 1) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Custom firmware: Mode can only be 0 or 1, got: " << mode << " ; ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Custom firmware: Mode can only be 0 or 1, got: " << mode << " ; ";
         std::cout << std::endl;
 
         return DIGITIZER_FAILURE;
@@ -1657,18 +1681,18 @@ int ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode(uint32_t mode)
     // It should contain the same value that was written to the register.
     uint32_t return_value;
 
-    CHECKZERO(ADQ_WriteUserRegister(adq_cu_ptr, adq_num,
-                                    USER_LOGIC_BLOCK_TARGET,
-                                    REGISTER_NUMBER_MODE,
-                                    CUSTOM_FIRMWARE_MASK,
-                                    mode,
-                                    &return_value));
+    CHECKNEGATIVE(ADQ_WriteUserRegister(adq_cu_ptr, adq_num,
+                                        USER_LOGIC_BLOCK_TARGET,
+                                        REGISTER_NUMBER_MODE,
+                                        CUSTOM_FIRMWARE_MASK,
+                                        static_cast<uint32_t>(mode),
+                                        &return_value));
 
     if (return_value != mode) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Custom firmware: Unable to set the mode; ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Custom firmware: Unable to set the mode; ";
         std::cout << std::endl;
 
         return DIGITIZER_FAILURE;
@@ -1679,7 +1703,7 @@ int ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode(uint32_t mode)
 
 //==============================================================================
 
-int ABCD::ADQ36_FWDAQ::CustomFirmwareSetPulseLength(uint32_t pulse_length)
+int ABCD::ADQ36_FWDAQ::CustomFirmwareSetPulseLength(unsigned int pulse_length)
 {
     if (GetVerbosity() > 0)
     {
@@ -1702,18 +1726,18 @@ int ABCD::ADQ36_FWDAQ::CustomFirmwareSetPulseLength(uint32_t pulse_length)
     // It should contain the same value that was written to the register.
     uint32_t return_value;
 
-    CHECKZERO(ADQ_WriteUserRegister(adq_cu_ptr, adq_num,
-                                    USER_LOGIC_BLOCK_TARGET,
-                                    REGISTER_NUMBER_PULSE_LENGTH,
-                                    CUSTOM_FIRMWARE_MASK,
-                                    pulse_length,
-                                    &return_value));
+    CHECKNEGATIVE(ADQ_WriteUserRegister(adq_cu_ptr, adq_num,
+                                        USER_LOGIC_BLOCK_TARGET,
+                                        REGISTER_NUMBER_PULSE_LENGTH,
+                                        CUSTOM_FIRMWARE_MASK,
+                                        static_cast<uint32_t>(pulse_length),
+                                        &return_value));
 
     if (return_value != pulse_length) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareSetPulseLength() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Custom firmware: Unable to set the pulse length; ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Custom firmware: Unable to set the pulse length; ";
         std::cout << std::endl;
 
         return DIGITIZER_FAILURE;
@@ -1747,18 +1771,18 @@ int ABCD::ADQ36_FWDAQ::CustomFirmwareEnable(bool enable)
     // It should contain the same value that was written to the register.
     uint32_t return_value;
 
-    CHECKZERO(ADQ_WriteUserRegister(adq_cu_ptr, adq_num,
-                                    USER_LOGIC_BLOCK_TARGET,
-                                    REGISTER_NUMBER_ENABLE,
-                                    CUSTOM_FIRMWARE_MASK,
-                                    enable ? 1 : 0,
-                                    &return_value));
+    CHECKNEGATIVE(ADQ_WriteUserRegister(adq_cu_ptr, adq_num,
+                                        USER_LOGIC_BLOCK_TARGET,
+                                        REGISTER_NUMBER_ENABLE,
+                                        CUSTOM_FIRMWARE_MASK,
+                                        enable ? 1 : 0,
+                                        &return_value));
 
     if (return_value != (enable ? 1 : 0)) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareEnable() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Custom firmware: Unable to enable the custom firmware functioning; ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Custom firmware: Unable to enable the custom firmware functioning; ";
         std::cout << std::endl;
 
         return DIGITIZER_FAILURE;
