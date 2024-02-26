@@ -1417,7 +1417,7 @@ std::string ABCD::ADQ36_FWDAQ::GetStatusString(enum ADQStatusId status_id)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetStatusString() ";
-        std::cout << "Reading status of id: " << status_id << "; ";
+        std::cout << "Reading status of id: " << (int)status_id << "; ";
         std::cout << std::endl;
     }
 
@@ -1438,6 +1438,15 @@ std::string ABCD::ADQ36_FWDAQ::GetStatusString(enum ADQStatusId status_id)
 
 int ABCD::ADQ36_FWDAQ::GetParameters(enum ADQParameterId parameter_id, void *const parameters)
 {
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetParameters() ";
+        std::cout << "Reading parameters of id: " << (int)parameter_id << "; ";
+        std::cout << std::endl;
+    }
+
     const int result = ADQ_GetParameters(adq_cu_ptr, adq_num,
                                          parameter_id, parameters);
 
@@ -1458,6 +1467,15 @@ int ABCD::ADQ36_FWDAQ::GetParameters(enum ADQParameterId parameter_id, void *con
 
 int ABCD::ADQ36_FWDAQ::SetParameters(void *const parameters)
 {
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SetParameters() ";
+        std::cout << "Setting parameters; ";
+        std::cout << std::endl;
+    }
+
     const int result = ADQ_SetParameters(adq_cu_ptr, adq_num,
                                          parameters);
 
@@ -1478,6 +1496,15 @@ int ABCD::ADQ36_FWDAQ::SetParameters(void *const parameters)
 
 std::string ABCD::ADQ36_FWDAQ::GetParametersString(enum ADQParameterId parameter_id)
 {
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetParametersString() ";
+        std::cout << "Reading parameters of id: " << (int)parameter_id << "; ";
+        std::cout << std::endl;
+    }
+
     char parameters[ADQAPI_JSON_BUFFER_SIZE];
 
     const int result = ADQ_GetParametersString(adq_cu_ptr, adq_num,
@@ -1495,6 +1522,15 @@ std::string ABCD::ADQ36_FWDAQ::GetParametersString(enum ADQParameterId parameter
 
 int ABCD::ADQ36_FWDAQ::SetParametersString(const std::string parameters)
 {
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SetParametersString() ";
+        std::cout << "Setting parameters; ";
+        std::cout << std::endl;
+    }
+
     const int result = ADQ_SetParametersString(adq_cu_ptr, adq_num,
                                                parameters.c_str(), parameters.length());
 
@@ -1509,6 +1545,15 @@ int ABCD::ADQ36_FWDAQ::SetParametersString(const std::string parameters)
 
 json_t *ABCD::ADQ36_FWDAQ::GetParametersJSON(enum ADQParameterId parameter_id)
 {
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetParametersJSON() ";
+        std::cout << "Reading parameters of id: " << (int)parameter_id << "; ";
+        std::cout << std::endl;
+    }
+
     char parameters[ADQAPI_JSON_BUFFER_SIZE];
 
     const int result = ADQ_GetParametersString(adq_cu_ptr, adq_num,
@@ -1544,6 +1589,15 @@ json_t *ABCD::ADQ36_FWDAQ::GetParametersJSON(enum ADQParameterId parameter_id)
 
 int ABCD::ADQ36_FWDAQ::SetParametersJSON(const json_t *parameters)
 {
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SetParametersJSON() ";
+        std::cout << "Setting parameters; ";
+        std::cout << std::endl;
+    }
+
     char *parameters_buffer = json_dumps(parameters, JSON_COMPACT);
 
     if (!parameters_buffer) {
