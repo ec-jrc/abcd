@@ -1506,6 +1506,25 @@ int ABCD::ADQ36_FWDAQ::SetParametersJSON(const json_t *parameters)
 
 int ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode(uint32_t mode)
 {
+    if (mode > 1) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Custom firmware: Mode can only be 0 or 1, got: " << mode << " ; ";
+        std::cout << std::endl;
+
+        return DIGITIZER_FAILURE;
+    }
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode() ";
+        std::cout << "Setting mode to: " << (mode == 1 ? "forward to sync" : "daisy chain only") << "; ";
+        std::cout << std::endl;
+    }
+
     // Identifies which user-logic core we want to write to
     const int USER_LOGIC_BLOCK_TARGET = 2;
 
@@ -1528,7 +1547,7 @@ int ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode(uint32_t mode)
     if (return_value != mode) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode() ";
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Custom firmware: Unable to set the mode; ";
         std::cout << std::endl;
 
@@ -1542,6 +1561,15 @@ int ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode(uint32_t mode)
 
 int ABCD::ADQ36_FWDAQ::CustomFirmwareSetPulseLength(uint32_t pulse_length)
 {
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareSetPulseLength() ";
+        std::cout << "Pulse length to: " << pulse_length << "; ";
+        std::cout << std::endl;
+    }
+
     // Identifies which user-logic core we want to write to
     const int USER_LOGIC_BLOCK_TARGET = 2;
 
@@ -1564,7 +1592,7 @@ int ABCD::ADQ36_FWDAQ::CustomFirmwareSetPulseLength(uint32_t pulse_length)
     if (return_value != pulse_length) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareSetPulseLength() ";
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Custom firmware: Unable to set the pulse length; ";
         std::cout << std::endl;
 
@@ -1578,6 +1606,15 @@ int ABCD::ADQ36_FWDAQ::CustomFirmwareSetPulseLength(uint32_t pulse_length)
 
 int ABCD::ADQ36_FWDAQ::CustomFirmwareEnable(bool enable)
 {
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareEnable() ";
+        std::cout << "Enabling custom firmware functionality: " << (enable ? "true" : "false") << "; ";
+        std::cout << std::endl;
+    }
+
     // Identifies which user-logic core we want to write to
     const int USER_LOGIC_BLOCK_TARGET = 2;
 
@@ -1600,7 +1637,7 @@ int ABCD::ADQ36_FWDAQ::CustomFirmwareEnable(bool enable)
     if (return_value != (enable ? 1 : 0)) {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Configure() ";
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareEnable() ";
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << " Custom firmware: Unable to enable the custom firmware functioning; ";
         std::cout << std::endl;
 
