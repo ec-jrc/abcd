@@ -1410,6 +1410,32 @@ int ABCD::ADQ36_FWDAQ::SpecificCommand(json_t *json_command)
 
 //==============================================================================
 
+std::string ABCD::ADQ36_FWDAQ::GetStatusString(enum ADQStatusId status_id)
+{
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetStatusString() ";
+        std::cout << "Reading status of id: " << status_id << "; ";
+        std::cout << std::endl;
+    }
+
+    char status[ADQAPI_JSON_BUFFER_SIZE];
+
+    const int result = ADQ_GetStatusString(adq_cu_ptr, adq_num,
+                                           status_id, status, ADQAPI_JSON_BUFFER_SIZE, 1);
+
+    if (result < 0) {
+        // Making sure that the string has length zero
+        status[0] = '\0';
+    }
+
+    return std::string(status);
+}
+
+//==============================================================================
+
 int ABCD::ADQ36_FWDAQ::GetParameters(enum ADQParameterId parameter_id, void *const parameters)
 {
     const int result = ADQ_GetParameters(adq_cu_ptr, adq_num,
