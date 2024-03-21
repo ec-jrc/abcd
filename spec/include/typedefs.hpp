@@ -59,6 +59,7 @@ struct status
 
     enum spectra_types spectra_type;
     enum PSD_types PSD_type;
+    bool PSD_normalize;
 
     std::set<unsigned int> active_channels;
 

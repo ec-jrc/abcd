@@ -524,20 +524,29 @@ bool actions::generic::read_socket(status &global_status)
                     energy = qlong;
                 }
 
-                if (energy == 0) {
-                    psd = std::numeric_limits<double>::min();
-                } else {
-                    if (global_status.PSD_type == QTAIL_VS_ENERGY_PSD) {
-                        psd = (qlong - qshort) / energy;
-                    } else if (global_status.PSD_type == QSHORT_VS_ENERGY_PSD) {
-                        psd = qshort;
-                    } else if (global_status.PSD_type == QLONG_VS_ENERGY_PSD) {
-                        psd = qlong;
-                    } else if (global_status.PSD_type == BASELINE_VS_ENERGY_PSD) {
-                        psd = baseline;
-                    } else {
-                        psd = (qlong - qshort) / energy;
+                double PSD_normalization = energy;
+
+                if (global_status.PSD_normalize) {
+                    PSD_normalization = energy;
+
+                    // Correct the PSD_normalization value to something that should not cause an error
+                    if (PSD_normalization == 0) {
+                        PSD_normalization = std::numeric_limits<double>::min();
                     }
+                } else {
+                    PSD_normalization = 1.0;
+                }
+
+                if (global_status.PSD_type == QTAIL_VS_ENERGY_PSD) {
+                    psd = (qlong - qshort) / PSD_normalization;
+                } else if (global_status.PSD_type == QSHORT_VS_ENERGY_PSD) {
+                    psd = qshort / PSD_normalization;
+                } else if (global_status.PSD_type == QLONG_VS_ENERGY_PSD) {
+                    psd = qlong / PSD_normalization;
+                } else if (global_status.PSD_type == BASELINE_VS_ENERGY_PSD) {
+                    psd = baseline / PSD_normalization;
+                } else {
+                    psd = (qlong - qshort) / energy;
                 }
 
                 add_channel(global_status, channel);
@@ -822,15 +831,20 @@ state actions::read_config(status &global_status)
         json_object_set_new_nocheck(new_config, "disable_bidimensional_plot", json_false());
 
         json_object_set_new_nocheck(new_config, "spectra_type", json_string("qlong"));
+        json_object_set_new_nocheck(new_config, "spectra_type_note", json_string("Defines which entry of the event_PSD is to be interpreted as the energy information"));
         json_object_set_new_nocheck(new_config, "spectra_type_possible_value0", json_string("qlong"));
         json_object_set_new_nocheck(new_config, "spectra_type_possible_value1", json_string("qshort"));
         json_object_set_new_nocheck(new_config, "spectra_type_possible_value2", json_string("baseline"));
 
         json_object_set_new_nocheck(new_config, "PSD_type", json_string("qtail_vs_energy"));
+        json_object_set_new_nocheck(new_config, "PSD_type_note", json_string("Defines how the PSD parameter is calculated. The energy here is defined by the spectra_type setting"));
         json_object_set_new_nocheck(new_config, "PSD_type_possible_value0", json_string("qtail_vs_energy"));
         json_object_set_new_nocheck(new_config, "PSD_type_possible_value1", json_string("qshort_vs_energy"));
         json_object_set_new_nocheck(new_config, "PSD_type_possible_value2", json_string("qlong_vs_energy"));
         json_object_set_new_nocheck(new_config, "PSD_type_possible_value3", json_string("baseline_vs_energy"));
+
+        json_object_set_new_nocheck(new_config, "PSD_normalize", json_true());
+        json_object_set_new_nocheck(new_config, "PSD_normalize_note", json_string("Enables the normalization of the PSD parameter by the energy (default behavior)"));
 
         global_status.config = new_config;
     }
@@ -941,7 +955,7 @@ state actions::apply_config(status &global_status)
 
         global_status.spectra_type = QLONG_SPECTRA;
 
-            json_object_set_nocheck(config, "spectra_type", json_string("qlong"));
+        json_object_set_nocheck(config, "spectra_type", json_string("qlong"));
     }
 
     const char *cstr_PSD_type = json_string_value(json_object_get(config, "PSD_type"));
@@ -974,6 +988,22 @@ state actions::apply_config(status &global_status)
         global_status.PSD_type = QTAIL_VS_ENERGY_PSD;
 
         json_object_set_nocheck(config, "PSD_type", json_string("qtail_vs_energy"));
+    }
+
+    json_t *json_PSD_normalize = json_object_get(config, "PSD_normalize");
+
+    if (!json_is_boolean(json_PSD_normalize)) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "ERROR: Invalid PSD_normalize, setting it to true; ";
+        std::cout << std::endl;
+
+        global_status.PSD_normalize = true;
+
+        json_object_set_nocheck(config, "PSD_normalize", json_true());
+    } else {
+        global_status.PSD_normalize = json_is_true(json_PSD_normalize);
     }
 
     json_t *json_channels = json_object_get(config, "channels");
