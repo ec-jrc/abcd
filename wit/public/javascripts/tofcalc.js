@@ -21,7 +21,7 @@ function page_loaded() {
     const utf8decoder = new TextDecoder("utf8");
 
     const default_time_refresh = 5;
-    const default_plot_height = 900;
+    const default_plot_height = 1024;
 
     var connection_checker = new ConnectionChecker();
     var fitters = {};
