@@ -17,8 +17,6 @@
 #  You should have received a copy of the GNU General Public License
 #  along with ABCD.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import print_function, with_statement
-
 import argparse
 import zmq
 import json
@@ -37,8 +35,8 @@ parser.add_argument('-t',
 parser.add_argument('-T',
                     '--polling_time',
                     type = float,
-                    help = 'Socket polling time',
-                    default = 200)
+                    default = 200,
+                    help = 'Socket polling time')
 
 args = parser.parse_args()
 
@@ -57,7 +55,8 @@ with zmq.Context() as context:
 
     poller.register(socket, zmq.POLLIN)
 
-    i = 0
+    msg_counter = 0
+
     try:
         while True:
             socks = dict(poller.poll(args.polling_time))
@@ -65,7 +64,7 @@ with zmq.Context() as context:
             if socket in socks and socks[socket] == zmq.POLLIN:
                 message = socket.recv()
 
-                print("Message [{:d}]:".format(i))
+                print("Message [{:d}]:".format(msg_counter))
 
                 try:
                     topic, json_message = message.decode('ascii', 'ignore').split(' ', 1)
@@ -80,7 +79,7 @@ with zmq.Context() as context:
                 except:
                     pass
 
-                i += 1
+                msg_counter += 1
                     
 
     except KeyboardInterrupt:

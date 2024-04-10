@@ -17,15 +17,13 @@
 #  You should have received a copy of the GNU General Public License
 #  along with ABCD.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import print_function, with_statement
-
 import os
 import argparse
 import zmq
 import json
 import csv
 
-parser = argparse.ArgumentParser(description='Read PQRS spectra from the data socket')
+parser = argparse.ArgumentParser(description='Read spectra from the data socket of spec')
 parser.add_argument('-S',
                     '--socket',
                     type = str,
@@ -42,12 +40,12 @@ parser.add_argument('output',
 
 args = parser.parse_args()
 
-basename, extenstion = os.path.splitext(args.output)
-
 topic = "data_spec_histograms".encode('ascii')
 
+basename, extenstion = os.path.splitext(args.output)
+
 print("Connecting to: {}".format(args.socket))
-print("Subscribing to topic: {}".format(topic))
+print("Subscribing to topic: '{}'".format(topic))
 
 with zmq.Context() as context:
     poller = zmq.Poller()
@@ -60,9 +58,6 @@ with zmq.Context() as context:
     poller.register(socket, zmq.POLLIN)
 
     msg_counter = 0
-    active_channels = set()
-    spectra_x = dict()
-    spectra_y = dict()
 
     try:
         while True:
@@ -83,31 +78,36 @@ with zmq.Context() as context:
                     print("\tmsg_ID: {:d}".format(status["msg_ID"]))
                     print("\tdatetime: {}".format(status["timestamp"]))
                     print("\tkeys: {}".format(list(status.keys())))
+                    print("\tdata length: {}".format(len(status["data"])))
 
-                    these_active_channels = status["active_channels"]
+                    active_channels = status["active_channels"]
 
-                    print("\tactive channels: {}".format(these_active_channels));
+                    print("\tactive channels: {}".format(active_channels));
 
-                    active_channels.union(these_active_channels)
+                    for data in status["data"]:
+                        channel = data["id"]
 
-                    for channel in these_active_channels:
-                        data = status["data"]["qlong"]["{:d}".format(channel)]
+                        histo = data["energy"]
 
-                        min_x = float(data['config']['min'])
-                        bins = int(data['config']['bins'])
-                        bin_width = float(data['config']['bin_width'])
+                        print("\tkeys: {}".format(list(histo.keys())))
+                        print("\tkeys: {}".format(list(histo["config"].keys())))
 
-                        spectra_x[channel] = [min_x + bin_width * i for i in range(bins)]
-                        spectra_y[channel] = data['histo']
+                        min_x = float(histo['config']['min'])
+                        max_x = float(histo['config']['max'])
+                        bins = int(histo['config']['bins'])
+                        bin_width = (max_x - min_x) / bins
+
+                        spectrum_x = [min_x + bin_width * i for i in range(bins)]
+                        spectrum_y = histo['data']
 
                         print("Writing spectrum of channel {:d} to file: {}_channel{:d}.csv".format(channel, basename, channel))
-                        with open("{}_channel{:d}.csv".format(basename, channel), 'wb') as csv_file:
-                            writer = csv.writer(csv_file, delimiter='\t')
 
+                        with open("{}_channel{:d}.csv".format(basename, channel), 'wb') as csv_file:
+                            csv_file.write("# edge\tcounts\n".encode('ascii'))
                             for i in range(bins):
-                                writer.writerow((spectra_x[channel][i], spectra_y[channel][i]))
-                except:
-                    pass
+                                csv_file.write(("{:f}\t{:f}\n".format(spectrum_x[i], spectrum_y[i])).encode('ascii'))
+                except Exception as e:
+                    print(e)
 
                 msg_counter += 1
                     
