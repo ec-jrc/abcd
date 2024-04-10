@@ -1,6 +1,7 @@
 :root {
   --dark_color: #333333;
   --light_color: #a9a9a9;
+  --scrollable_height: 200px;
   --slider_height: 2.2em;
   --slider_width: calc(var(--slider_height) * 2.1);
   --slider_radius: calc(var(--slider_height));
@@ -37,6 +38,13 @@ h3 {
   font-family: "Fira Sans", sans-serif;
   font-weight: 700;
   display: inline-block;
+}
+
+.scrollable {
+  height: var(--scrollable_height);
+  overflow-y: auto;
+  padding: 5px;
+  border: 1px solid var(--light_color);
 }
 
 .display {
