@@ -294,7 +294,7 @@ with open(args.file_name, "rb") as input_file:
             min_times.append(min_time)
             max_times.append(max_time)
 
-            Delta_time = (max_time - min_time) * args.ns_per_sample * 1e-9
+            Delta_time = (max_time - min_time) * 1e-9
 
             print("Time delta: {:f} s".format(Delta_time))
             print("Average rate: {:f} Hz".format(total_events / Delta_time))
@@ -451,7 +451,7 @@ with open(args.file_name, "rb") as input_file:
 min_time = min(min_times)
 max_time = max(max_times)
 
-Delta_time = (max_time - min_time) * args.ns_per_sample * 1e-9
+Delta_time = (max_time - min_time) * 1e-9
 
 print("    Number of events: {:d}".format(events_counter))
 print("    Time delta: {:f} s".format(Delta_time))
