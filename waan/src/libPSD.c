@@ -1,6 +1,6 @@
-/*! \brief Determination of the energy information from an exponentially
- *         decaying pulse, by compensating its decay and then applying a CR-RC4
- *         filter to the waveforms.
+/*! \brief Determination of the energy information from a short pulse by
+ *         integrating the whole pulse. Pulse Shape Discrimination is obtained
+ *         through the double integration method.
  *
  * Calculation procedure:
  *  1. The baseline is determined averaging the samples right before the
