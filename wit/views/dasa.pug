@@ -11,7 +11,7 @@ block content
         input(type="text" id="file_name")
       button(id="button_start") Start
       button(id="button_stop") Stop
-      label #[input(type="checkbox" id="file_automatic_name" checked)] Automatically add datetime to begin of file name
+      label #[input(type="checkbox" id="file_automatic_name" checked)] Automatically add "<code>abcd_data_</code>" and datetime to begin of file name
       ul
         li
           label #[input(type="checkbox" id="file_enable_events" checked)] Enable events file
@@ -24,7 +24,7 @@ block content
     div#module_status
   div.display 
     h3 Events log
-    div#events_log
+    div#events_log.scrollable
   div.display 
     h3 Connection status
     p #[strong Computer hostname:] #{hostname}

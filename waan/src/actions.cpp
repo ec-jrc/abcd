@@ -1574,12 +1574,11 @@ state actions::read_socket(status &global_status)
         free(input_buffer);
     }
 
-    // This error might be triggered if waan reached the EOF of the
-    // data_input_file, but we should not stop its execution in case there are
-    // still messages in the outgoing queue
-    //if (result == EXIT_FAILURE) {
-    //    return states::COMMUNICATION_ERROR;
-    //}
+    if (result == EXIT_FAILURE && global_status.data_input_source == SOCKET_INPUT) {
+        return states::COMMUNICATION_ERROR;
+    } else if (result == EXIT_FAILURE) {
+        return states::FILE_READING_ERROR;
+    }
 
     if (now - global_status.last_publication > publish_period)
     {
@@ -1686,6 +1685,30 @@ state actions::destroy_context(status &global_status)
 state actions::stop(status&)
 {
     return states::STOP;
+}
+
+state actions::file_reading_error(status &global_status)
+{
+    json_t *json_event_message = json_object();
+
+    json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
+
+    if (feof(global_status.data_input_file)) {
+    	json_object_set_new_nocheck(json_event_message, "error", json_string("Reached EOF (End Of File)"));
+    } else {
+    	json_object_set_new_nocheck(json_event_message, "error", json_string("File reading error"));
+    }
+
+    actions::generic::publish_message(global_status, defaults_waan_events_topic, json_event_message);
+
+    json_decref(json_event_message);
+
+    // When waan reaches the EOF of the data_input_file there might still be
+    // messages in the outgoing queue, so we put a long(ish) delay to allow the
+    // messages to be delivered
+    std::this_thread::sleep_for(std::chrono::milliseconds(defaults_waan_zmq_flush_delay));
+
+    return states::CLOSE_SOCKETS;
 }
 
 state actions::communication_error(status &global_status)

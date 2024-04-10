@@ -42,3 +42,5 @@ absp/absp
 bin/sort_ade
 bin/filter_timestamps
 examples/read_status
+absp/include/swigluarun.h
+absp/src/Digitizers_wrap.cpp

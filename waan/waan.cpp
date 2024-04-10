@@ -86,7 +86,9 @@ void print_usage(const std::string &name = std::string("waan")) {
     std::cout << "\t-A <address>: Data input socket address, default: ";
     std::cout << defaults_abcd_data_address_sub << std::endl;
     std::cout << "\t              If it has the form 'file://<path_to_file>' then data will be read from a raw file." << std::endl;
-    std::cout << "\t              When the file is finished, waan will just to in idle mode and do nothing." << std::endl;
+    std::cout << "\t              The path may be absolute: file:///home/user/data/data.adr or relative: file://../data/data.adr (mind the number of '/')" << std::endl;
+    std::cout << "\t              The file may not be compressed." << std::endl;
+    std::cout << "\t              When the file is finished, waan will quit producing a message in its status socket." << std::endl;
     std::cout << "\t-D <address>: Data output socket address, default: ";
     std::cout << defaults_waan_data_address << std::endl;
     std::cout << "\t-C <address>: Commands socket address, default: ";

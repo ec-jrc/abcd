@@ -49,6 +49,7 @@ namespace states
     extern const state COMMUNICATION_ERROR;
     extern const state PARSE_ERROR;
     extern const state CONFIGURE_ERROR;
+    extern const state FILE_READING_ERROR;
 }
 
 #endif

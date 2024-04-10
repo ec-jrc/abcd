@@ -1,6 +1,6 @@
 /*! \brief Determination of the energy information from an exponentially
- *         decaying pulse, by compensating its decay and then applying a CR-RC4
- *         filter to the waveforms.
+ *         decaying pulse, by compensating its decay and then applying a
+ *         trapezoidal filter to the waveforms.
  *
  * Calculation procedure:
  *  1. The baseline is determined averaging the first N samples.

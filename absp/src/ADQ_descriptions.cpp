@@ -157,7 +157,7 @@ const std::map<enum ADQDirection, std::string> ADQ_descriptions::pin_direction =
 };
 
 const std::map<enum ADQFunction, std::string> ADQ_descriptions::pin_function = {
-    {ADQ_FUNCTION_INVALID, "disabled"},
+    {ADQ_FUNCTION_INVALID, "invalid"},
     {ADQ_FUNCTION_PATTERN_GENERATOR0, "pattern_generator0"},
     {ADQ_FUNCTION_PATTERN_GENERATOR1, "pattern_generator1"},
     {ADQ_FUNCTION_GPIO, "gpio"},
