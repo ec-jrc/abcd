@@ -1,3 +1,5 @@
+nclude ../common_definitions.mk
+
 CC = gcc
 
 CFLAGS = -std=c99 -O3 -W -Wall -pedantic 
