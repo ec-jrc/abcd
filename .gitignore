@@ -41,3 +41,5 @@ examples/dummy_waveforms_publisher
 absp/absp
 bin/sort_ade
 bin/filter_timestamps
+absp/include/swigluarun.h
+absp/src/Digitizers_wrap.cpp
