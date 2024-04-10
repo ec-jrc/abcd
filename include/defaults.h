@@ -3,7 +3,7 @@
 /******************************************************************************/
 #define defaults_abcd_base_period 10
 #define defaults_hijk_base_period 500
-#define defaults_lmno_base_period 100
+#define defaults_dasa_base_period 100
 #define defaults_spec_base_period 100
 #define defaults_wafi_base_period 100
 #define defaults_enfi_base_period 10
@@ -38,9 +38,9 @@
 #define defaults_hijk_status_address "tcp://*:16183"
 #define defaults_hijk_commands_address "tcp://*:16184"
 
-#define defaults_lmno_ip "127.0.0.1"
-#define defaults_lmno_status_address "tcp://*:16185"
-#define defaults_lmno_commands_address "tcp://*:16186"
+#define defaults_dasa_ip "127.0.0.1"
+#define defaults_dasa_status_address "tcp://*:16185"
+#define defaults_dasa_commands_address "tcp://*:16186"
 
 #define defaults_spec_ip "127.0.0.1"
 #define defaults_spec_status_address "tcp://*:16187"
@@ -103,8 +103,8 @@
 #define defaults_hijk_status_topic "status_hijk"
 #define defaults_hijk_events_topic "events_hijk"
 
-#define defaults_lmno_status_topic "status_lmno"
-#define defaults_lmno_events_topic "events_lmno"
+#define defaults_dasa_status_topic "status_dasa"
+#define defaults_dasa_events_topic "events_dasa"
 
 #define defaults_spec_status_topic "status_spec"
 #define defaults_spec_events_topic "events_spec"
@@ -169,11 +169,11 @@
 #define defaults_hijk_verbosity 1
 #define defaults_hijk_model 6533
 
-#define defaults_lmno_verbosity 0
-#define defaults_lmno_publish_timeout 3
-#define defaults_lmno_extenstion_events "ade"
-#define defaults_lmno_extenstion_waveforms "adw"
-#define defaults_lmno_extenstion_raw "adr"
+#define defaults_dasa_verbosity 0
+#define defaults_dasa_publish_timeout 3
+#define defaults_dasa_extenstion_events "ade"
+#define defaults_dasa_extenstion_waveforms "adw"
+#define defaults_dasa_extenstion_raw "adr"
 
 #define defaults_spec_verbosity 0
 #define defaults_spec_publish_timeout 5

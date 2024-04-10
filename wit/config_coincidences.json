@@ -70,12 +70,12 @@
         {
             "type": "status",
             "address": "tcp://127.0.0.1:16185",
-            "topic": "status_lmno"
+            "topic": "status_dasa"
         },
         {
             "type": "events",
             "address": "tcp://127.0.0.1:16185",
-            "topic": "events_lmno"
+            "topic": "events_dasa"
         },
         {
             "type": "commands",
@@ -149,12 +149,12 @@
         {
             "type": "status",
             "address": "tcp://127.0.0.1:17185",
-            "topic": "status_lmno"
+            "topic": "status_dasa"
         },
         {
             "type": "events",
             "address": "tcp://127.0.0.1:17185",
-            "topic": "events_lmno"
+            "topic": "events_dasa"
         },
         {
             "type": "commands",
@@ -200,12 +200,12 @@
         {
             "type": "status",
             "address": "tcp://127.0.0.1:18185",
-            "topic": "status_lmno"
+            "topic": "status_dasa"
         },
         {
             "type": "events",
             "address": "tcp://127.0.0.1:18185",
-            "topic": "events_lmno"
+            "topic": "events_dasa"
         },
         {
             "type": "commands",
