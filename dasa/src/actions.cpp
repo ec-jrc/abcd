@@ -26,6 +26,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <algorithm>
 #include <filesystem>
 
 #include <zmq.h>
@@ -454,6 +455,8 @@ state actions::receive_commands(status &global_status)
 
                         root_file_name += "abcd_data_";
                         root_file_name += time_buffer;
+
+			std::replace(root_file_name.begin(), root_file_name.end(), ':', '.');
                     }
 
                     global_status.events_file_name.clear();
