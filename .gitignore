@@ -41,3 +41,4 @@ examples/dummy_waveforms_publisher
 absp/absp
 bin/sort_ade
 bin/filter_timestamps
+examples/read_status
