@@ -257,3 +257,4 @@
 #define defaults_waan_publish_period 3
 #define defaults_waan_waveforms_buffer_multiplier 2
 #define defaults_waan_fixed_point_fractional_bits 10
+#define defaults_waan_zmq_flush_delay 3000
