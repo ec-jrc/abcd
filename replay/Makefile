@@ -1,8 +1,6 @@
 include ../common_definitions.mk
 
 # File names
-EXEC = replay_raw replay_events
-
 SOURCES = replay_raw.c replay_events.c
 EXECS = $(SOURCES:.c=)
 
@@ -11,7 +9,7 @@ LDFLAGS = -L/opt/local/lib/ $(LIBS)
 
 .PHONY: all clean
 
-all: $(EXEC)
+all: $(EXECS)
 
 %: %.c
 	$(CC) $(CFLAGS) $< $(LDFLAGS) -o $@
