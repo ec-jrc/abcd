@@ -43,6 +43,13 @@ public:
     bool using_software_trigger;
 
     // -------------------------------------------------------------------------
+    //  Custom JRC-Geel firmware configuration
+    // -------------------------------------------------------------------------
+    bool custom_firmware_enabled;
+    uint32_t custom_firmware_pulse_length;
+    uint32_t custom_firmware_mode;
+
+    // -------------------------------------------------------------------------
     //  Timestamps settings
     // -------------------------------------------------------------------------
     // Applied bit shift to the read timestamp values
@@ -77,10 +84,26 @@ public:
 
     int SpecificCommand(json_t* json_command);
 
-    int GPIOPulse(std::string port, int width);
+    //--------------------------------------------------------------------------
 
-    int TimestampReset(std::string mode, std::string source, std::string when);
-    int TimestampResetDisarm();
+    std::string GetStatusString(enum ADQStatusId status_id);
+
+    //--------------------------------------------------------------------------
+
+    int GetParameters(enum ADQParameterId parameter_id, void *const parameters);
+    int SetParameters(void *const parameters);
+
+    std::string GetParametersString(enum ADQParameterId parameter_id);
+    int SetParametersString(const std::string parameters);
+
+    json_t *GetParametersJSON(enum ADQParameterId parameter_id);
+    int SetParametersJSON(const json_t *parameters);
+
+    //--------------------------------------------------------------------------
+
+    int CustomFirmwareSetMode(unsigned int mode);
+    int CustomFirmwareSetPulseLength(unsigned int pulse_length);
+    int CustomFirmwareEnable(bool enable);
 };
 }
 
