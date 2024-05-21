@@ -611,7 +611,7 @@ int main(int argc, char *argv[])
 
                                 if (verbosity > 1)
                                 {
-                                    printf(" Backward coincidence!!!! index: %zu, sub_index: %" PRId64 ", channel: %" PRIu8 ", timestamps: reference: %" PRIu64 ", that: %" PRIu64 ", difference: %" PRId64 "\n", index, sub_index, that_event.channel, reference_event.timestamp, that_event.timestamp, ((int64_t)that_event.timestamp) - (int64_t)reference_event.timestamp);
+                                    printf("  Backward coincidence!!!! index: %zu, sub_index: %" PRId64 ", channel: %" PRIu8 ", timestamps: reference: %" PRIu64 ", that: %" PRIu64 ", difference: %" PRId64 "\n", index, sub_index, that_event.channel, reference_event.timestamp, that_event.timestamp, ((int64_t)that_event.timestamp) - (int64_t)reference_event.timestamp);
                                 }
 
                                 // Making sure that we do not access memory that
@@ -650,7 +650,7 @@ int main(int argc, char *argv[])
 
                                 if (verbosity > 1)
                                 {
-                                    printf(" Forward coincidence!!!! index: %zu, sub_index: %" PRId64 ", channel: %" PRIu8 ", timestamps: reference: %" PRIu64 ", that: %" PRIu64 ", difference: %" PRId64 "\n", index, sub_index, that_event.channel, reference_event.timestamp, that_event.timestamp, ((int64_t)that_event.timestamp) - (int64_t)reference_event.timestamp);
+                                    printf("  Forward coincidence!!!! index: %zu, sub_index: %" PRId64 ", channel: %" PRIu8 ", timestamps: reference: %" PRIu64 ", that: %" PRIu64 ", difference: %" PRId64 "\n", index, sub_index, that_event.channel, reference_event.timestamp, that_event.timestamp, ((int64_t)that_event.timestamp) - (int64_t)reference_event.timestamp);
                                 }
 
                                 if ((index_coincidence_group_start + coincidence_group_found_coincidences) < defaults_cofi_coincidence_buffer_multiplier * events_number)
@@ -673,7 +673,7 @@ int main(int argc, char *argv[])
 
                     if (verbosity > 1 && coincidence_group_found_coincidences > 0)
                     {
-                        printf(" Event multiplicity: %zu%s\n", coincidence_group_found_coincidences, (coincidence_group_found_coincidences >= multiplicity) ? " SELECTING GROUP!!!" : "");
+                        printf("    Event multiplicity: %zu%s\n", coincidence_group_found_coincidences, (coincidence_group_found_coincidences >= multiplicity) ? " SELECTING GROUP!!!" : "");
                     }
 
                     // ---------------------------------------------------------
@@ -726,7 +726,7 @@ int main(int argc, char *argv[])
             }
 
             // =================================================================
-            //  Output buffer computation
+            //  Output buffer computation for coincidence data
             // =================================================================
             // Renaming variable for convenience
             const size_t coincidences_number = index_coincidence_group_start;
@@ -777,9 +777,18 @@ int main(int argc, char *argv[])
                 }
             }
 
-            // Compute the new topic
+            // -----------------------------------------------------------------
+            //  New topic computation
+            // -----------------------------------------------------------------
             char new_topic[defaults_all_topic_buffer_size];
-            snprintf(new_topic, defaults_all_topic_buffer_size, "data_abcd_events_v0_s%zu", output_size);
+            if (search_type == EVENTS_SEARCH)
+            {
+                snprintf(new_topic, defaults_all_topic_buffer_size, "data_abcd_events_v0_s%zu", output_size);
+            }
+            else
+            {
+                snprintf(new_topic, defaults_all_topic_buffer_size, "data_abcd_waveforms_v0_s%zu", output_size);
+            }
 
             send_byte_message(output_socket_coincidences, new_topic, (void *)buffer_output, output_size, 0);
             msg_ID += 1;
@@ -789,6 +798,9 @@ int main(int argc, char *argv[])
                 printf("Sending message with coincidences with topic: %s\n", new_topic);
             }
 
+            // =================================================================
+            //  Output buffer computation for anticoincidence data
+            // =================================================================
             if (enable_anticoincidences)
             {
                 // Make sure that the anticoincidences buffer is big enough.
@@ -829,9 +841,18 @@ int main(int argc, char *argv[])
 
                 if (found_anticoincidences > 0)
                 {
-                    // Compute the new topic
+                    // ---------------------------------------------------------
+                    //  New topic computation
+                    // ---------------------------------------------------------
                     char new_topic[defaults_all_topic_buffer_size];
-                    snprintf(new_topic, defaults_all_topic_buffer_size, "data_abcd_events_v0_s%zu", output_offset);
+                    if (search_type == EVENTS_SEARCH)
+                    {
+                        snprintf(new_topic, defaults_all_topic_buffer_size, "data_abcd_events_v0_s%zu", output_offset);
+                    }
+                    else
+                    {
+                        snprintf(new_topic, defaults_all_topic_buffer_size, "data_abcd_waveforms_v0_s%zu", output_offset);
+                    }
 
                     send_byte_message(output_socket_anticoincidences, new_topic, (void *)buffer_output, output_offset, 0);
                     msg_ID += 1;
