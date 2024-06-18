@@ -106,7 +106,7 @@ int ABCD::ADQ36_FWDAQ::Initialize()
         std::cout << std::endl;
 
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << "ADQAPI Revision: " << ADQAPI_GetRevision() << "; ";
+        std::cout << "ADQAPI Revision: " << ADQAPI_GetRevisionString() << "; ";
         std::cout << std::endl;
 
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
@@ -1271,12 +1271,12 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                     adq_parameters.event_source.level.channel[id].level = trigger_level;
                     adq_parameters.event_source.level.channel[id].arm_hysteresis = trigger_hysteresis;
 
-                    const int64_t bytes_per_sample = adq_parameters.acquisition.channel[id].bytes_per_sample;
+                    const int64_t bytes_per_sample = std::ceil(adq_parameters.acquisition.channel[id].nof_bits_per_sample / 8);
 
                     adq_parameters.transfer.channel[id].record_size = bytes_per_sample * scope_samples;
                     adq_parameters.transfer.channel[id].record_buffer_size = bytes_per_sample * scope_samples * records_per_buffer;
                     adq_parameters.transfer.channel[id].metadata_buffer_size = sizeof(struct ADQGen4RecordHeader) * records_per_buffer;
-                    adq_parameters.transfer.channel[id].record_length_infinite_enabled = 0;
+                    adq_parameters.transfer.channel[id].infinite_record_length_enabled = 0;
                     adq_parameters.transfer.channel[id].metadata_enabled = 1;
                     // Using the maximum value here, we have no reason to use a smaller value
                     adq_parameters.transfer.channel[id].nof_buffers = ADQ_MAX_NOF_BUFFERS;

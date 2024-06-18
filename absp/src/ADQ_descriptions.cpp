@@ -62,10 +62,10 @@ const std::map<enum ADQEventSource, std::string> ADQ_descriptions::event_source 
     {ADQ_EVENT_SOURCE_LEVEL_MATRIX, "level_matrix"},
 };
 
-const std::map<enum ADQTimestampSynchronizationMode, std::string> ADQ_descriptions::timestamp_synchronization_mode = {
-    {ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_DISABLE, "disable"},
-    {ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_FIRST, "first"},
-    {ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_ALL, "all"},
+const std::map<enum ADQSynchronizationMode, std::string> ADQ_descriptions::timestamp_synchronization_mode = {
+    {ADQ_SYNCHRONIZATION_MODE_DISABLE, "disable"},
+    {ADQ_SYNCHRONIZATION_MODE_FIRST, "first"},
+    {ADQ_SYNCHRONIZATION_MODE_ALL, "all"},
 };
 
 const std::map<enum ADQArm, std::string> ADQ_descriptions::arm = {

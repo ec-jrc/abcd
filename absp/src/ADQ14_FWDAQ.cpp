@@ -137,7 +137,7 @@ int ABCD::ADQ14_FWDAQ::Initialize()
         std::cout << std::endl;
 
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWDAQ::Initialize() ";
-        std::cout << "ADQAPI Revision: " << ADQAPI_GetRevision() << "; ";
+        std::cout << "ADQAPI Revision: " << ADQAPI_GetRevisionString() << "; ";
         std::cout << "ADQ14 Revision: {";
         uint32_t* revision = ADQ_GetRevision(adq_cu_ptr, adq_num);
         for (int i = 0; i < 6; i++) {
@@ -375,7 +375,7 @@ int ABCD::ADQ14_FWDAQ::Configure()
 
     // TODO: Enable this feature
     CHECKZERO(ADQ_DisarmTimestampSync(adq_cu_ptr, adq_num));
-    //CHECKZERO(ADQ_SetupTimestampSync(adq_cu_ptr, adq_num, ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_DISABLE, trigger_mode));
+    //CHECKZERO(ADQ_SetupTimestampSync(adq_cu_ptr, adq_num, ADQ_SYNCHRONIZATION_MODE_DISABLE, trigger_mode));
 
     CHECKZERO(ADQ_DisarmTrigger(adq_cu_ptr, adq_num));
 
@@ -1369,7 +1369,7 @@ int ABCD::ADQ14_FWDAQ::TimestampResetArm(std::string mode, std::string source)
     // -----------------------------------------------------------------
     //  Arming the timestamp reset
     // -----------------------------------------------------------------
-    unsigned int timestamp_reset_mode = ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_FIRST;
+    unsigned int timestamp_reset_mode = ADQ_SYNCHRONIZATION_MODE_FIRST;
 
     if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];

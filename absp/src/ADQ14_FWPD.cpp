@@ -162,7 +162,7 @@ int ABCD::ADQ14_FWPD::Initialize()
         std::cout << std::endl;
 
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Initialize() ";
-        std::cout << "ADQAPI Revision: " << ADQAPI_GetRevision() << "; ";
+        std::cout << "ADQAPI Revision: " << ADQAPI_GetRevisionString() << "; ";
         std::cout << "PD Firmware generation: " << FWPD_generation << "; ";
         std::cout << "Streaming generation: " << streaming_generation << "; ";
         std::cout << "ADQ14 Revision: {";
@@ -1964,7 +1964,7 @@ int ABCD::ADQ14_FWPD::TimestampResetArm(std::string mode, std::string source)
     // -----------------------------------------------------------------
     //  Arming the timestamp reset
     // -----------------------------------------------------------------
-    unsigned int timestamp_reset_mode = ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_FIRST;
+    unsigned int timestamp_reset_mode = ADQ_SYNCHRONIZATION_MODE_FIRST;
 
     if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];
