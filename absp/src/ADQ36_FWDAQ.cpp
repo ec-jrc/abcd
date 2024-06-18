@@ -726,14 +726,14 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
         //    clock_system.clock_generator = ADQ_CLOCK_GENERATOR_EXTERNAL_CLOCK;
         //}
 
-        json_object_set_nocheck(json_clock, "source", json_string(ADQ_descriptions::ADQ36_clock_source.at(adq_parameters.constant.clock_system.reference_source).c_str()));
+        json_object_set_nocheck(json_clock, "source", json_string(ADQ_descriptions::ADQ36_clock_source.at(clock_system.reference_source).c_str()));
 
         if (GetVerbosity() > 0)
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
             std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-            std::cout << "Clock source: got: " << ADQ_descriptions::ADQ36_clock_source.at(adq_parameters.constant.clock_system.reference_source) << " (index: " << adq_parameters.constant.clock_system.reference_source << "); ";
+            std::cout << "Clock source: got: " << ADQ_descriptions::ADQ36_clock_source.at(clock_system.reference_source) << " (index: " << clock_system.reference_source << "); ";
             std::cout << std::endl;
         }
 
