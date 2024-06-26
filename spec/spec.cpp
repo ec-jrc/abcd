@@ -170,6 +170,7 @@ int main(int argc, char *argv[])
     global_status.commands_address = commands_address;
     global_status.spectra_type = QLONG_SPECTRA;
     global_status.PSD_type = QTAIL_VS_ENERGY_PSD;
+    global_status.PSD_normalize = true;
     global_status.disable_bidimensional_plot = false;
     global_status.config_file = config_file;
 
