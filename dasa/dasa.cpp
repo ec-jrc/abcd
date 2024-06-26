@@ -45,7 +45,7 @@ extern "C" {
 
 #define BUFFER_SIZE 32
 
-unsigned int verbosity = defaults_lmno_verbosity;
+unsigned int verbosity = defaults_dasa_verbosity;
 bool terminate_flag = false;
 
 //! Handles standard signals.
@@ -93,7 +93,7 @@ void signal_handler(int signum)
     #endif
 }
 
-void print_usage(const std::string &name = std::string("lmno")) {
+void print_usage(const std::string &name = std::string("dasa")) {
     char abcd_data_address[sizeof("[wxyz://255.255.255.255:65535]")];
     address_bind_to_connect(abcd_data_address, sizeof(abcd_data_address), defaults_abcd_data_address, defaults_abcd_ip);
     
@@ -113,11 +113,11 @@ void print_usage(const std::string &name = std::string("lmno")) {
     std::cout << "\t-s <address>: abcd status socket address, default: " << abcd_status_address << std::endl;
     std::cout << "\t-w <address>: waan status socket address, default: " << waan_status_address << std::endl;
     std::cout << "\t-S <address>: Status socket address, default: ";
-    std::cout << defaults_lmno_status_address << std::endl;
+    std::cout << defaults_dasa_status_address << std::endl;
     std::cout << "\t-C <address>: Commands socket address, default: ";
-    std::cout << defaults_lmno_commands_address << std::endl;
+    std::cout << defaults_dasa_commands_address << std::endl;
     std::cout << "\t-T <period>: Set base period in milliseconds, default: ";
-    std::cout << defaults_lmno_base_period << std::endl;
+    std::cout << defaults_dasa_base_period << std::endl;
     std::cout << "\t-v: Set verbose execution" << std::endl;
     std::cout << "\t-V: Set verbose execution with more output" << std::endl;
 
@@ -156,9 +156,9 @@ int main(int argc, char *argv[])
     std::string abcd_status_address = str_abcd_status_address;
     std::string waan_status_address = str_waan_status_address;
 
-    std::string status_address = defaults_lmno_status_address;
-    std::string commands_address = defaults_lmno_commands_address;
-    unsigned int base_period = defaults_lmno_base_period;
+    std::string status_address = defaults_dasa_status_address;
+    std::string commands_address = defaults_dasa_commands_address;
+    unsigned int base_period = defaults_dasa_base_period;
 
     int c = 0;
     while ((c = getopt(argc, argv, "hA:s:w:S:C:T:vV")) != -1) {

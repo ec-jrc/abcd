@@ -70,12 +70,12 @@
         {
             "type": "status",
             "address": "tcp://127.0.0.1:16185",
-            "topic": "status_lmno"
+            "topic": "status_dasa"
         },
         {
             "type": "events",
             "address": "tcp://127.0.0.1:16185",
-            "topic": "events_lmno"
+            "topic": "events_dasa"
         },
         {
             "type": "commands",

@@ -32,8 +32,8 @@
 
 struct status
 {
-    std::string status_address = defaults_lmno_status_address;
-    std::string commands_address = defaults_lmno_commands_address;
+    std::string status_address = defaults_dasa_status_address;
+    std::string commands_address = defaults_dasa_commands_address;
     std::string abcd_data_address = defaults_abcd_data_address;
     std::string abcd_status_address = defaults_abcd_status_address;
     std::string waan_status_address = defaults_waan_status_address;

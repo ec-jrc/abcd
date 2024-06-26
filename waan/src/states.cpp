@@ -63,3 +63,5 @@ const state states::PARSE_ERROR = \
     {902, "Config parse error", actions::parse_error };
 const state states::CONFIGURE_ERROR = \
     {903, "Configure error", actions::configure_error };
+const state states::FILE_READING_ERROR = \
+    {904, "File reading error", actions::file_reading_error };

@@ -21,7 +21,7 @@ function page_loaded() {
     const utf8decoder = new TextDecoder("utf8");
 
     const default_time_refresh = 5;
-    const default_plot_height = 900;
+    const default_plot_height = 1024;
 
     var connection_checker = new ConnectionChecker();
     var fitters = {};
@@ -80,7 +80,7 @@ function page_loaded() {
             autotick: true,
             showspikes: true,
             spikemode: 'across',
-            domain: [0.0, 1.0],
+            domain: [0.0, 0.49],
             anchor: 'y2'
         },
         xaxis2: {
@@ -89,7 +89,7 @@ function page_loaded() {
             autotick: true,
             showspikes: true,
             spikemode: 'across',
-            domain: [0.0, 1.0],
+            domain: [0.51, 1.0],
             anchor: 'y4'
         },
         yaxis: {
@@ -98,8 +98,8 @@ function page_loaded() {
             autotick: true,
             showspikes: true,
             spikemode: 'across',
-            domain: [0.75, 1.0]
-            //anchor: 'y1'
+            domain: [0.5, 1.0],
+            anchor: 'x1'
         },
         yaxis2: {
             title: 'Energy [ch]',
@@ -107,8 +107,8 @@ function page_loaded() {
             autotick: true,
             showspikes: true,
             spikemode: 'across',
-            domain: [0.5, 0.75]
-            //anchor: 'y2'
+            domain: [0.0, 0.5],
+            anchor: 'x1'
         },
         yaxis3: {
             title: 'Counts',
@@ -116,8 +116,8 @@ function page_loaded() {
             autotick: true,
             showspikes: true,
             spikemode: 'across',
-            domain: [0.25, 0.4]
-            //anchor: 'y3'
+            domain: [0.5, 1.0],
+            anchor: 'x2'
         },
         yaxis4: {
             title: 'Energy of reference [ch]',
@@ -125,8 +125,8 @@ function page_loaded() {
             autotick: true,
             showspikes: true,
             spikemode: 'across',
-            domain: [0.0, 0.25]
-            //anchor: 'y3'
+            domain: [0.0, 0.5],
+            anchor: 'x2'
         },
         updatemenus: updatemenus_ToF,
         margin: {
@@ -142,8 +142,8 @@ function page_loaded() {
             yanchor: 'top',
         },
         grid: {
-            rows: 4,
-            columns: 1,
+            rows: 2,
+            columns: 2,
             //pattern: 'independent',
             roworder:'top to bottom'
         },

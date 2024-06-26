@@ -33,6 +33,7 @@ namespace actions
     state communication_error(status&);
     state parse_error(status&);
     state configure_error(status&);
+    state file_reading_error(status&);
 }
 
 #endif

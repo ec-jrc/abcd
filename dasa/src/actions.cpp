@@ -26,6 +26,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <algorithm>
 #include <filesystem>
 
 #include <zmq.h>
@@ -305,7 +306,7 @@ state actions::publish_status(status &global_status)
     json_object_set_new(status_message, "waveforms_file_opened", json_boolean(false));
     json_object_set_new(status_message, "raw_file_opened", json_boolean(false));
 
-    actions::generic::publish_message(global_status, defaults_lmno_status_topic, status_message);
+    actions::generic::publish_message(global_status, defaults_dasa_status_topic, status_message);
 
     json_decref(status_message);
 
@@ -454,6 +455,8 @@ state actions::receive_commands(status &global_status)
 
                         root_file_name += "abcd_data_";
                         root_file_name += time_buffer;
+
+			std::replace(root_file_name.begin(), root_file_name.end(), ':', '.');
                     }
 
                     global_status.events_file_name.clear();
@@ -461,7 +464,7 @@ state actions::receive_commands(status &global_status)
                     {
                         global_status.events_file_name = root_file_name;
                         global_status.events_file_name.append("_events.");
-                        global_status.events_file_name.append(defaults_lmno_extenstion_events);
+                        global_status.events_file_name.append(defaults_dasa_extenstion_events);
                     }
 
                     global_status.waveforms_file_name.clear();
@@ -469,7 +472,7 @@ state actions::receive_commands(status &global_status)
                     {
                         global_status.waveforms_file_name = root_file_name;
                         global_status.waveforms_file_name.append("_waveforms.");
-                        global_status.waveforms_file_name.append(defaults_lmno_extenstion_waveforms);
+                        global_status.waveforms_file_name.append(defaults_dasa_extenstion_waveforms);
                     }
 
                     global_status.raw_file_name.clear();
@@ -477,7 +480,7 @@ state actions::receive_commands(status &global_status)
                     {
                         global_status.raw_file_name = root_file_name;
                         global_status.raw_file_name.append("_raw.");
-                        global_status.raw_file_name.append(defaults_lmno_extenstion_raw);
+                        global_status.raw_file_name.append(defaults_dasa_extenstion_raw);
                     }
 
                     if (global_status.verbosity > 0)
@@ -510,7 +513,7 @@ state actions::receive_commands(status &global_status)
     }
 
     const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-    if (now - global_status.last_publication > std::chrono::seconds(defaults_lmno_publish_timeout))
+    if (now - global_status.last_publication > std::chrono::seconds(defaults_dasa_publish_timeout))
     {
         return states::PUBLISH_STATUS;
     }
@@ -555,7 +558,7 @@ state actions::open_file(status &global_status)
     json_object_set_new(status_message, "type", json_string("event"));
     json_object_set_new(status_message, "event", json_string(message.c_str()));
 
-    actions::generic::publish_message(global_status, defaults_lmno_events_topic, status_message);
+    actions::generic::publish_message(global_status, defaults_dasa_events_topic, status_message);
 
     json_decref(status_message);
 
@@ -866,7 +869,7 @@ state actions::write_data(status &global_status)
     }
 
     const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-    if (now - global_status.last_publication > std::chrono::seconds(defaults_lmno_publish_timeout))
+    if (now - global_status.last_publication > std::chrono::seconds(defaults_dasa_publish_timeout))
     {
         return states::FLUSH_FILE;
     }
@@ -954,7 +957,7 @@ state actions::saving_publish_status(status &global_status)
     json_object_set_new(status_message, "waveforms_file_size", json_integer(global_status.waveforms_file_size));
     json_object_set_new(status_message, "raw_file_size", json_integer(global_status.raw_file_size));
 
-    actions::generic::publish_message(global_status, defaults_lmno_status_topic, status_message);
+    actions::generic::publish_message(global_status, defaults_dasa_status_topic, status_message);
 
     json_decref(status_message);
 
@@ -1057,7 +1060,7 @@ state actions::close_file(status &global_status)
     json_object_set_new(status_message, "type", json_string("event"));
     json_object_set_new(status_message, "event", json_string(message.c_str()));
 
-    actions::generic::publish_message(global_status, defaults_lmno_events_topic, status_message);
+    actions::generic::publish_message(global_status, defaults_dasa_events_topic, status_message);
 
     json_decref(status_message);
 
@@ -1156,7 +1159,7 @@ state actions::communication_error(status &global_status)
     json_object_set_new(status_message, "type", json_string("event"));
     json_object_set_new(status_message, "error", json_string("Communication error"));
 
-    actions::generic::publish_message(global_status, defaults_lmno_events_topic, status_message);
+    actions::generic::publish_message(global_status, defaults_dasa_events_topic, status_message);
 
     json_decref(status_message);
 
@@ -1170,7 +1173,7 @@ state actions::io_error(status &global_status)
     json_object_set_new(status_message, "type", json_string("event"));
     json_object_set_new(status_message, "error", json_string("I/O error"));
 
-    actions::generic::publish_message(global_status, defaults_lmno_events_topic, status_message);
+    actions::generic::publish_message(global_status, defaults_dasa_events_topic, status_message);
 
     json_decref(status_message);
 

@@ -119,7 +119,7 @@ function page_loaded() {
         let datetime = "";
 
         if ($("#file_automatic_name").prop("checked")) {
-            datetime = dayjs().format("YYYY-MM-DDTHH:mm:ss") + "_";
+            datetime = "abcd_data_ " + dayjs().format("YYYY-MM-DDTHH.mm.ssZZ") + "_";
         }
 
         const file_name = (String($("#file_name").val())).trim();

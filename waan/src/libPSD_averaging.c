@@ -1,6 +1,7 @@
 /*! \brief Determination of the energy information from a short pulse by
  *         integrating the whole pulse. Pulse Shape Discrimination is obtained
  *         through the double integration method.
+ *         It calculates the average waveform is the selected E vs PSD region.
  *
  * Calculation procedure:
  *  1. The baseline is determined averaging the samples right before the
@@ -15,6 +16,11 @@
  *          qlong - qshort
  *   PSD = ----------------
  *              qlong
+ *
+ * The average waveform is calculated by accumulating all selected waveforms in
+ * the selection region between [energy_min, energy_max] and [PSD_min, PSD_max]
+ * Each waveform is then substituted by the progressively accumulating average
+ * waveform.
  *
  * The configuration parameters that are searched in a `json_t` object are:
  *
@@ -38,8 +44,10 @@
  *   window.
  * - `integrals_scaling`: a scaling factor multiplied to both the integrals.
  *   Optional, default value: 1
- * - `energy_threshold`: pulses with an energy lower than the threshold are
- *   discared. Optional, default value: 0
+ * - `energy_min`: pulses with an energy lower than this value are discarded
+ *   Optional, default value: 0
+ * - `energy_max`: pulses with an energy higher than this value are discarded
+ *   Optional, default value: UINT16_MAX
  * - `PSD_min`: minimum value accepted for the PSD parameter. Default value: -0.1
  * - `PSD_max`: maximum value accepted for the PSD parameter. Default value: 1.1
  *
@@ -71,7 +79,8 @@ struct PSD_config
     int64_t long_gate;
     enum pulse_polarity_t pulse_polarity;
     double integrals_scaling;
-    double energy_threshold;
+    double energy_min;
+    double energy_max;
     double PSD_min;
     double PSD_max;
 
@@ -83,6 +92,9 @@ struct PSD_config
 
     uint64_t *samples_cumulative;
     double *curve_integral;
+
+    double *curve_cumulative;
+    size_t counter_curves;
 };
 
 /*! \brief Function that allocates the necessary memory for the calculations.
@@ -133,10 +145,15 @@ void energy_init(json_t *json_config, void **user_config)
             config->integrals_scaling = 1;
         }
 
-        if (json_is_number(json_object_get(json_config, "energy_threshold"))) {
-            config->energy_threshold = json_number_value(json_object_get(json_config, "energy_threshold"));
+        if (json_is_number(json_object_get(json_config, "energy_min"))) {
+            config->energy_min = json_number_value(json_object_get(json_config, "energy_min"));
         } else {
-            config->energy_threshold = 0;
+            config->energy_min = 0;
+        }
+        if (json_is_number(json_object_get(json_config, "energy_max"))) {
+            config->energy_max = json_number_value(json_object_get(json_config, "energy_max"));
+        } else {
+            config->energy_max = UINT16_MAX;
         }
 
         if (json_is_number(json_object_get(json_config, "PSD_min"))) {
@@ -179,6 +196,8 @@ void energy_init(json_t *json_config, void **user_config)
 
         config->samples_cumulative = NULL;
         config->curve_integral = NULL;
+        config->curve_cumulative = NULL;
+        config->counter_curves = 0;
 
         (*user_config) = (void*)config;
     }
@@ -195,6 +214,9 @@ void energy_close(void *user_config)
     }
     if (config->curve_integral) {
         free(config->curve_integral);
+    }
+    if (config->curve_cumulative) {
+        free(config->curve_cumulative);
     }
 
     if (user_config) {
@@ -400,10 +422,20 @@ void energy_analysis(const uint16_t *samples,
 
     const uint8_t group_counter = 0;
 
-    if (scaled_qlong < config->energy_threshold || PSD < config->PSD_min || PSD > config->PSD_max) {
+    if (scaled_qlong < config->energy_min || config->energy_max < scaled_qlong || PSD < config->PSD_min || PSD > config->PSD_max) {
         // Discard the event
         reallocate_buffers(trigger_positions, events_buffer, events_number, 0);
     } else {
+    	config->counter_curves += 1;
+    	uint16_t *waveform_samples = waveform_samples_get(waveform);
+    	
+    	// Calculating average waveform
+    	for (uint32_t i = 0; i < samples_number; i++ ) {
+        	config->curve_cumulative[i] += (samples[i] - baseline);
+
+		waveform_samples[i] = (config->curve_cumulative[i] / config->counter_curves) + (UINT16_MAX / 2);
+    	}
+    	
         // Output
         // We have to assume that this was taken care earlier
         //(*events_buffer)[0].timestamp = waveform->timestamp;
@@ -486,6 +518,8 @@ void reallocate_curves(uint32_t samples_number, struct PSD_config **user_config)
                                             samples_number * sizeof(uint64_t));
         double *new_curve_integral = realloc(config->curve_integral,
                                                 samples_number * sizeof(double));
+        double *new_curve_cumulative = realloc(config->curve_cumulative,
+                                                samples_number * sizeof(double));
 
         if (!new_samples_cumulative) {
             printf("ERROR: libPSD reallocate_curves(): Unable to allocate samples_cumulative memory\n");
@@ -501,5 +535,18 @@ void reallocate_curves(uint32_t samples_number, struct PSD_config **user_config)
         } else {
             config->curve_integral = new_curve_integral;
         }
+        if (!new_curve_cumulative) {
+            printf("ERROR: libPSD reallocate_curves(): Unable to allocate curve_cumulative memory\n");
+
+            config->is_error = true;
+        } else {
+            config->curve_cumulative = new_curve_cumulative;
+        }
+    }
+
+    if (config->counter_curves == 0) {
+        for (uint32_t i = 0; i < samples_number; i++ ) {
+            config->curve_cumulative[i] = 0;
+	}
     }
 }
