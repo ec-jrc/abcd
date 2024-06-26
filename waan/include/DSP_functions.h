@@ -85,6 +85,57 @@ inline extern int find_extrema(const double *samples, size_t start, size_t end, 
     return EXIT_SUCCESS;
 }
 
+/*! \brief Function that determines the risetime.
+ *
+ * \param[in] samples an array with the input samples.
+ * \param[in] start starting index for the search (included).
+ * \param[in] end ending index for the search (not included).
+ * \param[in] level_low low level threshold to start the risetime (not relative).
+ * \param[in] level_high high level threshold to end the risetime (not relative).
+ *
+ * \param[out] index_low the index of the low level threshold crossing.
+ * \param[out] index_high the index of the high level threshold crossing.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int risetime(const double *samples, size_t start, size_t end, \
+                           double level_low,  double level_high,
+                           size_t *index_low, size_t *index_high)
+{
+    if ((start > end) || !samples || !index_low || !index_high)
+    {
+        return EXIT_FAILURE;
+    }
+
+    (*index_low) = start;
+    (*index_high) = end;
+    bool above_level_low = false;
+    bool above_level_high = false;
+
+    for (size_t i = start; i < end; ++i)
+    {
+        if (!above_level_low)
+        {
+            if (samples[i] >= level_low) {
+                (*index_low) = i;
+                above_level_low = true;
+            }
+        } else {
+            if (samples[i] >= level_high) {
+                (*index_high) = i;
+                above_level_high = true;
+                break;
+            }
+        }
+    }
+
+    if (above_level_low && above_level_high) {
+        return EXIT_SUCCESS;
+    } else {
+        return EXIT_FAILURE;
+    }
+}
+
 /*! \brief Function that calculates the sum of all the given samples.
  *
  * \param[in] samples an array with the input samples.
