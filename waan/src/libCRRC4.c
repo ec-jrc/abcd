@@ -64,6 +64,7 @@ struct CRRC4_config
 {
     int64_t baseline_samples;
     uint32_t extension_samples;
+    uint32_t smooth_samples;
     double decay_time;
     double highpass_time;
     double lowpass_time;
@@ -80,6 +81,7 @@ struct CRRC4_config
     double *curve_samples;
     double *curve_compensated;
     double *curve_offset;
+    double *curve_smoothed;
     double *curve_CR;
     double *curve_RC;
 };
@@ -113,6 +115,7 @@ void energy_init(json_t *json_config, void **user_config)
 
         config->decay_time = json_integer_value(json_object_get(json_config, "decay_time"));
         config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
+        config->smooth_samples = json_integer_value(json_object_get(json_config, "smooth_samples"));
         config->highpass_time = json_integer_value(json_object_get(json_config, "highpass_time"));
         config->lowpass_time = json_integer_value(json_object_get(json_config, "lowpass_time"));
 
@@ -169,6 +172,7 @@ void energy_init(json_t *json_config, void **user_config)
         config->curve_samples = NULL;
         config->curve_compensated = NULL;
         config->curve_offset = NULL;
+        config->curve_smoothed = NULL;
         config->curve_CR = NULL;
         config->curve_RC = NULL;
 
@@ -190,6 +194,9 @@ void energy_close(void *user_config)
     }
     if (config->curve_offset) {
         free(config->curve_offset);
+    }
+    if (config->curve_smoothed) {
+        free(config->curve_smoothed);
     }
     if (config->curve_CR) {
         free(config->curve_CR);
@@ -270,7 +277,11 @@ void energy_analysis(const uint16_t *samples,
     size_t index_low = 0;
     size_t index_high = 0;
 
-    risetime(config->curve_compensated, 0, extended_samples_number,
+    // We use the running mean only for the risetime calculation.
+    // For the rest we use the compensated curve.
+    running_mean(config->curve_compensated, samples_number, config->smooth_samples, &config->curve_smoothed);
+
+    risetime(config->curve_smoothed, 0, extended_samples_number,
              level_low, level_high,
              &index_low, &index_high);
 
@@ -420,6 +431,8 @@ void reallocate_curves(uint32_t samples_number, struct CRRC4_config **user_confi
                                                 samples_number * sizeof(double));
         double *new_curve_offset = realloc(config->curve_offset,
                                            samples_number * sizeof(double));
+        double *new_curve_smoothed = realloc(config->curve_smoothed,
+                                             samples_number * sizeof(double));
         double *new_curve_CR = realloc(config->curve_CR,
                                        samples_number * sizeof(double));
         double *new_curve_RC = realloc(config->curve_RC,
@@ -445,6 +458,13 @@ void reallocate_curves(uint32_t samples_number, struct CRRC4_config **user_confi
             config->is_error = true;
         } else {
             config->curve_offset = new_curve_offset;
+        }
+        if (!new_curve_smoothed) {
+            printf("ERROR: libGrid reallocate_curves(): Unable to allocate curve_smoothed memory\n");
+
+            config->is_error = true;
+        } else {
+            config->curve_smoothed = new_curve_smoothed;
         }
         if (!new_curve_CR) {
             printf("ERROR: libCRRC4 reallocate_curves(): Unable to allocate curve_CR memory\n");
