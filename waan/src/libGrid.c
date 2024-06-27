@@ -59,6 +59,7 @@ struct Grid_config
 {
     uint32_t baseline_samples;
     uint32_t extension_samples;
+    uint32_t smooth_samples;
     double decay_time;
     double highpass_time;
     double lowpass_time;
@@ -73,6 +74,7 @@ struct Grid_config
     double *curve_samples;
     double *curve_compensated;
     double *curve_offset;
+    double *curve_smoothed;
     double *curve_CR;
     double *curve_RC;
 };
@@ -106,6 +108,7 @@ void energy_init(json_t *json_config, void **user_config)
 
         config->decay_time = json_integer_value(json_object_get(json_config, "decay_time"));
         config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
+        config->smooth_samples = json_integer_value(json_object_get(json_config, "smooth_samples"));
         config->highpass_time = json_integer_value(json_object_get(json_config, "highpass_time"));
         config->lowpass_time = json_integer_value(json_object_get(json_config, "lowpass_time"));
 
@@ -150,6 +153,7 @@ void energy_init(json_t *json_config, void **user_config)
         config->curve_samples = NULL;
         config->curve_compensated = NULL;
         config->curve_offset = NULL;
+        config->curve_smoothed = NULL;
         config->curve_CR = NULL;
         config->curve_RC = NULL;
 
@@ -171,6 +175,9 @@ void energy_close(void *user_config)
     }
     if (config->curve_offset) {
         free(config->curve_offset);
+    }
+    if (config->curve_smoothed) {
+        free(config->curve_smoothed);
     }
     if (config->curve_CR) {
         free(config->curve_CR);
@@ -236,14 +243,16 @@ void energy_analysis(const uint16_t *samples,
         add_and_multiply_constant(config->curve_samples, samples_number, -1 * baseline, -1.0, &config->curve_offset);
     }
 
+    running_mean(config->curve_offset, samples_number, config->smooth_samples, &config->curve_smoothed);
+
     // Eliminate the negative part of the signal
     for (uint32_t i = 0; i < samples_number; i += 1) {
-        if (config->curve_offset[i] < 0) {
-            config->curve_offset[i] = 0;
+        if (config->curve_smoothed[i] < 0) {
+            config->curve_smoothed[i] = 0;
         }
     }
 
-    decay_compensation(config->curve_offset, samples_number, \
+    decay_compensation(config->curve_smoothed, samples_number, \
                        config->decay_time, \
                        &config->curve_compensated);
 
@@ -388,6 +397,8 @@ void reallocate_curves(uint32_t samples_number, struct Grid_config **user_config
                                                 samples_number * sizeof(double));
         double *new_curve_offset = realloc(config->curve_offset,
                                            samples_number * sizeof(double));
+        double *new_curve_smoothed = realloc(config->curve_smoothed,
+                                             samples_number * sizeof(double));
         double *new_curve_CR = realloc(config->curve_CR,
                                        samples_number * sizeof(double));
         double *new_curve_RC = realloc(config->curve_RC,
@@ -413,6 +424,13 @@ void reallocate_curves(uint32_t samples_number, struct Grid_config **user_config
             config->is_error = true;
         } else {
             config->curve_offset = new_curve_offset;
+        }
+        if (!new_curve_smoothed) {
+            printf("ERROR: libGrid reallocate_curves(): Unable to allocate curve_smoothed memory\n");
+
+            config->is_error = true;
+        } else {
+            config->curve_smoothed = new_curve_smoothed;
         }
         if (!new_curve_CR) {
             printf("ERROR: libGrid reallocate_curves(): Unable to allocate curve_CR memory\n");
