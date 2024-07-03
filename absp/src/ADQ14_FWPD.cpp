@@ -262,6 +262,39 @@ int ABCD::ADQ14_FWPD::Configure()
             std::cout << std::endl;
         }
 
+        // Disable test data and forward normal data to channels
+        // in the example it is repeated at each channel, but to me it seems
+        // unnecessary.
+        CHECKZERO(ADQ_SetTestPatternMode(adq_cu_ptr, adq_num, 0));
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+            std::cout << "Setting digital gain and offset to unity gain and no offset; ";
+            std::cout << std::endl;
+        }
+
+        CHECKZERO(ADQ_SetGainAndOffset(adq_cu_ptr, adq_num, channel + 1, 1024, 0));
+
+        if (ADQ_HasAdjustableBias(adq_cu_ptr, adq_num) > 0) {
+            const int DC_offset = DC_offsets[channel];
+
+            if (GetVerbosity() > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+                std::cout << "Setting DC offset to: " << DC_offset << " samples; ";
+                std::cout << std::endl;
+            }
+
+            // This is a physical DC offset added to the signal
+            // while ADQ_SetGainAndOffset is a digital calculation
+            CHECKZERO(ADQ_SetAdjustableBias(adq_cu_ptr, adq_num, channel + 1, DC_offset));
+        }
+
         if (ADQ_HasAdjustableInputRange(adq_cu_ptr, adq_num) > 0) {
             if (GetVerbosity() > 0)
             {
@@ -285,23 +318,6 @@ int ABCD::ADQ14_FWPD::Configure()
                 std::cout << "Input range: desired: " << desired << " mVpp, result: " << result << " mVpp; ";
                 std::cout << std::endl;
             }
-        }
-
-        if (ADQ_HasAdjustableBias(adq_cu_ptr, adq_num) > 0) {
-            const int DC_offset = DC_offsets[channel];
-
-            if (GetVerbosity() > 0)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
-                std::cout << "Setting DC offset to: " << DC_offset << " samples; ";
-                std::cout << std::endl;
-            }
-
-            // This is a physical DC offset added to the signal
-            // while ADQ_SetGainAndOffset is a digital calculation
-            CHECKZERO(ADQ_SetAdjustableBias(adq_cu_ptr, adq_num, channel + 1, DC_offset));
         }
     }
 
@@ -343,9 +359,19 @@ int ABCD::ADQ14_FWPD::Configure()
     //  Trigger settings
     // -------------------------------------------------------------------------
 
-    // FIXME: This feature is giving an error
-    //CHECKZERO(ADQ_DisarmTriggerBlocking(adq_cu_ptr, adq_num));
-    //CHECKZERO(ADQ_SetupTriggerBlocking(adq_cu_ptr, adq_num, ADQ_TRIG_BLOCKING_DISABLE, 0, 0, 0));
+    if (FWPD_generation >= 2) {
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+            std::cout << "Disabling trigger blocking: ";
+            std::cout << std::endl;
+        }
+
+        CHECKZERO(ADQ_SetupTriggerBlocking(adq_cu_ptr, adq_num, ADQ_TRIG_BLOCKING_DISABLE, 0, 0, 0));
+        CHECKZERO(ADQ_DisarmTriggerBlocking(adq_cu_ptr, adq_num));
+    }
 
     // FIXME: Check whether this is in conflict with PDSetupLevelTrig
     if (GetVerbosity() > 0)
@@ -463,6 +489,32 @@ int ABCD::ADQ14_FWPD::Configure()
                                         records_numbers[channel],
                                         record_variable_length));
 
+            if (GetVerbosity() > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+                std::cout << "Disabling coincidences for channel: " << channel << "; ";
+                std::cout << std::endl;
+            }
+
+            // TODO: Enable these features
+            // Coincidences cores are indexed from zero. There is one core per
+            // channel, but they are not necessary linked to each channel.
+            const unsigned int coincidences_core = channel;
+            // Just setting a value...
+            // It must be a multiple of 4 on -C devices or 8 for -X devices
+            const unsigned int window_length = scope_samples[channel] - (scope_samples[channel] % 8);
+            std::vector<unsigned char> expression_array(2 << (GetChannelsNumber() - 1), 0);
+
+            CHECKZERO(ADQ_PDSetupTriggerCoincidenceCore(adq_cu_ptr, adq_num, 
+                                                        coincidences_core,
+							window_length, expression_array.data(), 0));
+            CHECKZERO(ADQ_PDSetupTriggerCoincidence2(adq_cu_ptr, adq_num, 
+                                                     channel + 1, coincidences_core, 0));
+            CHECKZERO(ADQ_PDResetTriggerCoincidence(adq_cu_ptr, adq_num));
+
+
             // TODO: Enable these features
             // Since this gives an error with the generation 1, I am assuming that
             // the problem is the firmware generation...
@@ -495,22 +547,6 @@ int ABCD::ADQ14_FWPD::Configure()
         std::cout << std::endl;
     }
 
-    CHECKZERO(ADQ_PDEnableTriggerCoincidence(adq_cu_ptr, adq_num, false ? 1 : 0));
-    CHECKZERO(ADQ_PDEnableLevelTrig(adq_cu_ptr, adq_num, true ? 1 : 0));
-
-    if (GetVerbosity() > 0)
-    {
-        unsigned int level_trigger_status = 0;
-
-        CHECKZERO(ADQ_PDGetLevelTrigStatus(adq_cu_ptr, adq_num, &level_trigger_status));
-
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
-        std::cout << "Level trigger status: " << level_trigger_status << "; ";
-        std::cout << std::endl;
-    }
-
     // -------------------------------------------------------------------------
     //  Data mux
     // -------------------------------------------------------------------------
@@ -539,11 +575,6 @@ int ABCD::ADQ14_FWPD::Configure()
             std::cout << "Disabling test data; ";
             std::cout << std::endl;
         }
-
-        // Disable test data and forward normal data to channels
-        // in the example it is repeated at each channel, but to me it seems
-        // unnecessary.
-        CHECKZERO(ADQ_SetTestPatternMode(adq_cu_ptr, adq_num, 0));
     }
 
     // -------------------------------------------------------------------------
@@ -557,14 +588,32 @@ int ABCD::ADQ14_FWPD::Configure()
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
         std::cout << "Setting transfer buffers number to: " << transfer_buffers_number << "; ";
         std::cout << "Setting transfer buffer size to: " << (transfer_buffer_size / 1024.0) << " kiB; ";
+        std::cout << "Setting transfer timeout to: " << transfer_timeout << " ms; ";
         std::cout << std::endl;
     }
 
     CHECKZERO(ADQ_SetTransferBuffers(adq_cu_ptr, adq_num, transfer_buffers_number, transfer_buffer_size));
+    CHECKZERO(ADQ_SetTransferTimeout(adq_cu_ptr, adq_num, transfer_timeout));
 
     // -------------------------------------------------------------------------
     //  Streaming setup
     // -------------------------------------------------------------------------
+
+    CHECKZERO(ADQ_PDEnableTriggerCoincidence(adq_cu_ptr, adq_num, false ? 1 : 0));
+    CHECKZERO(ADQ_PDEnableLevelTrig(adq_cu_ptr, adq_num, true ? 1 : 0));
+
+    if (GetVerbosity() > 0)
+    {
+        unsigned int level_trigger_status = 0;
+
+        CHECKZERO(ADQ_PDGetLevelTrigStatus(adq_cu_ptr, adq_num, &level_trigger_status));
+
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+        std::cout << "Level trigger status: " << level_trigger_status << "; ";
+        std::cout << std::endl;
+    }
 
     if (GetVerbosity() > 0)
     {
@@ -662,6 +711,15 @@ int ABCD::ADQ14_FWPD::Configure()
             std::cout << std::endl;
 
             return DIGITIZER_FAILURE;
+        }
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+            std::cout << "Readout memory owner: " << readout_parameters.common.memory_owner << "; ";
+            std::cout << std::endl;
         }
 
         // Momery is managed by the API, the memory consumption is bound for each channel
@@ -1148,8 +1206,12 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                     time_string(time_buffer, BUFFER_SIZE, NULL);
                     std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
                     std::cout << "Timeout; ";
+                    //std::cout << "Timeout, initiating a flush; ";
                     std::cout << std::endl;
                 }
+
+		//ADQ_FlushDMA(adq_cu, adq_num);
+
             } else if (available_bytes < 0 && available_bytes != ADQ_EAGAIN) {
                 // This is an error!
                 // The record should not have been allocated and the docs
@@ -1176,6 +1238,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                 }
 
                 // At this point the ADQ_record variable should be ready...
+                // FIXME: Check the DataFormat entry of the ADQRecordHeader
                 const uint8_t channel = ADQ_record->header->Channel;
                 const uint32_t record_number = ADQ_record->header->RecordNumber;
                 const uint32_t samples_per_record = ADQ_record->header->RecordLength;
@@ -1239,9 +1302,9 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
 
                 waveforms.push_back(this_waveform);
 
-                CHECKZERO(ADQ_ReturnRecordBuffer(adq_cu_ptr, adq_num,
-                                                             available_channel,
-                                                             ADQ_record));
+                CHECKNEGATIVE(ADQ_ReturnRecordBuffer(adq_cu_ptr, adq_num,
+                                                     available_channel,
+                                                     ADQ_record));
             }
 
         } while (available_bytes >= 0);
@@ -1404,8 +1467,9 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
         json_object_set_new_nocheck(config, "transfer", transfer_config);
     }
 
-    const unsigned int raw_buffer_size = json_number_value(json_object_get(transfer_config, "buffer_size"));
+    const double raw_buffer_size = json_number_value(json_object_get(transfer_config, "buffer_size"));
 
+    // The buffer_size must be a multiple of 1024
     transfer_buffer_size = ceil(raw_buffer_size < 1 ? 1 : raw_buffer_size) * 1024;
 
     if (GetVerbosity() > 0)
@@ -1413,15 +1477,15 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-        std::cout << "Transfer buffer size: " << transfer_buffer_size << " B, " << transfer_buffer_size / 1024 << " kiB; ";
+        std::cout << "Transfer buffer size: " << transfer_buffer_size << " B, " << transfer_buffer_size / 1024.0 << " kiB; ";
         std::cout << std::endl;
     }
 
-    json_object_set_nocheck(transfer_config, "buffer_size", json_integer(ceil(raw_buffer_size)));
+    json_object_set_nocheck(transfer_config, "buffer_size", json_real(ceil(raw_buffer_size < 1 ? 1 : raw_buffer_size)));
 
     const unsigned int raw_buffers_number = json_number_value(json_object_get(transfer_config, "buffers_number"));
 
-    transfer_buffers_number = (raw_buffers_number < 2) ? 8 : raw_buffers_number;
+    transfer_buffers_number = (raw_buffers_number < 8) ? 8 : raw_buffers_number;
 
     if (GetVerbosity() > 0)
     {
