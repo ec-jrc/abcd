@@ -1207,14 +1207,14 @@ state actions::create_control_unit(status &global_status)
         std::cout << std::endl;
     }
 
-    const uint32_t API_revision = ADQAPI_GetRevision();
+    const char *API_revision = ADQAPI_GetRevisionString();
 
     if (global_status.verbosity > 0)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "API revision: " << (unsigned int)API_revision << "; ";
+        std::cout << "API revision: " << API_revision << "; ";
         std::cout << std::endl;
     }
 
@@ -1235,17 +1235,19 @@ state actions::create_control_unit(status &global_status)
         return states::configure_error;
     }
 
-    // This creates a file with the error trace when the program is executed
-    //if (global_status.verbosity > 0)
-    //{
-    //    char time_buffer[BUFFER_SIZE];
-    //    time_string(time_buffer, BUFFER_SIZE, NULL);
-    //    std::cout << '[' << time_buffer << "] ";
-    //    std::cout << "Enabling error trace; ";
-    //    std::cout << std::endl;
-    //}
-
     if (global_status.verbosity > 1)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Enabling error trace at level INFO; ";
+        std::cout << std::endl;
+    
+        // This creates a file when the program is executed
+        ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, LOG_LEVEL_INFO, ".");
+    }
+
+    if (global_status.verbosity > 2)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
@@ -1253,7 +1255,6 @@ state actions::create_control_unit(status &global_status)
         std::cout << "Enabling full error trace of the ADQAPI; ";
         std::cout << std::endl;
 
-        //ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, LOG_LEVEL_INFO, ".");
         // This is to enable all possible log levels
         ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, 0x7FFFFFFF, ".");
     }
@@ -1373,7 +1374,7 @@ state actions::receive_commands(status &global_status)
 
     json_t *json_message = NULL;
 
-    const int result = receive_json_message(commands_socket, NULL, &json_message, false, global_status.verbosity);
+    const int result = receive_json_message(commands_socket, NULL, &json_message, false, 0);
 
     if (!json_message || result == EXIT_FAILURE)
     {
