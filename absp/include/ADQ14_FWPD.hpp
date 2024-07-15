@@ -164,6 +164,10 @@ public:
 
     int GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms);
 
+    uint32_t event_counters_base_address;
+
+    std::vector<size_t> GetEventCounters();
+
     void SetDBSInstancesNumber(unsigned int n) { DBS_instances_number = n; }
     unsigned int GetDBSInstancesNumber() const { return DBS_instances_number; }
 

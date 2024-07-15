@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 
 #include <thread>
@@ -70,6 +71,9 @@ ABCD::ADQ14_FWPD::ADQ14_FWPD(void* adq, int num, int Verbosity) : ABCD::Digitize
 
     trig_port_input_impedance = ADQ_IMPEDANCE_HIGH;
     sync_port_input_impedance = ADQ_IMPEDANCE_HIGH;
+
+    event_counters_base_address = 0x50130000;
+
 
     // This is reset only at the class creation because the timestamp seems to
     // be growing continuously even after starts or stops.
@@ -507,13 +511,12 @@ int ABCD::ADQ14_FWPD::Configure()
             const unsigned int window_length = scope_samples[channel] - (scope_samples[channel] % 8);
             std::vector<unsigned char> expression_array(2 << (GetChannelsNumber() - 1), 0);
 
-            CHECKZERO(ADQ_PDSetupTriggerCoincidenceCore(adq_cu_ptr, adq_num, 
+            CHECKZERO(ADQ_PDSetupTriggerCoincidenceCore(adq_cu_ptr, adq_num,
                                                         coincidences_core,
-							window_length, expression_array.data(), 0));
-            CHECKZERO(ADQ_PDSetupTriggerCoincidence2(adq_cu_ptr, adq_num, 
+                                                        window_length, expression_array.data(), 0));
+            CHECKZERO(ADQ_PDSetupTriggerCoincidence2(adq_cu_ptr, adq_num,
                                                      channel + 1, coincidences_core, 0));
             CHECKZERO(ADQ_PDResetTriggerCoincidence(adq_cu_ptr, adq_num));
-
 
             // TODO: Enable these features
             // Since this gives an error with the generation 1, I am assuming that
@@ -1210,7 +1213,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                     std::cout << std::endl;
                 }
 
-		//ADQ_FlushDMA(adq_cu, adq_num);
+                //ADQ_FlushDMA(adq_cu, adq_num);
 
             } else if (available_bytes < 0 && available_bytes != ADQ_EAGAIN) {
                 // This is an error!
@@ -1321,6 +1324,21 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
     }
 
     return DIGITIZER_SUCCESS;
+}
+
+//==============================================================================
+
+std::vector<size_t> ABCD::ADQ14_FWPD::GetEventCounters()
+{
+    std::vector<size_t> event_counters(GetChannelsNumber(), 0);
+
+    for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
+        const uint32_t address = event_counters_base_address + 0x2C + channel * 4;
+
+        event_counters[channel] = ADQ_ReadRegister(adq_cu_ptr, adq_num, address) & 0xFFFFu;
+    }
+
+    return event_counters;
 }
 
 //==============================================================================
@@ -1529,6 +1547,37 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
     }
 
     json_object_set_nocheck(transfer_config, "DMA_flush_timeout", json_integer(DMA_flush_timeout));
+
+    json_t *json_event_counters_base_address = json_object_get(transfer_config, "event_counters_base_address");
+
+    if (json_is_string(json_event_counters_base_address)) {
+        try {
+            const std::string str_event_counters_base_address = json_string_value(json_event_counters_base_address);
+            event_counters_base_address = std::stoi(str_event_counters_base_address.substr(2), 0, 16);
+        } catch (const std::invalid_argument &ia) {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
+            std::cout << "Invalid event_counters_base_address as a string it should start with '0x', got: " << json_string_value(json_event_counters_base_address) << "; ";
+            std::cout << std::endl;
+        }
+    } else if (json_is_number(json_event_counters_base_address)) {
+        event_counters_base_address = json_number_value(json_event_counters_base_address);
+    }
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
+        std::cout << "Base address of the event counters: 0x" << std::hex << (unsigned int)event_counters_base_address << std::dec << "; ";
+        std::cout << std::endl;
+    }
+
+    std::stringstream ssecba;
+    ssecba << "0x" << std::hex << event_counters_base_address;
+
+    json_object_set_nocheck(transfer_config, "event_counters_base_address", json_string(ssecba.str().c_str()));
 
     // -------------------------------------------------------------------------
     //  Reading the trigger configuration

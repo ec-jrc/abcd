@@ -1003,6 +1003,10 @@ bool actions::generic::allocate_memory(status &global_status)
     global_status.counts.resize(global_status.channels_number, 0);
     global_status.partial_counts.clear();
     global_status.partial_counts.resize(global_status.channels_number, 0);
+    global_status.ICR_prev_counts.clear();
+    global_status.ICR_prev_counts.resize(global_status.channels_number, 0);
+    global_status.ICR_curr_counts.clear();
+    global_status.ICR_curr_counts.resize(global_status.channels_number, 0);
 
     if (verbosity > 0)
     {
@@ -1600,6 +1604,10 @@ state actions::start_acquisition(status &global_status)
     global_status.counts.resize(channels_number, 0);
     global_status.partial_counts.clear();
     global_status.partial_counts.resize(channels_number, 0);
+    global_status.ICR_prev_counts.clear();
+    global_status.ICR_prev_counts.resize(global_status.channels_number, 0);
+    global_status.ICR_curr_counts.clear();
+    global_status.ICR_curr_counts.resize(global_status.channels_number, 0);
 
     // Start acquisition
     if (global_status.verbosity > 0)
@@ -1780,9 +1788,16 @@ state actions::read_data(status &global_status)
                 std::cout << std::endl;
             }
 
-            std::vector<struct event_waveform> waveforms;
-
             const auto get_data_start = std::chrono::high_resolution_clock::now();
+
+            const std::vector<size_t> event_counters = digitizer->GetEventCounters();
+
+            for (uint8_t channel = 0; channel < (digitizer)->GetChannelsNumber(); channel += 1) {
+                const uint8_t global_channel = channel + user_id * (digitizer)->GetChannelsNumber();
+                global_status.ICR_curr_counts[global_channel] = event_counters[channel];
+            }
+
+            std::vector<struct event_waveform> waveforms;
 
             const int retval = digitizer->GetWaveformsFromCard(waveforms);
 
@@ -1954,8 +1969,10 @@ state actions::acquisition_publish_status(status &global_status)
             for (unsigned int i = 0; i < global_status.partial_counts.size(); i++)
             {
                 const double rate = global_status.partial_counts[i] / pubtime;
+                const double ICR_rate = (global_status.ICR_curr_counts[i] - global_status.ICR_prev_counts[i]) / pubtime;
+
                 json_array_append_new(rates, json_real(rate));
-                json_array_append_new(ICR_rates, json_real(rate));
+                json_array_append_new(ICR_rates, json_real(ICR_rate));
             }
         }
         else
@@ -1970,8 +1987,10 @@ state actions::acquisition_publish_status(status &global_status)
         for (unsigned int i = 0; i < global_status.counts.size(); i++)
         {
             const unsigned int channel_counts = global_status.counts[i];
+            const unsigned int ICR_channel_counts = global_status.ICR_curr_counts[i];
+
             json_array_append_new(counts, json_integer(channel_counts));
-            json_array_append_new(ICR_counts, json_integer(channel_counts));
+            json_array_append_new(ICR_counts, json_integer(ICR_channel_counts));
         }
 
         json_object_set_new_nocheck(acquisition, "rates", rates);
@@ -1992,6 +2011,10 @@ state actions::acquisition_publish_status(status &global_status)
     for (unsigned int i = 0; i < global_status.partial_counts.size(); i++)
     {
         global_status.partial_counts[i] = 0;
+    }
+    for (unsigned int i = 0; i < global_status.ICR_prev_counts.size(); i++)
+    {
+        global_status.ICR_prev_counts[i] = global_status.ICR_curr_counts[i];
     }
 
     return states::acquisition_receive_commands;
