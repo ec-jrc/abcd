@@ -87,6 +87,8 @@ struct status
     
     std::vector<unsigned long> counts;
     std::vector<unsigned long> partial_counts;
+    std::vector<size_t> ICR_prev_counts;
+    std::vector<size_t> ICR_curr_counts;
 
     unsigned long waveforms_buffer_size_max_Number;
     unsigned long waveforms_buffer_size_Number;

@@ -107,6 +107,10 @@ public:
         return DIGITIZER_FAILURE;
     }
 
+    virtual std::vector<size_t> GetEventCounters() {
+        return std::vector<size_t>(channels_number, 0);
+    }
+
     //--------------------------------------------------------------------------
 
     virtual int SpecificCommand(json_t* /*json_command*/) { return DIGITIZER_FAILURE; }
