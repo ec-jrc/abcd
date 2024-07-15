@@ -952,6 +952,26 @@ bool ABCD::ADQ14_FWPD::AcquisitionReady()
 
 //==============================================================================
 
+bool ABCD::ADQ14_FWPD::DataOverflow()
+{
+
+    const unsigned int retval = ADQ_GetStreamOverflow(adq_cu_ptr, adq_num);
+
+    if (GetVerbosity() > 1)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::DataOverflow() ";
+        std::cout << "Overflow: " << retval << "; ";
+        std::cout << std::endl;
+    }
+
+    return retval == 0 ? false : true;
+}
+
+
+//==============================================================================
+
 int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms)
 {
     if (GetVerbosity() > 1)

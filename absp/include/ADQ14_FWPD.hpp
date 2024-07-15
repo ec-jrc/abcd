@@ -161,6 +161,7 @@ public:
     int ForceSoftwareTrigger();
 
     bool AcquisitionReady();
+    bool DataOverflow();
 
     int GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms);
 
