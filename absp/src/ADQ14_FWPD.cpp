@@ -1191,6 +1191,18 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
             }
         }
     } else {
+        if (GetVerbosity() > 1)
+        {
+            struct ADQDramStatus DRAM_status;
+            ADQ_GetStatus(adq_cu_ptr, adq_num, ADQ_STATUS_ID_DRAM, &DRAM_status);
+
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
+            std::cout << "DRAM fill: " << ((double)DRAM_status.fill / 1024.0) << " kB; DRAM max fill: " << ((double)DRAM_status.fill_max / 1024.0) << " kB; ";
+            std::cout << std::endl;
+        }
+
         int64_t available_bytes = ADQ_EAGAIN;
 
         do {
