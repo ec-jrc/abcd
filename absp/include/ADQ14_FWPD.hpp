@@ -81,6 +81,8 @@ public:
     static const float default_input_range;
     std::vector<float> desired_input_ranges;
 
+    bool moving_average_bypass;
+
     // The hardware DC offsets set on the channels as requested by the user
     static const int default_DC_offset;
     std::vector<int16_t> DC_offsets;
