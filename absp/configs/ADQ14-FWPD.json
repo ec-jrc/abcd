@@ -22,7 +22,10 @@
             "clock_source_possible_value3": "external_PXIsync",
             "clock_source_possible_value4": "external_PXIe_100MHz",
             "timestamp_bit_shift": 4,
-            "timestamp_bit_shift_note": "the timestamp may be shifted in order to align it with the waan analysis module",
+            "timestamp_bit_shift_note1": "the timestamp may be shifted in order to align it with the waan analysis module",
+            "timestamp_bit_shift_note2": "to have 8 bits of fractional parts relative to the 4A variant use:",
+            "timestamp_bit_shift_note3": "ADQ14-4A: 4 bit",
+            "timestamp_bit_shift_note4": "ADQ14-4C: 3 bit",
 	    "moving_average_bypass": false,
 	    "moving_average_bypass_note": "this disables the smoothing module after the DBS",
             "trigger": {
