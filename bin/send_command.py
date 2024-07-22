@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-#  (C) Copyright 2016 Cristiano Lino Fontana
+#  (C) Copyright 2016, 2024 European Union, Cristiano Lino Fontana
 #
 #  This file is part of ABCD.
 #
@@ -16,8 +16,6 @@
 # 
 #  You should have received a copy of the GNU General Public License
 #  along with ABCD.  If not, see <http://www.gnu.org/licenses/>.
-
-from __future__ import print_function, with_statement
 
 import datetime
 import argparse
@@ -44,10 +42,7 @@ args = parser.parse_args()
 
 print("Connecting to: {}".format(args.commands_socket))
 
-# On python2.7 zmq.context is not compatible with the 'with' statement
-context = zmq.Context()
-if True:
-#with zmq.Context() as context:
+with zmq.Context() as context:
     socket = context.socket(zmq.PUSH)
 
     socket.connect(args.commands_socket)
@@ -65,10 +60,8 @@ if True:
 
         message = socket.send(json_message.encode('ascii'))
 
-        time.sleep(0.1)
+        time.sleep(1)
     except json.decoder.JSONDecodeError as error:
         print("ERROR on JSON decoding: {}".format(error))
 
     socket.close()
-
-context.destroy()
