@@ -2114,7 +2114,11 @@ state actions::restart_stop_acquisition(status &global_status)
 
     json_decref(json_event_message);
 
-    return states::restart_clear_memory;
+    // Normally after an error we would try to completely reset the digitizers,
+    // but the support from SP Devices suggests to try to simply restart the
+    // acquisition. The reconfiguration might not be necessary.
+    //return states::restart_clear_memory;
+    return states::start_acquisition;
 }
 
 state actions::restart_clear_memory(status &global_status)
