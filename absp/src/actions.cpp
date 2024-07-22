@@ -1757,6 +1757,9 @@ state actions::read_data(status &global_status)
         }
 
         if (is_overflow) {
+            // The DRAM is full and data was probably lost and corrupted, so we
+            // signal this as an error. A flush of the DMA would provide
+            // corrupted data.
             digitizer->ResetOverflow();
 
             std::string error_string = "Data overflow in digitizer: ";
@@ -1777,6 +1780,7 @@ state actions::read_data(status &global_status)
             std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": " << error_string;
             std::cout << std::endl;
 
+            is_error = true;
         }
 
         if (is_ready) {
