@@ -1907,13 +1907,15 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
                 if (ts_result != ADQ_descriptions::trigger_slope.end() && str_trigger_slope.length() > 0) {
                     trigger_slope = ts_result->first;
 
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-                    std::cout << "Found matching trigger slope; ";
-                    std::cout << "Got: " << str_trigger_slope << "; ";
-                    std::cout << "index: " << trigger_slope << "; ";
-                    std::cout << std::endl;
+                    if (GetVerbosity() > 0) {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
+                        std::cout << "Found matching trigger slope; ";
+                        std::cout << "Got: " << str_trigger_slope << "; ";
+                        std::cout << "index: " << trigger_slope << "; ";
+                        std::cout << std::endl;
+		    }
                 } else {
                     trigger_slope = ADQ_TRIG_SLOPE_FALLING;
 
