@@ -175,6 +175,7 @@ int main(int argc, char *argv[])
     global_status.commands_address = commands_address;
     global_status.identification_only = identification_only;
     global_status.adq_cu_ptr = NULL;
+    global_status.lua_manager.set_verbosity(verbosity);
 
     if (global_status.verbosity > 0) {
         std::cout << "Status socket address: " << status_address << std::endl;
