@@ -99,8 +99,7 @@ void print_usage(const std::string &name = std::string("abcdrp")) {
     std::cout << defaults_abcd_config_file << std::endl;
     std::cout << "\t-T <period>: Set base period in milliseconds, default: ";
     std::cout << defaults_abcd_base_period << std::endl;
-    std::cout << "\t-v: Set verbose execution" << std::endl;
-    std::cout << "\t-V: Set more verbose execution" << std::endl;
+    std::cout << "\t-v: Set verbose execution, can be repeated to increase verbosity level" << std::endl;
 
     return;
 }
@@ -129,7 +128,7 @@ int main(int argc, char *argv[])
     bool identification_only = false;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hIS:D:C:f:T:vV")) != -1) {
+    while ((c = getopt(argc, argv, "hIS:D:C:f:T:v")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
@@ -157,10 +156,7 @@ int main(int argc, char *argv[])
                 }
                 break;
             case 'v':
-                verbosity = 1;
-                break;
-            case 'V':
-                verbosity = 2;
+                verbosity += 1;
                 break;
             default:
                 std::cout << "Unknown command: " << c << std::endl;
@@ -179,6 +175,7 @@ int main(int argc, char *argv[])
     global_status.commands_address = commands_address;
     global_status.identification_only = identification_only;
     global_status.adq_cu_ptr = NULL;
+    global_status.lua_manager.set_verbosity(verbosity);
 
     if (global_status.verbosity > 0) {
         std::cout << "Status socket address: " << status_address << std::endl;

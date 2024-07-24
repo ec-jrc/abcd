@@ -81,7 +81,7 @@ public:
     static const std::map<enum ADQReferenceClockSource, std::string> ADQ36_clock_source;
     static const std::map<enum ADQEventSource, std::string> event_source;
     static const std::map<enum ADQEdge, std::string> slope;
-    static const std::map<enum ADQTimestampSynchronizationMode, std::string> timestamp_synchronization_mode;
+    static const std::map<enum ADQSynchronizationMode, std::string> timestamp_synchronization_mode;
     static const std::map<enum ADQArm, std::string> arm;
     static const std::map<enum ADQImpedance, std::string> input_impedance;
     static const std::map<enum ADQDirection, std::string> pin_direction;

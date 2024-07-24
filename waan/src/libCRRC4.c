@@ -7,10 +7,13 @@
  *  2. The pulse is offset by the baseline to center it around zero.
  *  3. The decay is compensated with a recursive filter, obtaining a step
  *     function.
- *  4. A recursive high-pass filter (CR filter) is applied.
- *  5. A recursive low-pass filter (RC4 filter) is applied.
- *  6. The energy information is obtained by determining the absolute maximum
- *     of the resulting waveform.
+ *  4. The risetime is calculated between the low and the high levels.
+ *     The risetime is stored in the baseline entry
+ *  5. A recursive high-pass filter (CR filter) is applied.
+ *  6. The pulse height is calculated and stored in the qshort entry.
+ *  7. A recursive low-pass filter (RC4 filter) is applied.
+ *  8. The energy information is obtained by determining the maximum of the
+ *     resulting waveform.
  *
  * In the event_PSD structure the energy information is stored in the qlong,
  * while the qshort stores the value of the absolute maximum of the waveform
@@ -32,7 +35,11 @@
  *   waveform after the waveform end. In the extended part the waveform is
  *   constituted by the average of the last `baseline_samples` of the compensated
  *   waveform. Optional, default value: 0
- * - `height_scaling`: a scaling factor multiplied to both the integrals.
+ * - `low_level`: the low level to calculate the risetime, relative to the pulse
+ *   height. Optional, default value: 0.1
+ * - `high_level`: the high level to calculate the risetime, relative to the
+ *   pulse height. Optional, default value: 0.9
+ * - `height_scaling`: a scaling factor multiplied to both the pulse heights.
  *   Optional, default value: 1
  * - `energy_threshold`: pulses with an energy lower than the threshold are
  *   discared. Optional, default value: 0
@@ -57,10 +64,13 @@ struct CRRC4_config
 {
     int64_t baseline_samples;
     uint32_t extension_samples;
+    uint32_t smooth_samples;
     double decay_time;
     double highpass_time;
     double lowpass_time;
     enum pulse_polarity_t pulse_polarity;
+    double low_level;
+    double high_level;
     double height_scaling;
     double energy_threshold;
 
@@ -71,6 +81,7 @@ struct CRRC4_config
     double *curve_samples;
     double *curve_compensated;
     double *curve_offset;
+    double *curve_smoothed;
     double *curve_CR;
     double *curve_RC;
 };
@@ -104,6 +115,7 @@ void energy_init(json_t *json_config, void **user_config)
 
         config->decay_time = json_integer_value(json_object_get(json_config, "decay_time"));
         config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
+        config->smooth_samples = json_integer_value(json_object_get(json_config, "smooth_samples"));
         config->highpass_time = json_integer_value(json_object_get(json_config, "highpass_time"));
         config->lowpass_time = json_integer_value(json_object_get(json_config, "lowpass_time"));
 
@@ -117,6 +129,18 @@ void energy_init(json_t *json_config, void **user_config)
             config->height_scaling = json_number_value(json_object_get(json_config, "height_scaling"));
         } else {
             config->height_scaling = 1;
+        }
+
+        if (json_is_number(json_object_get(json_config, "low_level"))) {
+            config->low_level = json_number_value(json_object_get(json_config, "low_level"));
+        } else {
+            config->low_level = 0.1;
+        }
+
+        if (json_is_number(json_object_get(json_config, "high_level"))) {
+            config->high_level = json_number_value(json_object_get(json_config, "high_level"));
+        } else {
+            config->high_level = 0.9;
         }
 
         if (json_is_number(json_object_get(json_config, "energy_threshold"))) {
@@ -148,6 +172,7 @@ void energy_init(json_t *json_config, void **user_config)
         config->curve_samples = NULL;
         config->curve_compensated = NULL;
         config->curve_offset = NULL;
+        config->curve_smoothed = NULL;
         config->curve_CR = NULL;
         config->curve_RC = NULL;
 
@@ -169,6 +194,9 @@ void energy_close(void *user_config)
     }
     if (config->curve_offset) {
         free(config->curve_offset);
+    }
+    if (config->curve_smoothed) {
+        free(config->curve_smoothed);
     }
     if (config->curve_CR) {
         free(config->curve_CR);
@@ -244,6 +272,21 @@ void energy_analysis(const uint16_t *samples,
     double topline = 0;
     calculate_average(config->curve_compensated, topline_start, topline_end, &topline);
 
+    const double level_low = config->low_level * topline;
+    const double level_high = config->high_level * topline;
+    size_t index_low = 0;
+    size_t index_high = 0;
+
+    // We use the running mean only for the risetime calculation.
+    // For the rest we use the compensated curve.
+    running_mean(config->curve_compensated, samples_number, config->smooth_samples, &config->curve_smoothed);
+
+    risetime(config->curve_smoothed, 0, extended_samples_number,
+             level_low, level_high,
+             &index_low, &index_high);
+
+    size_t risetime_samples = index_high - index_low;
+
     // Extending the waveform with the average of the end part
     for (uint32_t i = samples_number; i < extended_samples_number; i += 1) {
         config->curve_compensated[i] = topline;
@@ -275,7 +318,7 @@ void energy_analysis(const uint16_t *samples,
                  &CR_index_min, &CR_index_max,
                  &CR_min, &CR_max);
 
-    const double CR_maximum = CR_max / config->highpass_time;
+    const double CR_maximum = CR_max * config->height_scaling / config->highpass_time;
     const uint64_t long_CR_maximum = (uint16_t)round(CR_maximum);
 
     // We convert the 64 bit integers to 16 bit to simulate the digitizer data
@@ -306,7 +349,7 @@ void energy_analysis(const uint16_t *samples,
         int_energy = UINT16_MAX;
     }
 
-    uint64_t int_baseline = ((uint64_t)round(baseline)) & UINT16_MAX;
+    //uint64_t int_baseline = ((uint64_t)round(baseline)) & UINT16_MAX;
 
     const uint8_t group_counter = 0;
 
@@ -319,18 +362,19 @@ void energy_analysis(const uint16_t *samples,
         //(*events_buffer)[0].timestamp = waveform->timestamp;
         (*events_buffer)[0].qshort = int_CR_maximum;
         (*events_buffer)[0].qlong = int_energy;
-        (*events_buffer)[0].baseline = int_baseline;
+        (*events_buffer)[0].baseline = risetime_samples;
         (*events_buffer)[0].channel = waveform->channel;
         (*events_buffer)[0].group_counter = group_counter;
 
         const uint8_t extended_number = extended_samples_number / samples_number + ((extended_samples_number % samples_number > 0) ? 1 : 0);
 
         const uint8_t initial_additional_number = waveform_additional_get_number(waveform);
-        const uint8_t new_additional_number = initial_additional_number + 1 + 2 * extended_number;
+        const uint8_t new_additional_number = initial_additional_number + 2 + 2 * extended_number;
 
         waveform_additional_set_number(waveform, new_additional_number);
 
         uint8_t *additional_compensated = waveform_additional_get(waveform, initial_additional_number + 0);
+        uint8_t *additional_risetime = waveform_additional_get(waveform, initial_additional_number + 1);
 
         const double compensated_abs_max = (fabs(compensated_max) > fabs(compensated_min)) ? fabs(compensated_max) : fabs(compensated_min);
 
@@ -339,6 +383,14 @@ void energy_analysis(const uint16_t *samples,
 
         for (uint32_t i = 0; i < samples_number; i++) {
             additional_compensated[i] = (config->curve_compensated[i] / compensated_abs_max) * MAX + ZERO;
+
+            if (i == index_low) {
+                additional_risetime[i] = MAX / 2 + ZERO;
+            } else if (i == index_high) {
+                additional_risetime[i] = MAX + ZERO;
+            } else {
+                additional_risetime[i] = ZERO;
+            }
         }
 
         const double CR_abs_max = (fabs(CR_max) > fabs(CR_min)) ? fabs(CR_max) : fabs(CR_min);
@@ -346,8 +398,8 @@ void energy_analysis(const uint16_t *samples,
         //const double CRRC_abs_max = (RC_abs_max > CR_abs_max) ? RC_abs_max : CR_abs_max;
 
         for (uint8_t j = 0; j < extended_number; j++) {
-            uint8_t *additional_CR = waveform_additional_get(waveform, initial_additional_number + 1 + j);
-            uint8_t *additional_RC = waveform_additional_get(waveform, initial_additional_number + 1 + extended_number + j);
+            uint8_t *additional_CR = waveform_additional_get(waveform, initial_additional_number + 2 + j);
+            uint8_t *additional_RC = waveform_additional_get(waveform, initial_additional_number + 2 + extended_number + j);
 
             for (uint32_t i = 0; i < samples_number; i++) {
                 const uint32_t I = i + j * samples_number;
@@ -379,6 +431,8 @@ void reallocate_curves(uint32_t samples_number, struct CRRC4_config **user_confi
                                                 samples_number * sizeof(double));
         double *new_curve_offset = realloc(config->curve_offset,
                                            samples_number * sizeof(double));
+        double *new_curve_smoothed = realloc(config->curve_smoothed,
+                                             samples_number * sizeof(double));
         double *new_curve_CR = realloc(config->curve_CR,
                                        samples_number * sizeof(double));
         double *new_curve_RC = realloc(config->curve_RC,
@@ -404,6 +458,13 @@ void reallocate_curves(uint32_t samples_number, struct CRRC4_config **user_confi
             config->is_error = true;
         } else {
             config->curve_offset = new_curve_offset;
+        }
+        if (!new_curve_smoothed) {
+            printf("ERROR: libGrid reallocate_curves(): Unable to allocate curve_smoothed memory\n");
+
+            config->is_error = true;
+        } else {
+            config->curve_smoothed = new_curve_smoothed;
         }
         if (!new_curve_CR) {
             printf("ERROR: libCRRC4 reallocate_curves(): Unable to allocate curve_CR memory\n");

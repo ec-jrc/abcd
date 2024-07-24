@@ -106,7 +106,7 @@ int ABCD::ADQ36_FWDAQ::Initialize()
         std::cout << std::endl;
 
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << "ADQAPI Revision: " << ADQAPI_GetRevision() << "; ";
+        std::cout << "ADQAPI Revision: " << ADQAPI_GetRevisionString() << "; ";
         std::cout << std::endl;
 
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
@@ -726,14 +726,14 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
         //    clock_system.clock_generator = ADQ_CLOCK_GENERATOR_EXTERNAL_CLOCK;
         //}
 
-        json_object_set_nocheck(json_clock, "source", json_string(ADQ_descriptions::ADQ36_clock_source.at(adq_parameters.constant.clock_system.reference_source).c_str()));
+        json_object_set_nocheck(json_clock, "source", json_string(ADQ_descriptions::ADQ36_clock_source.at(clock_system.reference_source).c_str()));
 
         if (GetVerbosity() > 0)
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
             std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-            std::cout << "Clock source: got: " << ADQ_descriptions::ADQ36_clock_source.at(adq_parameters.constant.clock_system.reference_source) << " (index: " << adq_parameters.constant.clock_system.reference_source << "); ";
+            std::cout << "Clock source: got: " << ADQ_descriptions::ADQ36_clock_source.at(clock_system.reference_source) << " (index: " << clock_system.reference_source << "); ";
             std::cout << std::endl;
         }
 
@@ -1271,12 +1271,12 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                     adq_parameters.event_source.level.channel[id].level = trigger_level;
                     adq_parameters.event_source.level.channel[id].arm_hysteresis = trigger_hysteresis;
 
-                    const int64_t bytes_per_sample = adq_parameters.acquisition.channel[id].bytes_per_sample;
+                    const int64_t bytes_per_sample = std::ceil(adq_parameters.acquisition.channel[id].nof_bits_per_sample / 8);
 
                     adq_parameters.transfer.channel[id].record_size = bytes_per_sample * scope_samples;
                     adq_parameters.transfer.channel[id].record_buffer_size = bytes_per_sample * scope_samples * records_per_buffer;
                     adq_parameters.transfer.channel[id].metadata_buffer_size = sizeof(struct ADQGen4RecordHeader) * records_per_buffer;
-                    adq_parameters.transfer.channel[id].record_length_infinite_enabled = 0;
+                    adq_parameters.transfer.channel[id].infinite_record_length_enabled = 0;
                     adq_parameters.transfer.channel[id].metadata_enabled = 1;
                     // Using the maximum value here, we have no reason to use a smaller value
                     adq_parameters.transfer.channel[id].nof_buffers = ADQ_MAX_NOF_BUFFERS;
