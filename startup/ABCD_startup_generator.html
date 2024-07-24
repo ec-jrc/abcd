@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>ABCD startup generator</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@latest/dist/svg.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.draggable.js@latest/dist/svg.draggable.js"></script>
+
+    <style>
+        :root {
+            --dark_color: #333333;
+            --selected_color: #ffe17e;
+            --light_color: #a9a9a9;
+        }
+
+        body {
+            padding: 5px;
+            font-family: "Fira Sans", sans-serif;
+            font-weight: 400;
+            font-size: 12pt;
+        }
+
+        h1 {
+            font-family: "Fira Sans", sans-serif;
+            font-weight: 100;
+            font-size: 300%;
+        }
+
+        h2 {
+            font-family: "Fira Sans", sans-serif;
+            font-weight: 200;
+            font-size: 250%;
+        }
+
+        h3 {
+            font-family: "Fira Sans", sans-serif;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .display {
+            border: 2px dashed var(--light_color);
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px;
+            text-align: left;
+            color: var(--dark_color);
+        }
+
+        .columns {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .column {
+            flex: 1 1 0;
+            min-width: 700px;
+        }
+
+        .abcd-module {
+            cursor: grab;
+        }
+
+        .abcd-socket_endpoint {
+            cursor: pointer;
+        }
+
+        .abcd-socket {
+            cursor: pointer;
+        }
+
+        .abcd-label {
+            font-family: "Fira Sans", sans-serif;
+        }
+
+        .abcd-fieldset-selected {
+            background-color: var(--selected_color);
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>ABCD startup generator</h1>
+    <div class="columns">
+        <div class="display" class="column">
+            <h2>Connections scheme</h2>
+            <fieldset>
+                <legend>File</legend>
+                <button id="button-download">Download SVG</button>
+                <button id="button-upload">Upload and Replace SVG</button>
+                <label>Select file to upload:
+                    <input type="file" id="input-file" accept=".svg" />
+                </label>
+            </fieldset>
+            <fieldset>
+                <legend>Modules</legend>
+                <button id="button-delete_module">Delete</button>
+                <button id="button-new_module">New</button>
+                <label for="select-module">Select new module:</label>
+                <select id="select-module">
+                    <option value="abcd">abcd</option>
+                    <option value="waan">waan</option>
+                    <option value="wadi">wadi</option>
+                    <option value="dasa">dasa</option>
+                    <option value="spec">spec</option>
+                    <option value="tofcalc">tofcalc</option>
+                </select>
+            </fieldset>
+
+            <div id="drawing"></div>
+        </div>
+        <div class="display" class="column">
+            <h2>Global options</h2>
+            <div id="global_options">
+                <label>Working directory:
+                    <input type="text" id="input-working_directory" />
+                </label>
+            </div>
+            <h2>Modules options</h2>
+            <div id="modules_options"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Colors from the Tableau 10 color palette
+            // https://help.tableau.com/current/pro/desktop/en-us/formatting_create_custom_colors.htm
+            const color_palettes = {
+                white: '#ffffff',
+                grey: '#808080',
+                black: '#000000',
+                tableau: [
+                    '#17becf',
+                    '#bcbd22',
+                    '#7f7f7f',
+                    '#e377c2',
+                    '#8c564b',
+                    '#9467bd',
+                    '#d62728',
+                    '#2ca02c',
+                    '#ff7f0e',
+                    '#1f77b4'
+                ],
+                tableau_medium: [
+                    '#6dccda',
+                    '#cdcc5d',
+                    '#a2a2a2',
+                    '#ed97ca',
+                    '#a8786e',
+                    '#ad8bc9',
+                    '#ed665d',
+                    '#67bf5c',
+                    '#ff9e4a',
+                    '#729ece'
+                ],
+                tableau_light: [
+                    '#9edae5',
+                    '#dbdb8d',
+                    '#c7c7c7',
+                    '#f7b6d2',
+                    '#c49c94',
+                    '#c5b0d5',
+                    '#ff9896',
+                    '#98df8a',
+                    '#ffbb78',
+                    '#aec7e8'
+                ]
+            };
+
+            const settings = {
+                unit: 15,
+                socket_endpoints: {
+                    active: color_palettes.white,
+                    dimensions: {
+                        width: 0.6
+                    },
+                    commands: {
+                        fill: color_palettes.tableau_medium[0],
+                        stroke: color_palettes.grey,
+                        stroke_width: 1
+                    },
+                    status: {
+                        fill: color_palettes.tableau_medium[1],
+                        stroke: color_palettes.grey,
+                        stroke_width: 1
+                    },
+                    data: {
+                        fill: color_palettes.tableau_medium[2],
+                        stroke: color_palettes.grey,
+                        stroke_width: 1
+                    },
+                    data_spec: {
+                        fill: color_palettes.tableau_medium[3],
+                        stroke: color_palettes.grey,
+                        stroke_width: 1
+                    },
+                    data_tofcalc: {
+                        fill: color_palettes.tableau_medium[4],
+                        stroke: color_palettes.grey,
+                        stroke_width: 1
+                    },
+                    data_wadi: {
+                        fill: color_palettes.tableau_medium[5],
+                        stroke: color_palettes.grey,
+                        stroke_width: 1
+                    }
+                },
+                sockets: {
+                    dimensions: {
+                    },
+                    commands: {
+                        stroke: color_palettes.tableau[0],
+                        stroke_width: 4
+                    },
+                    status: {
+                        stroke: color_palettes.tableau[1],
+                        stroke_width: 4
+                    },
+                    data: {
+                        stroke: color_palettes.tableau[2],
+                        stroke_width: 4
+                    }
+                },
+                modules: {
+                    active: "#ffe17e",
+                    dimensions: {
+                        width: 7,
+                        height: 4,
+                        radius: 0.1,
+                        label: { x: 1, y: 1 }
+                    },
+                    abcd: {
+                        label: 'abcd',
+                        fill: color_palettes.tableau_light[0],
+                        stroke: color_palettes.grey,
+                        stroke_width: 1,
+                        socket_endpoints: [
+                            {
+                                type: 'commands',
+                                direction: 'in',
+                                max_connections: 'infinity',
+                                label: 'commands',
+                                x: 0,
+                                y: 3
+                            },
+                            {
+                                type: 'data',
+                                direction: 'out',
+                                max_connections: 'infinity',
+                                label: 'data',
+                                x: 7,
+                                y: 2
+                            },
+                            {
+                                type: 'status',
+                                direction: 'out',
+                                max_connections: 'infinity',
+                                label: 'status',
+                                x: 7,
+                                y: 1
+                            }
+                        ]
+                    },
+                    wadi: {
+                        label: 'wadi',
+                        fill: color_palettes.tableau_light[1],
+                        stroke: color_palettes.grey,
+                        stroke_width: 1,
+                        socket_endpoints: [
+                            {
+                                type: 'data',
+                                direction: 'in',
+                                max_connections: 1,
+                                label: 'data',
+                                x: 0,
+                                y: 2
+                            },
+                            {
+                                type: 'data_wadi',
+                                direction: 'out',
+                                max_connections: 'infinity',
+                                label: 'data',
+                                x: 7,
+                                y: 2
+                            }
+                        ]
+                    },
+                    waan: {
+                        label: 'waan',
+                        fill: color_palettes.tableau_light[2],
+                        stroke: color_palettes.grey,
+                        stroke_width: 1,
+                        socket_endpoints: [
+                            {
+                                type: 'commands',
+                                direction: 'in',
+                                max_connections: 'infinity',
+                                label: 'commands',
+                                x: 0,
+                                y: 3
+                            },
+                            {
+                                type: 'data',
+                                direction: 'in',
+                                max_connections: 1,
+                                label: 'data',
+                                x: 0,
+                                y: 2
+                            },
+                            {
+                                type: 'data',
+                                direction: 'out',
+                                max_connections: 'infinity',
+                                label: 'data',
+                                x: 7,
+                                y: 2
+                            },
+                            {
+                                type: 'status',
+                                direction: 'out',
+                                max_connections: 'infinity',
+                                label: 'status',
+                                x: 7,
+                                y: 1
+                            }
+                        ]
+                    },
+                    dasa: {
+                        label: 'dasa',
+                        fill: color_palettes.tableau_light[3],
+                        stroke: color_palettes.grey,
+                        stroke_width: 1,
+                        socket_endpoints: [
+                            {
+                                type: 'commands',
+                                direction: 'in',
+                                max_connections: 'infinity',
+                                label: 'commands',
+                                x: 0,
+                                y: 3
+                            },
+                            {
+                                type: 'data',
+                                direction: 'in',
+                                max_connections: 1,
+                                label: 'data',
+                                x: 0,
+                                y: 2
+                            },
+                            {
+                                type: 'status',
+                                direction: 'out',
+                                max_connections: 'infinity',
+                                label: 'status',
+                                x: 7,
+                                y: 1
+                            }
+                        ]
+                    },
+                    spec: {
+                        label: 'spec',
+                        fill: color_palettes.tableau_light[4],
+                        stroke: color_palettes.grey,
+                        stroke_width: 1,
+                        socket_endpoints: [
+                            {
+                                type: 'commands',
+                                direction: 'in',
+                                max_connections: 'infinity',
+                                label: 'commands',
+                                x: 0,
+                                y: 3
+                            },
+                            {
+                                type: 'data',
+                                direction: 'in',
+                                max_connections: 1,
+                                label: 'data',
+                                x: 0,
+                                y: 2
+                            },
+                            {
+                                type: 'data_spec',
+                                direction: 'out',
+                                max_connections: 'infinity',
+                                label: 'spectrum data',
+                                x: 7,
+                                y: 2
+                            },
+                            {
+                                type: 'status',
+                                direction: 'out',
+                                max_connections: 'infinity',
+                                label: 'status',
+                                x: 7,
+                                y: 1
+                            }
+                        ]
+                    },
+                    tofcalc: {
+                        label: 'tofcalc',
+                        fill: color_palettes.tableau_light[5],
+                        stroke: color_palettes.grey,
+                        stroke_width: 1,
+                        socket_endpoints: [
+                            {
+                                type: 'commands',
+                                direction: 'in',
+                                max_connections: 'infinity',
+                                label: 'commands',
+                                x: 0,
+                                y: 3
+                            },
+                            {
+                                type: 'data',
+                                direction: 'in',
+                                max_connections: 1,
+                                label: 'data',
+                                x: 0,
+                                y: 2
+                            },
+                            {
+                                type: 'data_tofcalc',
+                                direction: 'out',
+                                max_connections: 'infinity',
+                                label: 'ToF data',
+                                x: 7,
+                                y: 2
+                            },
+                            {
+                                type: 'status',
+                                direction: 'out',
+                                max_connections: 'infinity',
+                                label: 'status',
+                                x: 7,
+                                y: 1
+                            }
+                        ]
+                    },
+                    cofi: {
+                        label: 'cofi',
+                        fill: color_palettes.tableau_light[6],
+                        stroke: color_palettes.grey,
+                        stroke_width: 1,
+                        socket_endpoints: [
+                            {
+                                type: 'data',
+                                direction: 'in',
+                                max_connections: 1,
+                                label: 'data',
+                                x: 0,
+                                y: 2
+                            },
+                            {
+                                type: 'data',
+                                direction: 'out',
+                                max_connections: 'infinity',
+                                label: 'coincidence data',
+                                x: 7,
+                                y: 2
+                            },
+                            {
+                                type: 'data',
+                                direction: 'out',
+                                max_connections: 'infinity',
+                                label: 'anticoincidence data',
+                                x: 7,
+                                y: 3
+                            }
+                        ]
+                    }
+                }
+            };
+
+            const drawing = SVG().addTo('#drawing').size('1000px', '1000px');
+
+            const group_sockets = drawing.group();
+            group_sockets.attr("id", "abcd-sockets");
+
+            const group_modules = drawing.group();
+            group_modules.attr("id", "abcd-modules");
+            group_modules.attr("abcd:modules:global_options:working_directory", "");
+
+            let module_selected = null;
+            let socket_endpoint_selected = null;
+
+            function socket_callback_click() {
+                const socket_current = this;
+                const from_socket_endpoint = socket_current.attr('abcd:from_socket_endpoint');
+                const to_socket_endpoint = socket_current.attr('abcd:to_socket_endpoint');
+
+                console.log(`Selected socket from ${from_socket_endpoint} to ${to_socket_endpoint}`);
+                socket_current.remove();
+            }
+
+            function create_socket(socket_endpoint_A, socket_endpoint_B) {
+                const direction_A = socket_endpoint_A.attr('abcd:socket_endpoint:direction');
+                const type = socket_endpoint_A.attr("abcd:socket_endpoint:type");
+
+                let socket_endpoint_from = null;
+                let socket_endpoint_to = null;
+
+                if (direction_A === 'out') {
+                    socket_endpoint_from = socket_endpoint_A;
+                    socket_endpoint_to = socket_endpoint_B;
+                } else {
+                    socket_endpoint_from = socket_endpoint_B;
+                    socket_endpoint_to = socket_endpoint_A;
+                }
+
+                const from_id = socket_endpoint_from.attr('id');
+                const to_id = socket_endpoint_to.attr('id');
+
+                console.log(`New socket from module ${from_id} to ${to_id}`);
+
+                let socket = group_sockets.line(socket_endpoint_from.cx(), socket_endpoint_from.cy(), socket_endpoint_to.cx(), socket_endpoint_to.cy())
+                socket.stroke({ color: settings.sockets[type].stroke, width: settings.sockets[type].stroke_width });
+
+                socket.addClass('abcd-socket')
+
+                socket.attr("abcd:from_socket_endpoint", from_id);
+                socket.attr("abcd:to_socket_endpoint", to_id);
+
+                socket.click(socket_callback_click);
+            }
+
+            function count_connections(socket_endpoint) {
+                const id = socket_endpoint.attr("id");
+
+                //console.log(`Counting connections on ${id}`)
+
+                return drawing.find('.abcd-socket').reduce(function (connections, socket) {
+                    const socket_endpoint_from = socket.attr('abcd:from_socket_endpoint');
+                    const socket_endpoint_to = socket.attr('abcd:to_socket_endpoint');
+
+                    if (socket_endpoint_from === id || socket_endpoint_to === id) {
+                        return connections + 1;
+                    } else {
+                        return connections;
+                    }
+                }, 0);
+            }
+
+            function too_many_connections(connections, max_connections) {
+                if (max_connections === 'infinity') {
+                    return false;
+                } else {
+                    if (connections < max_connections) {
+                        return false;
+                    } else {
+                        return true;
+                    }
+                }
+            }
+
+            function socket_endpoint_callback_click() {
+                const socket_endpoint_current = this;
+
+                const id = socket_endpoint_current.attr("id");
+                const type = socket_endpoint_current.attr("abcd:socket_endpoint:type");
+                const direction = socket_endpoint_current.attr("abcd:socket_endpoint:direction");
+                const max_connections = socket_endpoint_current.attr("abcd:socket_endpoint:max_connections");
+                const connections = count_connections(socket_endpoint_current);
+
+                if (socket_endpoint_selected === socket_endpoint_current) {
+                    console.log(`Deselecting: ${id}`);
+
+                    socket_endpoint_current.fill(settings.socket_endpoints[type].fill);
+                    socket_endpoint_selected = null;
+                } else if (socket_endpoint_selected) {
+                    const other_id = socket_endpoint_selected.attr("id");
+                    const other_type = socket_endpoint_selected.attr("abcd:socket_endpoint:type");
+                    const other_direction = socket_endpoint_selected.attr("abcd:socket_endpoint:direction");
+                    const other_max_connections = socket_endpoint_selected.attr("abcd:socket_endpoint:max_connections");
+                    const other_connections = count_connections(socket_endpoint_current);
+
+                    if (type !== other_type) {
+                        console.error(`Types do not match: ${type} and ${other_type}`);
+                    } else if (direction === other_direction) {
+                        console.error(`Directions are not compatible: ${direction} and ${other_direction}`);
+                    } else if (too_many_connections(connections, max_connections)) {
+                        console.error(`Too many connections on ${id}: ${connections}; max: ${max_connections}`);
+                    } else if (too_many_connections(other_connections, other_max_connections)) {
+                        console.error(`Too many connections on ${other_id}: ${other_connections}; max: ${other_max_connections}`);
+                    } else {
+                        create_socket(socket_endpoint_current, socket_endpoint_selected);
+
+                        socket_endpoint_selected.fill(settings.socket_endpoints[type].fill);
+                        socket_endpoint_selected = null;
+                    }
+                } else {
+                    console.log(`Selected: ${id}`);
+
+                    socket_endpoint_current.fill(settings.socket_endpoints.active);
+                    socket_endpoint_selected = socket_endpoint_current;
+                }
+            }
+
+            function create_socket_endpoint(id, these_settings) {
+                const x = these_settings.x * settings.unit;
+                const y = these_settings.y * settings.unit;
+                const w = settings.socket_endpoints.dimensions.width * settings.unit;
+
+                let socket_endpoint = null;
+
+                if (these_settings.type === 'commands') {
+                    socket_endpoint = SVG().rect(w, w);
+                    socket_endpoint.move(x - w / 2, y - w / 2);
+                } else if (these_settings.type === 'status') {
+                    socket_endpoint = SVG().circle(w);
+                    socket_endpoint.move(x - w / 2, y - w / 2);
+                } else if (these_settings.type === 'data') {
+                    const x_center = w * Math.sqrt(2) / 2;
+                    const x_right = w * Math.sqrt(2);
+                    const y_center = w * Math.sqrt(2) / 2;
+                    const y_bottom = w * Math.sqrt(2);
+
+                    socket_endpoint = SVG().polygon(`${x_center},0 0,${y_center} ${x_center},${y_bottom} ${x_right},${y_center}`);
+                    socket_endpoint.move(x - x_center, y - y_center);
+                } else {
+                    const x_right = w * Math.sqrt(3) / 2;
+                    const y_center = w / 2;
+                    const y_bottom = w;
+
+                    socket_endpoint = SVG().polygon(`0,0 0,${y_bottom} ${x_right},${y_center}`);
+                    socket_endpoint.move(x - x_right / 2, y - y_bottom / 2);
+                }
+
+                socket_endpoint.fill(settings.socket_endpoints[these_settings.type].fill);
+                socket_endpoint.stroke({ color: settings.socket_endpoints[these_settings.type].stroke, width: settings.socket_endpoints[these_settings.type].stroke_width });
+
+                socket_endpoint.attr("id", id);
+                socket_endpoint.attr("abcd:socket_endpoint:type", these_settings.type);
+                socket_endpoint.attr("abcd:socket_endpoint:direction", these_settings.direction);
+                socket_endpoint.attr("abcd:socket_endpoint:max_connections", these_settings.max_connections);
+
+                socket_endpoint.addClass('abcd-socket_endpoint')
+
+                socket_endpoint.click(socket_endpoint_callback_click);
+
+                return socket_endpoint;
+            }
+
+            function module_callback_dragmove(event) {
+                //eevent.preventDefault();
+                drawing.find('.abcd-socket').forEach(function (socket) {
+                    const socket_endpoint_from = socket.attr('abcd:from_socket_endpoint');
+                    const socket_endpoint_to = socket.attr('abcd:to_socket_endpoint');
+
+                    //console.log(`Seleted line from socket_endpoint ${from_socket_endpoint} to ${to_socket_endpoint}`);
+
+                    const element_from = SVG(`#${socket_endpoint_from}`);
+                    const element_to = SVG(`#${socket_endpoint_to}`);
+
+                    socket.attr('x1', element_from.cx());
+                    socket.attr('x2', element_to.cx());
+                    socket.attr('y1', element_from.cy());
+                    socket.attr('y2', element_to.cy());
+                });
+            }
+
+            function create_module_fieldset(id, module_id, executable, display_label) {
+                const div = document.getElementById("modules_options");
+
+                const fieldset = document.createElement("fieldset");
+                fieldset.id = id;
+                fieldset.setAttribute("abcd:module", module_id);
+                div.appendChild(fieldset);
+
+                const legend = document.createElement("legend");
+                legend.textContent = display_label;
+                fieldset.appendChild(legend);
+
+                const label_executable = document.createElement("label");
+                label_executable.textContent = "Executable:";
+                fieldset.appendChild(label_executable);
+
+                const input_executable = document.createElement("input");
+                input_executable.id = `${id}-input-executable`;
+                input_executable.type = "text";
+                input_executable.value = executable;
+                label_executable.appendChild(input_executable);
+
+                fieldset.appendChild(document.createElement("br"));
+
+                const label_display_label = document.createElement("label");
+                label_display_label.textContent = "Display label:";
+                fieldset.appendChild(label_display_label);
+
+                const input_display_label = document.createElement("input");
+                input_display_label.id = `${id}-input-display_label`;
+                input_display_label.type = "text";
+                input_display_label.value = display_label;
+                input_display_label.addEventListener("input", () => {
+                    console.log("Display label changed:", input_display_label.value)
+                    legend.textContent = input_display_label.value;
+                });
+                label_display_label.appendChild(input_display_label);
+
+                fieldset.appendChild(document.createElement("br"));
+
+                const label_options = document.createElement("label");
+                label_options.textContent = "Options:";
+                fieldset.appendChild(label_options);
+
+                const input_options = document.createElement("input");
+                input_display_label.id = `${id}-input-options`;
+                input_options.type = "text";
+                input_options.style.width = "100%";
+                input_options.addEventListener("input", () => console.log("options changed:", input_options.value));
+                label_options.appendChild(input_options);
+            }
+
+            function find_fieldset(module_id) {
+                return Array.from(document.querySelectorAll("fieldset[abcd\\:module]")).reduce((selected, current) => (current.getAttribute("abcd:module") === module_id) ? current : selected, null);
+            }
+
+            function module_callback_click() {
+                const rectangle_current = this;
+                const module_current = rectangle_current.parent();
+                const id = module_current.attr("id");
+                const type = module_current.attr("abcd:module:type");
+
+                const rectangle = module_current.find("rect").reduce((selected, current) => current.hasClass("abcd-module-rectangle") ? current : selected, null);
+
+                if (module_selected === module_current) {
+                    console.log(`Deselecting: ${id}`);
+
+                    rectangle.fill(settings.modules[type].fill);
+                    const fieldset = find_fieldset(id);
+                    fieldset.classList.remove("abcd-fieldset-selected");
+                    module_selected = null;
+                } else if (module_selected) {
+                    const other_id = module_selected.attr("id");
+                    const other_type = module_selected.attr("abcd:module:type");
+
+                    const other_rectangle = module_selected.find("rect").reduce((selected, current) => current.hasClass("abcd-module-rectangle") ? current : selected, null);
+
+                    console.log(`Deselecting: ${other_id} and selecting: ${id}`);
+                    other_rectangle.fill(settings.modules[other_type].fill);
+                    rectangle.fill(settings.modules.active);
+                    module_selected = module_current;
+
+                    const other_fieldset = find_fieldset(other_id);
+                    other_fieldset.classList.remove("abcd-fieldset-selected");
+                    const fieldset = find_fieldset(id);
+                    fieldset.classList.add("abcd-fieldset-selected");
+                } else {
+                    console.log(`Selected: ${id}`);
+
+                    rectangle.fill(settings.modules.active);
+                    const fieldset = find_fieldset(id);
+                    fieldset.classList.add("abcd-fieldset-selected");
+                    module_selected = module_current;
+                }
+            }
+
+            function create_module(id, type, executable, display_label, x, y) {
+                const module = group_modules.group();
+                module.draggable();
+
+                module.attr("id", id);
+                module.addClass('abcd-module');
+
+                module.attr("abcd:module:type", type);
+                module.attr("abcd:module:executable", executable);
+                module.attr("abcd:module:display_label", display_label);
+                module.attr("abcd:module:options", "-v");
+
+                const rectangle = module.rect(settings.modules.dimensions.width * settings.unit, settings.modules.dimensions.height * settings.unit).radius(settings.modules.dimensions.radius * settings.unit);
+                rectangle.addClass('abcd-module-rectangle');
+
+                rectangle.fill(settings.modules[type].fill)
+                rectangle.stroke({ color: settings.modules[type].stroke, width: settings.modules[type].stroke_width });
+
+                rectangle.click(module_callback_click);
+
+                for (let index = 0; index < settings.modules[type].socket_endpoints.length; index += 1) {
+                    const socket_endpoint = settings.modules[type].socket_endpoints[index];
+                    create_socket_endpoint(`${id}-socket_${index}`, socket_endpoint).addTo(module);
+                }
+
+                const label = module.plain(settings.modules[type].label)
+                label.addClass('abcd-label');
+                label.move(settings.modules.dimensions.label.x * settings.unit, settings.modules.dimensions.label.y * settings.unit);
+
+                module.move(x, y);
+
+                module.on('dragmove', module_callback_dragmove);
+
+                create_module_fieldset(`abcd-fieldset-${id}`, id, executable, display_label);
+
+                return module;
+            }
+
+            // Creating the default set of modules
+            create_module('abcd-module_0', 'abcd', 'abcd', 'digitizer_interface', 0.5 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
+            create_module('abcd-module_1', 'waan', 'waan', 'waveforms_analysis', 2.0 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
+            create_module('abcd-module_2', 'wadi', 'wadi', 'waveforms_display', 3.5 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
+            create_module('abcd-module_3', 'dasa', 'dasa', 'data_saver', 3.5 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
+            create_module('abcd-module_4', 'spec', 'spec', 'spectrum_calculator', 3.5 * settings.modules.dimensions.width * settings.unit, 3.5 * settings.modules.dimensions.height * settings.unit);
+            create_module('abcd-module_5', 'tofcalc', 'tofcalc', 'ToF_calculator', 3.5 * settings.modules.dimensions.width * settings.unit, 5.0 * settings.modules.dimensions.height * settings.unit);
+            create_module('abcd-module_6', 'cofi', 'cofi', 'coincidences', 5.0 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
+
+            document.getElementById('button-download').addEventListener('click', function () {
+                const SVG_content = drawing.svg();
+                const blob_SVG = new Blob([SVG_content], { type: "image/svg+xml;charset=utf-8" });
+                const URL_SVG = URL.createObjectURL(blob_SVG);
+                const anchor = document.createElement("a");
+                anchor.href = URL_SVG;
+                anchor.download = "ABCD_startup.svg";
+                document.body.appendChild(anchor);
+                anchor.click();
+                document.body.removeChild(anchor);
+            });
+
+            document.getElementById('button-upload').addEventListener('click', function () {
+                const input_file = document.getElementById('input-file');
+                if (input_file.files.length > 0) {
+                    const reader = new FileReader();
+
+                    reader.onload = function (event) {
+                        const new_SVG_content = event.target.result;
+                        drawing.clear();
+                        drawing.svg(new_SVG_content);
+                        // TODO: Re-initialize draggable elements and other interactive features if necessary
+                    };
+
+                    reader.readAsText(input_file.files[0]);
+                } else {
+                    alert('Please select an SVG file to upload.');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
