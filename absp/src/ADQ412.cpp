@@ -119,7 +119,7 @@ int ABCD::ADQ412::Initialize()
         std::cout << std::endl;
 
         std::cout << '[' << time_buffer << "] ABCD::ADQ412::Initialize() ";
-        std::cout << "ADQAPI Revision: " << ADQAPI_GetRevision() << "; ";
+        std::cout << "ADQAPI Revision: " << ADQAPI_GetRevisionString() << "; ";
         std::cout << "ADQ412 Revision: {";
         uint32_t* revision = ADQ_GetRevision(adq_cu_ptr, adq_num);
         for (int i = 0; i < 6; i++) {

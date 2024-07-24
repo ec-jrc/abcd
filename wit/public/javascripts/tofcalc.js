@@ -66,9 +66,9 @@ function page_loaded() {
             pad: {'r': 10, 't': 10},
             showactive: true,
             type: 'dropdown',
-            x: 0.0,
+            x: 0.52,
             xanchor: 'left',
-            y: 0.42,
+            y: 1.02,
             yanchor: 'bottom'
         }
     ]
@@ -98,7 +98,7 @@ function page_loaded() {
             autotick: true,
             showspikes: true,
             spikemode: 'across',
-            domain: [0.5, 1.0],
+            domain: [0.51, 1.0],
             anchor: 'x1'
         },
         yaxis2: {
@@ -107,7 +107,7 @@ function page_loaded() {
             autotick: true,
             showspikes: true,
             spikemode: 'across',
-            domain: [0.0, 0.5],
+            domain: [0.0, 0.50],
             anchor: 'x1'
         },
         yaxis3: {
@@ -116,7 +116,7 @@ function page_loaded() {
             autotick: true,
             showspikes: true,
             spikemode: 'across',
-            domain: [0.5, 1.0],
+            domain: [0.51, 1.0],
             anchor: 'x2'
         },
         yaxis4: {
@@ -125,7 +125,7 @@ function page_loaded() {
             autotick: true,
             showspikes: true,
             spikemode: 'across',
-            domain: [0.0, 0.5],
+            domain: [0.0, 0.50],
             anchor: 'x2'
         },
         updatemenus: updatemenus_ToF,

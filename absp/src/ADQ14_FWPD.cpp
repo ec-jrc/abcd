@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 
 #include <thread>
@@ -70,6 +71,9 @@ ABCD::ADQ14_FWPD::ADQ14_FWPD(void* adq, int num, int Verbosity) : ABCD::Digitize
 
     trig_port_input_impedance = ADQ_IMPEDANCE_HIGH;
     sync_port_input_impedance = ADQ_IMPEDANCE_HIGH;
+
+    event_counters_base_address = 0x50130000;
+
 
     // This is reset only at the class creation because the timestamp seems to
     // be growing continuously even after starts or stops.
@@ -162,7 +166,7 @@ int ABCD::ADQ14_FWPD::Initialize()
         std::cout << std::endl;
 
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Initialize() ";
-        std::cout << "ADQAPI Revision: " << ADQAPI_GetRevision() << "; ";
+        std::cout << "ADQAPI Revision: " << ADQAPI_GetRevisionString() << "; ";
         std::cout << "PD Firmware generation: " << FWPD_generation << "; ";
         std::cout << "Streaming generation: " << streaming_generation << "; ";
         std::cout << "ADQ14 Revision: {";
@@ -262,6 +266,52 @@ int ABCD::ADQ14_FWPD::Configure()
             std::cout << std::endl;
         }
 
+        // Disable test data and forward normal data to channels
+        // in the example it is repeated at each channel, but to me it seems
+        // unnecessary.
+        CHECKZERO(ADQ_SetTestPatternMode(adq_cu_ptr, adq_num, 0));
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+            std::cout << "Setting digital gain and offset to unity gain and no offset; ";
+            std::cout << std::endl;
+        }
+
+        CHECKZERO(ADQ_SetGainAndOffset(adq_cu_ptr, adq_num, channel + 1, 1024, 0));
+
+        if (ADQ_HasAdjustableBias(adq_cu_ptr, adq_num) > 0) {
+            const int DC_offset = DC_offsets[channel];
+
+            if (GetVerbosity() > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+                std::cout << "Setting DC offset to: " << DC_offset << " samples; ";
+                std::cout << std::endl;
+            }
+
+            // This is a physical DC offset added to the signal
+            // while ADQ_SetGainAndOffset is a digital calculation
+            CHECKZERO(ADQ_SetAdjustableBias(adq_cu_ptr, adq_num, channel + 1, DC_offset));
+
+            int result = 0;
+
+            CHECKZERO(ADQ_GetAdjustableBias(adq_cu_ptr, adq_num, channel + 1, &result));
+
+            if (GetVerbosity() > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+                std::cout << "DC offset: desired: " << DC_offset << ", result: " << result << "; ";
+                std::cout << std::endl;
+            }
+        }
+
         if (ADQ_HasAdjustableInputRange(adq_cu_ptr, adq_num) > 0) {
             if (GetVerbosity() > 0)
             {
@@ -285,23 +335,6 @@ int ABCD::ADQ14_FWPD::Configure()
                 std::cout << "Input range: desired: " << desired << " mVpp, result: " << result << " mVpp; ";
                 std::cout << std::endl;
             }
-        }
-
-        if (ADQ_HasAdjustableBias(adq_cu_ptr, adq_num) > 0) {
-            const int DC_offset = DC_offsets[channel];
-
-            if (GetVerbosity() > 0)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
-                std::cout << "Setting DC offset to: " << DC_offset << " samples; ";
-                std::cout << std::endl;
-            }
-
-            // This is a physical DC offset added to the signal
-            // while ADQ_SetGainAndOffset is a digital calculation
-            CHECKZERO(ADQ_SetAdjustableBias(adq_cu_ptr, adq_num, channel + 1, DC_offset));
         }
     }
 
@@ -343,9 +376,19 @@ int ABCD::ADQ14_FWPD::Configure()
     //  Trigger settings
     // -------------------------------------------------------------------------
 
-    // FIXME: This feature is giving an error
-    //CHECKZERO(ADQ_DisarmTriggerBlocking(adq_cu_ptr, adq_num));
-    //CHECKZERO(ADQ_SetupTriggerBlocking(adq_cu_ptr, adq_num, ADQ_TRIG_BLOCKING_DISABLE, 0, 0, 0));
+    if (FWPD_generation >= 2) {
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+            std::cout << "Disabling trigger blocking: ";
+            std::cout << std::endl;
+        }
+
+        CHECKZERO(ADQ_SetupTriggerBlocking(adq_cu_ptr, adq_num, ADQ_TRIG_BLOCKING_DISABLE, 0, 0, 0));
+        CHECKZERO(ADQ_DisarmTriggerBlocking(adq_cu_ptr, adq_num));
+    }
 
     // FIXME: Check whether this is in conflict with PDSetupLevelTrig
     if (GetVerbosity() > 0)
@@ -438,13 +481,16 @@ int ABCD::ADQ14_FWPD::Configure()
             }
 
             // TODO: Enable these features
+            // If the Moving Average module is bypassed, then the thresholds
+            // are not relative to the baseline.
+            const int trigger_level = (moving_average_bypass || smooth_samples[channel] == 0) ? trigger_levels[channel] + DC_offsets[channel] : trigger_levels[channel];
             const int reset_hysteresis = trig_hysteresises[channel];
             const int trig_arm_hysteresis = trig_hysteresises[channel];
             const int reset_arm_hysteresis = trig_hysteresises[channel];
             const int reset_polarity = (trigger_slopes[channel] == ADQ_TRIG_SLOPE_RISING ? ADQ_TRIG_SLOPE_FALLING : ADQ_TRIG_SLOPE_RISING);
 
             CHECKZERO(ADQ_PDSetupLevelTrig(adq_cu_ptr, adq_num, channel + 1,
-                                           trigger_levels[channel],
+                                           trigger_level,
                                            reset_hysteresis,
                                            trig_arm_hysteresis,
                                            reset_arm_hysteresis,
@@ -462,6 +508,31 @@ int ABCD::ADQ14_FWPD::Configure()
                                         scope_samples[channel],
                                         records_numbers[channel],
                                         record_variable_length));
+
+            if (GetVerbosity() > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+                std::cout << "Disabling coincidences for channel: " << channel << "; ";
+                std::cout << std::endl;
+            }
+
+            // TODO: Enable these features
+            // Coincidences cores are indexed from zero. There is one core per
+            // channel, but they are not necessary linked to each channel.
+            const unsigned int coincidences_core = channel;
+            // Just setting a value...
+            // It must be a multiple of 4 on -C devices or 8 for -X devices
+            const unsigned int window_length = scope_samples[channel] - (scope_samples[channel] % 8);
+            std::vector<unsigned char> expression_array(2 << (GetChannelsNumber() - 1), 0);
+
+            CHECKZERO(ADQ_PDSetupTriggerCoincidenceCore(adq_cu_ptr, adq_num,
+                                                        coincidences_core,
+                                                        window_length, expression_array.data(), 0));
+            CHECKZERO(ADQ_PDSetupTriggerCoincidence2(adq_cu_ptr, adq_num,
+                                                     channel + 1, coincidences_core, 0));
+            CHECKZERO(ADQ_PDResetTriggerCoincidence(adq_cu_ptr, adq_num));
 
             // TODO: Enable these features
             // Since this gives an error with the generation 1, I am assuming that
@@ -491,25 +562,16 @@ int ABCD::ADQ14_FWPD::Configure()
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
-        std::cout << "Enabling PD level trigger; ";
+        std::cout << "Disabling the moving average function: " << (moving_average_bypass ? "true" : "false") << "; ";
         std::cout << std::endl;
     }
 
-    CHECKZERO(ADQ_PDEnableTriggerCoincidence(adq_cu_ptr, adq_num, false ? 1 : 0));
-    CHECKZERO(ADQ_PDEnableLevelTrig(adq_cu_ptr, adq_num, true ? 1 : 0));
-
-    if (GetVerbosity() > 0)
-    {
-        unsigned int level_trigger_status = 0;
-
-        CHECKZERO(ADQ_PDGetLevelTrigStatus(adq_cu_ptr, adq_num, &level_trigger_status));
-
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
-        std::cout << "Level trigger status: " << level_trigger_status << "; ";
-        std::cout << std::endl;
-    }
+    // We keep this value at zero and we correct the trigger levels
+    // by the DC_offset
+    const int moving_average_constant_level = 0;
+    CHECKZERO(ADQ_PDSetupMovingAverageBypass(adq_cu_ptr, adq_num,
+                                             moving_average_bypass ? 1 : 0,
+                                             moving_average_constant_level))
 
     // -------------------------------------------------------------------------
     //  Data mux
@@ -539,11 +601,6 @@ int ABCD::ADQ14_FWPD::Configure()
             std::cout << "Disabling test data; ";
             std::cout << std::endl;
         }
-
-        // Disable test data and forward normal data to channels
-        // in the example it is repeated at each channel, but to me it seems
-        // unnecessary.
-        CHECKZERO(ADQ_SetTestPatternMode(adq_cu_ptr, adq_num, 0));
     }
 
     // -------------------------------------------------------------------------
@@ -557,14 +614,41 @@ int ABCD::ADQ14_FWPD::Configure()
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
         std::cout << "Setting transfer buffers number to: " << transfer_buffers_number << "; ";
         std::cout << "Setting transfer buffer size to: " << (transfer_buffer_size / 1024.0) << " kiB; ";
+        std::cout << "Setting transfer timeout to: " << transfer_timeout << " ms; ";
         std::cout << std::endl;
     }
 
     CHECKZERO(ADQ_SetTransferBuffers(adq_cu_ptr, adq_num, transfer_buffers_number, transfer_buffer_size));
+    CHECKZERO(ADQ_SetTransferTimeout(adq_cu_ptr, adq_num, transfer_timeout));
 
     // -------------------------------------------------------------------------
     //  Streaming setup
     // -------------------------------------------------------------------------
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+        std::cout << "Enabling PD level trigger; ";
+        std::cout << std::endl;
+    }
+
+    CHECKZERO(ADQ_PDEnableTriggerCoincidence(adq_cu_ptr, adq_num, false ? 1 : 0));
+    CHECKZERO(ADQ_PDEnableLevelTrig(adq_cu_ptr, adq_num, true ? 1 : 0));
+
+    if (GetVerbosity() > 0)
+    {
+        unsigned int level_trigger_status = 0;
+
+        CHECKZERO(ADQ_PDGetLevelTrigStatus(adq_cu_ptr, adq_num, &level_trigger_status));
+
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+        std::cout << "Level trigger status: " << level_trigger_status << "; ";
+        std::cout << std::endl;
+    }
 
     if (GetVerbosity() > 0)
     {
@@ -662,6 +746,15 @@ int ABCD::ADQ14_FWPD::Configure()
             std::cout << std::endl;
 
             return DIGITIZER_FAILURE;
+        }
+
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+            std::cout << "Readout memory owner: " << readout_parameters.common.memory_owner << "; ";
+            std::cout << std::endl;
         }
 
         // Momery is managed by the API, the memory consumption is bound for each channel
@@ -891,6 +984,26 @@ bool ABCD::ADQ14_FWPD::AcquisitionReady()
 
 //==============================================================================
 
+bool ABCD::ADQ14_FWPD::DataOverflow()
+{
+
+    const unsigned int retval = ADQ_GetStreamOverflow(adq_cu_ptr, adq_num);
+
+    if (GetVerbosity() > 1)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::DataOverflow() ";
+        std::cout << "Overflow: " << retval << "; ";
+        std::cout << std::endl;
+    }
+
+    return retval == 0 ? false : true;
+}
+
+
+//==============================================================================
+
 int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms)
 {
     if (GetVerbosity() > 1)
@@ -1110,6 +1223,18 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
             }
         }
     } else {
+        if (GetVerbosity() > 1)
+        {
+            struct ADQDramStatus DRAM_status;
+            ADQ_GetStatus(adq_cu_ptr, adq_num, ADQ_STATUS_ID_DRAM, &DRAM_status);
+
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
+            std::cout << "DRAM fill: " << ((double)DRAM_status.fill / 1024.0) << " kB; DRAM max fill: " << ((double)DRAM_status.fill_max / 1024.0) << " kB; ";
+            std::cout << std::endl;
+        }
+
         int64_t available_bytes = ADQ_EAGAIN;
 
         do {
@@ -1148,8 +1273,14 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                     time_string(time_buffer, BUFFER_SIZE, NULL);
                     std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
                     std::cout << "Timeout; ";
+                    //std::cout << "Timeout, initiating a flush; ";
                     std::cout << std::endl;
                 }
+
+                // When tested, this caused some error in the digitizer that the
+                // user cannot address (according to the ADQAPI itself)
+                //ADQ_FlushDMA(adq_cu_ptr, adq_num);
+
             } else if (available_bytes < 0 && available_bytes != ADQ_EAGAIN) {
                 // This is an error!
                 // The record should not have been allocated and the docs
@@ -1176,6 +1307,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                 }
 
                 // At this point the ADQ_record variable should be ready...
+                // FIXME: Check the DataFormat entry of the ADQRecordHeader
                 const uint8_t channel = ADQ_record->header->Channel;
                 const uint32_t record_number = ADQ_record->header->RecordNumber;
                 const uint32_t samples_per_record = ADQ_record->header->RecordLength;
@@ -1239,9 +1371,9 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
 
                 waveforms.push_back(this_waveform);
 
-                CHECKZERO(ADQ_ReturnRecordBuffer(adq_cu_ptr, adq_num,
-                                                             available_channel,
-                                                             ADQ_record));
+                CHECKNEGATIVE(ADQ_ReturnRecordBuffer(adq_cu_ptr, adq_num,
+                                                     available_channel,
+                                                     ADQ_record));
             }
 
         } while (available_bytes >= 0);
@@ -1258,6 +1390,21 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
     }
 
     return DIGITIZER_SUCCESS;
+}
+
+//==============================================================================
+
+std::vector<size_t> ABCD::ADQ14_FWPD::GetEventCounters()
+{
+    std::vector<size_t> event_counters(GetChannelsNumber(), 0);
+
+    for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
+        const uint32_t address = event_counters_base_address + 0x2C + channel * 4;
+
+        event_counters[channel] = ADQ_ReadRegister(adq_cu_ptr, adq_num, address) & 0xFFFFu;
+    }
+
+    return event_counters;
 }
 
 //==============================================================================
@@ -1385,6 +1532,19 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
 
     json_object_set_nocheck(config, "timestamp_bit_shift", json_integer(timestamp_bit_shift));
 
+    moving_average_bypass = json_is_true(json_object_get(config, "moving_average_bypass"));
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
+        std::cout << "Moving average bypass: " << (moving_average_bypass ? "true" : "false") << "; ";
+        std::cout << std::endl;
+    }
+
+    json_object_set_nocheck(config, "moving_average_bypass", json_boolean(moving_average_bypass));
+
     // -------------------------------------------------------------------------
     //  Reading the transfer configuration
     // -------------------------------------------------------------------------
@@ -1404,8 +1564,9 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
         json_object_set_new_nocheck(config, "transfer", transfer_config);
     }
 
-    const unsigned int raw_buffer_size = json_number_value(json_object_get(transfer_config, "buffer_size"));
+    const double raw_buffer_size = json_number_value(json_object_get(transfer_config, "buffer_size"));
 
+    // The buffer_size must be a multiple of 1024
     transfer_buffer_size = ceil(raw_buffer_size < 1 ? 1 : raw_buffer_size) * 1024;
 
     if (GetVerbosity() > 0)
@@ -1413,15 +1574,15 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-        std::cout << "Transfer buffer size: " << transfer_buffer_size << " B, " << transfer_buffer_size / 1024 << " kiB; ";
+        std::cout << "Transfer buffer size: " << transfer_buffer_size << " B, " << transfer_buffer_size / 1024.0 << " kiB; ";
         std::cout << std::endl;
     }
 
-    json_object_set_nocheck(transfer_config, "buffer_size", json_integer(ceil(raw_buffer_size)));
+    json_object_set_nocheck(transfer_config, "buffer_size", json_real(ceil(raw_buffer_size < 1 ? 1 : raw_buffer_size)));
 
     const unsigned int raw_buffers_number = json_number_value(json_object_get(transfer_config, "buffers_number"));
 
-    transfer_buffers_number = (raw_buffers_number < 2) ? 8 : raw_buffers_number;
+    transfer_buffers_number = (raw_buffers_number < 8) ? 8 : raw_buffers_number;
 
     if (GetVerbosity() > 0)
     {
@@ -1465,6 +1626,37 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
     }
 
     json_object_set_nocheck(transfer_config, "DMA_flush_timeout", json_integer(DMA_flush_timeout));
+
+    json_t *json_event_counters_base_address = json_object_get(transfer_config, "event_counters_base_address");
+
+    if (json_is_string(json_event_counters_base_address)) {
+        try {
+            const std::string str_event_counters_base_address = json_string_value(json_event_counters_base_address);
+            event_counters_base_address = std::stoi(str_event_counters_base_address.substr(2), 0, 16);
+        } catch (const std::invalid_argument &ia) {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
+            std::cout << "Invalid event_counters_base_address as a string it should start with '0x', got: " << json_string_value(json_event_counters_base_address) << "; ";
+            std::cout << std::endl;
+        }
+    } else if (json_is_number(json_event_counters_base_address)) {
+        event_counters_base_address = json_number_value(json_event_counters_base_address);
+    }
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
+        std::cout << "Base address of the event counters: 0x" << std::hex << (unsigned int)event_counters_base_address << std::dec << "; ";
+        std::cout << std::endl;
+    }
+
+    std::stringstream ssecba;
+    ssecba << "0x" << std::hex << event_counters_base_address;
+
+    json_object_set_nocheck(transfer_config, "event_counters_base_address", json_string(ssecba.str().c_str()));
 
     // -------------------------------------------------------------------------
     //  Reading the trigger configuration
@@ -1715,13 +1907,15 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
                 if (ts_result != ADQ_descriptions::trigger_slope.end() && str_trigger_slope.length() > 0) {
                     trigger_slope = ts_result->first;
 
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-                    std::cout << "Found matching trigger slope; ";
-                    std::cout << "Got: " << str_trigger_slope << "; ";
-                    std::cout << "index: " << trigger_slope << "; ";
-                    std::cout << std::endl;
+                    if (GetVerbosity() > 0) {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
+                        std::cout << "Found matching trigger slope; ";
+                        std::cout << "Got: " << str_trigger_slope << "; ";
+                        std::cout << "index: " << trigger_slope << "; ";
+                        std::cout << std::endl;
+		    }
                 } else {
                     trigger_slope = ADQ_TRIG_SLOPE_FALLING;
 
@@ -1762,7 +1956,7 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
 
                 int smooth_delay = json_number_value(json_object_get(value, "smooth_delay"));
                 smooth_delay = (0 <= smooth_delay && smooth_delay < ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? smooth_delay : 0;
-                smooth_delay = ((smooth_delay + this_smooth_samples) < ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? smooth_delay : (ADQ_ADQ14_MAX_SMOOTH_SAMPLES - this_smooth_samples);
+                smooth_delay = ((smooth_delay + this_smooth_samples) <= ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? smooth_delay : (ADQ_ADQ14_MAX_SMOOTH_SAMPLES - this_smooth_samples);
 
                 json_object_set_nocheck(value, "smooth_delay", json_integer(smooth_delay));
 
@@ -1964,7 +2158,7 @@ int ABCD::ADQ14_FWPD::TimestampResetArm(std::string mode, std::string source)
     // -----------------------------------------------------------------
     //  Arming the timestamp reset
     // -----------------------------------------------------------------
-    unsigned int timestamp_reset_mode = ADQ_TIMESTAMP_SYNCHRONIZATION_MODE_FIRST;
+    unsigned int timestamp_reset_mode = ADQ_SYNCHRONIZATION_MODE_FIRST;
 
     if (GetVerbosity() > 0) {
         char time_buffer[BUFFER_SIZE];
