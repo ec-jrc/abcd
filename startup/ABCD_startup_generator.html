@@ -89,13 +89,25 @@
 <body>
 
     <h1>ABCD startup generator</h1>
+    <div>
+        <h2>Warning</h2>
+        This generator is not yet usable. TODO:
+        <ul>
+            <li>Creation and destruction of modules.</li>
+            <li>Update of the options in the SVG metadata.</li>
+            <li>Adding custom modules for developers.</li>
+            <li>Creating the startup script.</li>
+            <li>Loading the SVG from file and enable the click callbacks on its elements.</li>
+        </ul>
+    </div>
     <div class="columns">
         <div class="display" class="column">
             <h2>Connections scheme</h2>
             <fieldset>
                 <legend>File</legend>
-                <button id="button-download">Download SVG</button>
-                <button id="button-upload">Upload and Replace SVG</button>
+                <button id="button-download_script">Download script</button>
+                <button id="button-download_SVG">Download SVG</button>
+                <button id="button-upload_SVG">Upload and Replace SVG</button>
                 <label>Select file to upload:
                     <input type="file" id="input-file" accept=".svg" />
                 </label>
@@ -810,7 +822,7 @@
             create_module('abcd-module_5', 'tofcalc', 'tofcalc', 'ToF_calculator', 3.5 * settings.modules.dimensions.width * settings.unit, 5.0 * settings.modules.dimensions.height * settings.unit);
             create_module('abcd-module_6', 'cofi', 'cofi', 'coincidences', 5.0 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
 
-            document.getElementById('button-download').addEventListener('click', function () {
+            document.getElementById('button-download_SVG').addEventListener('click', function () {
                 const SVG_content = drawing.svg();
                 const blob_SVG = new Blob([SVG_content], { type: "image/svg+xml;charset=utf-8" });
                 const URL_SVG = URL.createObjectURL(blob_SVG);
@@ -822,7 +834,7 @@
                 document.body.removeChild(anchor);
             });
 
-            document.getElementById('button-upload').addEventListener('click', function () {
+            document.getElementById('button-upload_SVG').addEventListener('click', function () {
                 const input_file = document.getElementById('input-file');
                 if (input_file.files.length > 0) {
                     const reader = new FileReader();
