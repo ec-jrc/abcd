@@ -297,6 +297,19 @@ int ABCD::ADQ14_FWPD::Configure()
             // This is a physical DC offset added to the signal
             // while ADQ_SetGainAndOffset is a digital calculation
             CHECKZERO(ADQ_SetAdjustableBias(adq_cu_ptr, adq_num, channel + 1, DC_offset));
+
+            int result = 0;
+
+            CHECKZERO(ADQ_GetAdjustableBias(adq_cu_ptr, adq_num, channel + 1, &result));
+
+            if (GetVerbosity() > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+                std::cout << "DC offset: desired: " << DC_offset << ", result: " << result << "; ";
+                std::cout << std::endl;
+            }
         }
 
         if (ADQ_HasAdjustableInputRange(adq_cu_ptr, adq_num) > 0) {
@@ -468,13 +481,16 @@ int ABCD::ADQ14_FWPD::Configure()
             }
 
             // TODO: Enable these features
+            // If the Moving Average module is bypassed, then the thresholds
+            // are not relative to the baseline.
+            const int trigger_level = (moving_average_bypass || smooth_samples[channel] == 0) ? trigger_levels[channel] + DC_offsets[channel] : trigger_levels[channel];
             const int reset_hysteresis = trig_hysteresises[channel];
             const int trig_arm_hysteresis = trig_hysteresises[channel];
             const int reset_arm_hysteresis = trig_hysteresises[channel];
             const int reset_polarity = (trigger_slopes[channel] == ADQ_TRIG_SLOPE_RISING ? ADQ_TRIG_SLOPE_FALLING : ADQ_TRIG_SLOPE_RISING);
 
             CHECKZERO(ADQ_PDSetupLevelTrig(adq_cu_ptr, adq_num, channel + 1,
-                                           trigger_levels[channel],
+                                           trigger_level,
                                            reset_hysteresis,
                                            trig_arm_hysteresis,
                                            reset_arm_hysteresis,
@@ -546,9 +562,16 @@ int ABCD::ADQ14_FWPD::Configure()
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
-        std::cout << "Enabling PD level trigger; ";
+        std::cout << "Disabling the moving average function: " << (moving_average_bypass ? "true" : "false") << "; ";
         std::cout << std::endl;
     }
+
+    // We keep this value at zero and we correct the trigger levels
+    // by the DC_offset
+    const int moving_average_constant_level = 0;
+    CHECKZERO(ADQ_PDSetupMovingAverageBypass(adq_cu_ptr, adq_num,
+                                             moving_average_bypass ? 1 : 0,
+                                             moving_average_constant_level))
 
     // -------------------------------------------------------------------------
     //  Data mux
@@ -601,6 +624,15 @@ int ABCD::ADQ14_FWPD::Configure()
     // -------------------------------------------------------------------------
     //  Streaming setup
     // -------------------------------------------------------------------------
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+        std::cout << "Enabling PD level trigger; ";
+        std::cout << std::endl;
+    }
 
     CHECKZERO(ADQ_PDEnableTriggerCoincidence(adq_cu_ptr, adq_num, false ? 1 : 0));
     CHECKZERO(ADQ_PDEnableLevelTrig(adq_cu_ptr, adq_num, true ? 1 : 0));
@@ -1245,7 +1277,9 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                     std::cout << std::endl;
                 }
 
-                //ADQ_FlushDMA(adq_cu, adq_num);
+                // When tested, this caused some error in the digitizer that the
+                // user cannot address (according to the ADQAPI itself)
+                //ADQ_FlushDMA(adq_cu_ptr, adq_num);
 
             } else if (available_bytes < 0 && available_bytes != ADQ_EAGAIN) {
                 // This is an error!
@@ -1497,6 +1531,19 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
     }
 
     json_object_set_nocheck(config, "timestamp_bit_shift", json_integer(timestamp_bit_shift));
+
+    moving_average_bypass = json_is_true(json_object_get(config, "moving_average_bypass"));
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
+        std::cout << "Moving average bypass: " << (moving_average_bypass ? "true" : "false") << "; ";
+        std::cout << std::endl;
+    }
+
+    json_object_set_nocheck(config, "moving_average_bypass", json_boolean(moving_average_bypass));
 
     // -------------------------------------------------------------------------
     //  Reading the transfer configuration
@@ -1860,13 +1907,15 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
                 if (ts_result != ADQ_descriptions::trigger_slope.end() && str_trigger_slope.length() > 0) {
                     trigger_slope = ts_result->first;
 
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-                    std::cout << "Found matching trigger slope; ";
-                    std::cout << "Got: " << str_trigger_slope << "; ";
-                    std::cout << "index: " << trigger_slope << "; ";
-                    std::cout << std::endl;
+                    if (GetVerbosity() > 0) {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
+                        std::cout << "Found matching trigger slope; ";
+                        std::cout << "Got: " << str_trigger_slope << "; ";
+                        std::cout << "index: " << trigger_slope << "; ";
+                        std::cout << std::endl;
+		    }
                 } else {
                     trigger_slope = ADQ_TRIG_SLOPE_FALLING;
 
@@ -1907,7 +1956,7 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
 
                 int smooth_delay = json_number_value(json_object_get(value, "smooth_delay"));
                 smooth_delay = (0 <= smooth_delay && smooth_delay < ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? smooth_delay : 0;
-                smooth_delay = ((smooth_delay + this_smooth_samples) < ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? smooth_delay : (ADQ_ADQ14_MAX_SMOOTH_SAMPLES - this_smooth_samples);
+                smooth_delay = ((smooth_delay + this_smooth_samples) <= ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? smooth_delay : (ADQ_ADQ14_MAX_SMOOTH_SAMPLES - this_smooth_samples);
 
                 json_object_set_nocheck(value, "smooth_delay", json_integer(smooth_delay));
 
