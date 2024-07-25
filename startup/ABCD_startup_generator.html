@@ -795,10 +795,9 @@
 
                 rectangle.click(module_callback_click);
 
-                for (let index = 0; index < settings.modules[type].socket_endpoints.length; index += 1) {
-                    const socket_endpoint = settings.modules[type].socket_endpoints[index];
-                    create_socket_endpoint(`${id}-socket_${index}`, socket_endpoint).addTo(module);
-                }
+                settings.modules[type].socket_endpoints.forEach((socket_endpoint, index, a) =>
+                    create_socket_endpoint(`${id}-socket_${index}`, socket_endpoint).addTo(module)
+                );
 
                 const label = module.plain(settings.modules[type].label)
                 label.addClass('abcd-label');
