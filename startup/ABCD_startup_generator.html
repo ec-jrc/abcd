@@ -1036,14 +1036,20 @@
             document.getElementById('input-working_directory').addEventListener('input', update_working_directory);
 
             // Creating the default set of modules
-            create_module('abcd-module_0', 'abcd', 'abcd', 'digitizer_interface', "-v -T 50 -f ./configs/abcd_config.json", 0.5 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
-            create_module('abcd-module_1', 'waan', 'waan', 'waveforms_analysis', "-v -T 50 -f ./configs/waan_config.json", 2.0 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
+            create_module('abcd-module_0', 'abcd', 'abcd', 'digitizer_interface', "-v -T 50 -f ./configs/abcd_config.json", 0.5 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
+            create_module('abcd-module_1', 'waan', 'waan', 'waveforms_analysis', "-v -T 50 -f ./configs/waan_config.json", 2.0 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
             create_module('abcd-module_2', 'wadi', 'wadi', 'waveforms_display', "", 3.5 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
             create_module('abcd-module_3', 'dasa', 'dasa', 'data_saver', "", 3.5 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
             create_module('abcd-module_4', 'spec', 'spec', 'spectrum_calculator', "", 3.5 * settings.modules.dimensions.width * settings.unit, 3.5 * settings.modules.dimensions.height * settings.unit);
             create_module('abcd-module_5', 'tofcalc', 'tofcalc', 'ToF_calculator', "-f ./configs/tofcalc_config.json", 3.5 * settings.modules.dimensions.width * settings.unit, 5.0 * settings.modules.dimensions.height * settings.unit);
             create_module('abcd-module_6', 'cofi', 'cofi', 'coincidences', "-n 0.001953125 -w 100", 5.0 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
             create_module('abcd-module_7', 'filter', 'filter', 'generic_filter', "-v", 5.0 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
+
+            create_socket(SVG('#abcd-module_0-socket_1'), SVG('#abcd-module_1-socket_1'));
+            create_socket(SVG('#abcd-module_1-socket_2'), SVG('#abcd-module_2-socket_0'));
+            create_socket(SVG('#abcd-module_1-socket_2'), SVG('#abcd-module_3-socket_1'));
+            create_socket(SVG('#abcd-module_1-socket_2'), SVG('#abcd-module_4-socket_1'));
+            create_socket(SVG('#abcd-module_1-socket_2'), SVG('#abcd-module_5-socket_1'));
 
             // Forcing an update of the attributes.
             // If the user modified attributes and then refreshed the page it
