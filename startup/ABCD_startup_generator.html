@@ -94,9 +94,8 @@
         This generator is not yet usable. TODO:
         <ul>
             <li>Creation and destruction of modules.</li>
-            <li>Update of the options in the SVG metadata.</li>
+            <li>Display of socket labels when mouse hovers.</li>
             <li>Adding custom modules for developers.</li>
-            <li>Creating the startup script.</li>
             <li>Loading the SVG from file and enable the click callbacks on its elements.</li>
         </ul>
     </div>
@@ -105,7 +104,7 @@
             <h2>Connections scheme</h2>
             <fieldset>
                 <legend>File</legend>
-                <button id="button-download_script">Download script</button>
+                <button id="button-download_startup_script">Download startup script</button>
                 <button id="button-download_SVG">Download SVG</button>
                 <button id="button-upload_SVG">Upload and Replace SVG</button>
                 <label>Select file to upload:
@@ -133,7 +132,7 @@
             <h2>Global options</h2>
             <div id="global_options">
                 <label>Working directory:
-                    <input type="text" id="input-working_directory" />
+                    <input type="text" id="input-working_directory" value="~/abcd_data/" />
                 </label>
             </div>
             <h2>Modules options</h2>
@@ -189,6 +188,10 @@
 
             const settings = {
                 unit: 15,
+                port_numbers: {
+                    min: 16180,
+                    max: 65535
+                },
                 socket_endpoints: {
                     active: color_palettes.white,
                     dimensions: {
@@ -260,6 +263,7 @@
                                 direction: 'in',
                                 max_connections: 'infinity',
                                 label: 'commands',
+                                option: '-C',
                                 x: 0,
                                 y: 3
                             },
@@ -268,6 +272,7 @@
                                 direction: 'out',
                                 max_connections: 'infinity',
                                 label: 'data',
+                                option: '-D',
                                 x: 7,
                                 y: 2
                             },
@@ -276,6 +281,7 @@
                                 direction: 'out',
                                 max_connections: 'infinity',
                                 label: 'status',
+                                option: '-S',
                                 x: 7,
                                 y: 1
                             }
@@ -292,6 +298,7 @@
                                 direction: 'in',
                                 max_connections: 1,
                                 label: 'data',
+                                option: '-A',
                                 x: 0,
                                 y: 2
                             },
@@ -300,6 +307,7 @@
                                 direction: 'out',
                                 max_connections: 'infinity',
                                 label: 'data',
+                                option: '-D',
                                 x: 7,
                                 y: 2
                             }
@@ -316,6 +324,7 @@
                                 direction: 'in',
                                 max_connections: 'infinity',
                                 label: 'commands',
+                                option: '-C',
                                 x: 0,
                                 y: 3
                             },
@@ -324,6 +333,7 @@
                                 direction: 'in',
                                 max_connections: 1,
                                 label: 'data',
+                                option: '-A',
                                 x: 0,
                                 y: 2
                             },
@@ -332,6 +342,7 @@
                                 direction: 'out',
                                 max_connections: 'infinity',
                                 label: 'data',
+                                option: '-D',
                                 x: 7,
                                 y: 2
                             },
@@ -340,6 +351,7 @@
                                 direction: 'out',
                                 max_connections: 'infinity',
                                 label: 'status',
+                                option: '-S',
                                 x: 7,
                                 y: 1
                             }
@@ -356,6 +368,7 @@
                                 direction: 'in',
                                 max_connections: 'infinity',
                                 label: 'commands',
+                                option: '-C',
                                 x: 0,
                                 y: 3
                             },
@@ -364,6 +377,7 @@
                                 direction: 'in',
                                 max_connections: 1,
                                 label: 'data',
+                                option: '-A',
                                 x: 0,
                                 y: 2
                             },
@@ -372,6 +386,7 @@
                                 direction: 'out',
                                 max_connections: 'infinity',
                                 label: 'status',
+                                option: '-S',
                                 x: 7,
                                 y: 1
                             }
@@ -388,6 +403,7 @@
                                 direction: 'in',
                                 max_connections: 'infinity',
                                 label: 'commands',
+                                option: '-C',
                                 x: 0,
                                 y: 3
                             },
@@ -396,6 +412,7 @@
                                 direction: 'in',
                                 max_connections: 1,
                                 label: 'data',
+                                option: '-A',
                                 x: 0,
                                 y: 2
                             },
@@ -404,6 +421,7 @@
                                 direction: 'out',
                                 max_connections: 'infinity',
                                 label: 'spectrum data',
+                                option: '-D',
                                 x: 7,
                                 y: 2
                             },
@@ -412,6 +430,7 @@
                                 direction: 'out',
                                 max_connections: 'infinity',
                                 label: 'status',
+                                option: '-S',
                                 x: 7,
                                 y: 1
                             }
@@ -428,6 +447,7 @@
                                 direction: 'in',
                                 max_connections: 'infinity',
                                 label: 'commands',
+                                option: '-C',
                                 x: 0,
                                 y: 3
                             },
@@ -436,6 +456,7 @@
                                 direction: 'in',
                                 max_connections: 1,
                                 label: 'data',
+                                option: '-A',
                                 x: 0,
                                 y: 2
                             },
@@ -444,6 +465,7 @@
                                 direction: 'out',
                                 max_connections: 'infinity',
                                 label: 'ToF data',
+                                option: '-D',
                                 x: 7,
                                 y: 2
                             },
@@ -452,6 +474,7 @@
                                 direction: 'out',
                                 max_connections: 'infinity',
                                 label: 'status',
+                                option: '-S',
                                 x: 7,
                                 y: 1
                             }
@@ -468,6 +491,7 @@
                                 direction: 'in',
                                 max_connections: 1,
                                 label: 'data',
+                                option: '-A',
                                 x: 0,
                                 y: 2
                             },
@@ -476,6 +500,7 @@
                                 direction: 'out',
                                 max_connections: 'infinity',
                                 label: 'coincidence data',
+                                option: '-D',
                                 x: 7,
                                 y: 2
                             },
@@ -484,8 +509,35 @@
                                 direction: 'out',
                                 max_connections: 'infinity',
                                 label: 'anticoincidence data',
+                                option: '-N',
                                 x: 7,
                                 y: 3
+                            }
+                        ]
+                    },
+                    filter: {
+                        label: 'filter',
+                        fill: color_palettes.tableau_light[7],
+                        stroke: color_palettes.grey,
+                        stroke_width: 1,
+                        socket_endpoints: [
+                            {
+                                type: 'data',
+                                direction: 'in',
+                                max_connections: 1,
+                                label: 'data',
+                                option: '-A',
+                                x: 0,
+                                y: 2
+                            },
+                            {
+                                type: 'data',
+                                direction: 'out',
+                                max_connections: 'infinity',
+                                label: 'data',
+                                option: '-D',
+                                x: 7,
+                                y: 2
                             }
                         ]
                     }
@@ -499,7 +551,7 @@
 
             const group_modules = drawing.group();
             group_modules.attr("id", "abcd-modules");
-            group_modules.attr("abcd:modules:global_options:working_directory", "");
+            group_modules.attr("abcd:modules:global_options:working_directory", "~/abcd_data/");
 
             let module_selected = null;
             let socket_endpoint_selected = null;
@@ -542,6 +594,25 @@
                 socket.attr("abcd:to_socket_endpoint", to_id);
 
                 socket.click(socket_callback_click);
+            }
+
+            function connected_to(socket_endpoint) {
+                const id = socket_endpoint.attr("id");
+
+                //console.log(`Checking connections of ${id}`)
+
+                return drawing.find('.abcd-socket').reduce(function (connections, socket) {
+                    const socket_endpoint_from = socket.attr('abcd:from_socket_endpoint');
+                    const socket_endpoint_to = socket.attr('abcd:to_socket_endpoint');
+
+                    if (socket_endpoint_from === id) {
+                        connections.push(SVG(`#${socket_endpoint_to}`).attr("id"));
+                    } else if (socket_endpoint_to === id) {
+                        connections.push(SVG(`#${socket_endpoint_from}`).attr("id"));
+                    }
+
+                    return connections;
+                }, []);
             }
 
             function count_connections(socket_endpoint) {
@@ -653,6 +724,7 @@
                 socket_endpoint.attr("abcd:socket_endpoint:type", these_settings.type);
                 socket_endpoint.attr("abcd:socket_endpoint:direction", these_settings.direction);
                 socket_endpoint.attr("abcd:socket_endpoint:max_connections", these_settings.max_connections);
+                socket_endpoint.attr("abcd:socket_endpoint:option", these_settings.option);
 
                 socket_endpoint.addClass('abcd-socket_endpoint')
 
@@ -679,7 +751,7 @@
                 });
             }
 
-            function create_module_fieldset(id, module_id, executable, display_label) {
+            function create_module_fieldset(id, module_id, executable, display_label, options) {
                 const div = document.getElementById("modules_options");
 
                 const fieldset = document.createElement("fieldset");
@@ -699,6 +771,7 @@
                 input_executable.id = `${id}-input-executable`;
                 input_executable.type = "text";
                 input_executable.value = executable;
+                input_executable.addEventListener("input", update_modules_attributes);
                 label_executable.appendChild(input_executable);
 
                 fieldset.appendChild(document.createElement("br"));
@@ -714,6 +787,8 @@
                 input_display_label.addEventListener("input", () => {
                     console.log("Display label changed:", input_display_label.value)
                     legend.textContent = input_display_label.value;
+
+                    update_modules_attributes();
                 });
                 label_display_label.appendChild(input_display_label);
 
@@ -724,10 +799,11 @@
                 fieldset.appendChild(label_options);
 
                 const input_options = document.createElement("input");
-                input_display_label.id = `${id}-input-options`;
+                input_options.id = `${id}-input-options`;
                 input_options.type = "text";
+                input_options.value = options;
                 input_options.style.width = "100%";
-                input_options.addEventListener("input", () => console.log("options changed:", input_options.value));
+                input_options.addEventListener("input", update_modules_attributes);
                 label_options.appendChild(input_options);
             }
 
@@ -775,7 +851,7 @@
                 }
             }
 
-            function create_module(id, type, executable, display_label, x, y) {
+            function create_module(id, type, executable, display_label, options, x, y) {
                 const module = group_modules.group();
                 module.draggable();
 
@@ -785,7 +861,7 @@
                 module.attr("abcd:module:type", type);
                 module.attr("abcd:module:executable", executable);
                 module.attr("abcd:module:display_label", display_label);
-                module.attr("abcd:module:options", "-v");
+                module.attr("abcd:module:options", options);
 
                 const rectangle = module.rect(settings.modules.dimensions.width * settings.unit, settings.modules.dimensions.height * settings.unit).radius(settings.modules.dimensions.radius * settings.unit);
                 rectangle.addClass('abcd-module-rectangle');
@@ -807,19 +883,135 @@
 
                 module.on('dragmove', module_callback_dragmove);
 
-                create_module_fieldset(`abcd-fieldset-${id}`, id, executable, display_label);
+                create_module_fieldset(`abcd-fieldset-${id}`, id, executable, display_label, options);
 
                 return module;
             }
 
             // Creating the default set of modules
-            create_module('abcd-module_0', 'abcd', 'abcd', 'digitizer_interface', 0.5 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
-            create_module('abcd-module_1', 'waan', 'waan', 'waveforms_analysis', 2.0 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
-            create_module('abcd-module_2', 'wadi', 'wadi', 'waveforms_display', 3.5 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
-            create_module('abcd-module_3', 'dasa', 'dasa', 'data_saver', 3.5 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
-            create_module('abcd-module_4', 'spec', 'spec', 'spectrum_calculator', 3.5 * settings.modules.dimensions.width * settings.unit, 3.5 * settings.modules.dimensions.height * settings.unit);
-            create_module('abcd-module_5', 'tofcalc', 'tofcalc', 'ToF_calculator', 3.5 * settings.modules.dimensions.width * settings.unit, 5.0 * settings.modules.dimensions.height * settings.unit);
-            create_module('abcd-module_6', 'cofi', 'cofi', 'coincidences', 5.0 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
+            create_module('abcd-module_0', 'abcd', 'abcd', 'digitizer_interface', "-v", 0.5 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
+            create_module('abcd-module_1', 'waan', 'waan', 'waveforms_analysis', "-v", 2.0 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
+            create_module('abcd-module_2', 'wadi', 'wadi', 'waveforms_display', "-v", 3.5 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
+            create_module('abcd-module_3', 'dasa', 'dasa', 'data_saver', "-v", 3.5 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
+            create_module('abcd-module_4', 'spec', 'spec', 'spectrum_calculator', "-v", 3.5 * settings.modules.dimensions.width * settings.unit, 3.5 * settings.modules.dimensions.height * settings.unit);
+            create_module('abcd-module_5', 'tofcalc', 'tofcalc', 'ToF_calculator', "-v", 3.5 * settings.modules.dimensions.width * settings.unit, 5.0 * settings.modules.dimensions.height * settings.unit);
+            create_module('abcd-module_6', 'cofi', 'cofi', 'coincidences', "-v", 5.0 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
+            create_module('abcd-module_7', 'filter', 'filter', 'generic_filter', "-v", 5.0 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
+
+            function generate_startup_script(drawing) {
+                update_working_directory();
+                update_modules_attributes();
+
+                const socket_endpoints_connections = drawing.find('.abcd-socket_endpoint').reduce((socket_endpoints_connections, socket_endpoint) => {
+                    socket_endpoints_connections[socket_endpoint.attr("id")] = connected_to(socket_endpoint);
+                    return socket_endpoints_connections;
+                }, {});
+
+                let port_numbers = {};
+
+                let port_number_next = settings.port_numbers.min;
+
+                for (const [socket_endpoint_id, connections] of Object.entries(socket_endpoints_connections)) {
+                    //const new_port_number = Math.floor(Math.random() * (settings.port_numbers.max - settings.port_numbers.min) + settings.port_numbers.min);
+                    const port_number_new = port_number_next;
+
+                    if (!port_numbers.hasOwnProperty(socket_endpoint_id)) {
+                        port_numbers[socket_endpoint_id] = port_number_new;
+                    }
+                    for (const other_socket_endpoint_id of connections) {
+                        if (!port_numbers.hasOwnProperty(other_socket_endpoint_id)) {
+                            port_numbers[other_socket_endpoint_id] = port_number_new;
+                        }
+                    }
+
+                    port_number_next = port_number_new + 1;
+                }
+
+                const modules = drawing.find('.abcd-module').map((module) => ({
+                    id: module.attr("id"),
+                    type: module.attr("abcd:module:type"),
+                    executable: module.attr("abcd:module:executable"),
+                    display_label: module.attr("abcd:module:display_label"),
+                    options: module.attr("abcd:module:options"),
+                    socket_endpoints: module.find(".abcd-socket_endpoint").map((socket_endpoint) => ({
+                        id: socket_endpoint.attr("id"),
+                        type: socket_endpoint.attr("abcd:socket_endpoint:type"),
+                        option: socket_endpoint.attr("abcd:socket_endpoint:option"),
+                        direction: socket_endpoint.attr("abcd:socket_endpoint:direction"),
+                        port: port_numbers[socket_endpoint.attr("id")]
+                    }))
+                }));
+
+                let script_content = '#! /bin/bash\n';
+
+                const working_directory_raw = document.getElementById('input-working_directory').value;
+                const working_directory_clean = working_directory_raw.endsWith('/') ? working_directory_raw : working_directory_raw + '/';
+
+                script_content += 'WORKING_DIRECTORY="$(readlink -f "' + String(working_directory_raw) + '")"\n';
+                script_content += 'echo "Working directory: ${WORKING_DIRECTORY}"\n';
+                script_content += 'cd "${WORKING_DIRECTORY}"\n';
+
+                script_content += 'echo "Unsetting TMUX in order to be able to launch new sessions from tmux"\n';
+                script_content += 'unset TMUX\n';
+                script_content += 'echo "Starting a new ABCD session"\n';
+                script_content += 'tmux new-session -d -s ABCD\n';
+                script_content += 'echo "Creating the window for the GUI webserver"\n';
+                script_content += 'tmux new-window -d -c "/opt/local/abcd/wit/" -P -t ABCD -n wit "node app.js ./config.json"\n';
+                script_content += 'echo "Waiting for node.js to start"\n';
+                script_content += 'sleep 2\n';
+
+                let modules_counter = 0;
+
+                for (const module of modules) {
+                    script_content += `echo "Creating the window for ${module.display_label} of type ${module.type}"\n`;
+                    script_content += `tmux new-window -d -c "\${WORKING_DIRECTORY}" -P -t ABCD -n ${module.type}_${modules_counter} '${module.executable}`
+                    for (const socket_endpoint of module.socket_endpoints) {
+                        const ip_address = socket_endpoint.direction === 'in' ? '127.0.0.1' : '*';
+                        script_content += ` ${socket_endpoint.option} tcp://${ip_address}:${socket_endpoint.port}`;
+                    }
+                    script_content += ` ${module.options}'\n`
+
+                    modules_counter += 1;
+                }
+
+                return script_content;
+            }
+
+            function update_working_directory() {
+                const working_directory_raw = document.getElementById('input-working_directory').value;
+                const working_directory_clean = working_directory_raw.endsWith('/') ? working_directory_raw : working_directory_raw + '/';
+
+                group_modules.attr("abcd:modules:global_options:working_directory", working_directory_clean);
+            }
+
+            function update_modules_attributes() {
+                drawing.find('.abcd-module').forEach((module) => {
+                    const id = module.attr("id");
+
+                    //console.log(`Updating attributes of module: ${id}`)
+
+                    const fieldset = find_fieldset(id);
+                    const executable = fieldset.querySelectorAll('[id$="-input-executable"]')[0].value;
+                    const display_label = fieldset.querySelectorAll('[id$="-input-display_label"]')[0].value;
+                    const options = fieldset.querySelectorAll('[id$="-input-options"]')[0].value;
+
+                    module.attr("abcd:module:executable", executable);
+                    module.attr("abcd:module:display_label", display_label);
+                    module.attr("abcd:module:options", options);
+                });
+            }
+
+            document.getElementById('button-download_startup_script').addEventListener('click', function () {
+                const script_content = generate_startup_script(drawing);
+                const blob_script = new Blob([script_content], { type: "text/plain" });
+                const URL_script = URL.createObjectURL(blob_script);
+                const anchor = document.createElement("a");
+                anchor.href = URL_script;
+                anchor.download = "ABCD_startup.sh";
+                document.body.appendChild(anchor);
+                anchor.click();
+                document.body.removeChild(anchor);
+            });
 
             document.getElementById('button-download_SVG').addEventListener('click', function () {
                 const SVG_content = drawing.svg();
@@ -850,6 +1042,14 @@
                     alert('Please select an SVG file to upload.');
                 }
             });
+
+            // Forcing an update of the attributes.
+            // If the user modified attributes and then refreshed the page it
+            // would not trigger the event listeners and thus it would not
+            // update the attributes.
+            update_working_directory();
+            update_modules_attributes();
+            document.getElementById('input-working_directory').addEventListener('input', update_working_directory);
         });
     </script>
 </body>
