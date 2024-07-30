@@ -675,7 +675,7 @@
                     const other_type = socket_endpoint_selected.attr("abcd:socket_endpoint:type");
                     const other_direction = socket_endpoint_selected.attr("abcd:socket_endpoint:direction");
                     const other_max_connections = socket_endpoint_selected.attr("abcd:socket_endpoint:max_connections");
-                    const other_connections = count_connections(socket_endpoint_current);
+                    const other_connections = count_connections(socket_endpoint_selected);
 
                     if (type !== other_type) {
                         console.error(`Types do not match: ${type} and ${other_type}`);
