@@ -8,9 +8,6 @@
 
     <title>ABCD startup generator</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@latest/dist/svg.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.draggable.js@latest/dist/svg.draggable.js"></script>
-
     <style>
         :root {
             --dark_color: #333333;
@@ -93,7 +90,6 @@
         <h2>Warning</h2>
         This generator is not yet usable. TODO:
         <ul>
-            <li>Creation and destruction of modules.</li>
             <li>Display of socket labels when mouse hovers.</li>
             <li>Adding custom modules for developers.</li>
             <li>Loading the SVG from file and enable the click callbacks on its elements.</li>
@@ -105,7 +101,7 @@
             <fieldset>
                 <legend>File</legend>
                 <button id="button-download_startup_script">Download startup script</button>
-                <button id="button-download_SVG">Download SVG</button>
+                <button id="button-download_SVG">Download SVG</button><br>
                 <button id="button-upload_SVG">Upload and Replace SVG</button>
                 <label>Select file to upload:
                     <input type="file" id="input-file" accept=".svg" />
@@ -115,14 +111,8 @@
                 <legend>Modules</legend>
                 <button id="button-delete_module">Delete</button>
                 <button id="button-new_module">New</button>
-                <label for="select-module">Select new module:</label>
-                <select id="select-module">
-                    <option value="abcd">abcd</option>
-                    <option value="waan">waan</option>
-                    <option value="wadi">wadi</option>
-                    <option value="dasa">dasa</option>
-                    <option value="spec">spec</option>
-                    <option value="tofcalc">tofcalc</option>
+                <label for="select-new_module">Select new module:</label>
+                <select id="select-new_module">
                 </select>
             </fieldset>
 
@@ -139,6 +129,10 @@
             <div id="modules_options"></div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@latest/dist/svg.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.draggable.js@latest/dist/svg.draggable.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jszip/dist/jszip.min.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -555,6 +549,7 @@
 
             let module_selected = null;
             let socket_endpoint_selected = null;
+            let counter_modules = 0;
 
             function socket_callback_click() {
                 const socket_current = this;
@@ -594,6 +589,23 @@
                 socket.attr("abcd:to_socket_endpoint", to_id);
 
                 socket.click(socket_callback_click);
+            }
+
+            function connections(socket_endpoint) {
+                const id = socket_endpoint.attr("id");
+
+                //console.log(`Returning connections of ${id}`)
+
+                return drawing.find('.abcd-socket').reduce(function (connections, socket) {
+                    const socket_endpoint_from = socket.attr('abcd:from_socket_endpoint');
+                    const socket_endpoint_to = socket.attr('abcd:to_socket_endpoint');
+                    
+                    if (socket_endpoint_from === id || socket_endpoint_to === id) {
+                        connections.push(socket);
+                    }
+
+                    return connections;
+                }, []);
             }
 
             function connected_to(socket_endpoint) {
@@ -808,7 +820,7 @@
             }
 
             function find_fieldset(module_id) {
-                return Array.from(document.querySelectorAll("fieldset[abcd\\:module]")).reduce((selected, current) => (current.getAttribute("abcd:module") === module_id) ? current : selected, null);
+                return Array.from(document.querySelectorAll(`fieldset[abcd\\:module="${module_id}"]`)).reduce((_, current) => current, null);
             }
 
             function module_callback_click() {
@@ -852,6 +864,8 @@
             }
 
             function create_module(id, type, executable, display_label, options, x, y) {
+                console.log(`New module of type: ${type}, id: ${id}`);
+
                 const module = group_modules.group();
                 module.draggable();
 
@@ -950,19 +964,17 @@
                 script_content += 'echo "Waiting for node.js to start"\n';
                 script_content += 'sleep 2\n';
 
-                let modules_counter = 0;
-
-                for (const module of modules) {
+                modules.forEach((value, index) => {
                     script_content += `echo "Creating the window for ${module.display_label} of type ${module.type}"\n`;
-                    script_content += `tmux new-window -d -c "\${WORKING_DIRECTORY}" -P -t ABCD -n ${module.type}_${modules_counter} '${module.executable}`
+                    script_content += `tmux new-window -d -c "\${WORKING_DIRECTORY}" -P -t ABCD -n ${module.type}_${index} '${module.executable}`
                     for (const socket_endpoint of module.socket_endpoints) {
                         const ip_address = socket_endpoint.direction === 'in' ? '127.0.0.1' : '*';
                         script_content += ` ${socket_endpoint.option} tcp://${ip_address}:${socket_endpoint.port}`;
                     }
                     script_content += ` ${module.options}'\n`
 
-                    modules_counter += 1;
-                }
+                    index += 1;
+                });
 
                 return script_content;
             }
@@ -975,6 +987,17 @@
             }
 
             function update_modules_attributes() {
+                const select_new_module = document.getElementById('select-new_module');
+
+                Object.entries(settings.modules)
+                    .filter(([type, module_settings]) => (type !== "active" && type !== "dimensions"))
+                    .forEach(([type, module_settings]) => {
+                        const option = document.createElement('option');
+                        option.text = type;
+                        option.value = type;
+                        select_new_module.add(option);
+                    });
+
                 drawing.find('.abcd-module').forEach((module) => {
                     const id = module.attr("id");
 
@@ -1033,17 +1056,51 @@
                 }
             });
 
+            document.getElementById('button-new_module').addEventListener('click', function () {
+                const select_new_module = document.getElementById('select-new_module');
+                const new_module_type = select_new_module.value;
+
+                create_module(`abcd-module_${counter_modules}`, new_module_type, new_module_type, '', "", 0.2 * settings.modules.dimensions.width * settings.unit, 0.2 * settings.modules.dimensions.height * settings.unit);
+                counter_modules += 1;
+            });
+
+            document.getElementById('button-delete_module').addEventListener('click', function () {
+                if (module_selected) {
+                    const module_id = module_selected.attr("id");
+
+                    module_selected.find('.abcd-socket_endpoint').forEach(socket_endpoint => {
+                        connections(socket_endpoint).forEach(socket => {
+                            socket.remove();
+                        });
+
+                    });
+
+                    module_selected.remove()
+                    module_selected = null;
+
+                    find_fieldset(module_id).remove();
+                }
+            });
+
             document.getElementById('input-working_directory').addEventListener('input', update_working_directory);
 
             // Creating the default set of modules
-            create_module('abcd-module_0', 'abcd', 'abcd', 'digitizer_interface', "-v -T 50 -f ./configs/abcd_config.json", 0.5 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
-            create_module('abcd-module_1', 'waan', 'waan', 'waveforms_analysis', "-v -T 50 -f ./configs/waan_config.json", 2.0 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
-            create_module('abcd-module_2', 'wadi', 'wadi', 'waveforms_display', "", 3.5 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
-            create_module('abcd-module_3', 'dasa', 'dasa', 'data_saver', "", 3.5 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
-            create_module('abcd-module_4', 'spec', 'spec', 'spectrum_calculator', "", 3.5 * settings.modules.dimensions.width * settings.unit, 3.5 * settings.modules.dimensions.height * settings.unit);
-            create_module('abcd-module_5', 'tofcalc', 'tofcalc', 'ToF_calculator', "-f ./configs/tofcalc_config.json", 3.5 * settings.modules.dimensions.width * settings.unit, 5.0 * settings.modules.dimensions.height * settings.unit);
-            create_module('abcd-module_6', 'cofi', 'cofi', 'coincidences', "-n 0.001953125 -w 100", 5.0 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
-            create_module('abcd-module_7', 'filter', 'filter', 'generic_filter', "-v", 5.0 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
+            create_module(`abcd-module_${counter_modules}`, 'abcd', 'abcd', 'digitizer_interface', "-v -T 50 -f ./configs/abcd_config.json", 0.5 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
+            counter_modules += 1;
+            create_module(`abcd-module_${counter_modules}`, 'waan', 'waan', 'waveforms_analysis', "-v -T 50 -f ./configs/waan_config.json", 2.0 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
+            counter_modules += 1;
+            create_module(`abcd-module_${counter_modules}`, 'wadi', 'wadi', 'waveforms_display', "", 3.5 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
+            counter_modules += 1;
+            create_module(`abcd-module_${counter_modules}`, 'dasa', 'dasa', 'data_saver', "", 3.5 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
+            counter_modules += 1;
+            create_module(`abcd-module_${counter_modules}`, 'spec', 'spec', 'spectrum_calculator', "", 3.5 * settings.modules.dimensions.width * settings.unit, 3.5 * settings.modules.dimensions.height * settings.unit);
+            counter_modules += 1;
+            create_module(`abcd-module_${counter_modules}`, 'tofcalc', 'tofcalc', 'ToF_calculator', "-f ./configs/tofcalc_config.json", 3.5 * settings.modules.dimensions.width * settings.unit, 5.0 * settings.modules.dimensions.height * settings.unit);
+            counter_modules += 1;
+            //create_module(`abcd-module_${counter_modules}`, 'cofi', 'cofi', 'coincidences', "-n 0.001953125 -w 100", 5.0 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
+            //counter_modules += 1;
+            //create_module(`abcd-module_${counter_modules}`, 'filter', 'filter', 'generic_filter', "-v", 5.0 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
+            //counter_modules += 1;
 
             create_socket(SVG('#abcd-module_0-socket_1'), SVG('#abcd-module_1-socket_1'));
             create_socket(SVG('#abcd-module_1-socket_2'), SVG('#abcd-module_2-socket_0'));
