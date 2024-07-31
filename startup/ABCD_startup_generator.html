@@ -121,9 +121,14 @@
         <div class="display" class="column">
             <h2>Global options</h2>
             <div id="global_options">
-                <label>Working directory:
-                    <input type="text" id="input-working_directory" value="~/abcd_data/" />
+                <label>Experiment name:
+                    <input type="text" id="input-experiment_name" value="experiment" />
                 </label>
+                <p>N.B. This name will be used in the generated file names.</p>
+                <label>Working directory:
+                    <input type="text" id="input-working_directory" value="abcd_data/" />
+                </label>
+                <p>N.B. Relative paths are relative to the user home directory.</p>
             </div>
             <h2>Modules options</h2>
             <div id="modules_options"></div>
@@ -248,6 +253,8 @@
                     },
                     abcd: {
                         label: 'abcd',
+                        unique_name: 'digitizer_interface',
+                        description: 'Digitizer interface',
                         fill: color_palettes.tableau_light[0],
                         stroke: color_palettes.grey,
                         stroke_width: 1,
@@ -283,6 +290,8 @@
                     },
                     wadi: {
                         label: 'wadi',
+                        unique_name: 'waveforms_display',
+                        description: 'Waveforms display',
                         fill: color_palettes.tableau_light[1],
                         stroke: color_palettes.grey,
                         stroke_width: 1,
@@ -309,6 +318,8 @@
                     },
                     waan: {
                         label: 'waan',
+                        unique_name: 'waveforms_analysis',
+                        description: 'Waveforms analysis',
                         fill: color_palettes.tableau_light[2],
                         stroke: color_palettes.grey,
                         stroke_width: 1,
@@ -353,6 +364,8 @@
                     },
                     dasa: {
                         label: 'dasa',
+                        unique_name: 'data_saver',
+                        description: 'Data saver',
                         fill: color_palettes.tableau_light[3],
                         stroke: color_palettes.grey,
                         stroke_width: 1,
@@ -388,6 +401,8 @@
                     },
                     spec: {
                         label: 'spec',
+                        unique_name: 'spectra_calculator',
+                        description: 'Spectra calculator',
                         fill: color_palettes.tableau_light[4],
                         stroke: color_palettes.grey,
                         stroke_width: 1,
@@ -432,6 +447,8 @@
                     },
                     tofcalc: {
                         label: 'tofcalc',
+                        unique_name: 'ToF_calculator',
+                        description: 'Time-of-Flight calculator',
                         fill: color_palettes.tableau_light[5],
                         stroke: color_palettes.grey,
                         stroke_width: 1,
@@ -476,6 +493,8 @@
                     },
                     cofi: {
                         label: 'cofi',
+                        unique_name: 'coincidences_filter',
+                        description: 'Coincidences filter',
                         fill: color_palettes.tableau_light[6],
                         stroke: color_palettes.grey,
                         stroke_width: 1,
@@ -511,6 +530,8 @@
                     },
                     filter: {
                         label: 'filter',
+                        unique_name: 'generic_filter',
+                        description: 'Generic filter',
                         fill: color_palettes.tableau_light[7],
                         stroke: color_palettes.grey,
                         stroke_width: 1,
@@ -538,6 +559,13 @@
                 }
             };
 
+            // Global variables
+            let module_selected = null;
+            let socket_endpoint_selected = null;
+            let counter_modules = 0;
+            let working_directory = 'abcd_data/';
+            let experiment_name = 'experiment';
+
             const drawing = SVG().addTo('#drawing').size('1000px', '1000px');
 
             const group_sockets = drawing.group();
@@ -545,11 +573,8 @@
 
             const group_modules = drawing.group();
             group_modules.attr("id", "abcd-modules");
-            group_modules.attr("abcd:modules:global_options:working_directory", "~/abcd_data/");
-
-            let module_selected = null;
-            let socket_endpoint_selected = null;
-            let counter_modules = 0;
+            group_modules.attr("abcd:modules:global_options:working_directory", working_directory);
+            group_modules.attr("abcd:modules:global_options:experiment_name", experiment_name);
 
             function socket_callback_click() {
                 const socket_current = this;
@@ -599,7 +624,7 @@
                 return drawing.find('.abcd-socket').reduce(function (connections, socket) {
                     const socket_endpoint_from = socket.attr('abcd:from_socket_endpoint');
                     const socket_endpoint_to = socket.attr('abcd:to_socket_endpoint');
-                    
+
                     if (socket_endpoint_from === id || socket_endpoint_to === id) {
                         connections.push(socket);
                     }
@@ -763,7 +788,7 @@
                 });
             }
 
-            function create_module_fieldset(id, module_id, executable, display_label, options) {
+            function create_module_fieldset(id, module_id, executable, unique_name, description, options) {
                 const div = document.getElementById("modules_options");
 
                 const fieldset = document.createElement("fieldset");
@@ -772,7 +797,7 @@
                 div.appendChild(fieldset);
 
                 const legend = document.createElement("legend");
-                legend.textContent = display_label;
+                legend.textContent = unique_name;
                 fieldset.appendChild(legend);
 
                 const label_executable = document.createElement("label");
@@ -788,21 +813,34 @@
 
                 fieldset.appendChild(document.createElement("br"));
 
-                const label_display_label = document.createElement("label");
-                label_display_label.textContent = "Display label:";
-                fieldset.appendChild(label_display_label);
+                const label_unique_name = document.createElement("label");
+                label_unique_name.textContent = "Unique name:";
+                fieldset.appendChild(label_unique_name);
 
-                const input_display_label = document.createElement("input");
-                input_display_label.id = `${id}-input-display_label`;
-                input_display_label.type = "text";
-                input_display_label.value = display_label;
-                input_display_label.addEventListener("input", () => {
-                    console.log("Display label changed:", input_display_label.value)
-                    legend.textContent = input_display_label.value;
+                const input_unique_name = document.createElement("input");
+                input_unique_name.id = `${id}-input-unique_name`;
+                input_unique_name.type = "text";
+                input_unique_name.value = unique_name;
+                input_unique_name.addEventListener("input", () => {
+                    console.log("Unique name changed:", input_unique_name.value)
+                    legend.textContent = input_unique_name.value;
 
                     update_modules_attributes();
                 });
-                label_display_label.appendChild(input_display_label);
+                label_unique_name.appendChild(input_unique_name);
+
+                fieldset.appendChild(document.createElement("br"));
+
+                const label_description = document.createElement("label");
+                label_description.textContent = "Description:";
+                fieldset.appendChild(label_description);
+
+                const input_description = document.createElement("input");
+                input_description.id = `${id}-input-description`;
+                input_description.type = "text";
+                input_description.value = description;
+                input_description.addEventListener("input", update_modules_attributes);
+                label_description.appendChild(input_description);
 
                 fieldset.appendChild(document.createElement("br"));
 
@@ -863,7 +901,7 @@
                 }
             }
 
-            function create_module(id, type, executable, display_label, options, x, y) {
+            function create_module(id, type, executable, unique_name, description, options, x, y) {
                 console.log(`New module of type: ${type}, id: ${id}`);
 
                 const module = group_modules.group();
@@ -874,7 +912,8 @@
 
                 module.attr("abcd:module:type", type);
                 module.attr("abcd:module:executable", executable);
-                module.attr("abcd:module:display_label", display_label);
+                module.attr("abcd:module:unique_name", unique_name);
+                module.attr("abcd:module:description", description);
                 module.attr("abcd:module:options", options);
 
                 const rectangle = module.rect(settings.modules.dimensions.width * settings.unit, settings.modules.dimensions.height * settings.unit).radius(settings.modules.dimensions.radius * settings.unit);
@@ -897,13 +936,13 @@
 
                 module.on('dragmove', module_callback_dragmove);
 
-                create_module_fieldset(`abcd-fieldset-${id}`, id, executable, display_label, options);
+                create_module_fieldset(`abcd-fieldset-${id}`, id, executable, unique_name, description, options);
 
                 return module;
             }
 
             function generate_startup_script(drawing) {
-                update_working_directory();
+                update_global_options();
                 update_modules_attributes();
 
                 const socket_endpoints_connections = drawing.find('.abcd-socket_endpoint').reduce((socket_endpoints_connections, socket_endpoint) => {
@@ -935,24 +974,75 @@
                     id: module.attr("id"),
                     type: module.attr("abcd:module:type"),
                     executable: module.attr("abcd:module:executable"),
-                    display_label: module.attr("abcd:module:display_label"),
+                    unique_name: module.attr("abcd:module:unique_name"),
+                    description: module.attr("abcd:module:description"),
                     options: module.attr("abcd:module:options"),
                     socket_endpoints: module.find(".abcd-socket_endpoint").map((socket_endpoint) => ({
                         id: socket_endpoint.attr("id"),
                         type: socket_endpoint.attr("abcd:socket_endpoint:type"),
                         option: socket_endpoint.attr("abcd:socket_endpoint:option"),
                         direction: socket_endpoint.attr("abcd:socket_endpoint:direction"),
-                        port: port_numbers[socket_endpoint.attr("id")]
+                        port: port_numbers[socket_endpoint.attr("id")],
+                        address: `tcp://${socket_endpoint.attr("abcd:socket_endpoint:direction") === 'in' ? '127.0.0.1' : '*'}:${port_numbers[socket_endpoint.attr("id")]}`
                     }))
                 }));
 
-                const working_directory_raw = document.getElementById('input-working_directory').value;
-                const working_directory_clean = working_directory_raw.endsWith('/') ? working_directory_raw : working_directory_raw + '/';
+                const wit_configuration_file = `\${WORKING_DIRECTORY}/configs/wit_config_${experiment_name}.json`;
+
+                const wit_configuration = {
+                    verbosity: 1,
+                    heartbeat: 1000,
+                    modules: modules.map((module) => ({
+                        name: module.unique_name,
+                        type: module.type,
+                        description: module.description,
+                        sockets: ((socket_endpoints) => {
+                            let wit_sockets = [];
+
+                            for (const socket_endpoint of socket_endpoints) {
+                                if (socket_endpoint.direction === 'out' && socket_endpoint.type === 'status') {
+                                    // Status types are automatically attached to wit with separated streams: status and events
+                                    wit_sockets.push({
+                                        type: 'status',
+                                        address: socket_endpoint.address,
+                                        topic: `status_${module.type}`
+                                    });
+                                    wit_sockets.push({
+                                        type: 'events',
+                                        address: socket_endpoint.address,
+                                        topic: `events_${module.type}`
+                                    });
+                                } else if (socket_endpoint.direction === 'out' && socket_endpoint.type.startsWith('data_')) {
+                                    // Only data types not generated by digitizers are attached
+                                    wit_sockets.push({
+                                        type: 'data',
+                                        address: socket_endpoint.address,
+                                        topic: `data_${module.type}`
+                                    });
+
+                                } else if (socket_endpoint.direction === 'in' && socket_endpoint.type === 'commands') {
+                                    wit_sockets.push({
+                                        type: 'commands',
+                                        address: socket_endpoint.address
+                                    });
+
+                                }
+                            }
+
+                            return wit_sockets;
+                        })(module.socket_endpoints)
+                    }))
+                };
 
                 let script_content = '#! /bin/bash\n';
                 script_content += '\n';
 
-                script_content += 'WORKING_DIRECTORY="$(readlink -f "' + String(working_directory_raw) + '")"\n';
+                script_content += `echo "Startup of experiment: ${experiment_name}"\n`;
+                script_content += '\n';
+
+                script_content += 'echo "Changing current directory to the user home: ${HOME}"\n';
+                script_content += 'cd "${HOME}"\n';
+                script_content += `WORKING_DIRECTORY="$(readlink -m "${working_directory}")"\n`;
                 script_content += 'echo "Working directory: ${WORKING_DIRECTORY}"\n';
                 script_content += 'echo "Creating directory for the user: ${WORKING_DIRECTORY}"\n';
                 script_content += 'mkdir -p "${WORKING_DIRECTORY}"\n';
@@ -961,20 +1051,27 @@
                 script_content += 'cd "${WORKING_DIRECTORY}"\n';
                 script_content += '\n';
 
-                script_content += 'echo "Unsetting TMUX in order to be able to launch new sessions from tmux"\n';
+                script_content += `echo "Creating wit configuration file: ${wit_configuration_file}"\n`;
+                script_content += `cat <<-"EOF" > "${wit_configuration_file}"\n`;
+                script_content += JSON.stringify(wit_configuration, null, 4);
+                script_content += '\n';
+                script_content += 'EOF\n';
+                script_content += '\n';
+
+                script_content += 'echo "Unsetting \\$TMUX in order to be able to launch new sessions from tmux"\n';
                 script_content += 'unset TMUX\n';
                 script_content += '\n';
                 script_content += 'echo "Starting a new ABCD session"\n';
                 script_content += 'tmux new-session -d -s ABCD\n';
                 script_content += '\n';
                 script_content += 'echo "Creating the window for the GUI webserver"\n';
-                script_content += 'tmux new-window -d -c "/opt/local/abcd/wit/" -P -t ABCD -n wit "node app.js ./config.json"\n';
+                script_content += `tmux new-window -d -c "/opt/local/abcd/wit/" -P -t ABCD -n wit 'node app.js "${wit_configuration_file}"'\n`;
                 script_content += 'echo "Waiting for node.js to start"\n';
                 script_content += 'sleep 2\n';
                 script_content += '\n';
 
                 modules.forEach((module, index) => {
-                    script_content += `echo "Creating the window for ${module.display_label} of type ${module.type}"\n`;
+                    script_content += `echo "Creating the window for ${module.unique_name} of type ${module.type}"\n`;
                     script_content += `tmux new-window -d -c "\${WORKING_DIRECTORY}" -P -t ABCD -n ${module.type}_${index} '${module.executable}`
                     for (const socket_endpoint of module.socket_endpoints) {
                         const ip_address = socket_endpoint.direction === 'in' ? '127.0.0.1' : '*';
@@ -988,11 +1085,20 @@
                 return script_content;
             }
 
-            function update_working_directory() {
-                const working_directory_raw = document.getElementById('input-working_directory').value;
-                const working_directory_clean = working_directory_raw.endsWith('/') ? working_directory_raw : working_directory_raw + '/';
+            function sanitize_file_path(file_path) {
+                return file_path.replace(/[^a-zA-Z0-9-_\.]/g, '').trim();
+            }
 
-                group_modules.attr("abcd:modules:global_options:working_directory", working_directory_clean);
+            function update_global_options() {
+                const working_directory_raw = document.getElementById('input-working_directory').value;
+                working_directory = working_directory_raw.endsWith('/') ? working_directory_raw : working_directory_raw + '/';
+
+                experiment_name = sanitize_file_path(document.getElementById('input-experiment_name').value);
+
+                group_modules.attr("abcd:modules:global_options:working_directory", working_directory);
+                group_modules.attr("abcd:modules:global_options:experiment_name", experiment_name);
+
+                console.log(`Updated: working_directory: ${working_directory}; experiment_name: ${experiment_name}`);
             }
 
             function update_modules_attributes() {
@@ -1014,11 +1120,13 @@
 
                     const fieldset = find_fieldset(id);
                     const executable = fieldset.querySelectorAll('[id$="-input-executable"]')[0].value;
-                    const display_label = fieldset.querySelectorAll('[id$="-input-display_label"]')[0].value;
+                    const unique_name = fieldset.querySelectorAll('[id$="-input-unique_name"]')[0].value;
+                    const description = fieldset.querySelectorAll('[id$="-input-description"]')[0].value;
                     const options = fieldset.querySelectorAll('[id$="-input-options"]')[0].value;
 
                     module.attr("abcd:module:executable", executable);
-                    module.attr("abcd:module:display_label", display_label);
+                    module.attr("abcd:module:unique_name", unique_name);
+                    module.attr("abcd:module:description", description);
                     module.attr("abcd:module:options", options);
                 });
             }
@@ -1029,7 +1137,7 @@
                 const URL_script = URL.createObjectURL(blob_script);
                 const anchor = document.createElement("a");
                 anchor.href = URL_script;
-                anchor.download = "ABCD_startup.sh";
+                anchor.download = `ABCD_startup_${experiment_name}.sh`;
                 document.body.appendChild(anchor);
                 anchor.click();
                 document.body.removeChild(anchor);
@@ -1069,7 +1177,7 @@
                 const select_new_module = document.getElementById('select-new_module');
                 const new_module_type = select_new_module.value;
 
-                create_module(`abcd-module_${counter_modules}`, new_module_type, new_module_type, '', "", 0.2 * settings.modules.dimensions.width * settings.unit, 0.2 * settings.modules.dimensions.height * settings.unit);
+                create_module(`abcd-module_${counter_modules}`, new_module_type, new_module_type, settings.modules[new_module_type].unique_name, settings.modules[new_module_type].description, "", 0.2 * settings.modules.dimensions.width * settings.unit, 0.2 * settings.modules.dimensions.height * settings.unit);
                 counter_modules += 1;
             });
 
@@ -1091,25 +1199,22 @@
                 }
             });
 
-            document.getElementById('input-working_directory').addEventListener('input', update_working_directory);
+            document.getElementById('input-working_directory').addEventListener('input', update_global_options);
+            document.getElementById('input-experiment_name').addEventListener('input', update_global_options);
 
             // Creating the default set of modules
-            create_module(`abcd-module_${counter_modules}`, 'abcd', 'abcd', 'digitizer_interface', "-v -T 50 -f ./configs/abcd_config.json", 0.5 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
+            create_module(`abcd-module_${counter_modules}`, 'abcd', 'abcd', settings.modules['abcd'].unique_name, settings.modules['abcd'].description, "-v -T 50 -f ./configs/abcd_config.json", 0.5 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
             counter_modules += 1;
-            create_module(`abcd-module_${counter_modules}`, 'waan', 'waan', 'waveforms_analysis', "-v -T 50 -f ./configs/waan_config.json", 2.0 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
+            create_module(`abcd-module_${counter_modules}`, 'waan', 'waan', settings.modules['waan'].unique_name, settings.modules['waan'].description, "-v -T 50 -f ./configs/waan_config.json", 2.0 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
             counter_modules += 1;
-            create_module(`abcd-module_${counter_modules}`, 'wadi', 'wadi', 'waveforms_display', "", 3.5 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
+            create_module(`abcd-module_${counter_modules}`, 'wadi', 'wadi', settings.modules['wadi'].unique_name, settings.modules['wadi'].description, "", 3.5 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
             counter_modules += 1;
-            create_module(`abcd-module_${counter_modules}`, 'dasa', 'dasa', 'data_saver', "", 3.5 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
+            create_module(`abcd-module_${counter_modules}`, 'dasa', 'dasa', settings.modules['dasa'].unique_name, settings.modules['dasa'].description, "", 3.5 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
             counter_modules += 1;
-            create_module(`abcd-module_${counter_modules}`, 'spec', 'spec', 'spectrum_calculator', "", 3.5 * settings.modules.dimensions.width * settings.unit, 3.5 * settings.modules.dimensions.height * settings.unit);
+            create_module(`abcd-module_${counter_modules}`, 'spec', 'spec', settings.modules['spec'].unique_name, settings.modules['spec'].description, "", 3.5 * settings.modules.dimensions.width * settings.unit, 3.5 * settings.modules.dimensions.height * settings.unit);
             counter_modules += 1;
-            create_module(`abcd-module_${counter_modules}`, 'tofcalc', 'tofcalc', 'ToF_calculator', "-f ./configs/tofcalc_config.json", 3.5 * settings.modules.dimensions.width * settings.unit, 5.0 * settings.modules.dimensions.height * settings.unit);
+            create_module(`abcd-module_${counter_modules}`, 'tofcalc', 'tofcalc', settings.modules['tofcalc'].unique_name, settings.modules['tofcalc'].description, "-f ./configs/tofcalc_config.json", 3.5 * settings.modules.dimensions.width * settings.unit, 5.0 * settings.modules.dimensions.height * settings.unit);
             counter_modules += 1;
-            //create_module(`abcd-module_${counter_modules}`, 'cofi', 'cofi', 'coincidences', "-n 0.001953125 -w 100", 5.0 * settings.modules.dimensions.width * settings.unit, 0.5 * settings.modules.dimensions.height * settings.unit);
-            //counter_modules += 1;
-            //create_module(`abcd-module_${counter_modules}`, 'filter', 'filter', 'generic_filter', "-v", 5.0 * settings.modules.dimensions.width * settings.unit, 2.0 * settings.modules.dimensions.height * settings.unit);
-            //counter_modules += 1;
 
             create_socket(SVG('#abcd-module_0-socket_1'), SVG('#abcd-module_1-socket_1'));
             create_socket(SVG('#abcd-module_1-socket_2'), SVG('#abcd-module_2-socket_0'));
@@ -1121,7 +1226,7 @@
             // If the user modified attributes and then refreshed the page it
             // would not trigger the event listeners and thus it would not
             // update the attributes.
-            update_working_directory();
+            update_global_options();
             update_modules_attributes();
         });
     </script>
