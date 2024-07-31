@@ -101,8 +101,8 @@
             <p><em>N.B.</em> Status and command sockets are automatically connected to the user interface.</p>
             <fieldset>
                 <legend>File</legend>
-                <button id="button-download_startup_script">Download startup script</button>
-                <button id="button-download_SVG">Download SVG</button><br>
+                <button id="button-download_startup_script">Download startup script</button><br>
+                <button id="button-download_SVG">Download SVG</button>
                 <button id="button-upload_SVG">Upload and Replace SVG</button>
                 <label>Select file to upload:
                     <input type="file" id="input-file" accept=".svg" />
@@ -110,10 +110,10 @@
             </fieldset>
             <fieldset>
                 <legend>Modules</legend>
-                <button id="button-delete_module">Delete</button>
                 <button id="button-new_module">New</button>
                 <label for="select-new_module">Select new module:</label>
                 <select id="select-new_module"> </select>
+                <button id="button-delete_module">Delete</button>
             </fieldset>
 
             <div id="drawing"></div>
@@ -268,6 +268,34 @@
                                 x: 0,
                                 y: 3
                             },
+                            {
+                                type: 'data',
+                                direction: 'out',
+                                max_connections: 'infinity',
+                                label: 'data',
+                                option: '-D',
+                                x: 7,
+                                y: 2
+                            },
+                            {
+                                type: 'status',
+                                direction: 'out',
+                                max_connections: 'infinity',
+                                label: 'status',
+                                option: '-S',
+                                x: 7,
+                                y: 1
+                            }
+                        ]
+                    },
+                    replay: {
+                        label: 'replay',
+                        unique_name: 'replay',
+                        description: 'Data replay',
+                        fill: color_palettes.tableau_light[0],
+                        stroke: color_palettes.grey,
+                        stroke_width: 1,
+                        socket_endpoints: [
                             {
                                 type: 'data',
                                 direction: 'out',
@@ -983,7 +1011,7 @@
                         option: socket_endpoint.attr("abcd:socket_endpoint:option"),
                         direction: socket_endpoint.attr("abcd:socket_endpoint:direction"),
                         port: port_numbers[socket_endpoint.attr("id")],
-                        address: `tcp://${socket_endpoint.attr("abcd:socket_endpoint:direction") === 'in' ? '127.0.0.1' : '*'}:${port_numbers[socket_endpoint.attr("id")]}`
+                        address: `tcp://127.0.0.1:${port_numbers[socket_endpoint.attr("id")]}`
                     }))
                 }));
 
@@ -1061,11 +1089,15 @@
                 script_content += 'echo "Unsetting \\$TMUX in order to be able to launch new sessions from tmux"\n';
                 script_content += 'unset TMUX\n';
                 script_content += '\n';
+                script_content += 'echo "Killing previous ABCD sessions"\n';
+                script_content += 'tmux kill-session -t ABCD\n';
+                script_content += 'sleep 2\n';
+                script_content += '\n';
                 script_content += 'echo "Starting a new ABCD session"\n';
                 script_content += 'tmux new-session -d -s ABCD\n';
                 script_content += '\n';
                 script_content += 'echo "Creating the window for the GUI webserver"\n';
-                script_content += `tmux new-window -d -c "/opt/local/abcd/wit/" -P -t ABCD -n wit 'node app.js "${wit_configuration_file}"'\n`;
+                script_content += `tmux new-window -d -c "/opt/local/abcd/wit/" -P -t ABCD -n wit "node app.js \\"${wit_configuration_file}\\""\n`;
                 script_content += 'echo "Waiting for node.js to start"\n';
                 script_content += 'sleep 2\n';
                 script_content += '\n';
