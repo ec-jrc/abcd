@@ -946,25 +946,34 @@
                     }))
                 }));
 
-                let script_content = '#! /bin/bash\n';
-
                 const working_directory_raw = document.getElementById('input-working_directory').value;
                 const working_directory_clean = working_directory_raw.endsWith('/') ? working_directory_raw : working_directory_raw + '/';
 
+                let script_content = '#! /bin/bash\n';
+                script_content += '\n';
+
                 script_content += 'WORKING_DIRECTORY="$(readlink -f "' + String(working_directory_raw) + '")"\n';
                 script_content += 'echo "Working directory: ${WORKING_DIRECTORY}"\n';
+                script_content += 'echo "Creating directory for the user: ${WORKING_DIRECTORY}"\n';
+                script_content += 'mkdir -p "${WORKING_DIRECTORY}"\n';
+                script_content += 'mkdir -p "${WORKING_DIRECTORY}/configs"\n';
+                script_content += 'echo "Changing current directory to: ${WORKING_DIRECTORY}"\n';
                 script_content += 'cd "${WORKING_DIRECTORY}"\n';
+                script_content += '\n';
 
                 script_content += 'echo "Unsetting TMUX in order to be able to launch new sessions from tmux"\n';
                 script_content += 'unset TMUX\n';
+                script_content += '\n';
                 script_content += 'echo "Starting a new ABCD session"\n';
                 script_content += 'tmux new-session -d -s ABCD\n';
+                script_content += '\n';
                 script_content += 'echo "Creating the window for the GUI webserver"\n';
                 script_content += 'tmux new-window -d -c "/opt/local/abcd/wit/" -P -t ABCD -n wit "node app.js ./config.json"\n';
                 script_content += 'echo "Waiting for node.js to start"\n';
                 script_content += 'sleep 2\n';
+                script_content += '\n';
 
-                modules.forEach((value, index) => {
+                modules.forEach((module, index) => {
                     script_content += `echo "Creating the window for ${module.display_label} of type ${module.type}"\n`;
                     script_content += `tmux new-window -d -c "\${WORKING_DIRECTORY}" -P -t ABCD -n ${module.type}_${index} '${module.executable}`
                     for (const socket_endpoint of module.socket_endpoints) {
