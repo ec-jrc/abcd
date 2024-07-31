@@ -98,6 +98,7 @@
     <div class="columns">
         <div class="display" class="column">
             <h2>Connections scheme</h2>
+            <p><em>N.B.</em> Status and command sockets are automatically connected to the user interface.</p>
             <fieldset>
                 <legend>File</legend>
                 <button id="button-download_startup_script">Download startup script</button>
@@ -112,8 +113,7 @@
                 <button id="button-delete_module">Delete</button>
                 <button id="button-new_module">New</button>
                 <label for="select-new_module">Select new module:</label>
-                <select id="select-new_module">
-                </select>
+                <select id="select-new_module"> </select>
             </fieldset>
 
             <div id="drawing"></div>
@@ -124,20 +124,20 @@
                 <label>Experiment name:
                     <input type="text" id="input-experiment_name" value="experiment" />
                 </label>
-                <p>N.B. This name will be used in the generated file names.</p>
+                <p><em>N.B.</em> This name will be used in the generated file names.</p>
                 <label>Working directory:
                     <input type="text" id="input-working_directory" value="abcd_data/" />
                 </label>
-                <p>N.B. Relative paths are relative to the user home directory.</p>
+                <p><em>N.B.</em> Relative paths are relative to the user home directory.</p>
             </div>
             <h2>Modules options</h2>
             <div id="modules_options"></div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@latest/dist/svg.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.draggable.js@latest/dist/svg.draggable.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jszip/dist/jszip.min.js"></script>
+    <script src="svg.min.js"></script>
+    <script src="svg.draggable.js"></script>
+    <script src="jszip.min.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
@@ -1053,7 +1053,7 @@
 
                 script_content += `echo "Creating wit configuration file: ${wit_configuration_file}"\n`;
                 script_content += `cat <<-"EOF" > "${wit_configuration_file}"\n`;
-                script_content += JSON.stringify(wit_configuration, null, 4);
+                script_content += JSON.stringify(wit_configuration, null, 2);
                 script_content += '\n';
                 script_content += 'EOF\n';
                 script_content += '\n';
