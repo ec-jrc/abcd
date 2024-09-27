@@ -1855,7 +1855,7 @@ state actions::read_data(status &global_status)
                     const size_t current_waveform_buffer_size = global_status.waveforms_buffer.size();
                     const size_t this_waveform_size = waveform_size(&this_waveform);
 
-                    if (verbosity > 2) {
+                    if (verbosity > 3) {
                         char time_buffer[BUFFER_SIZE];
                         time_string(time_buffer, BUFFER_SIZE, NULL);
                         std::cout << '[' << time_buffer << "] ";

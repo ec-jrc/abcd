@@ -32,6 +32,7 @@
 #include "events.h"
 
 #define BUFFER_SIZE_UNIT 1000000
+#define GiB (1024.0 * 1024.0)
 
 // Time between prints of the current index, in seconds
 #define TIC_TIME 0.2
@@ -89,7 +90,7 @@ void write_event_file(FILE *file, uintmax_t index, struct event_PSD event) {
 
 #define insertion_sort(type, source, number_of_events, verbosity) { \
     if ((verbosity) > 0) { \
-        printf("Sorting " #type " at pointer: %#010" PRIxMAX "; with number_of_events: %" PRIuMAX " (%.2f M);\n", (uintmax_t)(source), (number_of_events), (float)(number_of_events) / BUFFER_SIZE_UNIT); \
+        printf("Sorting " #type " at pointer: %#010" PRIxMAX "; with number_of_events: %" PRIuMAX " (%.2f M events);\n", (uintmax_t)(source), (number_of_events), (float)(number_of_events) / BUFFER_SIZE_UNIT); \
     } \
     if ((verbosity) > 1) { \
         printf("\n"); \
@@ -144,7 +145,7 @@ int main(int argc, char *argv[])
                 print_usage(argv[0]);
                 return EXIT_SUCCESS;
             case 'b':
-                buffer_size = atoi(optarg) * BUFFER_SIZE_UNIT;
+                buffer_size = strtoul(optarg, NULL, 0) * BUFFER_SIZE_UNIT;
                 break;
             case 'v':
                 verbosity += 1;
@@ -173,7 +174,7 @@ int main(int argc, char *argv[])
         {
             printf("\t%s\n", argv[i + optind]);
         }
-        printf("Buffer size: %" PRIuMAX " M event\n", buffer_size / BUFFER_SIZE_UNIT);
+        printf("Buffer size: %" PRIuMAX " M event (%.3f GiB)\n", buffer_size / BUFFER_SIZE_UNIT, buffer_size * sizeof(struct event_PSD) / GiB);
         printf("Verbosity: %u\n", verbosity);
         if (disable_sort_on_disk) {
             printf("Sort on disk is disabled!\n");
@@ -217,14 +218,14 @@ int main(int argc, char *argv[])
             number_of_events = file_size / sizeof(struct event_PSD);
 
             if (verbosity > 0) {
-                printf("Number of events in the file: %" PRIuMAX " (%.2f M)\n", number_of_events, (double)number_of_events / BUFFER_SIZE_UNIT);
+                printf("Number of events in the file: %" PRIuMAX " (%.2f M events = %.3f GiB)\n", number_of_events, (double)number_of_events / BUFFER_SIZE_UNIT, number_of_events * sizeof(struct event_PSD) / GiB);
             }
 
             // Move the file pointer to the begin of the file
             fseek(file, 0, SEEK_SET);
 
             if (verbosity > 0) {
-                printf("Sorting file in %" PRIuMAX " full buffers + a buffer of %" PRIuMAX " events (%.2f M)\n", number_of_events / buffer_size, number_of_events % buffer_size, (double)(number_of_events % buffer_size) / BUFFER_SIZE_UNIT);
+                printf("Sorting file in %" PRIuMAX " full buffers + a buffer of %" PRIuMAX " events (%.2f M events = %.3f GiB)\n", number_of_events / buffer_size, number_of_events % buffer_size, (double)(number_of_events % buffer_size) / BUFFER_SIZE_UNIT, (number_of_events % buffer_size) * sizeof(struct event_PSD) / GiB);
             }
 
             // Read the file one buffer at a time
@@ -233,7 +234,7 @@ int main(int argc, char *argv[])
             while ((counter_events = fread(buffer, sizeof(struct event_PSD), buffer_size, file)) > 0)
             {
                 if (verbosity > 0) {
-                    printf("Sorting buffer number: %" PRIuMAX "; size: %" PRIuMAX "\n", counter_buffers, counter_events);
+                    printf("Sorting buffer number: %" PRIuMAX "; size: %" PRIuMAX " events\n", counter_buffers, counter_events);
                 }
 
                 insertion_sort(buffer, buffer, counter_events, verbosity);
@@ -294,7 +295,8 @@ void print_usage(const char *name) {
     printf("\t-h: Display this message\n");
     printf("\t-d: Disables the sorting in-place on the file\n");
     printf("\t-b <buffer_size>: Buffer size for the pre-sorting, in multiples of 1 million events, default: 1\n");
-    printf("\t-v: Set verbose execution, using it multiple times increases the verbosity\n");
+    printf("\t-v: Set verbose execution, using it multiple times increases the verbosity level.\n");
+    printf("\t    With a verbosity of 2 it prints the progress of the sorting.\n");
 
     return;
 }
