@@ -32,10 +32,10 @@
 #include "events.h"
 
 #define BUFFER_SIZE_UNIT 1000000
-#define GiB (1024.0 * 1024.0)
+#define GiB (1024.0 * 1024.0 * 1024.0)
 
 // Time between prints of the current index, in seconds
-#define TIC_TIME 0.2
+#define TIC_TIME 0.6
 #define SECONDS_PER_NANOSECOND 1e-9
 
 void print_usage(const char *name);
@@ -95,12 +95,13 @@ void write_event_file(FILE *file, uintmax_t index, struct event_PSD event) {
     if ((verbosity) > 1) { \
         printf("\n"); \
     } \
-    struct timespec last_tic, now; \
+    struct timespec last_tic; \
     uintmax_t counter_swaps = 0; \
     clock_gettime(CLOCK_REALTIME, &last_tic); \
     for (uintmax_t index_i = 1; index_i < (number_of_events); index_i++) \
     { \
         if ((verbosity) > 1) { \
+            struct timespec now; \
             clock_gettime(CLOCK_REALTIME, &now); \
             const double delta = time_difference(now, last_tic); \
             if (delta > TIC_TIME) { \
