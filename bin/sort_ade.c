@@ -295,6 +295,7 @@ void print_usage(const char *name) {
     printf("\t-h: Display this message\n");
     printf("\t-d: Disables the sorting in-place on the file\n");
     printf("\t-b <buffer_size>: Buffer size for the pre-sorting, in multiples of 1 million events, default: 1\n");
+    printf("\t                  The size of one PSD event is %u B so 1 million events = %u MiB.\n", (unsigned int)sizeof(struct event_PSD), (unsigned int)sizeof(struct event_PSD) * BUFFER_SIZE_UNIT / 1024);
     printf("\t-v: Set verbose execution, using it multiple times increases the verbosity level.\n");
     printf("\t    With a verbosity of 2 it prints the progress of the sorting.\n");
 
