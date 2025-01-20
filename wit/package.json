@@ -20,7 +20,7 @@
     "express": "^4.18.2",
     "file-size": "^1.0.0",
     "fmin": "^0.0.2",
-    "humanize-duration": "^3.31.0",
+    "humanize-duration": "^3.32.1",
     "jquery": "^3.7.1",
     "lodash": "^4.17.21",
     "morgan": "^1.10.0",
