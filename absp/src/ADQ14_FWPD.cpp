@@ -44,7 +44,7 @@ const int ABCD::ADQ14_FWPD::default_DBS_target = 31000;
 const int ABCD::ADQ14_FWPD::default_DBS_saturation_level_lower = 0;
 const int ABCD::ADQ14_FWPD::default_DBS_saturation_level_upper = 0;
 
-const unsigned int ABCD::ADQ14_FWPD::default_DMA_flush_timeout = 1000;
+const unsigned int ABCD::ADQ14_FWPD::default_data_reading_timeout = 3000;
 
 ABCD::ADQ14_FWPD::ADQ14_FWPD(void* adq, int num, int Verbosity) : ABCD::Digitizer(Verbosity),
                                                                   adq_cu_ptr(adq),
@@ -1022,7 +1022,11 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
     }
 
     if (streaming_generation == 1) {
-        while (AcquisitionReady()) {
+        const std::chrono::time_point<std::chrono::system_clock> waveforms_reading_start = std::chrono::system_clock::now();
+
+        auto delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - waveforms_reading_start);
+
+        while (AcquisitionReady() && (delta_time < std::chrono::milliseconds(data_reading_timeout))) {
             // Putting a flush here makes the digitizer unstable and sometimes it gives an error.
             //if (GetVerbosity() > 0)
             //{
@@ -1226,6 +1230,18 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                     // Copy the incomplete header to the start of the target_headers buffer
                     memcpy(target_headers[channel], target_headers[channel] + (added_headers[channel]), sizeof(StreamingHeader_t));
                 }
+            }
+
+            const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+            delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(now - waveforms_reading_start);
+
+            if (GetVerbosity() > 1)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
+                std::cout << "Time since the the beginning of the waveforms reading: " << delta_time.count() << " ms; ";
+                std::cout << std::endl;
             }
         }
     } else {
@@ -1628,10 +1644,10 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
 
     json_object_set_nocheck(transfer_config, "timeout", json_integer(transfer_timeout));
 
-    DMA_flush_timeout = json_number_value(json_object_get(transfer_config, "DMA_flush_timeout"));
+    data_reading_timeout = json_number_value(json_object_get(transfer_config, "data_reading_timeout"));
 
-    if (DMA_flush_timeout <= 0) {
-        DMA_flush_timeout = default_DMA_flush_timeout;
+    if (data_reading_timeout <= 0) {
+        data_reading_timeout = default_data_reading_timeout;
     }
 
     if (GetVerbosity() > 0)
@@ -1639,11 +1655,11 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-        std::cout << "DMA flush timeout: " << DMA_flush_timeout << " ms; ";
+        std::cout << "Data reading timeout: " << data_reading_timeout << " ms; ";
         std::cout << std::endl;
     }
 
-    json_object_set_nocheck(transfer_config, "DMA_flush_timeout", json_integer(DMA_flush_timeout));
+    json_object_set_nocheck(transfer_config, "data_reading_timeout", json_integer(data_reading_timeout));
 
     json_t *json_event_counters_base_address = json_object_get(transfer_config, "event_counters_base_address");
 
