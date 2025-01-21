@@ -24,7 +24,7 @@
     "jquery": "^3.7.1",
     "lodash": "^4.17.21",
     "morgan": "^1.10.0",
-    "node-gyp-build": "^4.8.0",
+    "node-gyp-build": "^4.8.4",
     "plotly.js": "^2.35.3",
     "pug": "^3.0.3",
     "socket.io": "^4.7.4",
