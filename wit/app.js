@@ -9,7 +9,9 @@ var path = require('path');
 var _ = require('lodash');
 var morgan = require('morgan');
 const dayjs = require('dayjs');
-var debug = require('debug')('wit:server');
+var debug_init = require('debug')('wit:server:init');
+var debug_connections = require('debug')('wit:server:connections');
+var debug_messages = require('debug')('wit:server:messages');
 var debug_heartbeat = require('debug')('wit:server:heartbeat');
 var http = require('http');
 const fs = require('fs');
@@ -58,7 +60,7 @@ var logger = morgan('dev');
  * Load the settings
  */
 
-debug("Configuration file: " + args.config_file);
+debug_init("Configuration file: " + args.config_file);
 
 const config_data = fs.readFileSync(args.config_file)
 const config = JSON.parse(config_data);
@@ -105,6 +107,8 @@ router_module.init_sockets(app, logger, config.modules);
 
 var modules_pushes_associations = router_module.get_sockets_push();
 
+// The index router needs the configuration of the module router to render the
+// list of available modules in the index page
 app.use('/', router_index(router_module.get_config()));
 
 app.use('/module', router_module.create_router());
@@ -172,7 +176,7 @@ var socket_io = new IOServer(server);
 var socket_io_modules_associations = {};
 
 socket_io.on('connection', socket => {
-  debug("New socket id: " + socket.id);
+  debug_connections("New socket id: " + socket.id);
 
   // Faking a request and response for morgan
   let req = {'method': 'SOCKET.IO',
@@ -186,7 +190,7 @@ socket_io.on('connection', socket => {
   logger(req, res, (err) => res);
 
   socket.on('join_module', module_name => {
-    debug("Joining socket " + socket.id + " to room: " + module_name);
+    debug_connections("Joining socket " + socket.id + " to room: " + module_name);
     socket.join(module_name);
 
     socket_io_modules_associations[socket.id] = module_name;
@@ -224,7 +228,7 @@ socket_io.on('connection', socket => {
       const module_name = socket_io_modules_associations[socket.id];
       const zmq_sockets_push = modules_pushes_associations[module_name];
 
-      debug("Sending message from id: " + socket.id + " to module: " + module_name);
+      debug_messages("Sending message from id: " + socket.id + " to module: " + module_name);
 
       for (let socket_push of zmq_sockets_push) {
         socket_push.send(message);
@@ -239,7 +243,7 @@ socket_io.on('connection', socket => {
   });
 
   socket.on('disconnect', error => {
-    debug("Socket id: " + socket.id + " ERROR: " + error);
+    debug_connections("Socket id: " + socket.id + " ERROR: " + error);
   
     // Faking a request and response for morgan
     let req = {'method': 'SOCKET.IO',
@@ -332,6 +336,6 @@ function onListening() {
   var bind = typeof addr === 'string'
     ? 'pipe ' + addr
     : 'port ' + addr.port;
-  debug('Listening on ' + bind);
+  debug_init('Listening on ' + bind);
 }
  
