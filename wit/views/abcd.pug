@@ -12,11 +12,6 @@ block content
         p
           button.abcd_start(id="button_start") Start
           button.abcd_stop(id="button_stop") Stop
-        //-p
-        //-  button(id="button_starttimer") Start with timer
-        //-  | #{' '} 
-        //-  label Acquisition time [min]:
-        //-    input(type="number" id="acquisition_time" value="10")
       div.display 
         h3 Status
         div#module_status
@@ -43,6 +38,7 @@ block content
           button(id="button_config_get") Get configuration
           button(id="button_config_download") Download configuration
           button(id="button_config_upload") Upload from file
+          button(id="button_config_store") Store running configuration
           input(type="file" id="input_config_file" hidden)
         p
           div#online_editor

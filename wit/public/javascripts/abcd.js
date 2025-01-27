@@ -26,11 +26,12 @@ function page_loaded() {
 
     const module_name = String($('input#module_name').val());
     
-    console.log("Module name: " + module_name);
+    console.log(`Module name: ${module_name}`);
 
     var old_status = {"timestamp": "###"};
     var last_timestamp = null;
     var last_abcd_config = null;
+    var timestamp_last_send_store_config = null;
 
     var abcd_config_editor = ace.edit("online_editor");
     abcd_config_editor.setTheme("ace/theme/github");
@@ -177,7 +178,9 @@ function page_loaded() {
             return kwargs;
 
         } catch (error) {
-            console.log("Error: " + error);
+            console.error(`ERROR: ${error}`);
+
+            alert(`ERROR: Unable to send new configuration due to:\n${error}`)
 
             return null;
         }
@@ -209,13 +212,13 @@ function page_loaded() {
         if (files.length > 0) {
             const file_name = files[0].name;
 
-            console.log("Opening file with name: " + file_name);
+            console.log(`Opening file with name: ${file_name}`);
 
             let reader = new FileReader();
             reader.readAsText(files[0]);
 
             reader.onload = function () {
-                console.log("Finished reading file with name: " + file_name);
+                console.log(`Finished reading file with name: ${file_name}`);
 
                 const content = reader.result;
                 abcd_config_editor.getSession().setValue(content);
@@ -231,7 +234,7 @@ function page_loaded() {
 
     $("#button_start").on("click", send_command(socket_io, 'start'));
     $("#button_stop").on("click", send_command(socket_io, 'stop'));
-    $("#button_starttimer").on("click", start_timer);
+    //$("#button_starttimer").on("click", start_timer);
     $("#button_config_send").on("click", send_command(socket_io, 'reconfigure', abcd_arguments_config));
     $("#button_config_get").on("click", abcd_get_config);
     $("#button_config_download").on("click", abcd_download_config);
@@ -240,6 +243,8 @@ function page_loaded() {
         // Trigger a click on the hidden input
         $("#input_config_file").click();
     });
+    $("#button_config_store").on("click", send_store_config(socket_io, old_status, 5, timestamp_last_send_store_config));
+
 }
 
 $(page_loaded);
