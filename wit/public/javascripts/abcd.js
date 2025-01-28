@@ -31,7 +31,6 @@ function page_loaded() {
     var old_status = {"timestamp": "###"};
     var last_timestamp = null;
     var last_abcd_config = null;
-    var timestamp_last_send_store_config = null;
 
     var abcd_config_editor = ace.edit("online_editor");
     abcd_config_editor.setTheme("ace/theme/github");
@@ -243,7 +242,7 @@ function page_loaded() {
         // Trigger a click on the hidden input
         $("#input_config_file").click();
     });
-    $("#button_config_store").on("click", send_store_config(socket_io, old_status, 5, timestamp_last_send_store_config));
+    $("#button_config_store").on("click", send_store_config(socket_io, old_status, 5));
 
 }
 

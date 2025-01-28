@@ -210,7 +210,11 @@ function create_and_download_file (contents, file_name, file_type) {
     a.dispatchEvent(click_event);
 }
 
-function send_store_config(socket_io, status_current, confirmation_expiration, timestamp_last_send) {
+function send_store_config(socket_io, status_current, confirmation_expiration) {
+    // We set the first timestamp of the last send in the past to be sure that
+    // the first time it will be expired and the user will see the question
+    let timestamp_last_send = dayjs().add(-2 * confirmation_expiration, "minutes");
+
     return function() {
         if (_.isNil(status_current["config_file"])) {
             alert("ERROR: No configuration filename, this module probably does not support this function");
@@ -218,13 +222,14 @@ function send_store_config(socket_io, status_current, confirmation_expiration, t
             const config_filename = status_current["config_file"];
 
             const now = dayjs();
-            const then = _.isNil(timestamp_last_send) ? now.add(-2 * confirmation_expiration, "minutes") : timestamp_last_send;
-            const difference = now.diff(then, "minutes");
+            const difference = now.diff(timestamp_last_send, "minutes");
+
+            console.log(`Last store configuration: ${timestamp_last_send} (difference from now: ${difference})`);
 
             if (difference < confirmation_expiration) {
                 send_command(socket_io, "store_configuration")();
             } else {
-                if(confirm(`This will overwrite file: ${config_filename}\nAre you really sure?\n(This will not be asked again for the next ${confirmation_expiration} minutes)`)) {
+                if(confirm(`This will overwrite file: "${config_filename}" Are you really sure?\n(This will not be asked again for the next ${confirmation_expiration} minutes)`)) {
                     timestamp_last_send = now;
                     send_command(socket_io, "store_configuration")();
                 }
