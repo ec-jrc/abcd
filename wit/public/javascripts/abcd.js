@@ -225,8 +225,12 @@ function page_loaded() {
         // Trigger a click on the hidden input
         $("#input_config_file").click();
     });
-    $("#button_config_store").on("click", send_store_config(socket_io, old_status, 5));
 
+    // This is generating a function with a closure
+    let send_store = send_store_config(socket_io, 5);
+    $("#button_config_store").on("click", function () {
+        send_store(old_status);
+    });
 }
 
 $(page_loaded);
