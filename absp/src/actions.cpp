@@ -1483,6 +1483,42 @@ state actions::receive_commands(status &global_status)
                         (digitizer)->SpecificCommand(json_arguments);
                     }
                 }
+            } else if (command == std::string("store_configuration")) {
+                const std::string config_file_name = global_status.config_file;
+
+                const int r = json_dump_file(global_status.config, config_file_name.c_str(), JSON_INDENT(4));
+
+                if (r < 0)
+                {
+                    std::string event_description = "Unable to store configuration file to: " + config_file_name;
+
+                    char time_buffer[BUFFER_SIZE];
+                    time_string(time_buffer, BUFFER_SIZE, NULL);
+                    std::cout << '[' << time_buffer << "] ";
+                    std::cout << "ERROR: " << event_description << "; ";
+                    std::cout << std::endl;
+
+                    json_t *json_event_message = json_object();
+
+                    json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
+                    json_object_set_new_nocheck(json_event_message, "error", json_string(event_description.c_str()));
+
+                    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+                    json_decref(json_event_message);
+
+                } else {
+                    const std::string event_description = "Stored configuration to " + config_file_name;
+
+                    json_t *json_event_message = json_object();
+
+                    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+                    json_object_set_new_nocheck(json_event_message, "event", json_string(event_description.c_str()));
+
+                    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+                    json_decref(json_event_message);
+                }
             } else if (command == std::string("off")) {
                 return states::clear_memory;
             } else if (command == std::string("quit")) {
@@ -1535,6 +1571,7 @@ state actions::publish_status(status &global_status)
     json_object_set_new_nocheck(digitizer, "active", json_true());
 
     json_object_set_new_nocheck(status_message, "digitizer", digitizer);
+    json_object_set_new_nocheck(status_message, "config_file", json_string(global_status.config_file.c_str()));
 
     actions::generic::publish_message(global_status, defaults_abcd_status_topic, status_message);
 
@@ -2006,6 +2043,7 @@ state actions::acquisition_publish_status(status &global_status)
 
     json_object_set_new_nocheck(status_message, "acquisition", acquisition);
     json_object_set_new_nocheck(status_message, "digitizer", digitizer);
+    json_object_set_new_nocheck(status_message, "config_file", json_string(global_status.config_file.c_str()));
 
     actions::generic::publish_message(global_status, defaults_abcd_status_topic, status_message);
 
