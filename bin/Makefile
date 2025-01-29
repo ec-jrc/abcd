@@ -8,7 +8,7 @@ LIBS = -lc
 LDFLAGS = $(LIBS)
 
 CSOURCES = sort_ade.c
-CXXSOURCES = filter_timestamps.cpp
+CXXSOURCES = filter_timestamps.cpp events_counter.cpp
 EXECS = $(CSOURCES:.c=) $(CXXSOURCES:.cpp=)
 
 .PHONY: all clean
