@@ -2,6 +2,9 @@
 #define LUAMANAGER_HPP
 
 #include <iostream>
+// For std::this_thread::sleep_for
+#include <thread>
+#include <chrono>
 
 #include <lua.hpp>
 
@@ -59,6 +62,9 @@ public:
         // FIXME: Check whether we should use luaL_requiref() instead of calling directly
         luaopen_ADQAPI(Lua);
         luaopen_digitizers(Lua);
+
+        lua_pushcfunction(Lua, LuaManager::sleep);
+        lua_setglobal(Lua, "sleep");
 
         // Create a new table in which to store the digitizers
         lua_newtable(Lua);
@@ -295,6 +301,35 @@ public:
 
             dump_stack();
         }
+    }
+
+    inline static int sleep(lua_State *L) {
+        // Get the number of arguments
+        const int n = lua_gettop(L);
+
+        if (n != 1) {
+            lua_pushliteral(L, "the sleep() function expects one argument");
+            lua_error(L);
+
+            return 0;
+        }
+
+        if (!lua_isnumber(L, 1))
+        {
+            lua_pushliteral(L, "the argument of the sleep() function must be a number");
+            lua_error(L);
+        }
+
+        const lua_Number milliseconds = lua_tonumber(L, 1);
+
+        if (milliseconds < 0) {
+            lua_pushliteral(L, "the argument of the sleep() function must be a non-negative");
+            lua_error(L);
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(milliseconds)));
+
+        return 0;
     }
 };
 
