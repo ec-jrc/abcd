@@ -318,6 +318,8 @@ public:
         {
             lua_pushliteral(L, "the argument of the sleep() function must be a number");
             lua_error(L);
+
+            return 0;
         }
 
         const lua_Number milliseconds = lua_tonumber(L, 1);
@@ -325,6 +327,8 @@ public:
         if (milliseconds < 0) {
             lua_pushliteral(L, "the argument of the sleep() function must be a non-negative");
             lua_error(L);
+
+            return 0;
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(milliseconds)));
