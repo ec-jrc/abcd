@@ -50,7 +50,7 @@ namespace actions
 
     state create_control_unit(status&);
     state create_digitizer(status&);
-    state recreate_digitizer(status&);
+    state reconfigure_create_digitizer(status&);
     state read_config(status&);
     state configure_digitizer(status&);
     state allocate_memory(status&);

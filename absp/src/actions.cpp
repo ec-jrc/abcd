@@ -1271,7 +1271,7 @@ state actions::create_digitizer(status &global_status)
     const bool success = actions::generic::create_digitizer(global_status);
 
     if (global_status.identification_only) {
-        return states::clear_memory;
+        return states::destroy_digitizer;
     }
 
     if (success)
@@ -1329,7 +1329,7 @@ state actions::read_config(status &global_status)
     }
 }
 
-state actions::recreate_digitizer(status &global_status)
+state actions::reconfigure_create_digitizer(status &global_status)
 {
     const bool success = actions::generic::create_digitizer(global_status);
 
@@ -1361,7 +1361,7 @@ state actions::reconfigure_destroy_digitizer(status &global_status)
 {
     actions::generic::destroy_digitizer(global_status);
 
-    return states::recreate_digitizer;
+    return states::reconfigure_create_digitizer;
 }
 
 state actions::receive_commands(status &global_status)
@@ -2298,7 +2298,7 @@ state actions::parse_error(status &global_status)
 
     json_decref(json_event_message);
 
-    return states::close_sockets;
+    return states::destroy_digitizer;
 }
 
 state actions::configure_error(status &global_status)

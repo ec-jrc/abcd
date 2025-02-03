@@ -39,8 +39,8 @@ const state states::create_control_unit = \
     {105, "Create control unit", actions::create_control_unit };
 const state states::create_digitizer = \
     {106, "Create digitizer", actions::create_digitizer };
-const state states::recreate_digitizer = \
-    {107, "Recreate digitizer", actions::recreate_digitizer };
+const state states::reconfigure_create_digitizer = \
+    {107, "Recreate digitizer", actions::reconfigure_create_digitizer };
 const state states::configure_digitizer = \
     {108, "Configure digitizer", actions::configure_digitizer };
 const state states::allocate_memory = \

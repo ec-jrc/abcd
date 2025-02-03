@@ -33,7 +33,7 @@ namespace states
     extern const state read_config;
     extern const state create_control_unit;
     extern const state create_digitizer;
-    extern const state recreate_digitizer;
+    extern const state reconfigure_create_digitizer;
     extern const state configure_digitizer;
     extern const state allocate_memory;
     extern const state reconfigure_clear_memory;
