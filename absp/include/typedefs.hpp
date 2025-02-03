@@ -73,9 +73,6 @@ struct status
 
     unsigned int channels_number;
 
-    unsigned int poll_timeout;
-    unsigned int rearm_timeout;
-
     // -------------------------------------------------------------------------
     //  DAQ specific variables
     // -------------------------------------------------------------------------
