@@ -1201,7 +1201,7 @@ state actions::create_control_unit(status &global_status)
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << " ADQAPI version is incompatible. The application needs to be recompiled and relinked against the installed ADQAPI; ";
         std::cout << std::endl;
 
-        return states::configure_error;
+        return states::close_sockets;
     }
     if (validation == -2) {
         char time_buffer[BUFFER_SIZE];
@@ -1236,7 +1236,7 @@ state actions::create_control_unit(status &global_status)
     {
         std::cout << "Failed to create adq_cu!" << std::endl;
 
-        return states::configure_error;
+        return states::close_sockets;
     }
 
     if (global_status.verbosity > 1)
