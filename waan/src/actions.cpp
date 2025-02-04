@@ -399,6 +399,21 @@ bool actions::generic::configure(status &global_status)
                             std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load timestamp library: " << dlerror() << "; ";
                             std::cout << std::endl;
 
+                            for (auto& id : channel_ids) {
+                                const std::string event_description = "Load error on channel: " + std::to_string(id) \
+                                                                      + "; Unable to load library: " + lib_timestamp \
+                                                                      + " (" + dlerror() + ")";
+
+                                json_t *json_event_message = json_object();
+
+                                json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
+                                json_object_set_new_nocheck(json_event_message, "error", json_string(event_description.c_str()));
+
+                                actions::generic::publish_message(global_status, defaults_waan_events_topic, json_event_message);
+
+                                json_decref(json_event_message);
+                            }
+
                             dl_loading_error = true;
                         } else {
                             if (verbosity > 0)
@@ -535,6 +550,21 @@ bool actions::generic::configure(status &global_status)
                             std::cout << '[' << time_buffer << "] ";
                             std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy library: " << dlerror() << "; ";
                             std::cout << std::endl;
+
+                            for (auto& id : channel_ids) {
+                                const std::string event_description = "Load error on channel: " + std::to_string(id) \
+                                                                      + "; Unable to load library: " + lib_energy \
+                                                                      + " (" + dlerror() + ")";
+
+                                json_t *json_event_message = json_object();
+
+                                json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
+                                json_object_set_new_nocheck(json_event_message, "error", json_string(event_description.c_str()));
+
+                                actions::generic::publish_message(global_status, defaults_waan_events_topic, json_event_message);
+
+                                json_decref(json_event_message);
+                            }
 
                             dl_loading_error = true;
                         } else {
