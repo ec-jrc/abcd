@@ -393,16 +393,18 @@ bool actions::generic::configure(status &global_status)
                         void *dl_handle = dlopen(lib_timestamp.c_str(), RTLD_NOW);
 
                         if (!dl_handle) {
+                            const std::string error_description = dlerror();
+
                             char time_buffer[BUFFER_SIZE];
                             time_string(time_buffer, BUFFER_SIZE, NULL);
                             std::cout << '[' << time_buffer << "] ";
-                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load timestamp library: " << dlerror() << "; ";
+                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load timestamp library: " << error_description << "; ";
                             std::cout << std::endl;
 
                             for (auto& id : channel_ids) {
                                 const std::string event_description = "Load error on channel: " + std::to_string(id) \
                                                                       + "; Unable to load library: " + lib_timestamp \
-                                                                      + " (" + dlerror() + ")";
+                                                                      + " (" + error_description + ")";
 
                                 json_t *json_event_message = json_object();
 
@@ -482,11 +484,28 @@ bool actions::generic::configure(status &global_status)
                             void *dl_timestamp = dlsym(dl_handle, "timestamp_analysis");
 
                             if (!dl_timestamp) {
+                                const std::string error_description = dlerror();
+
                                 char time_buffer[BUFFER_SIZE];
                                 time_string(time_buffer, BUFFER_SIZE, NULL);
                                 std::cout << '[' << time_buffer << "] ";
-                                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load timestamp function: " << dlerror() << "; ";
+                                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load timestamp function: " << error_description << "; ";
                                 std::cout << std::endl;
+
+                                for (auto& id : channel_ids) {
+                                    const std::string event_description = "Load error on channel: " + std::to_string(id) \
+                                                                          + "; Unable to load the timestamp_analysis function from library: " + lib_timestamp \
+                                                                          + " (" + error_description + ")";
+
+                                    json_t *json_event_message = json_object();
+
+                                    json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
+                                    json_object_set_new_nocheck(json_event_message, "error", json_string(event_description.c_str()));
+
+                                    actions::generic::publish_message(global_status, defaults_waan_events_topic, json_event_message);
+
+                                    json_decref(json_event_message);
+                                }
 
                                 dl_loading_error = true;
                             }
@@ -545,16 +564,18 @@ bool actions::generic::configure(status &global_status)
                         void *dl_handle = dlopen(lib_energy.c_str(), RTLD_NOW);
 
                         if (!dl_handle) {
+			    const std::string error_description = dlerror();
+
                             char time_buffer[BUFFER_SIZE];
                             time_string(time_buffer, BUFFER_SIZE, NULL);
                             std::cout << '[' << time_buffer << "] ";
-                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy library: " << dlerror() << "; ";
+                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy library: " << error_description << "; ";
                             std::cout << std::endl;
 
                             for (auto& id : channel_ids) {
                                 const std::string event_description = "Load error on channel: " + std::to_string(id) \
                                                                       + "; Unable to load library: " + lib_energy \
-                                                                      + " (" + dlerror() + ")";
+                                                                      + " (" + error_description + ")";
 
                                 json_t *json_event_message = json_object();
 
@@ -634,11 +655,28 @@ bool actions::generic::configure(status &global_status)
                             void *dl_energy = dlsym(dl_handle, "energy_analysis");
 
                             if (!dl_energy) {
+                                const std::string error_description = dlerror();
+
                                 char time_buffer[BUFFER_SIZE];
                                 time_string(time_buffer, BUFFER_SIZE, NULL);
                                 std::cout << '[' << time_buffer << "] ";
-                                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy function: " << dlerror() << "; ";
+                                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy function: " << error_description << "; ";
                                 std::cout << std::endl;
+
+                                for (auto& id : channel_ids) {
+                                    const std::string event_description = "Load error on channel: " + std::to_string(id) \
+                                                                          + "; Unable to load the energy_analysis function from library: " + lib_energy \
+                                                                          + " (" + error_description + ")";
+
+                                    json_t *json_event_message = json_object();
+
+                                    json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
+                                    json_object_set_new_nocheck(json_event_message, "error", json_string(event_description.c_str()));
+
+                                    actions::generic::publish_message(global_status, defaults_waan_events_topic, json_event_message);
+
+                                    json_decref(json_event_message);
+                                }
 
                                 dl_loading_error = true;
                             }
