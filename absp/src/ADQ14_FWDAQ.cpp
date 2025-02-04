@@ -24,6 +24,8 @@ extern "C" {
 
 #define BUFFER_SIZE 32
 
+// Defined in V
+const double ABCD::ADQ14_FWDAQ::default_trig_ext_threshold = 0.5;
 // Defined in mVpp
 const float ABCD::ADQ14_FWDAQ::default_input_range = 1000;
 // Defined in ADC samples
@@ -402,7 +404,7 @@ int ABCD::ADQ14_FWDAQ::Configure()
         }
 
         CHECKZERO(ADQ_SetExternTrigEdge(adq_cu_ptr, adq_num, trigger_slope));
-        CHECKZERO(ADQ_SetExtTrigThreshold(adq_cu_ptr, adq_num, 1, trigger_level));
+        CHECKZERO(ADQ_SetExtTrigThreshold(adq_cu_ptr, adq_num, 1, default_trig_ext_threshold));
         //CHECKZERO(ADQ_SetExternalTriggerDelay(adq_cu_ptr, adq_num,  trig_external_delay));
     } else if (trigger_mode == ADQ_LEVEL_TRIGGER_MODE) {
         if (GetVerbosity() > 0)
