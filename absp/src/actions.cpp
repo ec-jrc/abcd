@@ -181,6 +181,15 @@ void actions::generic::publish_message(status &global_status,
 
 bool actions::generic::create_control_unit(status &global_status)
 {
+    json_t *json_event_message = json_object();
+
+    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+    json_object_set_new_nocheck(json_event_message, "event", json_string("Control unit creation"));
+
+    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+    json_decref(json_event_message);
+
     const int validation = ADQAPI_ValidateVersion(ADQAPI_VERSION_MAJOR, ADQAPI_VERSION_MINOR);
 
     if (global_status.verbosity > 0)
@@ -265,6 +274,15 @@ bool actions::generic::create_control_unit(status &global_status)
 
 bool actions::generic::destroy_control_unit(status &global_status)
 {
+    json_t *json_event_message = json_object();
+
+    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+    json_object_set_new_nocheck(json_event_message, "event", json_string("Control unit deactivation"));
+
+    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+    json_decref(json_event_message);
+
     if (global_status.verbosity > 0)
     {
         char time_buffer[BUFFER_SIZE];
