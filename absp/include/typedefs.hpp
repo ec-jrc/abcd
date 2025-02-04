@@ -93,6 +93,9 @@ struct status
     // We are using a vector because it guarantees that the buffer is contiguous.
     std::vector<uint8_t> waveforms_buffer;
 
+    unsigned long counter_restarts;
+    unsigned long counter_resets;
+
     LuaManager lua_manager;
 };
 

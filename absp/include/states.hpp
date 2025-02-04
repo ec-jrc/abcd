@@ -58,6 +58,8 @@ namespace states
     extern const state restart_stop_acquisition;
     extern const state restart_clear_memory;
     extern const state restart_destroy_digitizer;
+    extern const state restart_destroy_control_unit;
+    extern const state restart_create_control_unit;
     extern const state restart_create_digitizer;
     extern const state restart_configure_digitizer;
     extern const state restart_allocate_memory;
@@ -77,6 +79,7 @@ namespace states
     extern const state digitizer_error;
     extern const state acquisition_error;
     extern const state restart_configure_error;
+    extern const state restart_digitizer_error;
 }
 
 #endif
