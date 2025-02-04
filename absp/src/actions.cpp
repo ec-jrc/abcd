@@ -2175,7 +2175,7 @@ state actions::restart_destroy_digitizer(status &global_status)
     actions::generic::destroy_digitizer(global_status);
 
     if (global_status.counter_resets >= defaults_absp_counter_resets_max) {
-        return states::restart_destroy_control_unit;
+        return states::resets_error;
     } else {
         return states::restart_create_digitizer;
     }
@@ -2488,5 +2488,5 @@ state actions::resets_error(status &global_status)
 
     json_decref(json_event_message);
 
-    return states::restart_clear_memory;
+    return states::restart_destroy_control_unit;
 }
