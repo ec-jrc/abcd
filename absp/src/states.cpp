@@ -121,3 +121,7 @@ const state states::restart_configure_error = \
     {905, "Restart configure error", actions::restart_configure_error };
 const state states::restart_digitizer_error = \
     {906, "Restart digitizer error", actions::restart_digitizer_error };
+const state states::restarts_error = \
+    {907, "Restarts error", actions::restarts_error };
+const state states::resets_error = \
+    {908, "Resets error", actions::resets_error };

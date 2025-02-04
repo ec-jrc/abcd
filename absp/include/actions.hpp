@@ -96,6 +96,8 @@ namespace actions
     state acquisition_error(status&);
     state restart_configure_error(status&);
     state restart_digitizer_error(status&);
+    state restarts_error(status&);
+    state resets_error(status&);
 }
 
 #endif

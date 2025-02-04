@@ -80,6 +80,8 @@ namespace states
     extern const state acquisition_error;
     extern const state restart_configure_error;
     extern const state restart_digitizer_error;
+    extern const state restarts_error;
+    extern const state resets_error;
 }
 
 #endif

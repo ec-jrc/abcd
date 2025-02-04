@@ -1797,6 +1797,9 @@ state actions::stop_publish_events(status &global_status)
 
 state actions::stop_acquisition(status &global_status)
 {
+    global_status.counter_restarts = 0;
+    global_status.counter_resets = 0;
+
     actions::generic::stop_acquisition(global_status);
 
     auto delta_time = std::chrono::duration_cast<std::chrono::duration<long int>>(global_status.stop_time - global_status.start_time);
@@ -2132,7 +2135,7 @@ state actions::restart_stop_acquisition(status &global_status)
     // reset of the digitizers. If it is not enough we try a hard reset of the
     // control unit.
     if (global_status.counter_restarts >= defaults_absp_counter_restarts_max) {
-        return states::restart_clear_memory;
+        return states::restarts_error;
     } else {
         return states::start_acquisition;
     }
@@ -2140,6 +2143,8 @@ state actions::restart_stop_acquisition(status &global_status)
 
 state actions::restart_clear_memory(status &global_status)
 {
+    global_status.counter_restarts = 0;
+
     actions::generic::clear_memory(global_status);
 
     return states::restart_destroy_digitizer;
@@ -2390,9 +2395,9 @@ state actions::digitizer_error(status &global_status)
 
 state actions::acquisition_error(status &global_status)
 {
-    const std::string event_message = "Acquistion error (restart n.: " \
+    const std::string event_message = "Acquistion error (restart: " \
                                       + std::to_string(global_status.counter_restarts) \
-                                      + ", resets n.: " \
+                                      + ", reset: " \
                                       + std::to_string(global_status.counter_resets) \
                                       + ")";
 
@@ -2428,6 +2433,38 @@ state actions::restart_digitizer_error(status &global_status)
 
     json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
     json_object_set_new_nocheck(json_event_message, "error", json_string("Restart digitizer error"));
+
+    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+    json_decref(json_event_message);
+
+    return states::restart_clear_memory;
+}
+
+state actions::restarts_error(status &global_status)
+{
+    const std::string event_message = "Restarts error (too many restarts: " + std::to_string(global_status.counter_restarts) + ")";
+
+    json_t *json_event_message = json_object();
+
+    json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
+    json_object_set_new_nocheck(json_event_message, "error", json_string(event_message.c_str()));
+
+    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+    json_decref(json_event_message);
+
+    return states::restart_clear_memory;
+}
+
+state actions::resets_error(status &global_status)
+{
+    const std::string event_message = "Resets error (too many resets: " + std::to_string(global_status.counter_resets) + ")";
+
+    json_t *json_event_message = json_object();
+
+    json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
+    json_object_set_new_nocheck(json_event_message, "error", json_string(event_message.c_str()));
 
     actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
 
