@@ -50,6 +50,8 @@ digraph D {
     acquisition_error [label = "Acquisition\nerror", color = "red"];
     restart_configure_error [label = "Restart\nconfiguration error", color = "red"];
     restart_digitizer_error [label = "Restart\ndigitizer error", color = "red"];
+    restarts_error [label = "Restarts\nerror", color = "red"];
+    resets_error [label = "Resets\nerror", color = "red"];
 
     {rank = "source"; start}
     {rank = "same"; bind_sockets communication_error}
@@ -117,10 +119,12 @@ digraph D {
     acquisition_error -> restart_publish_events;
     restart_publish_events -> restart_stop_acquisition;
     restart_stop_acquisition -> start_acquisition;
-    restart_stop_acquisition -> restart_clear_memory [label = "Too many\nrestarts", color = "red"];
+    restart_stop_acquisition -> restarts_error [label = "Too many\nrestarts", color = "red"];
+    restarts_error -> restart_clear_memory;
     restart_clear_memory -> restart_destroy_digitizer;
     restart_destroy_digitizer -> restart_create_digitizer;
-    restart_destroy_digitizer -> restart_destroy_control_unit [label = "Too many\nresets", color = "red"];
+    restart_destroy_digitizer -> resets_error [label = "Too many\nresets", color = "red"];
+    resets_error -> restart_destroy_control_unit;
     restart_destroy_control_unit -> restart_create_control_unit;
     restart_create_control_unit -> restart_create_digitizer;
     restart_create_digitizer -> restart_configure_digitizer;
