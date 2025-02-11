@@ -12,7 +12,7 @@ ANALYSIS_OBJECTS = $(ANALYSIS_SOURCES:.c=.so)
 CFLAGS += 
 CXXFLAGS += -I../../api/include -I /opt/redpitaya/include
 
-LIBS = -lc -lzmq -ljansson -lm -ldl -lgsl
+LIBS = -lc -lzmq -ljansson -lm -ldl -lgsl -lgslcblas
 LDFLAGS += -L /usr/lib -L/opt/local/lib/ $(LIBS)
 
 .PHONY: all clean
