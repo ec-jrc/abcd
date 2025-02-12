@@ -81,6 +81,8 @@ public:
     static const float default_input_range;
     std::vector<float> desired_input_ranges;
 
+    bool moving_average_bypass;
+
     // The hardware DC offsets set on the channels as requested by the user
     static const int default_DC_offset;
     std::vector<int16_t> DC_offsets;
@@ -124,8 +126,8 @@ public:
     struct ADQDataReadoutParameters readout_parameters;
 
     // The timeout between buffer reads in ms
-    static const unsigned int default_DMA_flush_timeout;
-    unsigned int DMA_flush_timeout;
+    static const unsigned int default_data_reading_timeout;
+    unsigned int data_reading_timeout;
     std::chrono::time_point<std::chrono::system_clock> last_buffer_ready;
 
     // -------------------------------------------------------------------------

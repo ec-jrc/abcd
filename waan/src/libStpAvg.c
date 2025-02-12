@@ -10,9 +10,11 @@
  *  4. The topline is determined by averaging the N samples after the rise time.
  *  5. The energy information is obtained by calculating the difference between
  *     the averages of the baseline and of the topline.
+ *  6. The risetime is calculated between the low and the high levels.
+ *     The risetime is stored in the baseline entry
  *
  * In the event_PSD structure the energy information is stored in the qlong,
- * while the qshort stores the value of the topline only.
+ * while the qshort stores the value of the risetime.
  *
  * The configuration parameters that are searched in a `json_t` object are:
  *
@@ -24,6 +26,12 @@
  *   can be `positive` or `negative`.
  * - `decay_time`: the pulse decay time in terms of clock samples, for the
  *   compensation.
+ * - `smooth_samples`: the number of samples to be averaged in the running
+ *   mean, rounded to the next odd number. Optional, default value: 1
+ * - `low_level`: the low level to calculate the risetime, relative to the pulse
+ *   height. Optional, default value: 0.1
+ * - `high_level`: the high level to calculate the risetime, relative to the
+ *   pulse height. Optional, default value: 0.9
  * - `height_scaling`: a scaling factor multiplied to both the integrals.
  *   Optional, default value: 1
  * - `energy_threshold`: pulses with an energy lower than the threshold are
@@ -51,6 +59,9 @@ struct StpAvg_config
     uint32_t baseline_samples;
     uint32_t rise_samples;
     enum pulse_polarity_t pulse_polarity;
+    uint32_t smooth_samples;
+    double low_level;
+    double high_level;
     double height_scaling;
     double energy_threshold;
 
@@ -61,6 +72,7 @@ struct StpAvg_config
     double *curve_samples;
     double *curve_compensated;
     double *curve_offset;
+    double *curve_smoothed;
 };
 
 /*! \brief Function that allocates the necessary memory for the calculations.
@@ -93,6 +105,27 @@ void energy_init(json_t *json_config, void **user_config)
         config->decay_time = json_integer_value(json_object_get(json_config, "decay_time"));
         config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
         config->rise_samples = json_integer_value(json_object_get(json_config, "rise_samples"));
+
+        if (json_is_number(json_object_get(json_config, "smooth_samples"))) {
+            const unsigned int W = json_number_value(json_object_get(json_config, "smooth_samples"));
+            // Rounding it to the next greater odd number
+            config->smooth_samples = floor(W / 2) * 2 + 1;
+        } else {
+            config->smooth_samples = 1;
+        }
+
+
+        if (json_is_number(json_object_get(json_config, "low_level"))) {
+            config->low_level = json_number_value(json_object_get(json_config, "low_level"));
+        } else {
+            config->low_level = 0.1;
+        }
+
+        if (json_is_number(json_object_get(json_config, "high_level"))) {
+            config->high_level = json_number_value(json_object_get(json_config, "high_level"));
+        } else {
+            config->high_level = 0.9;
+        }
 
         if (json_is_number(json_object_get(json_config, "height_scaling"))) {
             config->height_scaling = json_number_value(json_object_get(json_config, "height_scaling"));
@@ -129,6 +162,7 @@ void energy_init(json_t *json_config, void **user_config)
         config->curve_samples = NULL;
         config->curve_compensated = NULL;
         config->curve_offset = NULL;
+        config->curve_smoothed = NULL;
 
         (*user_config) = (void*)config;
     }
@@ -148,6 +182,9 @@ void energy_close(void *user_config)
     }
     if (config->curve_offset) {
         free(config->curve_offset);
+    }
+    if (config->curve_smoothed) {
+        free(config->curve_smoothed);
     }
 
     if (user_config) {
@@ -219,22 +256,35 @@ void energy_analysis(const uint16_t *samples,
     double topline = 0;
     calculate_average(config->curve_compensated, topline_start, topline_end, &topline);
 
+    const double level_low = config->low_level * (topline - bottomline) + bottomline;
+    const double level_high = config->high_level * (topline - bottomline) + bottomline;
+    size_t index_low = 0;
+    size_t index_high = 0;
+
+    // We use the running mean only for the risetime calculation.
+    // For the rest we use the compensated curve.
+    running_mean(config->curve_compensated, samples_number, config->smooth_samples, &config->curve_smoothed);
+
+    risetime(config->curve_smoothed, 0, samples_number,
+             level_low, level_high,
+             &index_low, &index_high);
+
+    size_t risetime_samples = index_high - index_low;
+
     const double delta = (topline - bottomline) * config->height_scaling;
 
     const uint64_t long_delta = (uint64_t)round(delta);
-    const uint64_t long_topline = (uint64_t)round(topline * config->height_scaling);
 
     // We convert the 64 bit integers to 16 bit to simulate the digitizer data
     uint16_t int_delta = long_delta & UINT16_MAX;
-    uint16_t int_topline = long_topline & UINT16_MAX;
 
     if (long_delta > UINT16_MAX)
     {
         int_delta = UINT16_MAX;
     }
-    if (long_topline > UINT16_MAX)
+    if (risetime_samples > UINT16_MAX)
     {
-        int_topline = UINT16_MAX;
+        risetime_samples = UINT16_MAX;
     }
 
     uint64_t int_baseline = ((uint64_t)round(baseline)) & UINT16_MAX;
@@ -248,7 +298,7 @@ void energy_analysis(const uint16_t *samples,
         // Output
         // We have to assume that this was taken care earlier
         //(*events_buffer)[0].timestamp = waveform->timestamp;
-        (*events_buffer)[0].qshort = int_topline;
+        (*events_buffer)[0].qshort = risetime_samples;
         (*events_buffer)[0].qlong = int_delta;
         (*events_buffer)[0].baseline = int_baseline;
         (*events_buffer)[0].channel = waveform->channel;
@@ -307,6 +357,8 @@ void reallocate_curves(uint32_t samples_number, struct StpAvg_config **user_conf
                                                 samples_number * sizeof(double));
         double *new_curve_offset = realloc(config->curve_offset,
                                            samples_number * sizeof(double));
+        double *new_curve_smoothed = realloc(config->curve_smoothed,
+                                             samples_number * sizeof(double));
 
         if (!new_curve_samples) {
             printf("ERROR: libStpAvg reallocate_curves(): Unable to allocate curve_samples memory\n");
@@ -328,6 +380,13 @@ void reallocate_curves(uint32_t samples_number, struct StpAvg_config **user_conf
             config->is_error = true;
         } else {
             config->curve_offset = new_curve_offset;
+        }
+        if (!new_curve_smoothed) {
+            printf("ERROR: libGrid reallocate_curves(): Unable to allocate curve_smoothed memory\n");
+
+            config->is_error = true;
+        } else {
+            config->curve_smoothed = new_curve_smoothed;
         }
     }
 }

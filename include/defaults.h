@@ -162,6 +162,8 @@
 #define defaults_absp_start_acquisition_delay 10
 #define defaults_absp_waveforms_buffer_size_max_Number 4096
 #define defaults_absp_waveforms_expected_number_of_samples 1024
+#define defaults_absp_counter_restarts_max 3
+#define defaults_absp_counter_resets_max 3
 
 #define defaults_efg_publish_timeout 3
 

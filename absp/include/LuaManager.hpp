@@ -2,6 +2,9 @@
 #define LUAMANAGER_HPP
 
 #include <iostream>
+// For std::this_thread::sleep_for
+#include <thread>
+#include <chrono>
 
 #include <lua.hpp>
 
@@ -42,11 +45,11 @@ private:
     swig_type_info *SWIG_ABCD_ADQ36_FWDAQ_t;
 
 public:
-    LuaManager(int V = 1) : verbosity(V), counter_updates(0), counter_runs(0) {
+    LuaManager(int V = 0) : verbosity(V), counter_updates(0), counter_runs(0) {
         // Create a new state
         Lua = luaL_newstate();
 
-        if (verbosity > 0) {
+        if (verbosity > 1) {
             std::cout << "LuaManager::LuaManager() ";
             std::cout << "Stack length: " << lua_gettop(Lua) << "; ";
             std::cout << std::endl;
@@ -59,6 +62,9 @@ public:
         // FIXME: Check whether we should use luaL_requiref() instead of calling directly
         luaopen_ADQAPI(Lua);
         luaopen_digitizers(Lua);
+
+        lua_pushcfunction(Lua, LuaManager::sleep);
+        lua_setglobal(Lua, "sleep");
 
         // Create a new table in which to store the digitizers
         lua_newtable(Lua);
@@ -78,7 +84,10 @@ public:
         // I put these here, otherwise they give a segfault if put in the
         // update_digitizers() method
         // FIXME: Understand why is it the case...
-        std::cout << "LuaManager::LuaManager() Type query; " << std::endl;
+        if (verbosity > 1) {
+            std::cout << "LuaManager::LuaManager() Type query; " << std::endl;
+        }
+
         SWIG_ABCD_Digitizer_t = SWIG_TypeQuery(Lua, "ABCD::Digitizer *");
         SWIG_ABCD_ADQ214_t = SWIG_TypeQuery(Lua, "ABCD::ADQ214 *");
         SWIG_ABCD_ADQ412_t = SWIG_TypeQuery(Lua, "ABCD::ADQ412 *");
@@ -86,7 +95,7 @@ public:
         SWIG_ABCD_ADQ14_FWPD_t = SWIG_TypeQuery(Lua, "ABCD::ADQ14_FWPD *");
         SWIG_ABCD_ADQ36_FWDAQ_t = SWIG_TypeQuery(Lua, "ABCD::ADQ36_FWDAQ *");
 
-        if (verbosity > 0) {
+        if (verbosity > 1) {
             run_string("print(\"LUA INTERPRETER DEBUG OUTPUT: LuaManager::LuaManager() Finished\");");
 
             dump_stack();
@@ -100,6 +109,10 @@ public:
 
         // Close the lua state
         lua_close(Lua);
+    }
+
+    void set_verbosity(int v) {
+        verbosity = v;
     }
 
     // A helper function that prints the stack length and content
@@ -288,6 +301,39 @@ public:
 
             dump_stack();
         }
+    }
+
+    inline static int sleep(lua_State *L) {
+        // Get the number of arguments
+        const int n = lua_gettop(L);
+
+        if (n != 1) {
+            lua_pushliteral(L, "the sleep() function expects one argument");
+            lua_error(L);
+
+            return 0;
+        }
+
+        if (!lua_isnumber(L, 1))
+        {
+            lua_pushliteral(L, "the argument of the sleep() function must be a number");
+            lua_error(L);
+
+            return 0;
+        }
+
+        const lua_Number milliseconds = lua_tonumber(L, 1);
+
+        if (milliseconds < 0) {
+            lua_pushliteral(L, "the argument of the sleep() function must be a non-negative");
+            lua_error(L);
+
+            return 0;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(milliseconds)));
+
+        return 0;
     }
 };
 

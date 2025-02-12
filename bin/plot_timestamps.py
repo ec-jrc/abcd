@@ -167,6 +167,9 @@ with open(file_name, "rb") as input_file:
 
             chunks_counter += 1
 
+        except KeyboardInterrupt:
+            print("    Detected KeyboardInterrupt, passing to the analysis")
+            break
         except Exception as error:
             print("    ERROR: {}".format(error))
             break

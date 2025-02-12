@@ -13,6 +13,7 @@ background_estimate/background_estimate
 wafi/wafi
 wadi/wadi
 cofi/cofi
+sofi/sofi
 chafi/chafi
 enfi/enfi
 gzad/gzad
@@ -41,5 +42,6 @@ examples/dummy_waveforms_publisher
 absp/absp
 bin/sort_ade
 bin/filter_timestamps
+bin/events_counter
 absp/include/swigluarun.h
 absp/src/Digitizers_wrap.cpp

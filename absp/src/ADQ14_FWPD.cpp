@@ -4,6 +4,8 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+// For std::setfill() and std::setw()
+#include <iomanip>
 #include <stdexcept>
 
 #include <thread>
@@ -42,7 +44,7 @@ const int ABCD::ADQ14_FWPD::default_DBS_target = 31000;
 const int ABCD::ADQ14_FWPD::default_DBS_saturation_level_lower = 0;
 const int ABCD::ADQ14_FWPD::default_DBS_saturation_level_upper = 0;
 
-const unsigned int ABCD::ADQ14_FWPD::default_DMA_flush_timeout = 1000;
+const unsigned int ABCD::ADQ14_FWPD::default_data_reading_timeout = 3000;
 
 ABCD::ADQ14_FWPD::ADQ14_FWPD(void* adq, int num, int Verbosity) : ABCD::Digitizer(Verbosity),
                                                                   adq_cu_ptr(adq),
@@ -297,6 +299,19 @@ int ABCD::ADQ14_FWPD::Configure()
             // This is a physical DC offset added to the signal
             // while ADQ_SetGainAndOffset is a digital calculation
             CHECKZERO(ADQ_SetAdjustableBias(adq_cu_ptr, adq_num, channel + 1, DC_offset));
+
+            int result = 0;
+
+            CHECKZERO(ADQ_GetAdjustableBias(adq_cu_ptr, adq_num, channel + 1, &result));
+
+            if (GetVerbosity() > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+                std::cout << "DC offset: desired: " << DC_offset << ", result: " << result << "; ";
+                std::cout << std::endl;
+            }
         }
 
         if (ADQ_HasAdjustableInputRange(adq_cu_ptr, adq_num) > 0) {
@@ -468,13 +483,16 @@ int ABCD::ADQ14_FWPD::Configure()
             }
 
             // TODO: Enable these features
+            // If the Moving Average module is bypassed, then the thresholds
+            // are not relative to the baseline.
+            const int trigger_level = (moving_average_bypass || smooth_samples[channel] == 0) ? trigger_levels[channel] + DC_offsets[channel] : trigger_levels[channel];
             const int reset_hysteresis = trig_hysteresises[channel];
             const int trig_arm_hysteresis = trig_hysteresises[channel];
             const int reset_arm_hysteresis = trig_hysteresises[channel];
             const int reset_polarity = (trigger_slopes[channel] == ADQ_TRIG_SLOPE_RISING ? ADQ_TRIG_SLOPE_FALLING : ADQ_TRIG_SLOPE_RISING);
 
             CHECKZERO(ADQ_PDSetupLevelTrig(adq_cu_ptr, adq_num, channel + 1,
-                                           trigger_levels[channel],
+                                           trigger_level,
                                            reset_hysteresis,
                                            trig_arm_hysteresis,
                                            reset_arm_hysteresis,
@@ -546,9 +564,16 @@ int ABCD::ADQ14_FWPD::Configure()
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
-        std::cout << "Enabling PD level trigger; ";
+        std::cout << "Disabling the moving average function: " << (moving_average_bypass ? "true" : "false") << "; ";
         std::cout << std::endl;
     }
+
+    // We keep this value at zero and we correct the trigger levels
+    // by the DC_offset
+    const int moving_average_constant_level = 0;
+    CHECKZERO(ADQ_PDSetupMovingAverageBypass(adq_cu_ptr, adq_num,
+                                             moving_average_bypass ? 1 : 0,
+                                             moving_average_constant_level))
 
     // -------------------------------------------------------------------------
     //  Data mux
@@ -601,6 +626,15 @@ int ABCD::ADQ14_FWPD::Configure()
     // -------------------------------------------------------------------------
     //  Streaming setup
     // -------------------------------------------------------------------------
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::Configure() ";
+        std::cout << "Enabling PD level trigger; ";
+        std::cout << std::endl;
+    }
 
     CHECKZERO(ADQ_PDEnableTriggerCoincidence(adq_cu_ptr, adq_num, false ? 1 : 0));
     CHECKZERO(ADQ_PDEnableLevelTrig(adq_cu_ptr, adq_num, true ? 1 : 0));
@@ -922,27 +956,31 @@ bool ABCD::ADQ14_FWPD::AcquisitionReady()
             std::cout << std::endl;
         }
 
-        if (filled_buffers <= 0) {
-            if (delta_time > std::chrono::milliseconds(DMA_flush_timeout))
-            {
-                if (GetVerbosity() > 0)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::AcquisitionReady() ";
-                    std::cout << "Issuing a flush of the DMA; ";
-                    std::cout << std::endl;
-                }
+	// SP Devices support advises not to use the FlushDMA because it can
+	// create issues in the digitizer buffers bringing them to a faulty
+	// status. They suggest to "work around it".
+        //if (filled_buffers <= 0) {
+        //    if (delta_time > std::chrono::milliseconds(DMA_flush_timeout))
+        //    {
+        //        if (GetVerbosity() > 0)
+        //        {
+        //            char time_buffer[BUFFER_SIZE];
+        //            time_string(time_buffer, BUFFER_SIZE, NULL);
+        //            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::AcquisitionReady() ";
+        //            std::cout << "Issuing a flush of the DMA; ";
+        //            std::cout << std::endl;
+        //        }
 
-                CHECKZERO(ADQ_FlushDMA(adq_cu_ptr, adq_num));
-            }
+        //        CHECKZERO(ADQ_FlushDMA(adq_cu_ptr, adq_num));
+        //    }
 
-            return false;
-        } else {
-            last_buffer_ready = std::chrono::system_clock::now();
+        //    return false;
+        //} else {
+        //    last_buffer_ready = std::chrono::system_clock::now();
 
-            return true;
-        }
+        //    return true;
+        //}
+	return true;
     } else {
         // For this streaming generation there is no information whether data
         // is available or not, we can only try to read it
@@ -984,7 +1022,11 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
     }
 
     if (streaming_generation == 1) {
-        while (AcquisitionReady()) {
+        const std::chrono::time_point<std::chrono::system_clock> waveforms_reading_start = std::chrono::system_clock::now();
+
+        auto delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - waveforms_reading_start);
+
+        while (AcquisitionReady() && (delta_time < std::chrono::milliseconds(data_reading_timeout))) {
             // Putting a flush here makes the digitizer unstable and sometimes it gives an error.
             //if (GetVerbosity() > 0)
             //{
@@ -1037,7 +1079,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                 }
 
                 if (IsChannelEnabled(channel) && added_headers[channel] > 0) {
-                    if (GetVerbosity() > 1)
+                    if (GetVerbosity() > 3)
                     {
                         char time_buffer[BUFFER_SIZE];
                         time_string(time_buffer, BUFFER_SIZE, NULL);
@@ -1068,7 +1110,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                         const uint32_t samples_per_record = target_headers[channel][index].RecordLength;
                         const uint64_t timestamp = target_headers[channel][index].Timestamp;
 
-                        if (GetVerbosity() > 1)
+                        if (GetVerbosity() > 3)
                         {
                             char time_buffer[BUFFER_SIZE];
                             time_string(time_buffer, BUFFER_SIZE, NULL);
@@ -1189,6 +1231,18 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                     memcpy(target_headers[channel], target_headers[channel] + (added_headers[channel]), sizeof(StreamingHeader_t));
                 }
             }
+
+            const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+            delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(now - waveforms_reading_start);
+
+            if (GetVerbosity() > 1)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
+                std::cout << "Time since the the beginning of the waveforms reading: " << delta_time.count() << " ms; ";
+                std::cout << std::endl;
+            }
         }
     } else {
         if (GetVerbosity() > 1)
@@ -1226,10 +1280,22 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
                     std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
-                    std::cout << "Status only record: flags: ";
-                    printf("%08" PRIu32 "", ADQ_status.flags);
-                    std::cout << "; ";
+                    std::cout << "Status only record from card: " << GetName() << "; ";
                     std::cout << "Available channel: " << available_channel << "; ";
+	            std::cout << "Flags: " << std::setfill('0') << std::setw(8) << static_cast<unsigned int>(ADQ_status.flags);
+                    //printf("%08" PRIu32 "", ADQ_status.flags);
+		    if (ADQ_status.flags == ADQ_DATA_READOUT_STATUS_FLAGS_STARVING) {
+	            	std::cout << WRITE_YELLOW << " STARVING" << WRITE_NC << "; ";
+		    }
+		    else if (ADQ_status.flags == ADQ_DATA_READOUT_STATUS_FLAGS_INCOMPLETE) {
+	            	std::cout << WRITE_YELLOW << " INCOMPLETE" << WRITE_NC << "; ";
+		    }
+		    else if (ADQ_status.flags == ADQ_DATA_READOUT_STATUS_FLAGS_DISCARDED) {
+	            	std::cout << WRITE_YELLOW << " DISCARDED" << WRITE_NC << "; ";
+		    }
+		    else {
+	            	std::cout << WRITE_RED << " UNKNOWN" << WRITE_NC << "; ";
+		    }
                     std::cout << std::endl;
                 }
             } else if (available_bytes == ADQ_EAGAIN) {
@@ -1245,7 +1311,9 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                     std::cout << std::endl;
                 }
 
-                //ADQ_FlushDMA(adq_cu, adq_num);
+                // When tested, this caused some error in the digitizer that the
+                // user cannot address (according to the ADQAPI itself)
+                //ADQ_FlushDMA(adq_cu_ptr, adq_num);
 
             } else if (available_bytes < 0 && available_bytes != ADQ_EAGAIN) {
                 // This is an error!
@@ -1262,7 +1330,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                 return DIGITIZER_FAILURE;
 
             } else if (available_bytes > 0) {
-                if (GetVerbosity() > 1)
+                if (GetVerbosity() > 3)
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
@@ -1280,7 +1348,7 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                 const uint64_t timestamp = ADQ_record->header->Timestamp;
                 const int16_t *data_buffer = reinterpret_cast<int16_t*>(ADQ_record->data);
 
-                if (GetVerbosity() > 1)
+                if (GetVerbosity() > 3)
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
@@ -1498,6 +1566,19 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
 
     json_object_set_nocheck(config, "timestamp_bit_shift", json_integer(timestamp_bit_shift));
 
+    moving_average_bypass = json_is_true(json_object_get(config, "moving_average_bypass"));
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
+        std::cout << "Moving average bypass: " << (moving_average_bypass ? "true" : "false") << "; ";
+        std::cout << std::endl;
+    }
+
+    json_object_set_nocheck(config, "moving_average_bypass", json_boolean(moving_average_bypass));
+
     // -------------------------------------------------------------------------
     //  Reading the transfer configuration
     // -------------------------------------------------------------------------
@@ -1563,10 +1644,10 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
 
     json_object_set_nocheck(transfer_config, "timeout", json_integer(transfer_timeout));
 
-    DMA_flush_timeout = json_number_value(json_object_get(transfer_config, "DMA_flush_timeout"));
+    data_reading_timeout = json_number_value(json_object_get(transfer_config, "data_reading_timeout"));
 
-    if (DMA_flush_timeout <= 0) {
-        DMA_flush_timeout = default_DMA_flush_timeout;
+    if (data_reading_timeout <= 0) {
+        data_reading_timeout = default_data_reading_timeout;
     }
 
     if (GetVerbosity() > 0)
@@ -1574,11 +1655,11 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-        std::cout << "DMA flush timeout: " << DMA_flush_timeout << " ms; ";
+        std::cout << "Data reading timeout: " << data_reading_timeout << " ms; ";
         std::cout << std::endl;
     }
 
-    json_object_set_nocheck(transfer_config, "DMA_flush_timeout", json_integer(DMA_flush_timeout));
+    json_object_set_nocheck(transfer_config, "data_reading_timeout", json_integer(data_reading_timeout));
 
     json_t *json_event_counters_base_address = json_object_get(transfer_config, "event_counters_base_address");
 
@@ -1860,13 +1941,15 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
                 if (ts_result != ADQ_descriptions::trigger_slope.end() && str_trigger_slope.length() > 0) {
                     trigger_slope = ts_result->first;
 
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-                    std::cout << "Found matching trigger slope; ";
-                    std::cout << "Got: " << str_trigger_slope << "; ";
-                    std::cout << "index: " << trigger_slope << "; ";
-                    std::cout << std::endl;
+                    if (GetVerbosity() > 0) {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
+                        std::cout << "Found matching trigger slope; ";
+                        std::cout << "Got: " << str_trigger_slope << "; ";
+                        std::cout << "index: " << trigger_slope << "; ";
+                        std::cout << std::endl;
+		    }
                 } else {
                     trigger_slope = ADQ_TRIG_SLOPE_FALLING;
 
@@ -1907,7 +1990,7 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
 
                 int smooth_delay = json_number_value(json_object_get(value, "smooth_delay"));
                 smooth_delay = (0 <= smooth_delay && smooth_delay < ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? smooth_delay : 0;
-                smooth_delay = ((smooth_delay + this_smooth_samples) < ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? smooth_delay : (ADQ_ADQ14_MAX_SMOOTH_SAMPLES - this_smooth_samples);
+                smooth_delay = ((smooth_delay + this_smooth_samples) <= ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? smooth_delay : (ADQ_ADQ14_MAX_SMOOTH_SAMPLES - this_smooth_samples);
 
                 json_object_set_nocheck(value, "smooth_delay", json_integer(smooth_delay));
 

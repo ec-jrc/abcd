@@ -26,7 +26,7 @@ function page_loaded() {
 
     const module_name = String($('input#module_name').val());
     
-    console.log("Module name: " + module_name);
+    console.log(`Module name: ${module_name}`);
 
     var old_status = {"timestamp": "###"};
     var last_waan_config = null;
@@ -104,7 +104,9 @@ function page_loaded() {
             return kwargs;
 
         } catch (error) {
-            console.log("Error: " + error);
+            console.error(`ERROR: ${error}`);
+
+            alert(`ERROR: Unable to send new configuration due to:\n${error}`)
 
             return null;
         }
@@ -136,13 +138,13 @@ function page_loaded() {
         if (files.length > 0) {
             const file_name = files[0].name;
 
-            console.log("Opening file with name: " + file_name);
+            console.log(`Opening file with name: ${file_name}`);
 
             let reader = new FileReader();
             reader.readAsText(files[0]);
 
             reader.onload = function () {
-                console.log("Finished reading file with name: " + file_name);
+                console.log(`Finished reading file with name: ${file_name}`);
 
                 const content = reader.result;
                 waan_config_editor.getSession().setValue(content);
@@ -163,6 +165,12 @@ function page_loaded() {
     $("#button_config_upload").on("click", function() {
         // Trigger a click on the hidden input
         $("#input_config_file").click();
+    });
+
+    // This is generating a function with a closure
+    let send_store = send_store_config(socket_io, 5);
+    $("#button_config_store").on("click", function () {
+        send_store(old_status);
     });
 }
 
