@@ -9,9 +9,10 @@
  *  3. The decay is compensated with a recursive filter, obtaining a step
  *     function.
  *  4. The curve is smoothed
- *  5. The negative part of the signal is put to zero.
- *  6. The risetime is calculated between the low and the high levels.
- *     The risetime is stored in the baseline entry
+ *  5. The risetime is calculated between the trigger position and the minimum
+ *     of the signal.
+ *     The risetime is stored in the baseline entry.
+ *  6. The negative part of the signal is put to zero.
  *  7. A recursive high-pass filter (CR filter) is applied.
  *  8. The pulse height is calculated and stored in the qshort entry.
  *  9. A recursive low-pass filter (RC4 filter) is applied.
@@ -223,8 +224,6 @@ void energy_analysis(const uint16_t *samples,
                      size_t *events_number,
                      void *user_config)
 {
-    UNUSED(trigger_positions);
-
     struct Grid_config *config = (struct Grid_config*)user_config;
 
     const uint32_t extended_samples_number = samples_number + config->extension_samples;
@@ -272,6 +271,17 @@ void energy_analysis(const uint16_t *samples,
                  config->smooth_samples, \
                  &config->curve_smoothed);
 
+    double smoothed_min = 0;
+    double smoothed_max = 0;
+    size_t smoothed_index_min = 0;
+    size_t smoothed_index_max = 0;
+
+    find_extrema(config->curve_smoothed, 0, extended_samples_number,
+                 &smoothed_index_min, &smoothed_index_max,
+                 &smoothed_min, &smoothed_max);
+
+    size_t risetime_samples = smoothed_index_min - (*trigger_positions)[0];
+
     // Eliminate the negative part of the signal
     for (uint32_t i = 0; i < samples_number; i += 1) {
         if (config->curve_smoothed[i] < 0) {
@@ -288,17 +298,6 @@ void energy_analysis(const uint16_t *samples,
 
     double topline = 0;
     calculate_average(config->curve_compensated, topline_start, topline_end, &topline);
-
-    const double level_low = config->low_level * topline;
-    const double level_high = config->high_level * topline;
-    size_t index_low = 0;
-    size_t index_high = 0;
-
-    risetime(config->curve_compensated, 0, extended_samples_number,
-             level_low, level_high,
-             &index_low, &index_high);
-
-    size_t risetime_samples = index_high - index_low;
 
     // Extending the waveform with the average of the end part
     for (uint32_t i = samples_number; i < extended_samples_number; i += 1) {
@@ -397,9 +396,9 @@ void energy_analysis(const uint16_t *samples,
         for (uint32_t i = 0; i < samples_number; i++) {
             additional_compensated[i] = (config->curve_compensated[i] / compensated_abs_max) * MAX + ZERO;
 
-            if (i == index_low) {
+            if (i == (*trigger_positions)[0]) {
                 additional_risetime[i] = MAX / 2 + ZERO;
-            } else if (i == index_high) {
+            } else if (i == smoothed_index_min) {
                 additional_risetime[i] = MAX + ZERO;
             } else {
                 additional_risetime[i] = ZERO;
