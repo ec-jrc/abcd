@@ -41,7 +41,7 @@ extern "C"
 
 #define DEFAULT_TIMESTAMP_MINIMUM 0
 #define DEFAULT_TIMESTAMP_MAXIMUM UINT64_MAX
-#define DEFAULT_TIMESTAMP_JUMP 0
+#define DEFAULT_TIMESTAMP_JUMP UINT64_MAX
 
 void print_usage(const char *name);
 
@@ -298,7 +298,7 @@ void print_usage(const char *name)
     std::cout << "\t-b <buffer_size>: Buffer size for the events reading, in multiples of 1 million events, default: 1" << std::endl;
     std::cout << "\t-t: Minimum value of accepted timestamps, default: 0, reasonable value: 1e11" << std::endl;
     std::cout << "\t-T: Maximum value of accepted timestamps, default: UINT64_MAX, reasonable value: 1e18" << std::endl;
-    std::cout << "\t-j: Maximum value of accepted jump backward in time, default: 0, reasonable value: 1e14" << std::endl;
+    std::cout << "\t-j: Maximum value of accepted jump backward in time, default: UINT64_MAX, reasonable value: 1e14" << std::endl;
     std::cout << "\t-s: Adopt the split strategy, instead of correcting the timestamps" << std::endl;
     std::cout << "\t-v: Set verbose execution, using it multiple times increases the verbosity" << std::endl;
 
