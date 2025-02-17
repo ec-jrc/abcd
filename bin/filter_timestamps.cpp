@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
 
                     if (verbosity > 1)
                     {
-                        std::cout << "i: " << counter_total << "; counter jumps: " << counter_jumps << "; detected jump: 0x" << std::hex << timestamp_previous << std::dec << " to 0x" << std::hex << timestamp_current << std::dec << "; discarded so far: " << counter_discarded << " (" << static_cast<double>(counter_discarded) / counter_total * 100.0 << "%); ";
+                        std::cout << "i: " << counter_total << "; counter jumps: " << counter_jumps << "; detected jump: " << static_cast<double>(timestamp_current - timestamp_previous) << "; from 0x" << std::hex << timestamp_previous << std::dec << " to 0x" << std::hex << timestamp_current << std::dec << "; discarded so far: " << counter_discarded << " (" << static_cast<double>(counter_discarded) / counter_total * 100.0 << "%); ";
                     }
 
                     if (use_split_strategy)
