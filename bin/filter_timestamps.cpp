@@ -57,7 +57,11 @@ int main(int argc, char *argv[])
 
     uint64_t timestamp_minimum = DEFAULT_TIMESTAMP_MINIMUM;
     uint64_t timestamp_maximum = DEFAULT_TIMESTAMP_MAXIMUM;
-    uint64_t timestamp_jump = DEFAULT_TIMESTAMP_JUMP;
+    // Using double here because we are not considering small changes and using
+    // uint64_t values sometimes creates overflow issues and non-intuitive
+    // behaviours. Using double here should cast all the rest to doubles in the
+    // "if" conditions.
+    double timestamp_jump = DEFAULT_TIMESTAMP_JUMP;
 
     int c = 0;
     while ((c = getopt(argc, argv, "hvb:t:T:j:s")) != -1)
@@ -104,9 +108,9 @@ int main(int argc, char *argv[])
         std::cout << "Input file name: " << input_file_name << std::endl;
         std::cout << "Output file basename: " << remove_ade_extension(input_file_name) << std::endl;
         std::cout << "Buffer size: " << buffer_size / BUFFER_SIZE_UNIT << " M events (" << (buffer_size / GiB) << " GiB)" << std::endl;
-        std::cout << "Timestamp minimum: " << timestamp_minimum << " (0x" << std::hex << timestamp_minimum << std::dec << ")" << std::endl;
-        std::cout << "Timestamp maximum: " << timestamp_maximum << " (0x" << std::hex << timestamp_maximum << std::dec << ")" << std::endl;
-        std::cout << "Timestamp jump: " << timestamp_jump << " (0x" << std::hex << timestamp_jump << std::dec << ")" << std::endl;
+        std::cout << "Timestamp minimum: " << static_cast<double>(timestamp_minimum) << " (0x" << std::hex << timestamp_minimum << std::dec << ")" << std::endl;
+        std::cout << "Timestamp maximum: " << static_cast<double>(timestamp_maximum) << " (0x" << std::hex << timestamp_maximum << std::dec << ")" << std::endl;
+        std::cout << "Timestamp jump: " << timestamp_jump << std::endl;
         std::cout << "Use split strategy: " << (use_split_strategy ? "true" : "false") << std::endl;
         std::cout << "Verbosity: " << verbosity << std::endl;
     }
@@ -194,7 +198,7 @@ int main(int argc, char *argv[])
                 counter_discarded += 1;
             }
             // Discard isolated jumps backward in time
-            else if ((timestamp_current + timestamp_jump) < timestamp_previous && timestamp_previous < (timestamp_next + timestamp_jump))
+            else if (timestamp_current < (timestamp_previous - timestamp_jump) && (timestamp_previous - timestamp_jump) < timestamp_next)
             {
                 if (verbosity > 2)
                 {
@@ -207,15 +211,13 @@ int main(int argc, char *argv[])
             {
                 // If there is a jump backward in time above a threshold then change output file
                 // The jump should not be an isolated event, but should at least be of two events
-                // WARNING: These are unsigned integers, so better not to use
-                //          subtractions that can cause overflows.
-                if ((timestamp_current + timestamp_jump) < timestamp_previous && (timestamp_next + timestamp_jump) < timestamp_previous)
+                if (timestamp_current < (timestamp_previous - timestamp_jump) && timestamp_next < (timestamp_previous - timestamp_jump))
                 {
                     counter_jumps += 1;
 
                     if (verbosity > 1)
                     {
-                        std::cout << "i: " << counter_total << "; counter jumps: " << counter_jumps << "; detected jump: " << static_cast<double>(timestamp_current - timestamp_previous) << "; from 0x" << std::hex << timestamp_previous << std::dec << " to 0x" << std::hex << timestamp_current << std::dec << "; discarded so far: " << counter_discarded << " (" << static_cast<double>(counter_discarded) / counter_total * 100.0 << "%); ";
+                        std::cout << "i: " << counter_total << "; counter jumps: " << counter_jumps << "; detected jump of: " << static_cast<double>(timestamp_current - timestamp_previous) << "; from 0x" << std::hex << timestamp_previous << std::dec << " to 0x" << std::hex << timestamp_current << std::dec << "; discarded so far: " << counter_discarded << " (" << static_cast<double>(counter_discarded) / counter_total * 100.0 << "%); ";
                     }
 
                     if (use_split_strategy)
