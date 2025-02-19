@@ -457,6 +457,8 @@ void actions::generic::destroy_digitizer(status &global_status)
 
 bool actions::generic::create_digitizer(status &global_status)
 {
+    const std::chrono::time_point<std::chrono::system_clock> initialization_global_start = std::chrono::system_clock::now();
+
     if (global_status.verbosity > 0)
     {
         char time_buffer[BUFFER_SIZE];
@@ -532,30 +534,30 @@ bool actions::generic::create_digitizer(status &global_status)
         std::cout << std::endl;
     }
 
-    std::string initialization_string = "Digitizers initialization: ";
-    initialization_string += "Number of ADQs: " + std::to_string(number_of_ADQs) + "; ";
+    std::string initialization_begin_string = "Digitizers initialization: ";
+    initialization_begin_string += "Number of ADQs: " + std::to_string(number_of_ADQs) + "; ";
 
     if (number_of_ADQ412 > 0) {
-        initialization_string += "Number of ADQ412: " + std::to_string(number_of_ADQ412) + "; ";
+        initialization_begin_string += "Number of ADQ412: " + std::to_string(number_of_ADQ412) + "; ";
     }
     if (number_of_ADQ214 > 0) {
-        initialization_string += "Number of ADQ214: " + std::to_string(number_of_ADQ214) + "; ";
+        initialization_begin_string += "Number of ADQ214: " + std::to_string(number_of_ADQ214) + "; ";
     }
     if (number_of_ADQ14 > 0) {
-        initialization_string += "Number of ADQ14: " + std::to_string(number_of_ADQ14) + "; ";
+        initialization_begin_string += "Number of ADQ14: " + std::to_string(number_of_ADQ14) + "; ";
     }
     if (number_of_ADQ36 > 0) {
-        initialization_string += "Number of ADQ36: " + std::to_string(number_of_ADQ36) + "; ";
+        initialization_begin_string += "Number of ADQ36: " + std::to_string(number_of_ADQ36) + "; ";
     }
 
-    json_t *json_event_message = json_object();
+    json_t *json_event_begin_message = json_object();
 
-    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
-    json_object_set_new_nocheck(json_event_message, "event", json_string(initialization_string.c_str()));
+    json_object_set_new_nocheck(json_event_begin_message, "type", json_string("event"));
+    json_object_set_new_nocheck(json_event_begin_message, "event", json_string(initialization_begin_string.c_str()));
 
-    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_begin_message);
 
-    json_decref(json_event_message);
+    json_decref(json_event_begin_message);
 
     for (unsigned int device_index = 0; device_index < number_of_devices; device_index++) {
         if (global_status.verbosity > 0)
@@ -771,6 +773,24 @@ bool actions::generic::create_digitizer(status &global_status)
         json_decref(json_event_message);
     }
 
+    const std::chrono::time_point<std::chrono::system_clock> initialization_global_stop = std::chrono::system_clock::now();
+    const auto initialization_global_delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(initialization_global_stop - initialization_global_start);
+
+    std::string initialization_done_string = "Digitizers initialization completed";
+    initialization_done_string += " (time: ";
+    initialization_done_string += std::to_string(initialization_global_delta_time.count());
+    initialization_done_string += " ms)";
+
+    json_t *json_event_done_message = json_object();
+
+    json_object_set_new_nocheck(json_event_done_message, "type", json_string("event"));
+    json_object_set_new_nocheck(json_event_done_message, "event", json_string(initialization_done_string.c_str()));
+
+    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_done_message);
+
+    json_decref(json_event_done_message);
+
+
     return true;
 }
 
@@ -792,6 +812,8 @@ bool actions::generic::configure_digitizer(status &global_status)
     // -------------------------------------------------------------------------
     //  Starting the global configuration
     // -------------------------------------------------------------------------
+    const std::chrono::time_point<std::chrono::system_clock> configuration_global_start = std::chrono::system_clock::now();
+
     json_t *config = global_status.config;
 
     json_t *json_global = json_object_get(config, "global");
@@ -907,6 +929,10 @@ bool actions::generic::configure_digitizer(status &global_status)
                         std::cout << std::endl;
                     }
 
+                    const std::chrono::time_point<std::chrono::system_clock> configuration_single_start = std::chrono::system_clock::now();
+
+                    auto delta_time = std::chrono::duration_cast<std::chrono::duration<long int>>(global_status.stop_time - global_status.start_time);
+
                     (digitizer)->Configure();
 
                     if (verbosity > 0)
@@ -940,12 +966,18 @@ bool actions::generic::configure_digitizer(status &global_status)
 
                     global_status.digitizers_user_ids[digitizer_index] = user_id;
 
+                    const std::chrono::time_point<std::chrono::system_clock> configuration_single_stop = std::chrono::system_clock::now();
+                    const auto configuration_single_delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(configuration_single_stop - configuration_single_start);
+
                     std::string configure_string = "Digitizer configuration, model: ";
                     configure_string += digitizer->GetModel();
                     configure_string += ", serial: ";
                     configure_string += digitizer->GetName();
                     configure_string += ", user id: ";
                     configure_string += std::to_string(user_id);
+                    configure_string += " (time: ";
+                    configure_string += std::to_string(configuration_single_delta_time.count());
+                    configure_string += " ms)";
 
                     json_t *json_event_message = json_object();
 
@@ -980,6 +1012,23 @@ bool actions::generic::configure_digitizer(status &global_status)
         std::cout << "Digitizers configuration completed successfully!";
         std::cout << std::endl;
     }
+
+    const std::chrono::time_point<std::chrono::system_clock> configuration_global_stop = std::chrono::system_clock::now();
+    const auto configuration_global_delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(configuration_global_stop - configuration_global_start);
+
+    std::string configure_string = "Digitizers configuration completed";
+    configure_string += " (time: ";
+    configure_string += std::to_string(configuration_global_delta_time.count());
+    configure_string += " ms)";
+
+    json_t *json_event_message = json_object();
+
+    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+    json_object_set_new_nocheck(json_event_message, "event", json_string(configure_string.c_str()));
+
+    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+    json_decref(json_event_message);
 
     json_t *json_scripts = json_object_get(config, "scripts");
 
