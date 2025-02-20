@@ -435,7 +435,19 @@ function page_loaded() {
 
             Plotly.react('plot_ToF', monodimensional_data.concat(other_data).concat(bidimensional_data), layout_ToF);
 
-            $("#fits_results").empty().append(fitter.get_html_ol());
+            $("#fits_results").empty().append(fitter.get_html_all_fit_results());
+
+            let graph_div = document.getElementById('plot_ToF')
+            const ToF_data_index = 0;
+            const ToF_range = graph_div.layout.xaxis.range;
+            const spectrum_data_index = 1;
+            const spectrum_range = graph_div.layout.xaxis2.range;
+
+            const current_ToF_region = fitter.get_region(graph_div, ToF_data_index, ToF_range);
+            const current_spectrum_region = fitter.get_region(graph_div, spectrum_data_index, spectrum_range);
+            
+            $("#ToF_region_statistics").empty().append(fitter.get_html_statistics(current_ToF_region));
+            $("#spectrum_region_statistics").empty().append(fitter.get_html_statistics(current_spectrum_region));
 
             const refresh_time = Number($("#time_refresh").val());
             next_update_plot = dayjs().add(refresh_time, "seconds");

@@ -9,23 +9,29 @@ block content
   h2 On-line spectra calculator
   div.display 
     h3 Plot display
-    fieldset 
-      legend Plot controls
-      p
-        label Show channel: #[select(id="channel_select")] 
-      p
-        button(id="button_fit_energy") Fit visible
-        button(id="button_clear_fit") Clear fits
-      p
-        button(id="button_download_spectrum_data") Download spectrum data 
-    fieldset 
-      legend Channels controls
-      p
-        button(id="button_reset_channel") Reset current channel
-        button(id="button_reset_all") Reset all
+    div.columns
+      div.column
+        fieldset 
+          legend Plot controls
+          p
+            label Show channel: #[select(id="channel_select")] 
+          p
+            button(id="button_fit_energy") Fit visible
+            button(id="button_clear_fit") Clear fits
+          p
+            button(id="button_download_spectrum_data") Download spectrum data 
+      div.column
+        fieldset 
+          legend Channels controls
+          p
+            button(id="button_reset_channel") Reset current channel
+            button(id="button_reset_all") Reset all
     div#plot_spectrum.plot_display
   div.columns
     div.column
+      div.display 
+        h3 Selected region
+        div#region_statistics
       div.display 
         h3 Fits
         div#fits_results
