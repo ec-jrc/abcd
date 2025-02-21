@@ -15,11 +15,13 @@ block content
           legend Plot controls
           p
             label Show channel: #[select(id="channel_select")] 
+            button(id="button_download_spectrum_data") Download spectrum data 
+      div.column
+        fieldset 
+          legend Fit controls
           p
             button(id="button_fit_energy") Fit visible
             button(id="button_clear_fit") Clear fits
-          p
-            button(id="button_download_spectrum_data") Download spectrum data 
       div.column
         fieldset 
           legend Channels controls
@@ -30,7 +32,7 @@ block content
   div.columns
     div.column
       div.display 
-        h3 Selected region
+        h3 Visualized region
         div#region_statistics
       div.display 
         h3 Fits

@@ -15,13 +15,15 @@ block content
           legend Plot controls
           p
             label Show channel: #[select(id="channel_select")] 
+            button(id="button_download_ToF_data") Download ToF data 
+            button(id="button_download_spectrum_data") Download spectrum data 
+      div.column
+        fieldset 
+          legend Fit controls
           p
             button(id="button_fit_ToF") Fit visible ToF
             button(id="button_fit_energy") Fit visible spectrum
             button(id="button_clear_fit") Clear fits
-          p
-            button(id="button_download_ToF_data") Download ToF data 
-            button(id="button_download_spectrum_data") Download spectrum data 
       div.column
         fieldset 
           legend Channels controls
@@ -32,9 +34,9 @@ block content
   div.columns
     div.column
       div.display 
-        h3 Selected ToF region
+        h3 Visualized ToF region
         div#ToF_region_statistics
-        h3 Selected spectrum region
+        h3 Visualized spectrum region
         div#spectrum_region_statistics
       div.display 
         h3 Fits
