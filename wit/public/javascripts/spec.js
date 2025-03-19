@@ -306,7 +306,15 @@ function page_loaded() {
 
             Plotly.react('plot_spectrum', spectrum_data.concat(other_data).concat(PSD_data), layout_spectrum);
 
-            $("#fits_results").empty().append(fitter.get_html_ol());
+            $("#fits_results").empty().append(fitter.get_html_all_fit_results());
+
+            let graph_div = document.getElementById('plot_spectrum')
+            const data_index = 0;
+            const range = graph_div.layout.xaxis.range;
+
+            const current_region = fitter.get_region(graph_div, data_index, range);
+            
+            $("#region_statistics").empty().append(fitter.get_html_statistics(current_region));
 
             const refresh_time = Number($("#time_refresh").val());
             next_update_plot = dayjs().add(refresh_time, "seconds");

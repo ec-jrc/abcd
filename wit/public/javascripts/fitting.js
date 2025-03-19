@@ -1,4 +1,4 @@
-// (C) Copyright 2016,2021 European Union, Cristiano Lino Fontana
+// (C) Copyright 2016,2021,2025 European Union, Cristiano Lino Fontana
 //
 // This file is part of ABCD.
 //
@@ -22,8 +22,10 @@ class Fitter {
         this.fitting_regions = [];
     }
 
-    add_fit(graph_div, data_index, range) {
-        this.fitting_regions.push({
+    get_region(graph_div, data_index, range) {
+        // We are also reading the range object and not only the graph_div
+        // reference because the range could change depending on the user choice
+        return {
             "graph_div": graph_div,
             "data_index": data_index,
             "xaxis": graph_div.data[data_index].xaxis,
@@ -31,7 +33,11 @@ class Fitter {
             "range": range,
             "N": 100,
             "last_params": null
-        })
+        };
+    }
+
+    add_fit(graph_div, data_index, range) {
+        this.fitting_regions.push(this.get_region(graph_div, data_index, range));
     }
 
     get_selected_points(fitting_region) {
@@ -251,7 +257,17 @@ class Fitter {
         return params;
     }
 
-    get_html_ol() {
+    get_html_statistics(current_region) {
+        const data = this.get_selected_points(current_region);
+
+        let statistics = $("<ul>");
+
+        statistics.append($("<li>", {text: `Total counts in range: ${data.sum_y.toFixed(0)} counts`}));
+
+        return statistics;
+    }
+
+    get_html_all_fit_results() {
         let fits_results = $("<ol>");
 
         this.get_all_params().forEach(function (p) {
@@ -270,7 +286,7 @@ class Fitter {
             fit.append($("<li>", {text: "Gaussian area: " + integral.toFixed(2) + " counts * ch"}));
             fit.append($("<li>", {text: "FWHM: " + FWHM.toFixed(2) + " ch"}));
             fit.append($("<li>", {text: "Resolution: " + (FWHM / p.mu * 100).toFixed(2) + "%"}));
-            fit.append($("<li>", {text: "Total counts in range: " + p.sum_y.toFixed(2) + " counts"}));
+            fit.append($("<li>", {text: "Total counts in range: " + p.sum_y.toFixed(0) + " counts"}));
             fit.append($("<li>", {text: "Counts in the peak: " + counts_in_peak.toFixed(2) + " counts"}));
 
             let label = $("<strong>", {text: "Fit n." + (p.data_index + 1)});

@@ -264,8 +264,12 @@ int ABCD::ADQ214::Configure()
             channels_acquisition_mask += (1 << channel);
         }
         if (analog_front_end_couplings[channel] == ADQ_ANALOG_FRONT_END_COUPLING_DC) {
-            channels_analog_front_end_mask += (1 << channel) + (1 << (channel + 2));
+            channels_analog_front_end_mask += (1 << channel);
         }
+
+	// Enabling LF amplification on the channels
+	// TODO Discover what this means
+        channels_analog_front_end_mask += (1 << (channel + 2));
     }
 
     if (GetVerbosity() > 0)

@@ -179,6 +179,125 @@ void actions::generic::publish_message(status &global_status,
     global_status.status_msg_ID += 1;
 }
 
+bool actions::generic::create_control_unit(status &global_status)
+{
+    json_t *json_event_message = json_object();
+
+    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+    json_object_set_new_nocheck(json_event_message, "event", json_string("Control unit creation"));
+
+    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+    json_decref(json_event_message);
+
+    const int validation = ADQAPI_ValidateVersion(ADQAPI_VERSION_MAJOR, ADQAPI_VERSION_MINOR);
+
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "API validation: " << validation << "; ";
+        std::cout << std::endl;
+    }
+
+    if (validation == -1) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " ADQAPI version is incompatible. The application needs to be recompiled and relinked against the installed ADQAPI; ";
+        std::cout << std::endl;
+
+        return false;
+    } else if (validation == -2) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << " ADQAPI version is backwards compatible. It's suggested to recompile and relink the application against the installed ADQAPI; ";
+        std::cout << std::endl;
+    }
+
+    const char *API_revision = ADQAPI_GetRevisionString();
+
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "API revision: " << API_revision << "; ";
+        std::cout << std::endl;
+    }
+
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Creating the ADQ control unit; ";
+        std::cout << std::endl;
+    }
+
+    global_status.adq_cu_ptr = CreateADQControlUnit();
+    if(!global_status.adq_cu_ptr)
+    {
+        std::cout << "Failed to create adq_cu!" << std::endl;
+
+        return false;
+    }
+
+    if (global_status.verbosity > 1)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Enabling error trace at level INFO; ";
+        std::cout << std::endl;
+    
+        // This creates a file when the program is executed
+        ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, LOG_LEVEL_INFO, ".");
+    }
+
+    if (global_status.verbosity > 2)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Enabling full error trace of the ADQAPI; ";
+        std::cout << std::endl;
+
+        // This is to enable all possible log levels
+        ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, 0x7FFFFFFF, ".");
+    }
+
+    return true;
+}
+
+bool actions::generic::destroy_control_unit(status &global_status)
+{
+    json_t *json_event_message = json_object();
+
+    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+    json_object_set_new_nocheck(json_event_message, "event", json_string("Control unit deactivation"));
+
+    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+    json_decref(json_event_message);
+
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Deleting the ADQ control unit; ";
+        std::cout << std::endl;
+    }
+
+    DeleteADQControlUnit(global_status.adq_cu_ptr);
+    global_status.adq_cu_ptr = NULL;
+
+    return true;
+}
+
 int actions::generic::start_acquisition(status &global_status, unsigned int digitizer_index)
 {
     const unsigned int verbosity = global_status.verbosity;
@@ -338,6 +457,8 @@ void actions::generic::destroy_digitizer(status &global_status)
 
 bool actions::generic::create_digitizer(status &global_status)
 {
+    const std::chrono::time_point<std::chrono::system_clock> initialization_global_start = std::chrono::system_clock::now();
+
     if (global_status.verbosity > 0)
     {
         char time_buffer[BUFFER_SIZE];
@@ -413,30 +534,30 @@ bool actions::generic::create_digitizer(status &global_status)
         std::cout << std::endl;
     }
 
-    std::string initialization_string = "Digitizers initialization: ";
-    initialization_string += "Number of ADQs: " + std::to_string(number_of_ADQs) + "; ";
+    std::string initialization_begin_string = "Digitizers initialization: ";
+    initialization_begin_string += "Number of ADQs: " + std::to_string(number_of_ADQs) + "; ";
 
     if (number_of_ADQ412 > 0) {
-        initialization_string += "Number of ADQ412: " + std::to_string(number_of_ADQ412) + "; ";
+        initialization_begin_string += "Number of ADQ412: " + std::to_string(number_of_ADQ412) + "; ";
     }
     if (number_of_ADQ214 > 0) {
-        initialization_string += "Number of ADQ214: " + std::to_string(number_of_ADQ214) + "; ";
+        initialization_begin_string += "Number of ADQ214: " + std::to_string(number_of_ADQ214) + "; ";
     }
     if (number_of_ADQ14 > 0) {
-        initialization_string += "Number of ADQ14: " + std::to_string(number_of_ADQ14) + "; ";
+        initialization_begin_string += "Number of ADQ14: " + std::to_string(number_of_ADQ14) + "; ";
     }
     if (number_of_ADQ36 > 0) {
-        initialization_string += "Number of ADQ36: " + std::to_string(number_of_ADQ36) + "; ";
+        initialization_begin_string += "Number of ADQ36: " + std::to_string(number_of_ADQ36) + "; ";
     }
 
-    json_t *json_event_message = json_object();
+    json_t *json_event_begin_message = json_object();
 
-    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
-    json_object_set_new_nocheck(json_event_message, "event", json_string(initialization_string.c_str()));
+    json_object_set_new_nocheck(json_event_begin_message, "type", json_string("event"));
+    json_object_set_new_nocheck(json_event_begin_message, "event", json_string(initialization_begin_string.c_str()));
 
-    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_begin_message);
 
-    json_decref(json_event_message);
+    json_decref(json_event_begin_message);
 
     for (unsigned int device_index = 0; device_index < number_of_devices; device_index++) {
         if (global_status.verbosity > 0)
@@ -652,6 +773,24 @@ bool actions::generic::create_digitizer(status &global_status)
         json_decref(json_event_message);
     }
 
+    const std::chrono::time_point<std::chrono::system_clock> initialization_global_stop = std::chrono::system_clock::now();
+    const auto initialization_global_delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(initialization_global_stop - initialization_global_start);
+
+    std::string initialization_done_string = "Digitizers initialization completed";
+    initialization_done_string += " (time: ";
+    initialization_done_string += std::to_string(initialization_global_delta_time.count());
+    initialization_done_string += " ms)";
+
+    json_t *json_event_done_message = json_object();
+
+    json_object_set_new_nocheck(json_event_done_message, "type", json_string("event"));
+    json_object_set_new_nocheck(json_event_done_message, "event", json_string(initialization_done_string.c_str()));
+
+    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_done_message);
+
+    json_decref(json_event_done_message);
+
+
     return true;
 }
 
@@ -673,6 +812,8 @@ bool actions::generic::configure_digitizer(status &global_status)
     // -------------------------------------------------------------------------
     //  Starting the global configuration
     // -------------------------------------------------------------------------
+    const std::chrono::time_point<std::chrono::system_clock> configuration_global_start = std::chrono::system_clock::now();
+
     json_t *config = global_status.config;
 
     json_t *json_global = json_object_get(config, "global");
@@ -788,6 +929,10 @@ bool actions::generic::configure_digitizer(status &global_status)
                         std::cout << std::endl;
                     }
 
+                    const std::chrono::time_point<std::chrono::system_clock> configuration_single_start = std::chrono::system_clock::now();
+
+                    auto delta_time = std::chrono::duration_cast<std::chrono::duration<long int>>(global_status.stop_time - global_status.start_time);
+
                     (digitizer)->Configure();
 
                     if (verbosity > 0)
@@ -821,12 +966,18 @@ bool actions::generic::configure_digitizer(status &global_status)
 
                     global_status.digitizers_user_ids[digitizer_index] = user_id;
 
+                    const std::chrono::time_point<std::chrono::system_clock> configuration_single_stop = std::chrono::system_clock::now();
+                    const auto configuration_single_delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(configuration_single_stop - configuration_single_start);
+
                     std::string configure_string = "Digitizer configuration, model: ";
                     configure_string += digitizer->GetModel();
                     configure_string += ", serial: ";
                     configure_string += digitizer->GetName();
                     configure_string += ", user id: ";
                     configure_string += std::to_string(user_id);
+                    configure_string += " (time: ";
+                    configure_string += std::to_string(configuration_single_delta_time.count());
+                    configure_string += " ms)";
 
                     json_t *json_event_message = json_object();
 
@@ -861,6 +1012,23 @@ bool actions::generic::configure_digitizer(status &global_status)
         std::cout << "Digitizers configuration completed successfully!";
         std::cout << std::endl;
     }
+
+    const std::chrono::time_point<std::chrono::system_clock> configuration_global_stop = std::chrono::system_clock::now();
+    const auto configuration_global_delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(configuration_global_stop - configuration_global_start);
+
+    std::string configure_string = "Digitizers configuration completed";
+    configure_string += " (time: ";
+    configure_string += std::to_string(configuration_global_delta_time.count());
+    configure_string += " ms)";
+
+    json_t *json_event_message = json_object();
+
+    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+    json_object_set_new_nocheck(json_event_message, "event", json_string(configure_string.c_str()));
+
+    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+    json_decref(json_event_message);
 
     json_t *json_scripts = json_object_get(config, "scripts");
 
@@ -1034,6 +1202,8 @@ state actions::start(status &global_status)
 {
     global_status.status_msg_ID = 0;
     global_status.data_msg_ID = 0;
+    global_status.counter_restarts = 0;
+    global_status.counter_resets = 0;
 
     return states::create_context;
 }
@@ -1183,87 +1353,16 @@ state actions::bind_sockets(status &global_status)
 
 state actions::create_control_unit(status &global_status)
 {
-    const int validation = ADQAPI_ValidateVersion(ADQAPI_VERSION_MAJOR, ADQAPI_VERSION_MINOR);
+    const bool success = actions::generic::create_control_unit(global_status);
 
-    if (global_status.verbosity > 0)
+    if (success)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "API validation: " << validation << "; ";
-        std::cout << std::endl;
+        return states::create_digitizer;
     }
-
-    if (validation == -1) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " ADQAPI version is incompatible. The application needs to be recompiled and relinked against the installed ADQAPI; ";
-        std::cout << std::endl;
-
-        return states::configure_error;
-    }
-    if (validation == -2) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << " ADQAPI version is backwards compatible. It's suggested to recompile and relink the application against the installed ADQAPI; ";
-        std::cout << std::endl;
-    }
-
-    const char *API_revision = ADQAPI_GetRevisionString();
-
-    if (global_status.verbosity > 0)
+    else
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "API revision: " << API_revision << "; ";
-        std::cout << std::endl;
+        return states::close_sockets;
     }
-
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Creating the ADQ control unit; ";
-        std::cout << std::endl;
-    }
-
-    global_status.adq_cu_ptr = CreateADQControlUnit();
-    if(!global_status.adq_cu_ptr)
-    {
-        std::cout << "Failed to create adq_cu!" << std::endl;
-
-        return states::configure_error;
-    }
-
-    if (global_status.verbosity > 1)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Enabling error trace at level INFO; ";
-        std::cout << std::endl;
-    
-        // This creates a file when the program is executed
-        ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, LOG_LEVEL_INFO, ".");
-    }
-
-    if (global_status.verbosity > 2)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Enabling full error trace of the ADQAPI; ";
-        std::cout << std::endl;
-
-        // This is to enable all possible log levels
-        ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, 0x7FFFFFFF, ".");
-    }
-
-    return states::create_digitizer;
 }
 
 state actions::create_digitizer(status &global_status)
@@ -1271,7 +1370,7 @@ state actions::create_digitizer(status &global_status)
     const bool success = actions::generic::create_digitizer(global_status);
 
     if (global_status.identification_only) {
-        return states::clear_memory;
+        return states::destroy_digitizer;
     }
 
     if (success)
@@ -1329,20 +1428,6 @@ state actions::read_config(status &global_status)
     }
 }
 
-state actions::recreate_digitizer(status &global_status)
-{
-    const bool success = actions::generic::create_digitizer(global_status);
-
-    if (success)
-    {
-        return states::configure_digitizer;
-    }
-    else
-    {
-        return states::configure_error;
-    }
-}
-
 state actions::configure_digitizer(status &global_status)
 {
     const bool success = actions::generic::configure_digitizer(global_status);
@@ -1357,11 +1442,88 @@ state actions::configure_digitizer(status &global_status)
     }
 }
 
+state actions::allocate_memory(status &global_status)
+{
+    const bool success = actions::generic::allocate_memory(global_status);
+
+    if (success)
+    {
+        return states::publish_status;
+    }
+    else
+    {
+        return states::digitizer_error;
+    }
+}
+
+state actions::reconfigure_clear_memory(status &global_status)
+{
+    actions::generic::clear_memory(global_status);
+
+    return states::reconfigure_destroy_digitizer;
+}
+
 state actions::reconfigure_destroy_digitizer(status &global_status)
 {
     actions::generic::destroy_digitizer(global_status);
 
-    return states::recreate_digitizer;
+    return states::reconfigure_create_digitizer;
+}
+
+state actions::reconfigure_create_digitizer(status &global_status)
+{
+    const bool success = actions::generic::create_digitizer(global_status);
+
+    if (success)
+    {
+        return states::configure_digitizer;
+    }
+    else
+    {
+        return states::configure_error;
+    }
+}
+
+state actions::publish_status(status &global_status)
+{
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Publishing status; ";
+        std::cout << std::endl;
+    }
+
+    json_t *status_message = json_object();
+
+    json_object_set_new_nocheck(status_message, "config", json_deep_copy(global_status.config));
+
+    json_t *acquisition = json_object();
+    json_object_set_new_nocheck(acquisition, "running", json_false());
+    json_object_set_new_nocheck(status_message, "acquisition", acquisition);
+
+    json_t *digitizer = json_object();
+
+    // TODO: Check status
+    //if () {
+    //    json_object_set_new_nocheck(digitizer, "valid_pointer", json_false());
+    //    json_object_set_new_nocheck(digitizer, "active", json_false());
+    //} else {
+    //    json_object_set_new_nocheck(digitizer, "valid_pointer", json_true());
+    //    json_object_set_new_nocheck(digitizer, "active", json_true());
+    //}
+    json_object_set_new_nocheck(digitizer, "valid_pointer", json_true());
+    json_object_set_new_nocheck(digitizer, "active", json_true());
+
+    json_object_set_new_nocheck(status_message, "digitizer", digitizer);
+    json_object_set_new_nocheck(status_message, "config_file", json_string(global_status.config_file.c_str()));
+
+    actions::generic::publish_message(global_status, defaults_abcd_status_topic, status_message);
+
+    json_decref(status_message);
+
+    return states::receive_commands;
 }
 
 state actions::receive_commands(status &global_status)
@@ -1483,6 +1645,42 @@ state actions::receive_commands(status &global_status)
                         (digitizer)->SpecificCommand(json_arguments);
                     }
                 }
+            } else if (command == std::string("store_configuration")) {
+                const std::string config_file_name = global_status.config_file;
+
+                const int r = json_dump_file(global_status.config, config_file_name.c_str(), JSON_INDENT(4));
+
+                if (r < 0)
+                {
+                    std::string event_description = "Unable to store configuration file to: " + config_file_name;
+
+                    char time_buffer[BUFFER_SIZE];
+                    time_string(time_buffer, BUFFER_SIZE, NULL);
+                    std::cout << '[' << time_buffer << "] ";
+                    std::cout << "ERROR: " << event_description << "; ";
+                    std::cout << std::endl;
+
+                    json_t *json_event_message = json_object();
+
+                    json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
+                    json_object_set_new_nocheck(json_event_message, "error", json_string(event_description.c_str()));
+
+                    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+                    json_decref(json_event_message);
+
+                } else {
+                    const std::string event_description = "Stored configuration to " + config_file_name;
+
+                    json_t *json_event_message = json_object();
+
+                    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+                    json_object_set_new_nocheck(json_event_message, "event", json_string(event_description.c_str()));
+
+                    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+                    json_decref(json_event_message);
+                }
             } else if (command == std::string("off")) {
                 return states::clear_memory;
             } else if (command == std::string("quit")) {
@@ -1500,80 +1698,6 @@ state actions::receive_commands(status &global_status)
     }
 
     return states::receive_commands;
-}
-
-state actions::publish_status(status &global_status)
-{
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Publishing status; ";
-        std::cout << std::endl;
-    }
-
-    json_t *status_message = json_object();
-
-    json_object_set_new_nocheck(status_message, "config", json_deep_copy(global_status.config));
-
-    json_t *acquisition = json_object();
-    json_object_set_new_nocheck(acquisition, "running", json_false());
-    json_object_set_new_nocheck(status_message, "acquisition", acquisition);
-
-    json_t *digitizer = json_object();
-
-    // TODO: Check status
-    //if () {
-    //    json_object_set_new_nocheck(digitizer, "valid_pointer", json_false());
-    //    json_object_set_new_nocheck(digitizer, "active", json_false());
-    //} else {
-    //    json_object_set_new_nocheck(digitizer, "valid_pointer", json_true());
-    //    json_object_set_new_nocheck(digitizer, "active", json_true());
-    //}
-    json_object_set_new_nocheck(digitizer, "valid_pointer", json_true());
-    json_object_set_new_nocheck(digitizer, "active", json_true());
-
-    json_object_set_new_nocheck(status_message, "digitizer", digitizer);
-
-    actions::generic::publish_message(global_status, defaults_abcd_status_topic, status_message);
-
-    json_decref(status_message);
-
-    return states::receive_commands;
-}
-
-state actions::allocate_memory(status &global_status)
-{
-    const bool success = actions::generic::allocate_memory(global_status);
-
-    if (success)
-    {
-        return states::publish_status;
-    }
-    else
-    {
-        return states::digitizer_error;
-    }
-}
-
-state actions::restart_allocate_memory(status &global_status)
-{
-    const bool success = actions::generic::allocate_memory(global_status);
-
-    if (success)
-    {
-        return states::start_acquisition;
-    }
-    else
-    {
-        return states::restart_configure_error;
-    }
-}
-
-state actions::stop(status&)
-{
-    return states::stop;
 }
 
 state actions::start_acquisition(status &global_status)
@@ -1702,6 +1826,7 @@ state actions::acquisition_receive_commands(status &global_status)
                 std::cout << std::endl;
 
                 return states::stop_publish_events;
+
             } else if (command == std::string("simulate_error")) {
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
@@ -1728,6 +1853,35 @@ state actions::acquisition_receive_commands(status &global_status)
     }
 
     return states::read_data;
+}
+
+state actions::stop_publish_events(status &global_status)
+{
+    actions::generic::publish_events(global_status);
+
+    return states::stop_acquisition;
+}
+
+state actions::stop_acquisition(status &global_status)
+{
+    global_status.counter_restarts = 0;
+    global_status.counter_resets = 0;
+
+    actions::generic::stop_acquisition(global_status);
+
+    auto delta_time = std::chrono::duration_cast<std::chrono::duration<long int>>(global_status.stop_time - global_status.start_time);
+    const std::string event_message = "Stop acquisition (duration: " + std::to_string((long long unsigned int)delta_time.count()) + " s)";
+
+    json_t *json_event_message = json_object();
+
+    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+    json_object_set_new_nocheck(json_event_message, "event", json_string(event_message.c_str()));
+
+    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+    json_decref(json_event_message);
+
+    return states::receive_commands;
 }
 
 state actions::read_data(status &global_status)
@@ -1901,6 +2055,7 @@ state actions::read_data(status &global_status)
 
     if (now - global_status.last_publication > std::chrono::seconds(defaults_abcd_publish_timeout) ||
         global_status.waveforms_buffer_size_Number >= global_status.waveforms_buffer_size_max_Number) {
+
         return states::publish_events;
     }
 
@@ -1918,13 +2073,6 @@ state actions::publish_events(status &global_status)
     }
 
     return states::read_data;
-}
-
-state actions::stop_publish_events(status &global_status)
-{
-    actions::generic::publish_events(global_status);
-
-    return states::stop_acquisition;
 }
 
 state actions::acquisition_publish_status(status &global_status)
@@ -2006,6 +2154,7 @@ state actions::acquisition_publish_status(status &global_status)
 
     json_object_set_new_nocheck(status_message, "acquisition", acquisition);
     json_object_set_new_nocheck(status_message, "digitizer", digitizer);
+    json_object_set_new_nocheck(status_message, "config_file", json_string(global_status.config_file.c_str()));
 
     actions::generic::publish_message(global_status, defaults_abcd_status_topic, status_message);
 
@@ -2024,76 +2173,6 @@ state actions::acquisition_publish_status(status &global_status)
     return states::acquisition_receive_commands;
 }
 
-state actions::stop_acquisition(status &global_status)
-{
-    actions::generic::stop_acquisition(global_status);
-
-    auto delta_time = std::chrono::duration_cast<std::chrono::duration<long int>>(global_status.stop_time - global_status.start_time);
-    const std::string event_message = "Stop acquisition (duration: " + std::to_string((long long unsigned int)delta_time.count()) + " s)";
-
-    json_t *json_event_message = json_object();
-
-    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
-    json_object_set_new_nocheck(json_event_message, "event", json_string(event_message.c_str()));
-
-    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
-
-    json_decref(json_event_message);
-
-    return states::receive_commands;
-}
-
-state actions::clear_memory(status &global_status)
-{
-    actions::generic::clear_memory(global_status);
-
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Clearing the json configuration; ";
-        std::cout << std::endl;
-    }
-
-    // Remember to clean up the json configuration
-    json_decref(global_status.config);
-    global_status.config = NULL;
-
-    return states::destroy_digitizer;
-}
-
-state actions::reconfigure_clear_memory(status &global_status)
-{
-    actions::generic::clear_memory(global_status);
-
-    return states::reconfigure_destroy_digitizer;
-}
-
-state actions::destroy_digitizer(status &global_status)
-{
-    actions::generic::destroy_digitizer(global_status);
-
-    return states::destroy_control_unit;
-}
-
-state actions::destroy_control_unit(status &global_status)
-{
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Deleting the ADQ control unit; ";
-        std::cout << std::endl;
-    }
-
-    DeleteADQControlUnit(global_status.adq_cu_ptr);
-    global_status.adq_cu_ptr = NULL;
-
-    return states::close_sockets;
-}
-
 state actions::restart_publish_events(status &global_status)
 {
     actions::generic::publish_events(global_status);
@@ -2103,6 +2182,8 @@ state actions::restart_publish_events(status &global_status)
 
 state actions::restart_stop_acquisition(status &global_status)
 {
+    global_status.counter_restarts += 1;
+
     actions::generic::stop_acquisition(global_status);
 
     json_t *json_event_message = json_object();
@@ -2116,13 +2197,21 @@ state actions::restart_stop_acquisition(status &global_status)
 
     // Normally after an error we would try to completely reset the digitizers,
     // but the support from SP Devices suggests to try to simply restart the
-    // acquisition. The reconfiguration might not be necessary.
-    //return states::restart_clear_memory;
-    return states::start_acquisition;
+    // acquisition.
+    // Sometimes this ends up in an infinite loop of restarts, we then try a
+    // reset of the digitizers. If it is not enough we try a hard reset of the
+    // control unit.
+    if (global_status.counter_restarts >= defaults_absp_counter_restarts_max) {
+        return states::restarts_error;
+    } else {
+        return states::start_acquisition;
+    }
 }
 
 state actions::restart_clear_memory(status &global_status)
 {
+    global_status.counter_restarts = 0;
+
     actions::generic::clear_memory(global_status);
 
     return states::restart_destroy_digitizer;
@@ -2130,9 +2219,36 @@ state actions::restart_clear_memory(status &global_status)
 
 state actions::restart_destroy_digitizer(status &global_status)
 {
+    global_status.counter_resets += 1;
+
     actions::generic::destroy_digitizer(global_status);
 
-    return states::restart_create_digitizer;
+    if (global_status.counter_resets >= defaults_absp_counter_resets_max) {
+        return states::resets_error;
+    } else {
+        return states::restart_create_digitizer;
+    }
+}
+
+state actions::restart_destroy_control_unit(status &global_status)
+{
+    actions::generic::destroy_control_unit(global_status);
+
+    return states::restart_create_control_unit;
+}
+
+state actions::restart_create_control_unit(status &global_status)
+{
+    const bool success = actions::generic::create_control_unit(global_status);
+
+    if (success)
+    {
+        return states::restart_create_digitizer;
+    }
+    else
+    {
+        return states::close_sockets;
+    }
 }
 
 state actions::restart_create_digitizer(status &global_status)
@@ -2161,6 +2277,54 @@ state actions::restart_configure_digitizer(status &global_status)
     {
         return states::restart_configure_error;
     }
+}
+
+state actions::restart_allocate_memory(status &global_status)
+{
+    const bool success = actions::generic::allocate_memory(global_status);
+
+    if (success)
+    {
+        return states::start_acquisition;
+    }
+    else
+    {
+        return states::restart_configure_error;
+    }
+}
+
+state actions::clear_memory(status &global_status)
+{
+    actions::generic::clear_memory(global_status);
+
+    if (global_status.verbosity > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << "Clearing the json configuration; ";
+        std::cout << std::endl;
+    }
+
+    // Remember to clean up the json configuration
+    json_decref(global_status.config);
+    global_status.config = NULL;
+
+    return states::destroy_digitizer;
+}
+
+state actions::destroy_digitizer(status &global_status)
+{
+    actions::generic::destroy_digitizer(global_status);
+
+    return states::destroy_control_unit;
+}
+
+state actions::destroy_control_unit(status &global_status)
+{
+    actions::generic::destroy_control_unit(global_status);
+
+    return states::close_sockets;
 }
 
 state actions::close_sockets(status &global_status)
@@ -2235,6 +2399,11 @@ state actions::destroy_context(status &global_status)
     return states::stop;
 }
 
+state actions::stop(status&)
+{
+    return states::stop;
+}
+
 state actions::communication_error(status &global_status)
 {
     json_t *json_event_message = json_object();
@@ -2260,7 +2429,7 @@ state actions::parse_error(status &global_status)
 
     json_decref(json_event_message);
 
-    return states::close_sockets;
+    return states::destroy_digitizer;
 }
 
 state actions::configure_error(status &global_status)
@@ -2293,10 +2462,16 @@ state actions::digitizer_error(status &global_status)
 
 state actions::acquisition_error(status &global_status)
 {
+    const std::string event_message = "Acquistion error (restart: " \
+                                      + std::to_string(global_status.counter_restarts) \
+                                      + ", reset: " \
+                                      + std::to_string(global_status.counter_resets) \
+                                      + ")";
+
     json_t *json_event_message = json_object();
 
     json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
-    json_object_set_new_nocheck(json_event_message, "error", json_string("Acquisition error"));
+    json_object_set_new_nocheck(json_event_message, "error", json_string(event_message.c_str()));
 
     actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
 
@@ -2317,4 +2492,50 @@ state actions::restart_configure_error(status &global_status)
     json_decref(json_event_message);
 
     return states::restart_destroy_digitizer;
+}
+
+state actions::restart_digitizer_error(status &global_status)
+{
+    json_t *json_event_message = json_object();
+
+    json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
+    json_object_set_new_nocheck(json_event_message, "error", json_string("Restart digitizer error"));
+
+    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+    json_decref(json_event_message);
+
+    return states::restart_clear_memory;
+}
+
+state actions::restarts_error(status &global_status)
+{
+    const std::string event_message = "Restarts error (too many restarts: " + std::to_string(global_status.counter_restarts) + ")";
+
+    json_t *json_event_message = json_object();
+
+    json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
+    json_object_set_new_nocheck(json_event_message, "error", json_string(event_message.c_str()));
+
+    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+    json_decref(json_event_message);
+
+    return states::restart_clear_memory;
+}
+
+state actions::resets_error(status &global_status)
+{
+    const std::string event_message = "Resets error (too many resets: " + std::to_string(global_status.counter_resets) + ")";
+
+    json_t *json_event_message = json_object();
+
+    json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
+    json_object_set_new_nocheck(json_event_message, "error", json_string(event_message.c_str()));
+
+    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+    json_decref(json_event_message);
+
+    return states::restart_destroy_control_unit;
 }

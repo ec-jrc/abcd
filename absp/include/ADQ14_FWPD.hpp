@@ -126,8 +126,8 @@ public:
     struct ADQDataReadoutParameters readout_parameters;
 
     // The timeout between buffer reads in ms
-    static const unsigned int default_DMA_flush_timeout;
-    unsigned int DMA_flush_timeout;
+    static const unsigned int default_data_reading_timeout;
+    unsigned int data_reading_timeout;
     std::chrono::time_point<std::chrono::system_clock> last_buffer_ready;
 
     // -------------------------------------------------------------------------

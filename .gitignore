@@ -13,6 +13,7 @@ background_estimate/background_estimate
 wafi/wafi
 wadi/wadi
 cofi/cofi
+sofi/sofi
 chafi/chafi
 enfi/enfi
 gzad/gzad
@@ -38,9 +39,10 @@ spec/spec
 abrp/abrp
 abps5000a/abps5000a
 examples/dummy_waveforms_publisher
+examples/read_status
 absp/absp
 bin/sort_ade
 bin/filter_timestamps
-examples/read_status
+bin/events_counter
 absp/include/swigluarun.h
 absp/src/Digitizers_wrap.cpp

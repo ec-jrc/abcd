@@ -26,10 +26,9 @@ function page_loaded() {
 
     const module_name = String($('input#module_name').val());
     
-    console.log("Module name: " + module_name);
+    console.log(`Module name: ${module_name}`);
 
     var old_status = {"timestamp": "###"};
-    var last_timestamp = null;
     var last_abcd_config = null;
 
     var abcd_config_editor = ace.edit("online_editor");
@@ -53,8 +52,6 @@ function page_loaded() {
 
         if (new_status["timestamp"] !== old_status["timestamp"])
         {
-            last_timestamp = new_status["timestamp"];
-
             old_status = new_status;
 
             if (new_status.hasOwnProperty("config")) {
@@ -154,20 +151,6 @@ function page_loaded() {
         }
     }
 
-    function start_timer() {
-        const delay_min = parseFloat($("#acquisition_time").val());
-        const delay_ms = delay_min * 60 * 1000;
-
-        send_command(socket_io, 'start')();
-    
-        console.log("Starting an acquisition of " + delay_min + " min (" + delay_ms + " ms)");
-
-        setTimeout(function () {
-            console.log("End of the acquisition of " + delay_min + " min");
-            send_command(socket_io, 'stop')();
-        }, delay_ms);
-    }
-
     function abcd_arguments_config() {
         try {
             const new_text_config = abcd_config_editor.getSession().getValue();
@@ -177,7 +160,9 @@ function page_loaded() {
             return kwargs;
 
         } catch (error) {
-            console.log("Error: " + error);
+            console.error(`ERROR: ${error}`);
+
+            alert(`ERROR: Unable to send new configuration due to:\n${error}`)
 
             return null;
         }
@@ -209,13 +194,13 @@ function page_loaded() {
         if (files.length > 0) {
             const file_name = files[0].name;
 
-            console.log("Opening file with name: " + file_name);
+            console.log(`Opening file with name: ${file_name}`);
 
             let reader = new FileReader();
             reader.readAsText(files[0]);
 
             reader.onload = function () {
-                console.log("Finished reading file with name: " + file_name);
+                console.log(`Finished reading file with name: ${file_name}`);
 
                 const content = reader.result;
                 abcd_config_editor.getSession().setValue(content);
@@ -231,7 +216,7 @@ function page_loaded() {
 
     $("#button_start").on("click", send_command(socket_io, 'start'));
     $("#button_stop").on("click", send_command(socket_io, 'stop'));
-    $("#button_starttimer").on("click", start_timer);
+
     $("#button_config_send").on("click", send_command(socket_io, 'reconfigure', abcd_arguments_config));
     $("#button_config_get").on("click", abcd_get_config);
     $("#button_config_download").on("click", abcd_download_config);
@@ -239,6 +224,12 @@ function page_loaded() {
     $("#button_config_upload").on("click", function() {
         // Trigger a click on the hidden input
         $("#input_config_file").click();
+    });
+
+    // This is generating a function with a closure
+    let send_store = send_store_config(socket_io, 5);
+    $("#button_config_store").on("click", function () {
+        send_store(old_status);
     });
 }
 

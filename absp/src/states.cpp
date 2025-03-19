@@ -39,8 +39,8 @@ const state states::create_control_unit = \
     {105, "Create control unit", actions::create_control_unit };
 const state states::create_digitizer = \
     {106, "Create digitizer", actions::create_digitizer };
-const state states::recreate_digitizer = \
-    {107, "Recreate digitizer", actions::recreate_digitizer };
+const state states::reconfigure_create_digitizer = \
+    {107, "Recreate digitizer", actions::reconfigure_create_digitizer };
 const state states::configure_digitizer = \
     {108, "Configure digitizer", actions::configure_digitizer };
 const state states::allocate_memory = \
@@ -81,12 +81,16 @@ const state states::restart_clear_memory = \
     {403, "Restart clear memory", actions::restart_clear_memory};
 const state states::restart_destroy_digitizer = \
     {404, "Restart destroy digitizer", actions::restart_destroy_digitizer};
+const state states::restart_destroy_control_unit = \
+    {405, "Restart destroy control unit", actions::restart_destroy_control_unit};
+const state states::restart_create_control_unit = \
+    {406, "Restart create control unit", actions::restart_create_control_unit};
 const state states::restart_create_digitizer = \
-    {405, "Restart create digitizer", actions::restart_create_digitizer};
+    {407, "Restart create digitizer", actions::restart_create_digitizer};
 const state states::restart_configure_digitizer = \
-    {406, "Restart configure digitizer", actions::restart_configure_digitizer};
+    {408, "Restart configure digitizer", actions::restart_configure_digitizer};
 const state states::restart_allocate_memory = \
-    {407, "Restart allocate memory", actions::restart_allocate_memory};
+    {409, "Restart allocate memory", actions::restart_allocate_memory};
 
 // Closing states are 8xx
 const state states::clear_memory = \
@@ -115,3 +119,9 @@ const state states::acquisition_error = \
     {904, "Acquisition error", actions::acquisition_error };
 const state states::restart_configure_error = \
     {905, "Restart configure error", actions::restart_configure_error };
+const state states::restart_digitizer_error = \
+    {906, "Restart digitizer error", actions::restart_digitizer_error };
+const state states::restarts_error = \
+    {907, "Restarts error", actions::restarts_error };
+const state states::resets_error = \
+    {908, "Resets error", actions::resets_error };

@@ -1,4 +1,4 @@
-// (C) Copyright 2016,2021 European Union, Cristiano Lino Fontana
+// (C) Copyright 2016,2021,2025 European Union, Cristiano Lino Fontana
 //
 // This file is part of ABCD.
 //
@@ -208,6 +208,34 @@ function create_and_download_file (contents, file_name, file_type) {
     a.download = file_name;
     a.textContent = 'Download file!';
     a.dispatchEvent(click_event);
+}
+
+function send_store_config(socket_io, confirmation_expiration) {
+    // We set the first timestamp of the last send in the past to be sure that
+    // the first time it will be expired and the user will see the question
+    let timestamp_last_send = dayjs().add(-2 * confirmation_expiration, "minutes");
+
+    return function(status) {
+        if (_.isNil(status["config_file"])) {
+            alert("ERROR: No configuration filename, this module probably does not support this function");
+        } else {
+            const config_filename = status["config_file"];
+
+            const now = dayjs();
+            const difference = now.diff(timestamp_last_send, "minutes");
+
+            console.log(`Last store configuration: ${timestamp_last_send} (difference from now: ${difference})`);
+
+            if (difference < confirmation_expiration) {
+                send_command(socket_io, "store_configuration")();
+            } else {
+                if(confirm(`This will overwrite file: "${config_filename}" Are you really sure?\n(This will not be asked again for the next ${confirmation_expiration} minutes)`)) {
+                    timestamp_last_send = now;
+                    send_command(socket_io, "store_configuration")();
+                }
+            }
+        }
+    }
 }
 
 function generate_slider (id, checked) {

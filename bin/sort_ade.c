@@ -15,9 +15,6 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with ABCD.  If not, see <http://www.gnu.org/licenses/>.
- *
- * Compile with:
- *         gcc -w -Wall -pedantic -O3 sort_ade.c -o sort_ade
  */
 
 #include <stdio.h>

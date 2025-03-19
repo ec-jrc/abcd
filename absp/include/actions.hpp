@@ -33,14 +33,18 @@ namespace actions
         // This function is used in the publish_status actions
         void publish_message(status&, std::string, json_t*);
 
+        bool create_control_unit(status&);
+        bool destroy_control_unit(status&);
+
+        bool create_digitizer(status&);
+        bool configure_digitizer(status&);
+        void destroy_digitizer(status&);
+        bool allocate_memory(status&);
+        void clear_memory(status&);
+
         int start_acquisition(status&, unsigned int);
         void rearm_trigger(status&, unsigned int);
         void stop_acquisition(status&);
-        bool allocate_memory(status&);
-        void clear_memory(status&);
-        void destroy_digitizer(status&);
-        bool create_digitizer(status&);
-        bool configure_digitizer(status&);
     }
 
     state start(status&);
@@ -50,7 +54,7 @@ namespace actions
 
     state create_control_unit(status&);
     state create_digitizer(status&);
-    state recreate_digitizer(status&);
+    state reconfigure_create_digitizer(status&);
     state read_config(status&);
     state configure_digitizer(status&);
     state allocate_memory(status&);
@@ -75,6 +79,8 @@ namespace actions
     state restart_stop_acquisition(status&);
     state restart_clear_memory(status&);
     state restart_destroy_digitizer(status&);
+    state restart_destroy_control_unit(status&);
+    state restart_create_control_unit(status&);
     state restart_create_digitizer(status&);
     state restart_configure_digitizer(status&);
     state restart_allocate_memory(status&);
@@ -89,6 +95,9 @@ namespace actions
     state digitizer_error(status&);
     state acquisition_error(status&);
     state restart_configure_error(status&);
+    state restart_digitizer_error(status&);
+    state restarts_error(status&);
+    state resets_error(status&);
 }
 
 #endif

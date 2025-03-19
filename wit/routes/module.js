@@ -1,8 +1,9 @@
 "use strict";
 
 var express = require('express');
-var debug = require('debug')('wit:module');
+var debug_init = require('debug')('wit:module:init');
 var debug_messages = require('debug')('wit:module:messages');
+var debug_get = require('debug')('wit:module:get');
 var _ = require('lodash');
 var zmq = require('zeromq');
 var os = require("os");
@@ -19,7 +20,7 @@ var clean_configs = [];
 var zmq_sockets_push = {};
 var modules_events = {};
 
-function parse_configs (modules_configs) {
+function parse_configs(modules_configs) {
   let clean_configs = [];
 
   for (let config of modules_configs) {
@@ -31,7 +32,7 @@ function parse_configs (modules_configs) {
       if (_.has(clean_configs, module_name)) {
         console.error("ERROR: Module names should be unique. Repeated name: " + module_name);
       } else {
-        debug("Found module: " + module_name + " of type: " + module_type + " and sockets: " + config.sockets.length);
+        debug_init("Found module: " + module_name + " of type: " + module_type + " and sockets: " + config.sockets.length);
 
         let sockets = [];
 
@@ -42,20 +43,22 @@ function parse_configs (modules_configs) {
             // Topic might be empty!
             const socket_topic = String(_.get(socket_config, "topic", ""));
 
-            debug("Found zmq socket of type: " + socket_type + " and address: " + socket_address + " (topic: " + socket_topic + ")");
-            
-            sockets.push({"type": socket_type,
-                          "address": socket_address,
-                          "topic": socket_topic
-                         });
+            debug_init("Found zmq socket of type: " + socket_type + " and address: " + socket_address + " (topic: " + socket_topic + ")");
+
+            sockets.push({
+              "type": socket_type,
+              "address": socket_address,
+              "topic": socket_topic
+            });
           }
         }
 
-        clean_configs.push({"name": module_name,
-                            "description": module_description,
-                            "type": module_type,
-                            "sockets": sockets
-                           });
+        clean_configs.push({
+          "name": module_name,
+          "description": module_description,
+          "type": module_type,
+          "sockets": sockets
+        });
       }
     }
   }
@@ -63,68 +66,63 @@ function parse_configs (modules_configs) {
   return clean_configs;
 }
 
-function create_zmq_socket(module_name, socket_config) {
+async function create_zmq_socket(module_name, socket_config) {
   const socket_type = socket_config.type;
   const socket_address = socket_config.address;
   const socket_topic = socket_config.topic;
 
   // Faking a request and response for morgan
-  let req = {'method': 'ZMQ',
-             'url': "Creating zmq socket of type: " + socket_type + " and address: " + socket_address + " (topic: " + socket_topic + ")"};
+  let req = {
+    'method': 'ZMQ',
+    'url': "Creating zmq socket of type: " + socket_type + " and address: " + socket_address + " (topic: " + socket_topic + ")"
+  };
   // With a true in headersSent morgan prints the status code
-  let res = {'headersSent': true,
-             'getHeader': (name) => '',
-             'statusCode': 201,
-             'statusMessage': 'Created'};
+  let res = {
+    'headersSent': true,
+    'getHeader': (name) => '',
+    'statusCode': 201,
+    'statusMessage': 'Created'
+  };
 
   logger(req, res, (err) => res);
 
-  if (socket_type === "status" || socket_type === "data") {
-    var sock = zmq.socket('sub');
+  if (socket_type === "status" || socket_type === "data" || socket_type === "events") {
+    var sock = new zmq.Subscriber();
+
     sock.connect(socket_address);
     sock.subscribe(socket_topic);
 
-    sock.on('message', function(message) {
+    // We need to use an array for potential multi-part messages, that are not
+    // used in ABCD
+    for await (const [message, ] of sock) {
       // The message is a Buffer
       const separator_index = _.findIndex(message, c => (c === 32));
       const topic = message.slice(0, separator_index).toString('ascii');
       const payload = message.slice(separator_index + 1);
 
-      debug_messages('Received a message with topic: ' + topic);
+      debug_messages(message);
+      debug_messages(`Received a ${socket_type} message with topic: "${topic}" ${separator_index}`);
+      debug_messages(typeof payload);
 
       try {
-          let socket_io = app.get('socket_io');
-          socket_io.to(module_name).emit(socket_type, payload);
-      } catch (error) {
-        //console.error(error);
-      }
-    });
+        let socket_io = app.get('socket_io');
 
-  } else if (socket_type === "events") {
-    var sock = zmq.socket('sub');
-    sock.connect(socket_address);
-    sock.subscribe(socket_config.topic);
+        if (socket_type === "events") {
+          const parsed_payload = JSON.parse(payload.toString('utf8'));
 
-    sock.on('message', function(message) {
-      // The message is a Buffer
-      const separator_index = _.findIndex(message, c => (c === 32));
-      const topic = message.slice(0, separator_index).toString('ascii');
-      const payload = JSON.parse(message.slice(separator_index + 1).toString('utf8'));
+          modules_events[module_name].push(parsed_payload);
 
-      debug_messages('Received a message with topic: ' + topic);
-
-      modules_events[module_name].push(payload);
-
-      try {
-          let socket_io = app.get('socket_io');
           socket_io.to(module_name).emit(socket_type, modules_events[module_name]);
+        } else {
+          socket_io.to(module_name).emit(socket_type, payload);
+        }
       } catch (error) {
-        //console.error(error);
+        console.error(error);
       }
-    });
-
+    }
   } else if (socket_type === "commands") {
-    var sock = zmq.socket('push');
+    var sock = new zmq.Push();
+
     sock.connect(socket_address);
 
     zmq_sockets_push[module_name].push(sock);
@@ -144,7 +142,7 @@ function init_sockets(this_app, this_logger, modules_configs) {
     const module_type = config.type;
     const module_sockets = config.sockets;
 
-    debug("Creating sockets for module: " + module_name + " of type: " + module_type);
+    debug_init("Creating sockets for module: " + module_name + " of type: " + module_type);
 
     zmq_sockets_push[module_name] = [];
     modules_events[module_name] = [];
@@ -160,18 +158,20 @@ function create_router() {
     const module_name = config.name;
     const module_type = config.type;
 
-    debug("Routing module: " + module_name + " of type: " + module_type);
+    debug_init("Routing module: " + module_name + " of type: " + module_type);
 
     /* GET home page. */
-    router.get('/' + String(module_name), function(req, res, next) {
-      debug("Router call on: " + hostname + " with type: " + module_type + " and name: " + module_name);
+    router.get('/' + String(module_name), function (req, res, next) {
+      debug_get("Router call on: " + hostname + " with type: " + module_type + " and name: " + module_name);
 
       res.render(String(module_type),
-                 {'title': 'ABCD: ' + module_name,
-                  'hostname': hostname,
-                  'type': module_type,
-                  'name': module_name,
-                  'modules': clean_configs});
+        {
+          'title': 'ABCD: ' + module_name,
+          'hostname': hostname,
+          'type': module_type,
+          'name': module_name,
+          'modules': clean_configs
+        });
     });
   }
 

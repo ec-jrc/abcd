@@ -12,28 +12,9 @@ block content
         p
           button.abcd_start(id="button_start") Start
           button.abcd_stop(id="button_stop") Stop
-        //-p
-        //-  button(id="button_starttimer") Start with timer
-        //-  | #{' '} 
-        //-  label Acquisition time [min]:
-        //-    input(type="number" id="acquisition_time" value="10")
       div.display 
         h3 Status
         div#module_status
-      div.display 
-        h3 Events log
-        div#events_log.scrollable
-      div.display 
-        h3 Connection status
-        p #[strong Computer hostname:] #{hostname}
-        p #[strong Name:] #{name} of type #{type}
-        p #[strong Webserver connection:] #[span#wit_connection_status.unknown_status No connection]
-        p #[strong Module connection:] #[span#module_connection_status.unknown_status No connection]
-      div.display 
-        h3 User interface settings
-        p
-          label Expiration time [s]:
-            input(type="number" id="time_expiration" value="10")
     div.column
       div.display 
         h3 Digitizer configuration
@@ -44,5 +25,23 @@ block content
           button(id="button_config_download") Download configuration
           button(id="button_config_upload") Upload from file
           input(type="file" id="input_config_file" hidden)
+          button(id="button_config_store") Store running configuration
         p
           div#online_editor
+  div.display 
+    h3 Events log
+    div#events_log.scrollable
+  div.columns
+    div.column
+      div.display 
+        h3 Connection status
+        p #[strong Computer hostname:] #{hostname}
+        p #[strong Name:] #{name} of type #{type}
+        p #[strong Webserver connection:] #[span#wit_connection_status.unknown_status No connection]
+        p #[strong Module connection:] #[span#module_connection_status.unknown_status No connection]
+    div.column
+      div.display 
+        h3 User interface settings
+        p
+          label Expiration time [s]:
+            input(type="number" id="time_expiration" value="10")

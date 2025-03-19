@@ -44,7 +44,7 @@ const int ABCD::ADQ14_FWPD::default_DBS_target = 31000;
 const int ABCD::ADQ14_FWPD::default_DBS_saturation_level_lower = 0;
 const int ABCD::ADQ14_FWPD::default_DBS_saturation_level_upper = 0;
 
-const unsigned int ABCD::ADQ14_FWPD::default_DMA_flush_timeout = 1000;
+const unsigned int ABCD::ADQ14_FWPD::default_data_reading_timeout = 3000;
 
 ABCD::ADQ14_FWPD::ADQ14_FWPD(void* adq, int num, int Verbosity) : ABCD::Digitizer(Verbosity),
                                                                   adq_cu_ptr(adq),
@@ -944,7 +944,7 @@ bool ABCD::ADQ14_FWPD::AcquisitionReady()
         CHECKZERO(ADQ_GetTransferBufferStatus(adq_cu_ptr, adq_num, &filled_buffers));
 
         const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
-        auto delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_buffer_ready);
+        const auto delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_buffer_ready);
 
         if (GetVerbosity() > 1)
         {
@@ -956,31 +956,30 @@ bool ABCD::ADQ14_FWPD::AcquisitionReady()
             std::cout << std::endl;
         }
 
-	// SP Devices support advises not to use the FlushDMA because it can
-	// create issues in the digitizer buffers bringing them to a faulty
-	// status. They suggest to "work around it".
-        //if (filled_buffers <= 0) {
-        //    if (delta_time > std::chrono::milliseconds(DMA_flush_timeout))
-        //    {
-        //        if (GetVerbosity() > 0)
-        //        {
-        //            char time_buffer[BUFFER_SIZE];
-        //            time_string(time_buffer, BUFFER_SIZE, NULL);
-        //            std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::AcquisitionReady() ";
-        //            std::cout << "Issuing a flush of the DMA; ";
-        //            std::cout << std::endl;
-        //        }
+        if (filled_buffers <= 0) {
+            // SP Devices support advises not to use the FlushDMA because it can
+            // create issues in the digitizer buffers bringing them to a faulty
+            // status. They suggest to "work around it".
+            //if (delta_time > std::chrono::milliseconds(DMA_flush_timeout))
+            //{
+            //    if (GetVerbosity() > 0)
+            //    {
+            //        char time_buffer[BUFFER_SIZE];
+            //        time_string(time_buffer, BUFFER_SIZE, NULL);
+            //        std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::AcquisitionReady() ";
+            //        std::cout << "Issuing a flush of the DMA; ";
+            //        std::cout << std::endl;
+            //    }
 
-        //        CHECKZERO(ADQ_FlushDMA(adq_cu_ptr, adq_num));
-        //    }
+            //    CHECKZERO(ADQ_FlushDMA(adq_cu_ptr, adq_num));
+            //}
 
-        //    return false;
-        //} else {
-        //    last_buffer_ready = std::chrono::system_clock::now();
+            return false;
+        } else {
+            last_buffer_ready = std::chrono::system_clock::now();
 
-        //    return true;
-        //}
-	return true;
+            return true;
+        }
     } else {
         // For this streaming generation there is no information whether data
         // is available or not, we can only try to read it
@@ -1022,7 +1021,11 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
     }
 
     if (streaming_generation == 1) {
-        while (AcquisitionReady()) {
+        const std::chrono::time_point<std::chrono::system_clock> waveforms_reading_start = std::chrono::system_clock::now();
+
+        auto delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - waveforms_reading_start);
+
+        while (AcquisitionReady() && (delta_time < std::chrono::milliseconds(data_reading_timeout))) {
             // Putting a flush here makes the digitizer unstable and sometimes it gives an error.
             //if (GetVerbosity() > 0)
             //{
@@ -1227,6 +1230,18 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                     memcpy(target_headers[channel], target_headers[channel] + (added_headers[channel]), sizeof(StreamingHeader_t));
                 }
             }
+
+            const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
+            delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(now - waveforms_reading_start);
+
+            if (GetVerbosity() > 1)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
+                std::cout << "Time since the the beginning of the waveforms reading: " << delta_time.count() << " ms; ";
+                std::cout << std::endl;
+            }
         }
     } else {
         if (GetVerbosity() > 1)
@@ -1266,20 +1281,20 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                     std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::GetWaveformsFromCard() ";
                     std::cout << "Status only record from card: " << GetName() << "; ";
                     std::cout << "Available channel: " << available_channel << "; ";
-	            std::cout << "Flags: " << std::setfill('0') << std::setw(8) << static_cast<unsigned int>(ADQ_status.flags);
+                    std::cout << "Flags: " << std::setfill('0') << std::setw(8) << static_cast<unsigned int>(ADQ_status.flags);
                     //printf("%08" PRIu32 "", ADQ_status.flags);
-		    if (ADQ_status.flags == ADQ_DATA_READOUT_STATUS_FLAGS_STARVING) {
-	            	std::cout << WRITE_YELLOW << " STARVING" << WRITE_NC << "; ";
-		    }
-		    else if (ADQ_status.flags == ADQ_DATA_READOUT_STATUS_FLAGS_INCOMPLETE) {
-	            	std::cout << WRITE_YELLOW << " INCOMPLETE" << WRITE_NC << "; ";
-		    }
-		    else if (ADQ_status.flags == ADQ_DATA_READOUT_STATUS_FLAGS_DISCARDED) {
-	            	std::cout << WRITE_YELLOW << " DISCARDED" << WRITE_NC << "; ";
-		    }
-		    else {
-	            	std::cout << WRITE_RED << " UNKNOWN" << WRITE_NC << "; ";
-		    }
+                    if (ADQ_status.flags == ADQ_DATA_READOUT_STATUS_FLAGS_STARVING) {
+                        std::cout << WRITE_YELLOW << " STARVING" << WRITE_NC << "; ";
+                    }
+                    else if (ADQ_status.flags == ADQ_DATA_READOUT_STATUS_FLAGS_INCOMPLETE) {
+                        std::cout << WRITE_YELLOW << " INCOMPLETE" << WRITE_NC << "; ";
+                    }
+                    else if (ADQ_status.flags == ADQ_DATA_READOUT_STATUS_FLAGS_DISCARDED) {
+                        std::cout << WRITE_YELLOW << " DISCARDED" << WRITE_NC << "; ";
+                    }
+                    else {
+                        std::cout << WRITE_RED << " UNKNOWN" << WRITE_NC << "; ";
+                    }
                     std::cout << std::endl;
                 }
             } else if (available_bytes == ADQ_EAGAIN) {
@@ -1628,10 +1643,10 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
 
     json_object_set_nocheck(transfer_config, "timeout", json_integer(transfer_timeout));
 
-    DMA_flush_timeout = json_number_value(json_object_get(transfer_config, "DMA_flush_timeout"));
+    data_reading_timeout = json_number_value(json_object_get(transfer_config, "data_reading_timeout"));
 
-    if (DMA_flush_timeout <= 0) {
-        DMA_flush_timeout = default_DMA_flush_timeout;
+    if (data_reading_timeout <= 0) {
+        data_reading_timeout = default_data_reading_timeout;
     }
 
     if (GetVerbosity() > 0)
@@ -1639,11 +1654,11 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ14_FWPD::ReadConfig() ";
-        std::cout << "DMA flush timeout: " << DMA_flush_timeout << " ms; ";
+        std::cout << "Data reading timeout: " << data_reading_timeout << " ms; ";
         std::cout << std::endl;
     }
 
-    json_object_set_nocheck(transfer_config, "DMA_flush_timeout", json_integer(DMA_flush_timeout));
+    json_object_set_nocheck(transfer_config, "data_reading_timeout", json_integer(data_reading_timeout));
 
     json_t *json_event_counters_base_address = json_object_get(transfer_config, "event_counters_base_address");
 
@@ -1933,7 +1948,7 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
                         std::cout << "Got: " << str_trigger_slope << "; ";
                         std::cout << "index: " << trigger_slope << "; ";
                         std::cout << std::endl;
-		    }
+                    }
                 } else {
                     trigger_slope = ADQ_TRIG_SLOPE_FALLING;
 

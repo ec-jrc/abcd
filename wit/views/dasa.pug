@@ -25,17 +25,20 @@ block content
   div.display 
     h3 Events log
     div#events_log.scrollable
-  div.display 
-    h3 Connection status
-    p #[strong Computer hostname:] #{hostname}
-    p #[strong Name:] #{name} of type #{type}
-    p #[strong Webserver connection:] #[span#wit_connection_status.unknown_status No connection]
-    p #[strong Module connection:] #[span#module_connection_status.unknown_status No connection]
-  div.display 
-    h3 User interface settings
-    p
-      label Refresh time [s]:
-        input(type="number" id="time_refresh" value="3")
-    p
-      label Expiration time [s]:
-        input(type="number" id="time_expiration" value="10")
+  div.columns
+    div.column
+      div.display 
+        h3 Connection status
+        p #[strong Computer hostname:] #{hostname}
+        p #[strong Name:] #{name} of type #{type}
+        p #[strong Webserver connection:] #[span#wit_connection_status.unknown_status No connection]
+        p #[strong Module connection:] #[span#module_connection_status.unknown_status No connection]
+    div.column
+      div.display 
+        h3 User interface settings
+        p
+          label Refresh time [s]:
+            input(type="number" id="time_refresh" value="3")
+        p
+          label Expiration time [s]:
+            input(type="number" id="time_expiration" value="10")

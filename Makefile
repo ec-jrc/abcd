@@ -1,6 +1,6 @@
 ABCD-VERSION = 1.0.0
 
-MODULES = dasa chafi cofi califo wadi enfi pufi gzad unzad fifo waan spec tofcalc
+MODULES = dasa chafi cofi sofi califo wadi enfi pufi gzad unzad fifo waan spec tofcalc
 HARDWARE_MODULES = abad2 abcd abps5000a abrp absp
 EXECUTABLES_DIRS = bin replay convert examples
 EXECUTABLES = \

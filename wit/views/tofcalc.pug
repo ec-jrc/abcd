@@ -9,25 +9,35 @@ block content
   h2 On-line Time-of-Flight calculator
   div.display 
     h3 Plot display
-    fieldset 
-      legend Plot controls
-      p
-        label Show channel: #[select(id="channel_select")] 
-      p
-        button(id="button_fit_ToF") Fit visible ToF
-        button(id="button_fit_energy") Fit visible spectrum
-        button(id="button_clear_fit") Clear fits
-      p
-        button(id="button_download_ToF_data") Download ToF data 
-        button(id="button_download_spectrum_data") Download spectrum data 
-    fieldset 
-      legend Channels controls
-      p
-        button(id="button_reset_channel") Reset current channel
-        button(id="button_reset_all") Reset all
+    div.columns
+      div.column
+        fieldset 
+          legend Plot controls
+          p
+            label Show channel: #[select(id="channel_select")] 
+            button(id="button_download_ToF_data") Download ToF data 
+            button(id="button_download_spectrum_data") Download spectrum data 
+      div.column
+        fieldset 
+          legend Fit controls
+          p
+            button(id="button_fit_ToF") Fit visible ToF
+            button(id="button_fit_energy") Fit visible spectrum
+            button(id="button_clear_fit") Clear fits
+      div.column
+        fieldset 
+          legend Channels controls
+          p
+            button(id="button_reset_channel") Reset current channel
+            button(id="button_reset_all") Reset all
     div#plot_ToF.plot_display
   div.columns
     div.column
+      div.display 
+        h3 Visualized ToF region
+        div#ToF_region_statistics
+        h3 Visualized spectrum region
+        div#spectrum_region_statistics
       div.display 
         h3 Fits
         div#fits_results
@@ -52,17 +62,20 @@ block content
   div.display 
     h3 Events log
     div#events_log.scrollable
-  div.display 
-    h3 Connection status
-    p #[strong Computer hostname:] #{hostname}
-    p #[strong Name:] #{name} of type #{type}
-    p #[strong Webserver connection:] #[span#wit_connection_status.unknown_status No connection]
-    p #[strong Module connection:] #[span#module_connection_status.unknown_status No connection]
-  div.display 
-    h3 User interface settings
-    p
-      label Expiration time [s]:
-        input(type="number" id="time_expiration" value="10")
-    p
-      label Refresh time [s]:
-        input(type="number" id="time_refresh" value="4")
+  div.columns
+    div.column
+      div.display 
+        h3 Connection status
+        p #[strong Computer hostname:] #{hostname}
+        p #[strong Name:] #{name} of type #{type}
+        p #[strong Webserver connection:] #[span#wit_connection_status.unknown_status No connection]
+        p #[strong Module connection:] #[span#module_connection_status.unknown_status No connection]
+    div.column
+      div.display 
+        h3 User interface settings
+        p
+          label Expiration time [s]:
+            input(type="number" id="time_expiration" value="10")
+        p
+          label Refresh time [s]:
+            input(type="number" id="time_refresh" value="4")

@@ -35,6 +35,8 @@
  *   waveform after the waveform end. In the extended part the waveform is
  *   constituted by the average of the last `baseline_samples` of the compensated
  *   waveform. Optional, default value: 0
+ * - `smooth_samples`: the number of samples to be averaged in the running
+ *   mean, rounded to the next odd number. Optional, default value: 1
  * - `low_level`: the low level to calculate the risetime, relative to the pulse
  *   height. Optional, default value: 0.1
  * - `high_level`: the high level to calculate the risetime, relative to the
@@ -64,11 +66,11 @@ struct CRRC4_config
 {
     int64_t baseline_samples;
     uint32_t extension_samples;
-    uint32_t smooth_samples;
     double decay_time;
     double highpass_time;
     double lowpass_time;
     enum pulse_polarity_t pulse_polarity;
+    uint32_t smooth_samples;
     double low_level;
     double high_level;
     double height_scaling;
@@ -115,7 +117,15 @@ void energy_init(json_t *json_config, void **user_config)
 
         config->decay_time = json_integer_value(json_object_get(json_config, "decay_time"));
         config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
-        config->smooth_samples = json_integer_value(json_object_get(json_config, "smooth_samples"));
+
+        if (json_is_number(json_object_get(json_config, "smooth_samples"))) {
+            const unsigned int W = json_number_value(json_object_get(json_config, "smooth_samples"));
+            // Rounding it to the next greater odd number
+            config->smooth_samples = floor(W / 2) * 2 + 1;
+        } else {
+            config->smooth_samples = 1;
+        }
+
         config->highpass_time = json_integer_value(json_object_get(json_config, "highpass_time"));
         config->lowpass_time = json_integer_value(json_object_get(json_config, "lowpass_time"));
 

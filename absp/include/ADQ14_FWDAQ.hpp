@@ -59,6 +59,8 @@ public:
     // Value of the trigger level for the channels, in ADC samples
     int trigger_level;
 
+    static const double default_trig_ext_threshold;
+
     // Enable channels self triggering flag
     int channels_triggering_mask;
 
