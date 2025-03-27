@@ -1107,7 +1107,8 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                     for (unsigned int index = 0; index < added_headers[channel]; index++) {
                         const uint32_t record_number = target_headers[channel][index].RecordNumber;
                         const uint32_t samples_per_record = target_headers[channel][index].RecordLength;
-                        const uint64_t timestamp = target_headers[channel][index].Timestamp;
+                        // WARNING: Check the "Note on the timestamp determination" below
+                        const uint64_t timestamp = target_headers[channel][index].Timestamp + target_headers[channel][index].RecordStart;
 
                         if (GetVerbosity() > 3)
                         {
@@ -1339,12 +1340,46 @@ int ABCD::ADQ14_FWPD::GetWaveformsFromCard(std::vector<struct event_waveform> &w
                     std::cout << std::endl;
                 }
 
-                // At this point the ADQ_record variable should be ready...
-                // FIXME: Check the DataFormat entry of the ADQRecordHeader
+                // # Note on the timestamp determination
+                //
+                // According to a private communication with SP Devices support:
+                // The timestamp is generated from free-running counter that
+                // runs at the internal FPGA clock.
+                // On the ADQ14 platform the FPGA clock runs at 250 MHz, thus
+                // the resolution is 4 ns:
+                //
+                // - 2 samples on the -4A variant;
+                // - 4 samples on the -4C variant.
+                //
+                // If using a trigger with lower resolution the timestamp
+                // resolution won't be better than the trigger:
+                // Also, if the clocks of the board and the trigger are locked
+                // up to each other, there will never be activity on the last
+                // bits of the timestamp, as the clocks will always sample at
+                // the same phase.
+                // The external trigger has a time resolution of 125 ps and this
+                // is what creates the last bits of the timestamp (this assumes
+                // the trigger and digitizer is uncorrelated/not locked in
+                // clocking).
+                // The level trigger has only sample precision and the last bits
+                // will not be active. The sample precision is:
+                //
+                // - 2.0 ns on the -4A variant;
+                // - 1.0 ns on the -4C variant.
+                //
+                // A record will always show up with first sample being the
+                // first one after a trigger, and RecordStart field will show
+                // the sub-sample precision of the trigger vs the first sample.
+                // Therefore the RecordStart member must be used on the
+                // timestamp determination.
+                //
+                // FIXME: Check the DataFormat entry of the ADQRecordHeader to
+                //        determine the samples conversion to uint16_t
+                //
                 const uint8_t channel = ADQ_record->header->Channel;
                 const uint32_t record_number = ADQ_record->header->RecordNumber;
                 const uint32_t samples_per_record = ADQ_record->header->RecordLength;
-                const uint64_t timestamp = ADQ_record->header->Timestamp;
+                const uint64_t timestamp = ADQ_record->header->Timestamp + ADQ_record->header->RecordStart;
                 const int16_t *data_buffer = reinterpret_cast<int16_t*>(ADQ_record->data);
 
                 if (GetVerbosity() > 3)
