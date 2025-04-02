@@ -1,8 +1,19 @@
+--- This script shows an example of the Lua interface for absp.
+-- It uses the functions declared in include/ADQ214.hpp 
+-- The functions used here are specific to that interface and would not work
+-- with other models and firmwares.
+-- To see what methods are supported by the other interfaces, see their header
+-- files in include/
+-- This timestamp synchronization could be run right after every configuration
+-- of the digitizers, see the configuration ADQ14-FWPD.json for an example on
+-- how to select the state.
+
 print("Current state:")
 print("    ID: " .. current_state["ID"])
 print("    when: " .. current_state["when"])
 print("    description: " .. current_state["description"])
 
+-- The master digitizer emits the physical pulse that resets all the timestamps
 local MASTER_DIGITIZER = "SPD-03864"
 
 local digitizer_names = { "SPD-01370", "SPD-01372", "SPD-01373", "SPD-01806", "SPD-02023", "SPD-02850", "SPD-02851", "SPD-02853", "SPD-02854", "SPD-02855", "SPD-03862", "SPD-03863", "SPD-03864", "SPD-03868", "SPD-03871", "SPD-03873"}
