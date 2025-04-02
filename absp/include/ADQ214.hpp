@@ -139,6 +139,11 @@ public:
 
     int SpecificCommand(json_t* json_command);
 
+    int GPIOSetDirection(unsigned int pins_directions, unsigned int mask);
+    int GPIOWrite(unsigned int pins_values, unsigned int mask);
+    int GPIOPulse(unsigned int width, unsigned int mask);
+
+    int TimestampResetMode(std::string mode);
 };
 }
 

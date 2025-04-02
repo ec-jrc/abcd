@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <stdexcept>
 
 #include <chrono>
@@ -1178,6 +1179,8 @@ int ABCD::ADQ214::SpecificCommand(json_t *json_command)
     }
 
     if (command == std::string("GPIO_set_direction")) {
+        const unsigned int pin = json_number_value(json_object_get(json_command, "pin"));
+
         const char *cstr_direction = json_string_value(json_object_get(json_command, "direction"));
         const std::string direction = (cstr_direction) ? std::string(cstr_direction) : std::string();
 
@@ -1186,64 +1189,57 @@ int ABCD::ADQ214::SpecificCommand(json_t *json_command)
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
             std::cout << '[' << time_buffer << "] ABCD::ADQ214::SpecificCommand() ";
-            std::cout << "Setting GPIO direction: " << direction << "; ";
+            std::cout << "Setting GPIO pin: " << pin << "; direction: " << direction << "; ";
             std::cout << std::endl;
         }
 
-        // Informing that all the pins should keep their direction, only pin 5
-        // can be changed in these boards.
-        const uint16_t mask = 0xF;
+	// Mask has an inverted logic
+        const uint16_t mask = ~(1 << pin);
         uint16_t pins_directions = 0;
 
         if (direction == std::string("input")) {
             pins_directions = 0;
         } else if (direction == std::string("output")) {
-            pins_directions = (1 << 4);
+            pins_directions = (1 << pin);
         }
 
-        CHECKZERO(ADQ_SetDirectionGPIO(adq_cu_ptr, adq_num, pins_directions, mask));
+        GPIOSetDirection(pins_directions, mask);
     } else if (command == std::string("GPIO_write")) {
-        const int value = json_integer_value(json_object_get(json_command, "value"));
+        const unsigned int pin = json_number_value(json_object_get(json_command, "pin"));
+        const unsigned int value = json_number_value(json_object_get(json_command, "value"));
 
-        // Informing that all the pins should ignore the command, only pin 5 can
-        // be used in these boards.
-        const uint16_t mask = 0xF;
-        const uint16_t pin_value = (value > 0) ? (1 << 4) : 0;
+	// Mask has an inverted logic
+        const uint16_t mask = ~(1 << pin);
+        const uint16_t pins_values = (value > 0) ? (1 << pin) : 0;
 
         if (GetVerbosity() > 0)
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
             std::cout << '[' << time_buffer << "] ABCD::ADQ214::SpecificCommand() ";
-            std::cout << "Writing GPIO: " << value << ", pin_value: " << (unsigned int)pin_value << "; ";
+            std::cout << "Writing GPIO: pin: " << pin << "; value: " << value << ", pins_values: " << (unsigned int)pins_values << "; ";
             std::cout << std::endl;
         }
 
-        CHECKZERO(ADQ_WriteGPIO(adq_cu_ptr, adq_num, pin_value, mask));
+        GPIOWrite(pins_values, mask);
     } else if (command == std::string("GPIO_pulse")) {
-        const int width = json_integer_value(json_object_get(json_command, "width"));
+        const unsigned int pin = json_number_value(json_object_get(json_command, "pin"));
+        const int width = json_number_value(json_object_get(json_command, "width"));
 
         if (GetVerbosity() > 0)
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
             std::cout << '[' << time_buffer << "] ABCD::ADQ214::SpecificCommand() ";
-            std::cout << "Pulse on GPIO of width: " << width << " us; ";
+            std::cout << "Pulse on GPIO: pin: " << pin << " of width: " << width << " us; ";
             std::cout << std::endl;
         }
 
-        // Informing that all the pins should ignore the command, only pin 5 can
-        // be used in these boards.
-        const uint16_t mask = 0xF;
-        const uint16_t pin_value_on = (1 << 4);
-        const uint16_t pin_value_off = 0;
+	// Mask has an inverted logic
+        const uint16_t mask = ~(1 << pin);
 
-        CHECKZERO(ADQ_WriteGPIO(adq_cu_ptr, adq_num, pin_value_on, mask));
-
-        std::this_thread::sleep_for(std::chrono::microseconds(width));
-
-        CHECKZERO(ADQ_WriteGPIO(adq_cu_ptr, adq_num, pin_value_off, mask));
-    } else if (command == std::string("timestamp_reset")) {
+	GPIOPulse(width, mask);
+    } else if (command == std::string("timestamp_reset_mode")) {
         const char *cstr_mode = json_string_value(json_object_get(json_command, "mode"));
         const std::string mode = (cstr_mode) ? std::string(cstr_mode) : std::string();
 
@@ -1256,15 +1252,7 @@ int ABCD::ADQ214::SpecificCommand(json_t *json_command)
             std::cout << std::endl;
         }
 
-        int restart_mode = 1;
-
-        if (mode == std::string("pulse")) {
-            restart_mode = 0;
-        } else if (mode == std::string("now")) {
-            restart_mode = 1;
-        }
-
-        CHECKZERO(ADQ_ResetTrigTimer(adq_cu_ptr, adq_num, restart_mode));
+        TimestampResetMode(mode);
     } else if (command == std::string("GPIO_read")) {
         const int read_pins_values = ADQ_ReadGPIO(adq_cu_ptr, adq_num);
 
@@ -1279,6 +1267,112 @@ int ABCD::ADQ214::SpecificCommand(json_t *json_command)
     }
 
     return DIGITIZER_SUCCESS;
+}
+
+//==============================================================================
+
+int ABCD::ADQ214::GPIOSetDirection(unsigned int pins_directions, unsigned int mask)
+{
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::GPIOSetDirection() ";
+        std::cout << "Pins directions: " << std::hex << pins_directions << std::dec << "; ";
+        std::cout << "Mask: " << std::hex << mask << std::dec << "; ";
+        std::cout << std::endl;
+    }
+
+    // Only pins from 1 to 5 can be adressed.
+    // The mask sets which pins should be ignored, a 1 on a bit informs that
+    // that pin should be ignored. To play safe we set all the bits above the
+    // 5th one to 1. Pin 1 corresponds to bit 0 and so on...
+    const uint16_t safe_mask = mask | 0xFFE0;
+
+    // FIXME: Check the return value
+    // The reference guide says: The state as a bit field, where bit 0
+    // corresponds to the __value__ of GPIO pin 1, bit 1 to pin 2, and so on.
+    // Maybe they intend "direction" instead of "value"
+    ADQ_SetDirectionGPIO(adq_cu_ptr, adq_num, pins_directions, safe_mask);
+
+    return DIGITIZER_SUCCESS;
+}
+
+int ABCD::ADQ214::GPIOWrite(unsigned int pins_values, unsigned int mask)
+{
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::GPIOPulse() ";
+        std::cout << "Pins values: " << std::hex << pins_values << std::dec << "; ";
+        std::cout << "Mask: " << std::hex << mask << std::dec << "; ";
+        std::cout << std::endl;
+    }
+
+    // Check notes of function GPIOSetDirection()
+    const uint16_t safe_mask = mask | 0xFFE0;
+
+    // FIXME: Check the return value
+    ADQ_WriteGPIO(adq_cu_ptr, adq_num, pins_values, safe_mask);
+
+    return DIGITIZER_SUCCESS;
+}
+
+int ABCD::ADQ214::GPIOPulse(unsigned int width, unsigned int mask)
+{
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::GPIOPulse() ";
+        std::cout << "Width: " << width << " us; ";
+        std::cout << "Mask: " << std::hex << mask << std::dec << "; ";
+        std::cout << std::endl;
+    }
+
+    // Check notes of function GPIOSetDirection()
+    const uint16_t safe_mask = mask | 0xFFE0;
+
+    // All pins to ON
+    const uint16_t pin_values_on = 0x1F;
+    const uint16_t pin_values_off = 0;
+
+    bool is_success = (GPIOWrite(pin_values_on, safe_mask) == DIGITIZER_SUCCESS);
+
+    std::this_thread::sleep_for(std::chrono::microseconds(width));
+
+    is_success = is_success && (GPIOWrite(pin_values_off, safe_mask) == DIGITIZER_SUCCESS);
+
+    return (is_success ? DIGITIZER_SUCCESS : DIGITIZER_FAILURE);
+}
+
+int ABCD::ADQ214::TimestampResetMode(std::string mode)
+{
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::TimestampReset() ";
+        std::cout << "Timestamp reset mode: " << mode << "; ";
+        std::cout << std::endl;
+    }
+
+    int restart_mode = 1;
+
+    if (mode == std::string("pulse")) {
+        restart_mode = 0;
+    } else if (mode == std::string("now")) {
+        restart_mode = 1;
+    }
+
+    const int return_value = ADQ_ResetTrigTimer(adq_cu_ptr, adq_num, restart_mode);
+
+    if (!return_value) {
+	return DIGITIZER_FAILURE;
+    } else {
+	return DIGITIZER_SUCCESS;
+    }
 }
 
 //==============================================================================
