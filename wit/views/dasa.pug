@@ -19,6 +19,10 @@ block content
           label #[input(type="checkbox" id="file_enable_waveforms")] Enable waveforms file
         li
           label #[input(type="checkbox" id="file_enable_raw" checked)] Enable raw file
+    p
+      label New work directory: 
+        input(type="text" id="new_work_directory")
+      button(id="button_change_work_directory") Change work directory
   div.display 
     h3 Status
     div#module_status

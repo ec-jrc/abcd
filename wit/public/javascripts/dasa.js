@@ -119,7 +119,7 @@ function page_loaded() {
         $("#module_status").html(status_list);
     }
 
-    function dasa_arguments() {
+    function dasa_start_arguments() {
         const enable = {
             "events": $("#file_enable_events").prop("checked"),
             "waveforms": $("#file_enable_waveforms").prop("checked"),
@@ -143,6 +143,11 @@ function page_loaded() {
         return kwargs;
     }
 
+    function dasa_change_work_directory_arguments() {
+        const new_work_directory = (String($("#new_work_directory").val())).trim();
+        return { "work_directory": new_work_directory };
+    }
+
     socket_io.on("connect", socket_io_connection(socket_io, module_name, on_status, update_events_log(), null));
 
     window.setInterval(function () {
@@ -150,7 +155,8 @@ function page_loaded() {
     }, 1000);
 
 
-    $("#button_start").on("click", send_command(socket_io, 'start', dasa_arguments));
+    $("#button_start").on("click", send_command(socket_io, 'start', dasa_start_arguments));
+    $("#button_change_work_directory").on("click", send_command(socket_io, 'change_work_directory', dasa_change_work_directory_arguments));
     $("#button_stop").on("click", send_command(socket_io, 'stop'));
 }
 
