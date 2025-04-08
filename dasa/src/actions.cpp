@@ -306,6 +306,9 @@ state actions::publish_status(status &global_status)
     json_object_set_new(status_message, "waveforms_file_opened", json_boolean(false));
     json_object_set_new(status_message, "raw_file_opened", json_boolean(false));
 
+    const std::filesystem::path work_directory = std::filesystem::current_path();
+    json_object_set_new(status_message, "work_directory", json_string(work_directory.c_str()));
+
     actions::generic::publish_message(global_status, defaults_dasa_status_topic, status_message);
 
     json_decref(status_message);
@@ -940,11 +943,6 @@ state actions::saving_publish_status(status &global_status)
         representative_file_name = global_status.raw_file_name;
     }
 
-    const std::filesystem::space_info space_info = std::filesystem::space(representative_file_name);
-
-    json_object_set_new(status_message, "filesystem_capacity", json_integer(space_info.capacity));
-    json_object_set_new(status_message, "filesystem_available", json_integer(space_info.available));
-
     json_object_set_new(status_message, "events_file_opened", json_boolean(global_status.events_output_file.good()));
     json_object_set_new(status_message, "waveforms_file_opened", json_boolean(global_status.waveforms_output_file.good()));
     json_object_set_new(status_message, "raw_file_opened", json_boolean(global_status.raw_output_file.good()));
@@ -956,6 +954,14 @@ state actions::saving_publish_status(status &global_status)
     json_object_set_new(status_message, "events_file_size", json_integer(global_status.events_file_size));
     json_object_set_new(status_message, "waveforms_file_size", json_integer(global_status.waveforms_file_size));
     json_object_set_new(status_message, "raw_file_size", json_integer(global_status.raw_file_size));
+    
+    const std::filesystem::path work_directory = std::filesystem::current_path();
+    json_object_set_new(status_message, "work_directory", json_string(work_directory.c_str()));
+
+    const std::filesystem::space_info space_info = std::filesystem::space(representative_file_name);
+
+    json_object_set_new(status_message, "filesystem_capacity", json_integer(space_info.capacity));
+    json_object_set_new(status_message, "filesystem_available", json_integer(space_info.available));
 
     actions::generic::publish_message(global_status, defaults_dasa_status_topic, status_message);
 
