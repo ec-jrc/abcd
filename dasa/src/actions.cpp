@@ -513,6 +513,69 @@ state actions::receive_commands(status &global_status)
                     }
                 }
             }
+            else if (command == std::string("change_work_directory") && json_arguments != NULL)
+            {
+                json_t *json_work_directory = json_object_get(json_arguments, "work_directory");
+
+                if (json_work_directory != NULL)
+                {
+                    const std::string new_work_directory = json_string_value(json_work_directory);
+
+                    if (global_status.verbosity > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "Changing work directory to: '" << new_work_directory << "'; ";
+                        std::cout << std::endl;
+                    }
+
+                    try
+                    {
+                        const std::filesystem::path new_work_directory_path = new_work_directory;
+                        std::filesystem::current_path(new_work_directory_path);
+
+                        if (global_status.verbosity > 0)
+                        {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "Changed work directory to: '" << new_work_directory << "'; ";
+                            std::cout << std::endl;
+                        }
+
+                        const std::string message = "Changed work directory to: " + new_work_directory;
+
+                        json_t *status_message = json_object();
+
+                        json_object_set_new(status_message, "type", json_string("event"));
+                        json_object_set_new(status_message, "event", json_string(message.c_str()));
+
+                        actions::generic::publish_message(global_status, defaults_dasa_events_topic, status_message);
+
+                        json_decref(status_message);
+                    }
+                    catch (...)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "ERROR: Unable to change work directory to: '" << new_work_directory << "'; ";
+                        std::cout << std::endl;
+
+                        const std::string message = "Unable to change work directory to: " + new_work_directory;
+
+                        json_t *status_message = json_object();
+
+                        json_object_set_new(status_message, "type", json_string("error"));
+                        json_object_set_new(status_message, "error", json_string(message.c_str()));
+
+                        actions::generic::publish_message(global_status, defaults_dasa_events_topic, status_message);
+
+                        json_decref(status_message);
+                    }
+                }
+            }
             else if (command == std::string("quit"))
             {
                 return states::STOP_CLOSE_FILE;
