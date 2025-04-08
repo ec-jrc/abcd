@@ -25,7 +25,7 @@ function page_loaded() {
     var socket_io = io();
 
     const module_name = String($('input#module_name').val());
-    
+
     console.log("Module name: " + module_name);
 
     function on_status(message) {
@@ -49,6 +49,9 @@ function page_loaded() {
         }
 
         let overall_file_size = 0;
+
+        let files_li = $("<li>").text("File types:");
+        const files_ul = $("<ul>");
 
         for (const file_type of ["events", "waveforms", "raw"]) {
             let events_li = $("<li>").text(file_type.charAt(0).toUpperCase() + file_type.slice(1) + " file:");
@@ -78,8 +81,11 @@ function page_loaded() {
             }
 
             events_li.append(events_ul);
-            status_list.append(events_li);
+            files_ul.append(events_li);
         }
+
+        files_li.append(files_ul);
+        status_list.append(files_li);
 
         if (overall_file_size > 0) {
             let overall_li = $("<li>").text("Overall:");
@@ -107,18 +113,20 @@ function page_loaded() {
         }
 
         if (_.has(new_status, "work_directory")) {
-            $("<li>").text(`Work directory: ${new_status["work_directory"]}`).appendTo(status_list);
+            $("<li>").text(`Current work directory: ${new_status["work_directory"]}`).appendTo(status_list);
         }
 
         $("#module_status").html(status_list);
     }
 
     function dasa_arguments() {
-        const enable = {"events": $("#file_enable_events").prop("checked"),
-                        "waveforms": $("#file_enable_waveforms").prop("checked"),
-                        "raw": $("#file_enable_raw").prop("checked")};
-    
-        let kwargs = {"enable": enable};
+        const enable = {
+            "events": $("#file_enable_events").prop("checked"),
+            "waveforms": $("#file_enable_waveforms").prop("checked"),
+            "raw": $("#file_enable_raw").prop("checked")
+        };
+
+        let kwargs = { "enable": enable };
 
         let datetime = "";
 
