@@ -106,6 +106,10 @@ function page_loaded() {
             status_list.append(overall_li);
         }
 
+        if (_.has(new_status, "work_directory")) {
+            $("<li>").text(`Work directory: ${new_status["work_directory"]}`).appendTo(status_list);
+        }
+
         $("#module_status").html(status_list);
     }
 
