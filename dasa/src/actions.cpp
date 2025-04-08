@@ -32,7 +32,8 @@
 #include <zmq.h>
 #include <jansson.h>
 
-extern "C" {
+extern "C"
+{
 #include "utilities_functions.h"
 #include "socket_functions.h"
 #include "jansson_socket_functions.h"
@@ -50,8 +51,8 @@ extern "C" {
 /******************************************************************************/
 
 void actions::generic::publish_message(status &global_status,
-                                      std::string topic,
-                                      json_t *status_message)
+                                       std::string topic,
+                                       json_t *status_message)
 {
     std::chrono::time_point<std::chrono::system_clock> last_publication = std::chrono::system_clock::now();
     global_status.last_publication = last_publication;
@@ -66,7 +67,7 @@ void actions::generic::publish_message(status &global_status,
     json_object_set_new(status_message, "timestamp", json_string(time_buffer));
     json_object_set_new(status_message, "msg_ID", json_integer(status_msg_ID));
 
-    send_json_message(status_socket, const_cast<char*>(topic.c_str()), status_message, 1);
+    send_json_message(status_socket, const_cast<char *>(topic.c_str()), status_message, 1);
 
     global_status.status_msg_ID += 1;
 }
@@ -96,7 +97,7 @@ void actions::generic::close_file(status &global_status)
 /* Specific actions                                                           */
 /******************************************************************************/
 
-state actions::start(status&)
+state actions::start(status &)
 {
     return states::CREATE_CONTEXT;
 }
@@ -300,7 +301,7 @@ state actions::bind_sockets(status &global_status)
 
 state actions::publish_status(status &global_status)
 {
-    json_t* status_message = json_object();
+    json_t *status_message = json_object();
 
     json_object_set_new(status_message, "events_file_opened", json_boolean(false));
     json_object_set_new(status_message, "waveforms_file_opened", json_boolean(false));
@@ -407,7 +408,8 @@ state actions::receive_commands(status &global_status)
     {
         const size_t command_ID = json_integer_value(json_object_get(json_message, "msg_ID"));
 
-        if (global_status.verbosity > 1) {
+        if (global_status.verbosity > 1)
+        {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
             std::cout << '[' << time_buffer << "] ";
@@ -450,16 +452,19 @@ state actions::receive_commands(status &global_status)
 
                     std::string root_file_name;
 
-                    if (file_name.length() > 0) {
+                    if (file_name.length() > 0)
+                    {
                         root_file_name = file_name;
-                    } else {
+                    }
+                    else
+                    {
                         char time_buffer[BUFFER_SIZE];
                         time_string(time_buffer, BUFFER_SIZE, NULL);
 
                         root_file_name += "abcd_data_";
                         root_file_name += time_buffer;
 
-			std::replace(root_file_name.begin(), root_file_name.end(), ':', '.');
+                        std::replace(root_file_name.begin(), root_file_name.end(), ':', '.');
                     }
 
                     global_status.events_file_name.clear();
@@ -556,7 +561,7 @@ state actions::open_file(status &global_status)
         message.append(", ");
     }
 
-    json_t* status_message = json_object();
+    json_t *status_message = json_object();
 
     json_object_set_new(status_message, "type", json_string("event"));
     json_object_set_new(status_message, "event", json_string(message.c_str()));
@@ -686,9 +691,7 @@ state actions::open_file(status &global_status)
 
     global_status.start_time = std::chrono::system_clock::now();
 
-    if (global_status.events_output_file.good()
-        || global_status.waveforms_output_file.good()
-        || global_status.raw_output_file.good())
+    if (global_status.events_output_file.good() || global_status.waveforms_output_file.good() || global_status.raw_output_file.good())
     {
         return states::WRITE_DATA;
     }
@@ -733,7 +736,7 @@ state actions::write_data(status &global_status)
                 std::cout << std::endl;
             }
 
-            global_status.raw_output_file.write(reinterpret_cast<const char*>(buffer), size);
+            global_status.raw_output_file.write(reinterpret_cast<const char *>(buffer), size);
             global_status.raw_file_size += size;
         }
 
@@ -768,7 +771,7 @@ state actions::write_data(status &global_status)
                 std::cout << std::endl;
             }
 
-            global_status.raw_output_file.write(reinterpret_cast<const char*>(buffer), size);
+            global_status.raw_output_file.write(reinterpret_cast<const char *>(buffer), size);
             global_status.raw_file_size += size;
         }
 
@@ -790,7 +793,7 @@ state actions::write_data(status &global_status)
             std::cout << std::endl;
         }
 
-        char *char_buffer = reinterpret_cast<char*>(buffer);
+        char *char_buffer = reinterpret_cast<char *>(buffer);
 
         const char *position = strchr(char_buffer, ' ');
         const size_t topic_length = position - char_buffer;
@@ -823,8 +826,7 @@ state actions::write_data(status &global_status)
             global_status.raw_file_size += size;
         }
 
-        if (global_status.events_output_file.good()
-            &&
+        if (global_status.events_output_file.good() &&
             (topic.compare(0, strlen(defaults_abcd_data_events_topic), defaults_abcd_data_events_topic) == 0))
         {
             const size_t data_size = size - topic.size() - 1;
@@ -842,12 +844,11 @@ state actions::write_data(status &global_status)
                 std::cout << std::endl;
             }
 
-            const char *pointer = reinterpret_cast<const char*>(position + 1);
+            const char *pointer = reinterpret_cast<const char *>(position + 1);
             global_status.events_output_file.write(pointer, data_size);
             global_status.events_file_size += data_size;
         }
-        else if (global_status.waveforms_output_file.good()
-                 &&
+        else if (global_status.waveforms_output_file.good() &&
                  (topic.compare(0, strlen(defaults_abcd_data_waveforms_topic), defaults_abcd_data_waveforms_topic) == 0))
         {
             const size_t data_size = size - topic.size() - 1;
@@ -861,7 +862,7 @@ state actions::write_data(status &global_status)
                 std::cout << std::endl;
             }
 
-            const char *pointer = reinterpret_cast<const char*>(position + 1);
+            const char *pointer = reinterpret_cast<const char *>(position + 1);
             global_status.waveforms_output_file.write(pointer, data_size);
             global_status.waveforms_file_size += data_size;
         }
@@ -921,10 +922,9 @@ state actions::flush_file(status &global_status)
     return states::SAVING_PUBLISH_STATUS;
 }
 
-
 state actions::saving_publish_status(status &global_status)
 {
-    json_t* status_message = json_object();
+    json_t *status_message = json_object();
 
     const auto now = std::chrono::system_clock::now();
 
@@ -935,11 +935,16 @@ state actions::saving_publish_status(status &global_status)
 
     std::string representative_file_name;
 
-    if (global_status.events_file_name.length() > 0) {
+    if (global_status.events_file_name.length() > 0)
+    {
         representative_file_name = global_status.events_file_name;
-    } else if (global_status.waveforms_file_name.length() > 0) {
+    }
+    else if (global_status.waveforms_file_name.length() > 0)
+    {
         representative_file_name = global_status.waveforms_file_name;
-    } else {
+    }
+    else
+    {
         representative_file_name = global_status.raw_file_name;
     }
 
@@ -954,7 +959,7 @@ state actions::saving_publish_status(status &global_status)
     json_object_set_new(status_message, "events_file_size", json_integer(global_status.events_file_size));
     json_object_set_new(status_message, "waveforms_file_size", json_integer(global_status.waveforms_file_size));
     json_object_set_new(status_message, "raw_file_size", json_integer(global_status.raw_file_size));
-    
+
     const std::filesystem::path work_directory = std::filesystem::current_path();
     json_object_set_new(status_message, "work_directory", json_string(work_directory.c_str()));
 
@@ -990,7 +995,8 @@ state actions::saving_receive_commands(status &global_status)
     {
         const size_t command_ID = json_integer_value(json_object_get(json_message, "msg_ID"));
 
-        if (global_status.verbosity > 1) {
+        if (global_status.verbosity > 1)
+        {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
             std::cout << '[' << time_buffer << "] ";
@@ -1026,7 +1032,7 @@ state actions::saving_receive_commands(status &global_status)
 
 state actions::close_file(status &global_status)
 {
-    json_t* status_message = json_object();
+    json_t *status_message = json_object();
 
     const auto now = std::chrono::system_clock::now();
 
@@ -1041,7 +1047,6 @@ state actions::close_file(status &global_status)
 
     char raw_file_size[BUFFER_SIZE];
     file_size_to_human(raw_file_size, BUFFER_SIZE, global_status.raw_file_size);
-
 
     std::string message = "Closing files (duration: ";
     message.append(std::to_string(runtime));
@@ -1160,7 +1165,7 @@ state actions::destroy_context(status &global_status)
 
 state actions::communication_error(status &global_status)
 {
-    json_t* status_message = json_object();
+    json_t *status_message = json_object();
 
     json_object_set_new(status_message, "type", json_string("event"));
     json_object_set_new(status_message, "error", json_string("Communication error"));
@@ -1174,7 +1179,7 @@ state actions::communication_error(status &global_status)
 
 state actions::io_error(status &global_status)
 {
-    json_t* status_message = json_object();
+    json_t *status_message = json_object();
 
     json_object_set_new(status_message, "type", json_string("event"));
     json_object_set_new(status_message, "error", json_string("I/O error"));
@@ -1186,7 +1191,7 @@ state actions::io_error(status &global_status)
     return states::CLOSE_FILE;
 }
 
-state actions::stop(status&)
+state actions::stop(status &)
 {
     return states::STOP;
 }
