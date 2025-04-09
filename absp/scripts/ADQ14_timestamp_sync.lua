@@ -1,5 +1,5 @@
 --- This script shows an example of the Lua interface for absp.
--- It uses the functions declared in include/ADQ14_FWPD.hpp 
+-- It uses the functions declared in include/ADQ14_FWPD.hpp
 -- The functions used here are specific to that interface and would not work
 -- with other models and firmwares.
 -- To see what methods are supported by the other interfaces, see their header
@@ -14,76 +14,65 @@ print("    when: " .. current_state["when"])
 print("    description: " .. current_state["description"])
 
 -- The master digitizer emits the physical pulse that resets all the timestamps
-local MASTER_DIGITIZER = "SPD-07722"
+local MASTER_DIGITIZER_NAME = "SPD-07716"
 
--- These digitizers are sync'ed with the SYNC port
-local digitizer_names_sync = { }
--- These digitizers are sync'ed with the TRIG port
-local digitizer_names_trig = { "SPD-10089", "SPD-05338", "SPD-05332", "SPD-05335", "SPD-07717", "SPD-07719", "SPD-07720", "SPD-07722" }
+-- These are the digitizers that need to be sync'ed, the script will verify if
+-- they are present in the instances
+local DIGITIZER_NAMES = { "SPD-07716", "SPD-04637", "SPD-04638", "SPD-04642", "SPD-04643", "SPD-04640", "SPD-04641", "SPD-09518", "SPD-05336", "SPD-05334"}
+
+local detected_names = {}
 
 print("Digitizers:")
-for index, name in ipairs(digitizer_names_sync) do
-    print("    Using digitizer: " .. digitizer_instances[name]:GetName())
-end
-for index, name in ipairs(digitizer_names_trig) do
-    print("    Using digitizer: " .. digitizer_instances[name]:GetName())
+for index, name in ipairs(DIGITIZER_NAMES) do
+    print("Detecting digitizer: " .. name)
+
+    if digitizer_instances[name] then
+        print("    Detected digitizer: " .. digitizer_instances[name]:GetName())
+	table.insert(detected_names, name)
+    else
+        print("    ERROR detecting digitizer")
+    end
 end
 
-print("Arming the timestamp reset using the SYNC port as input")
--- Possible mode values: "first" or "all"
--- WARNING: with "all" the board does not seem to trigger
 local mode = "first"
--- Possible source values: "software", "sync_port" or "trig_port"
-local source = "sync_port"
-
-for index, name in ipairs(digitizer_names_sync) do
-    digitizer_instances[name]:TimestampResetArm(mode, source)
-end
 
 print("Arming the timestamp reset using the TRIG port as input")
-mode = "first"
-source = "trig_port"
+local source = "trig_port"
+--print("Arming the timestamp reset using the SYNC port as input")
+--local source = "trig_port"
 
-for index, name in ipairs(digitizer_names_trig) do
+for index, name in ipairs(detected_names) do
     digitizer_instances[name]:TimestampResetArm(mode, source)
 end
 
-print("Setting the SYNC port as output")
--- Refer to the digitizer documentation for these values
-local port = 3
--- Direction: 0 for input, 1 for output
-local direction = 1
--- Only bits which are zero-valued in the mask will be changed
-local mask = 0
+if digitizer_instances[MASTER_DIGITIZER_NAME] then
+    local master_digitizer = digitizer_instances[MASTER_DIGITIZER_NAME]
 
-digitizer_instances[MASTER_DIGITIZER]:GPIOSetDirection(port, direction, mask)
+    print("Setting the SYNC port of the master digitizer as output")
+    -- Refer to the digitizer documentation for these values
+    local port = 3
+    -- Direction: 0 for input, 1 for output
+    local direction = 1
+    -- Only bits which are zero-valued in the mask will be changed
+    local mask = 0
 
-sleep(100)
+    master_digitizer:GPIOSetDirection(port, direction, mask)
 
-print("Generating a pulse from the SYNC port")
-port = 3
-mask = 0
--- The width is in microseconds, a zero is equivalent to the minimum possible width
-width = 1
+    sleep(100)
 
-digitizer_instances[MASTER_DIGITIZER]:GPIOPulse(port, mask, width)
+    print("Generating a pulse from the SYNC port of the master digitizer")
+    -- The width is in microseconds, a zero is equivalent to the minimum possible width
+    local width = 1
 
-sleep(100)
+    master_digitizer:GPIOPulse(port, mask, width)
+
+    sleep(100)
+else
+    print("ERROR detecting master digitizer: " .. MASTER_DIGITIZER_NAME)
+end
 
 print("Disarming the timestamp reset")
 
---digitizer_instances["SPD-05333"]:TimestampResetDisarm()
-digitizer_instances["SPD-10089"]:TimestampResetDisarm()
-digitizer_instances["SPD-05338"]:TimestampResetDisarm()
-digitizer_instances["SPD-05332"]:TimestampResetDisarm()
-digitizer_instances["SPD-05335"]:TimestampResetDisarm()
-digitizer_instances["SPD-07717"]:TimestampResetDisarm()
-digitizer_instances["SPD-07719"]:TimestampResetDisarm()
-digitizer_instances["SPD-07720"]:TimestampResetDisarm()
-digitizer_instances["SPD-07722"]:TimestampResetDisarm()
-for index, name in ipairs(digitizer_names_sync) do
-    digitizer_instances[name]:TimestampResetDisarm()
-end
-for index, name in ipairs(digitizer_names_trig) do
+for index, name in ipairs(detected_names) do
     digitizer_instances[name]:TimestampResetDisarm()
 end
