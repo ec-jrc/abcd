@@ -26,7 +26,7 @@ function page_loaded() {
 
     const module_name = String($('input#module_name').val());
 
-    console.log("Module name: " + module_name);
+    console.log(`Module name: ${module_name}`);
 
     function on_status(message) {
         const decoded_string = utf8decoder.decode(message);
@@ -43,7 +43,7 @@ function page_loaded() {
             run_time = dayjs.duration(new_status["runtime"], "seconds");
             run_time_minutes = run_time.asSeconds() / 60.0;
 
-            $("<li>").text("Saving time: " + humanizeDuration(run_time.asMilliseconds()) + " (" + run_time.asSeconds() + " s)").appendTo(status_list);
+            $("<li>").text(`Saving time: ${humanizeDuration(run_time.asMilliseconds())} (${run_time.asSeconds()} s)`).appendTo(status_list);
         } else {
             $("<li>").text("Saving time: none").appendTo(status_list);
         }
@@ -60,7 +60,7 @@ function page_loaded() {
             if (new_status.hasOwnProperty(file_type + "_file_opened")) {
                 const file_opened = new_status[file_type + "_file_opened"];
 
-                let li = $("<li>").text('File opened: ' + file_opened);
+                let li = $("<li>").text(`File opened: ${file_opened}`);
 
                 if (file_opened) {
                     const file_size = new_status[file_type + "_file_size"];
@@ -70,9 +70,9 @@ function page_loaded() {
 
                     li.addClass("good_status").appendTo(events_ul);
 
-                    $('<li>').text("File name: " + new_status[file_type + "_file_name"]).appendTo(events_ul);
-                    $('<li>').text("File size: " + filesize(file_size).human()).appendTo(events_ul);
-                    $('<li>').text("File growth: " + filesize(file_size_per_minute).human() + "/min").appendTo(events_ul);
+                    $('<li>').text(`File name: ${new_status[file_type + "_file_name"]}`).appendTo(events_ul);
+                    $('<li>').text(`File size: ${filesize(file_size).human()}`).appendTo(events_ul);
+                    $('<li>').text(`File growth: ${filesize(file_size_per_minute).human()}/min`).appendTo(events_ul);
                 } else {
                     li.addClass("bad_status").appendTo(events_ul);
                 }
@@ -94,8 +94,8 @@ function page_loaded() {
             const overall_file_size_per_second = Math.round(overall_file_size / run_time.asSeconds());
             const overall_file_size_per_minute = Math.round(overall_file_size / run_time_minutes);
 
-            $('<li>').text("Overall files size: " + filesize(overall_file_size).human()).appendTo(overall_ul);
-            $('<li>').text("Overall files growth: " + filesize(overall_file_size_per_minute).human() + "/min").appendTo(overall_ul);
+            $('<li>').text(`Overall files size: ${filesize(overall_file_size).human()}`).appendTo(overall_ul);
+            $('<li>').text(`Overall files growth: ${filesize(overall_file_size_per_minute).human()}/min`).appendTo(overall_ul);
 
             if (new_status.hasOwnProperty("filesystem_capacity")
                 && new_status.hasOwnProperty("filesystem_available")) {
@@ -104,8 +104,8 @@ function page_loaded() {
                 const fs_available = new_status["filesystem_available"];
                 const fs_remaining_time = Math.round(fs_available / overall_file_size_per_second);
 
-                $('<li>').text("Filesystem available space: " + filesize(fs_available).human() + " (total: " + filesize(fs_capacity).human() + ")").appendTo(overall_ul);
-                $("<li>").text("Time to full: " + humanizeDuration(fs_remaining_time * 1000) + " (" + fs_remaining_time + " s)").appendTo(overall_ul);
+                $('<li>').text(`Filesystem available space: ${filesize(fs_available).human()} (total space: ${filesize(fs_capacity).human()})`).appendTo(overall_ul);
+                $("<li>").text(`Time to full: ${humanizeDuration(fs_remaining_time * 1000)} (${fs_remaining_time} s)`).appendTo(overall_ul);
             }
 
             overall_li.append(overall_ul);
@@ -120,18 +120,18 @@ function page_loaded() {
     }
 
     function dasa_start_arguments() {
-        const enable = {
-            "events": $("#file_enable_events").prop("checked"),
-            "waveforms": $("#file_enable_waveforms").prop("checked"),
-            "raw": $("#file_enable_raw").prop("checked")
+        let kwargs = {
+            "enable": {
+                "events": $("#file_enable_events").prop("checked"),
+                "waveforms": $("#file_enable_waveforms").prop("checked"),
+                "raw": $("#file_enable_raw").prop("checked")
+            }
         };
-
-        let kwargs = { "enable": enable };
 
         let datetime = "";
 
         if ($("#file_automatic_name").prop("checked")) {
-            datetime = "abcd_data_" + dayjs().format("YYYY-MM-DDTHH.mm.ssZZ") + "_";
+            datetime = `abcd_data_${dayjs().format("YYYY-MM-DDTHH.mm.ssZZ")}_`;
         }
 
         const file_name = (String($("#file_name").val())).trim();
