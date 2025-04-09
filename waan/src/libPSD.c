@@ -42,6 +42,8 @@
  *   discared. Optional, default value: 0
  * - `PSD_min`: minimum value accepted for the PSD parameter. Default value: -0.1
  * - `PSD_max`: maximum value accepted for the PSD parameter. Default value: 1.1
+ * - `max_equals`: maximum number of samples with the exact same value, to
+ *   discard saturated pulses. Default value: UINT32_MAX (i.e. it is disabled)
  *
  * This function determines only one event_PSD and will discard the others.
  */
@@ -74,6 +76,7 @@ struct PSD_config
     double energy_threshold;
     double PSD_min;
     double PSD_max;
+    uint32_t max_equals;
 
     bool enable_warnings;
 
@@ -149,6 +152,12 @@ void energy_init(json_t *json_config, void **user_config)
             config->PSD_max = json_number_value(json_object_get(json_config, "PSD_max"));
         } else {
             config->PSD_max = 1.1;
+        }
+
+        if (json_is_integer(json_object_get(json_config, "max_equals"))) {
+            config->max_equals = json_integer_value(json_object_get(json_config, "max_equals"));
+        } else {
+            config->max_equals = UINT32_MAX;
         }
 
         config->pulse_polarity = POLARITY_NEGATIVE;
@@ -357,6 +366,27 @@ void energy_analysis(const uint16_t *samples,
         return;
     }
 
+    // Checking if there are multiple subsequent samples with the exact same
+    // value. If it is the case, then probably the waveform was cut by
+    // saturation.
+    uint16_t previous_sample = samples[0];
+    uint32_t counter_equals = 1;
+    bool saturation_detected = false;
+
+    for (uint32_t index = 1; index < samples_number; index += 1) {
+        if (samples[index] == previous_sample) {
+            counter_equals += 1;
+
+            if (counter_equals > config->max_equals) {
+                saturation_detected = true;
+            }
+        } else {
+            previous_sample = samples[index];
+            counter_equals = 1;
+        }
+
+    }
+
     cumulative_sum(samples + local_start, local_end, &config->samples_cumulative);
 
         if (config->enable_warnings) {
@@ -400,7 +430,7 @@ void energy_analysis(const uint16_t *samples,
 
     const uint8_t group_counter = 0;
 
-    if (scaled_qlong < config->energy_threshold || PSD < config->PSD_min || PSD > config->PSD_max) {
+    if (scaled_qlong < config->energy_threshold || PSD < config->PSD_min || PSD > config->PSD_max || saturation_detected) {
         // Discard the event
         reallocate_buffers(trigger_positions, events_buffer, events_number, 0);
     } else {
