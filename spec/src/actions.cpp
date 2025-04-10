@@ -21,7 +21,6 @@ extern "C" {
 
 #include "typedefs.hpp"
 #include "states.hpp"
-#include "events.hpp"
 #include "actions.hpp"
 
 extern "C" {
@@ -30,6 +29,7 @@ extern "C" {
 #include "jansson_socket_functions.h"
 #include "histogram.h"
 #include "histogram2D.h"
+#include "events.h"
 }
 
 #define BUFFER_SIZE 32
@@ -485,7 +485,7 @@ bool actions::generic::read_socket(status &global_status)
 
             const size_t data_size = size;
 
-            const size_t events_number = data_size / sizeof(event_PSD);
+            const size_t events_number = data_size / sizeof(struct event_PSD);
 
             if (global_status.verbosity > 0)
             {
@@ -494,11 +494,11 @@ bool actions::generic::read_socket(status &global_status)
                 std::cout << '[' << time_buffer << "] ";
                 std::cout << "Data size: " << data_size << "; ";
                 std::cout << "Events number: " << events_number << "; ";
-                std::cout << "mod: " << data_size % sizeof(event_PSD) << "; ";
+                std::cout << "mod: " << data_size % sizeof(struct event_PSD) << "; ";
                 std::cout << std::endl;
             }
 
-            event_PSD *events = reinterpret_cast<event_PSD*>(input_buffer);
+            struct event_PSD *events = reinterpret_cast<struct event_PSD*>(input_buffer);
 
             for (size_t i = 0; i < events_number; i++)
             {
