@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
     bool use_bz2 = false;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hbt:S:P:T:v")) != -1) {
+    while ((c = getopt(argc, argv, "hbt:A:D:T:v")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
