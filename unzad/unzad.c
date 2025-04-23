@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
     char *subscription_topic = defaults_unzad_topic_subscribe;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hbt:S:P:T:v")) != -1) {
+    while ((c = getopt(argc, argv, "ht:A:D:T:v")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
