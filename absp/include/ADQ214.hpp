@@ -9,7 +9,8 @@ extern "C" {
 
 #include "Digitizer.hpp"
 
-#define ADQ214_RECORD_HEADER_SIZE 32
+#define ADQ214_RECORD_HEADER_SIZE 32 // byte
+#define ADQ214_EXTENDED_TIMESTAMP_BITMASK ((1 << 16) | (1 << 17))
 
 #define ADQ214_TIMESTAMP_BITS 42
 #define ADQ214_TIMESTAMP_MAX (1UL << ADQ214_TIMESTAMP_BITS)
@@ -95,7 +96,9 @@ public:
     // the unused pointers should be null pointers
     void* target_buffers[ADQ_GETDATA_MAX_NOF_CHANNELS];
     std::vector<int16_t> buffers[ADQ_GETDATA_MAX_NOF_CHANNELS];
-    std::vector<uint8_t> target_headers;
+    // The headers are described in the document:
+    //   11-0701-C-Trigger_ApplicationNote.pdf
+    std::vector<uint32_t> target_headers;
     std::vector<int64_t> target_timestamps;
 
     // -------------------------------------------------------------------------
