@@ -455,10 +455,13 @@ int ABCD::ADQ36_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
                 const uint8_t channel = ADQ_records_array->record[record_index]->header->channel;
                 const uint32_t record_number = ADQ_records_array->record[record_index]->header->record_number;
                 const uint32_t samples_per_record = ADQ_records_array->record[record_index]->header->record_length;
-		// Timestamp of the waveform's begin
+                // Timestamp of the waveform's begin
                 const uint64_t timestamp_begin = ADQ_records_array->record[record_index]->header->timestamp;
+                // Timestamp of the start of the record relative to the threshold crossing sample
+                // These two numbers might have different time resolutions
+                // (even if they have the same time unit)
                 const int64_t record_start = ADQ_records_array->record[record_index]->header->record_start;
-		const uint64_t timestamp = timestamp_begin + record_start;
+                const uint64_t timestamp = timestamp_begin + record_start;
 
                 if (GetVerbosity() > 1)
                 {
