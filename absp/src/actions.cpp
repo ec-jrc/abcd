@@ -2232,6 +2232,8 @@ state actions::restart_destroy_digitizer(status &global_status)
 
 state actions::restart_destroy_control_unit(status &global_status)
 {
+    global_status.counter_resets = 0;
+
     actions::generic::destroy_control_unit(global_status);
 
     return states::restart_create_control_unit;
