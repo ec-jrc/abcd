@@ -1,5 +1,5 @@
 # File names
-MODULES = dasa chafi cofi sofi wafi wadi enfi pufi gzad unzad fifo waps waph waan spec tofcalc replay convert
+MODULES = bin dasa chafi cofi sofi wafi wadi enfi pufi gzad unzad fifo waps waph waan spec tofcalc replay convert
 
 .PHONY: all clean $(MODULES)
 
