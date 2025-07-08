@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 void print_usage(const char *name) {
     printf("Usage: %s [options] <file_name>\n", name);
     printf("\n");
-    printf("Reads and prints an ABCD waveforms file converting it to ASCII\n");
+    printf("Reads an ABCD waveforms file converting it to ASCII\n");
     printf("\n");
     printf("Optional arguments:\n");
     printf("\t-h: Display this message\n");
