@@ -25,7 +25,7 @@ import lzma
 import bz2
 import json
 
-parser = argparse.ArgumentParser(description='Read an ABCD raw file extracting the configuration files contained in it')
+parser = argparse.ArgumentParser(description='Read an ABCD raw file extracting the acquisition events contained in it')
 parser.add_argument('file_name',
                     type = str,
                     help = 'Input file name')
