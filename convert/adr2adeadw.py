@@ -30,7 +30,7 @@ BASE_PERIOD = 100
 ADDRESS_STATUS = "tcp://*:16180"
 ADDRESS_DATA = "tcp://*:16181"
 
-parser = argparse.ArgumentParser(description='Read and print an ABCD raw file converting it to an events file and a waveforms file')
+parser = argparse.ArgumentParser(description='Read an ABCD raw file converting it to an events file and a waveforms file')
 parser.add_argument('file_name',
                     type = str,
                     help = 'Input file name')
