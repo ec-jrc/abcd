@@ -30,6 +30,8 @@
 #include <string.h>
 #include <stdbool.h>
 
+#include "events.h"
+
 // Function to parse the command line options, that is defined after the main()
 int parse_command_line(int argc, char *argv[], unsigned int *verbosity, char **output_file_name, char **input_file_name);
 
@@ -100,7 +102,7 @@ int main(int argc, char *argv[])
             }
 
             // If 14 bytes were read then we can expect that the reading is good
-            if (result == 14) {
+            if (result == waveform_header_size()) {
                 // We need to allocate an array in which we can store the samples...
                 uint16_t *samples = malloc(samples_number * sizeof(uint16_t));
                 // ...and an array in which we can store the additional waveforms
