@@ -58,13 +58,7 @@ unsigned int terminate_flag = 0;
 // SIGINT (from ctrl-c): same behaviour as SIGTERM
 // SIGHUP (from shell processes): same behaviour as SIGTERM
 
-void signal_handler(int signum)
-{
-    if (signum == SIGINT || signum == SIGTERM || signum == SIGHUP)
-    {
-        terminate_flag = 1;
-    }
-}
+void signal_handler(int signum);
 
 void print_usage(const char *name) {
     printf("Usage: %s [options] <channels_list>\n", name);
@@ -73,8 +67,8 @@ void print_usage(const char *name) {
     printf("\n");
     printf("Optional arguments:\n");
     printf("\t-h: Display this message\n");
-    printf("\t-v: Set verbose execution\n");
-    printf("\t-V: Set more verbose execution\n");
+    printf("\t-v: Set verbose execution, repeating the option increases the verbosity level\n");
+    printf("\n");
     printf("\t-A <address>: Input data socket address, default: %s\n", defaults_abcd_data_address_sub);
     printf("\t-D <address>: Output data socket address, default: %s\n", defaults_chafi_data_address);
     printf("\t-T <period>: Set base period in milliseconds, default: %d\n", defaults_chafi_base_period);
@@ -82,18 +76,7 @@ void print_usage(const char *name) {
     return;
 }
 
-bool in(int channel, int *selected_channels, size_t number_of_channels)
-{
-    for (size_t i = 0; i < number_of_channels; i++)
-    {
-        if (channel == selected_channels[i])
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
+bool in_array(int channel, int *selected_channels, size_t number_of_channels);
 
 int main(int argc, char *argv[])
 {
@@ -108,7 +91,7 @@ int main(int argc, char *argv[])
     char *output_address = defaults_chafi_data_address;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hA:D:S:P:T:vV")) != -1) {
+    while ((c = getopt(argc, argv, "hA:D:S:P:T:v")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
@@ -129,10 +112,7 @@ int main(int argc, char *argv[])
                 base_period = atoi(optarg);
                 break;
             case 'v':
-                verbosity = 1;
-                break;
-            case 'V':
-                verbosity = 2;
+                verbosity += 1;
                 break;
             default:
                 printf("Unknown command: %c", c);
@@ -168,7 +148,7 @@ int main(int argc, char *argv[])
         printf("Base period: %u\n", base_period);
     }
 
-    // Creates a ØMQ context
+    // Creates a ZeroMQ context
     void *context = zmq_ctx_new();
     if (!context)
     {
@@ -286,7 +266,7 @@ int main(int argc, char *argv[])
                         /******************************************************/
                         /* HERE BE THE FILTER!!!                              */
                         /******************************************************/
-                        if (in(this_channel, selected_channels, number_of_channels))
+                        if (in_array(this_channel, selected_channels, number_of_channels))
                         {
                             // Copy the full waveform event to the output buffer
                             memcpy(output_buffer + output_offset, input_buffer + input_offset, this_size);
@@ -359,7 +339,7 @@ int main(int argc, char *argv[])
                             /**************************************************/
                             /* HERE BE THE FILTER!!!                          */
                             /**************************************************/
-                            if (in(this_event.channel, selected_channels, number_of_channels))
+                            if (in_array(this_event.channel, selected_channels, number_of_channels))
                             {
                                 output_buffer[selected_number] = this_event;
                                 selected_number += 1;
@@ -457,4 +437,25 @@ int main(int argc, char *argv[])
     }
     
     return EXIT_SUCCESS;
+}
+
+void signal_handler(int signum)
+{
+    if (signum == SIGINT || signum == SIGTERM || signum == SIGHUP)
+    {
+        terminate_flag = 1;
+    }
+}
+
+bool in_array(int channel, int *selected_channels, size_t number_of_channels)
+{
+    for (size_t i = 0; i < number_of_channels; i++)
+    {
+        if (channel == selected_channels[i])
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
