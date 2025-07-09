@@ -42,6 +42,10 @@ public:
     // Flag to signal that at least one channels is using the software trigger
     bool using_software_trigger;
 
+    // The timeout to stop the inner acquisition loop
+    static const unsigned int default_data_reading_timeout;
+    unsigned int data_reading_timeout;
+
     // -------------------------------------------------------------------------
     //  Custom JRC-Geel firmware configuration
     // -------------------------------------------------------------------------

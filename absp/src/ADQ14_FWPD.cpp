@@ -1997,7 +1997,12 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
 
                 json_object_set_nocheck(value, "trigger_slope", json_string(ADQ_descriptions::trigger_slope.at(trigger_slope).c_str()));
 
-                const int pretrigger = json_number_value(json_object_get(value, "pretrigger"));
+                const int raw_pretrigger = json_number_value(json_object_get(value, "pretrigger"));
+
+		// For the -4C variant the pretrigger must be a multiple of 4
+		// For the -4A variant the pretrigger must be a multiple of 2
+		// A conservative approach would be to always force it to a multiple of 4
+		const int pretrigger = ceil(raw_pretrigger / ADQ_ADQ14_SAMPLES_RESOLUTION) * ADQ_ADQ14_SAMPLES_RESOLUTION;
 
                 json_object_set_nocheck(value, "pretrigger", json_integer(pretrigger));
 
@@ -2009,8 +2014,12 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
                     std::cout << std::endl;
                 }
 
-                int this_smooth_samples = json_number_value(json_object_get(value, "smooth_samples"));
-                this_smooth_samples = (0 <= this_smooth_samples && this_smooth_samples < ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? this_smooth_samples : ADQ_ADQ14_MAX_SMOOTH_SAMPLES;
+                int raw_smooth_samples = json_number_value(json_object_get(value, "smooth_samples"));
+
+		// See pretrigger's comment
+                raw_smooth_samples = ceil(raw_smooth_samples / ADQ_ADQ14_SAMPLES_RESOLUTION) * ADQ_ADQ14_SAMPLES_RESOLUTION;
+		// Forcing the number of samples to be less than the maximum acceptable
+                const int this_smooth_samples = (0 <= raw_smooth_samples && raw_smooth_samples < ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? raw_smooth_samples : ADQ_ADQ14_MAX_SMOOTH_SAMPLES;
 
                 json_object_set_nocheck(value, "smooth_samples", json_integer(this_smooth_samples));
 
@@ -2022,9 +2031,14 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
                     std::cout << std::endl;
                 }
 
-                int smooth_delay = json_number_value(json_object_get(value, "smooth_delay"));
-                smooth_delay = (0 <= smooth_delay && smooth_delay < ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? smooth_delay : 0;
-                smooth_delay = ((smooth_delay + this_smooth_samples) <= ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? smooth_delay : (ADQ_ADQ14_MAX_SMOOTH_SAMPLES - this_smooth_samples);
+                int raw_smooth_delay = json_number_value(json_object_get(value, "smooth_delay"));
+
+		// See pretrigger's comment
+                raw_smooth_delay = ceil(raw_smooth_delay / ADQ_ADQ14_SAMPLES_RESOLUTION) * ADQ_ADQ14_SAMPLES_RESOLUTION;
+		// Forcing the number of samples to be less than the maximum acceptable
+                raw_smooth_delay = (0 <= raw_smooth_delay && raw_smooth_delay < ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? raw_smooth_delay : 0;
+		// Forcing the smooth_delay + smooth_samples <= 100
+                const int smooth_delay = ((raw_smooth_delay + this_smooth_samples) <= ADQ_ADQ14_MAX_SMOOTH_SAMPLES) ? raw_smooth_delay : (ADQ_ADQ14_MAX_SMOOTH_SAMPLES - this_smooth_samples);
 
                 json_object_set_nocheck(value, "smooth_delay", json_integer(smooth_delay));
 
@@ -2035,7 +2049,11 @@ int ABCD::ADQ14_FWPD::ReadConfig(json_t *config)
                     std::cout << "Smooth delay: " << smooth_delay << "; ";
                     std::cout << std::endl;
                 }
-                const unsigned int scope = json_number_value(json_object_get(value, "scope_samples"));
+
+                const unsigned int raw_scope = json_number_value(json_object_get(value, "scope_samples"));
+
+		// See pretrigger's comment
+                const unsigned int scope = ceil(raw_scope / ADQ_ADQ14_SAMPLES_RESOLUTION) * ADQ_ADQ14_SAMPLES_RESOLUTION;
 
                 json_object_set_nocheck(value, "scope_samples", json_integer(scope));
 

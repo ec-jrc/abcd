@@ -268,8 +268,8 @@ int ABCD::ADQ214::Configure()
             channels_analog_front_end_mask += (1 << channel);
         }
 
-	// Enabling LF amplification on the channels
-	// TODO Discover what this means
+        // Enabling LF amplification on the channels
+        // TODO Discover what this means
         channels_analog_front_end_mask += (1 << (channel + 2));
     }
 
@@ -441,7 +441,7 @@ int ABCD::ADQ214::Configure()
     }
 
     target_timestamps.resize(records_number);
-    target_headers.resize(records_number * ADQ214_RECORD_HEADER_SIZE);
+    target_headers.resize(records_number * ADQ214_RECORD_HEADER_SIZE / sizeof(uint32_t));
 
     // -------------------------------------------------------------------------
     //  Streaming setup
@@ -556,12 +556,11 @@ bool ABCD::ADQ214::DataOverflow()
 
 int ABCD::ADQ214::GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms)
 {
-    // We will skip the target headers reading because we have no documentation
-    // about their structure, thus we will pass just NULL to the function.
+    // The headers are described in the document:
+    //   11-0701-C-Trigger_ApplicationNote.pdf
     const int retval = ADQ_GetDataWHTS(adq_cu_ptr, adq_num,
                                        target_buffers,
-                                       //target_headers.data(),
-                                       NULL,
+                                       target_headers.data(),
                                        target_timestamps.data(),
                                        buffers_size, sizeof(int16_t),
                                        0, records_number,
@@ -586,6 +585,29 @@ int ABCD::ADQ214::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
     }
 
     for (unsigned int record_index = 0; record_index < records_number; record_index++) {
+	const size_t header_start = record_index * (ADQ214_RECORD_HEADER_SIZE / sizeof(uint32_t));
+
+        if (GetVerbosity() > 2)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ214::GetWaveformsFromCard() ";
+            std::cout << "Record header words: ";
+
+	    for (unsigned int i = 0; i < (ADQ214_RECORD_HEADER_SIZE / sizeof(uint32_t)); i++)
+            {
+	        const uint32_t word = target_headers[header_start + i];
+                std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << word << std::dec << " ";
+            }
+
+            std::cout << "; " << std::endl;
+
+            std::cout << '[' << time_buffer << "] ABCD::ADQ214::GetWaveformsFromCard() ";
+            std::cout << "Sub-sample time resolution bits: " << "0x" << std::setw(1) << std::hex << (target_headers[header_start + 2] & ADQ214_EXTENDED_TIMESTAMP_BITMASK) << std::dec << "; ";
+            std::cout << "Last timestamp bits: " << "0x" << std::setw(1) << std::hex << (target_timestamps[record_index] & 0b11) << std::dec << "; ";
+            std::cout << std::endl;
+	}
+
         // If we see a jump backward in timestamp bigger than half the timestamp
         // range we assume that there was an overflow in the timestamp counter.
         // A smaller jump could mean that the records in the buffer are not
@@ -611,7 +633,7 @@ int ABCD::ADQ214::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
 
         // We do not add the offset here because we want to check the digitizer
         // behaviour and not the correction.
-        timestamp_last = target_timestamps[record_index];
+        timestamp_last = target_timestamps[record_index] + (target_headers[header_start + 2] & ADQ214_EXTENDED_TIMESTAMP_BITMASK);
 
         const uint64_t timestamp_waveform = target_timestamps[record_index] + timestamp_offset;
 
@@ -1193,7 +1215,7 @@ int ABCD::ADQ214::SpecificCommand(json_t *json_command)
             std::cout << std::endl;
         }
 
-	// Mask has an inverted logic
+        // Mask has an inverted logic
         const uint16_t mask = ~(1 << pin);
         uint16_t pins_directions = 0;
 
@@ -1208,7 +1230,7 @@ int ABCD::ADQ214::SpecificCommand(json_t *json_command)
         const unsigned int pin = json_number_value(json_object_get(json_command, "pin"));
         const unsigned int value = json_number_value(json_object_get(json_command, "value"));
 
-	// Mask has an inverted logic
+        // Mask has an inverted logic
         const uint16_t mask = ~(1 << pin);
         const uint16_t pins_values = (value > 0) ? (1 << pin) : 0;
 
@@ -1235,10 +1257,10 @@ int ABCD::ADQ214::SpecificCommand(json_t *json_command)
             std::cout << std::endl;
         }
 
-	// Mask has an inverted logic
+        // Mask has an inverted logic
         const uint16_t mask = ~(1 << pin);
 
-	GPIOPulse(width, mask);
+        GPIOPulse(width, mask);
     } else if (command == std::string("timestamp_reset_mode")) {
         const char *cstr_mode = json_string_value(json_object_get(json_command, "mode"));
         const std::string mode = (cstr_mode) ? std::string(cstr_mode) : std::string();
@@ -1369,9 +1391,9 @@ int ABCD::ADQ214::TimestampResetMode(std::string mode)
     const int return_value = ADQ_ResetTrigTimer(adq_cu_ptr, adq_num, restart_mode);
 
     if (!return_value) {
-	return DIGITIZER_FAILURE;
+        return DIGITIZER_FAILURE;
     } else {
-	return DIGITIZER_SUCCESS;
+        return DIGITIZER_SUCCESS;
     }
 }
 
