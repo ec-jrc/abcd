@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <ctime>
 #include <limits>
+#include <algorithm>
 
 extern "C" {
 #include <zmq.h>
@@ -21,7 +22,6 @@ extern "C" {
 
 #include "typedefs.hpp"
 #include "states.hpp"
-#include "events.hpp"
 #include "actions.hpp"
 
 extern "C" {
@@ -30,56 +30,14 @@ extern "C" {
 #include "jansson_socket_functions.h"
 #include "histogram.h"
 #include "histogram2D.h"
+#include "events.h"
 }
 
 #define BUFFER_SIZE 32
 
-/******************************************************************************/
-/* Quicksort utilities                                                        */
-/******************************************************************************/
-
-intmax_t partition(event_PSD *events, intmax_t low, intmax_t high)
+bool before_than(const struct event_PSD event_a, const struct event_PSD event_b)
 {
-    const event_PSD pivot = events[high];
-
-    intmax_t i = low - 1;
-
-    for (intmax_t j = low; j <= high - 1; j++)
-    {
-        //std::cout << "low: " << low << "; high: " << high << "; i: " << i << "; j: " << j << std::endl;
-
-        if (events[j].timestamp <= pivot.timestamp)
-        {
-            i += 1;
-
-            const event_PSD temp = events[j];
-            events[j] = events[i];
-            events[i] = temp;
-        }
-    }
-
-    //std::cout << "low: " << low << "; high: " << high << "; i: " << i << std::endl;
-
-    const event_PSD temp = events[high];
-    events[high] = events[i + 1];
-    events[i + 1] = temp;
-
-    return i + 1;
-}
-
-void quicksort(event_PSD *events, intmax_t low, intmax_t high)
-{
-    //std::cout << "low: " << low << "; high: " << high << std::endl;
-
-    if (low < high)
-    {
-        const intmax_t pivot_index = partition(events, low, high);
-
-        //std::cout << "low: " << low << "; high: " << high << "; pivot_index: " << pivot_index << std::endl;
-
-        quicksort(events, low, pivot_index - 1);
-        quicksort(events, pivot_index + 1, high);
-    }
+    return event_a.timestamp < event_b.timestamp;
 }
 
 /******************************************************************************/
@@ -575,7 +533,7 @@ bool actions::generic::read_socket(status &global_status)
 
             const size_t data_size = size;
 
-            const size_t events_number = data_size / sizeof(event_PSD);
+            const size_t events_number = data_size / sizeof(struct event_PSD);
 
             size_t found_coincidences = 0;
 
@@ -586,11 +544,11 @@ bool actions::generic::read_socket(status &global_status)
                 std::cout << '[' << time_buffer << "] ";
                 std::cout << "Data size: " << data_size << "; ";
                 std::cout << "Events number: " << events_number << "; ";
-                std::cout << "mod: " << data_size % sizeof(event_PSD) << "; ";
+                std::cout << "mod: " << data_size % sizeof(struct event_PSD) << "; ";
                 std::cout << std::endl;
             }
 
-            event_PSD *events = reinterpret_cast<event_PSD*>(input_buffer);
+            struct event_PSD *events = reinterpret_cast<struct event_PSD*>(input_buffer);
 
             if (global_status.verbosity > 0)
             {
@@ -601,21 +559,24 @@ bool actions::generic::read_socket(status &global_status)
                 std::cout << std::endl;
             }
 
-            quicksort(events, 0, events_number - 1);
+            const auto sorting_start = std::chrono::high_resolution_clock::now();
+            std::sort(events, events + events_number, before_than);
+            const auto sorting_end = std::chrono::high_resolution_clock::now();
+            const auto sorting_duration = std::chrono::duration_cast<std::chrono::microseconds>(sorting_end - sorting_start);
 
             if (global_status.verbosity > 0)
             {
                 char time_buffer[BUFFER_SIZE];
                 time_string(time_buffer, BUFFER_SIZE, NULL);
                 std::cout << '[' << time_buffer << "] ";
-                std::cout << "Sorted buffer! ";
+                std::cout << "Sorted buffer! (duration: " << (sorting_duration.count() / 1000.0) << " ms)";
                 std::cout << std::endl;
             }
 
             for (size_t i = 0; i < events_number; i++)
             {
                 //std::cout << "i: " << i << "; Events number: " << events_number << "; " << std::endl;
-                const event_PSD this_event = events[i];
+                const struct event_PSD this_event = events[i];
 
                 // If it is a reference channel we can look for the coincidences
                 if (std::find(global_status.reference_channels.begin(),
@@ -627,7 +588,7 @@ bool actions::generic::read_socket(status &global_status)
                     for (intmax_t j = (i + 1); j < static_cast<int64_t>(events_number); j++)
                     {
                         //std::cout << "Forward:  i: " << i << "; j: " << j << std::endl;
-                        const event_PSD that_event = events[j];
+                        const struct event_PSD that_event = events[j];
 
                         const double time_of_flight = (static_cast<int64_t>(that_event.timestamp)
                                                        -
@@ -712,7 +673,7 @@ bool actions::generic::read_socket(status &global_status)
                     for (intmax_t j = (i - 1); j > 0; j--)
                     {
                         //std::cout << "Backward:  i: " << i << "; j: " << j << std::endl;
-                        const event_PSD that_event = events[j];
+                        const struct event_PSD that_event = events[j];
                         const double time_of_flight = (static_cast<int64_t>(that_event.timestamp)
                                                        -
                                                        static_cast<int64_t>(this_event.timestamp))

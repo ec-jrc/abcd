@@ -7,19 +7,16 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/redpitaya/lib/
 
 # Check if the ABCD_FOLDER variable is set in the environment, otherwise set it here
 if [[ -z "${ABCD_FOLDER}" ]]; then
-    # The variable is not set, thus set it to the folder in which ABCD is installed
+    # The variable is not set, thus the user should set it to the folder in which ABCD is installed
     ABCD_FOLDER="$HOME""/abcd/"
 fi
 
 # Folder in which data should be saved
 # Check if the DATA_FOLDER variable is set in the environment, otherwise set it here
 if [[ -z "${DATA_FOLDER}" ]]; then
-    # The variable is not set, thus set it to the folder in which ABCD is installed
+    # The variable is not set, thus the user should set it to the data destination folder
     DATA_FOLDER="${ABCD_FOLDER}""/data/"
 fi
-
-
-CURRENT_FOLDER="$PWD"
 
 TODAY="`date "+%Y%m%d"`"
 echo 'Today is '"$TODAY"
@@ -33,10 +30,6 @@ then
     printf '\e[1m\e[32mSuggestions:\e[0m Was ABCD correctly compiled?\n'
     printf '             Is the ${ABCD_FOLDER} variable set correctly in the environment or in the script?\n'
 else
-    #This is needed only on older versions of tmux, if the -c option does not work
-    #echo "Changing folder to: ""${ABCD_FOLDER}"
-    #cd "${ABCD_FOLDER}"
-
     # Checking if another ABCD session is running
     if [ "`tmux ls 2> /dev/null | grep ABCD | wc -l`" -gt 0 ]
     then
@@ -51,13 +44,8 @@ else
     echo "Creating the window for the GUI webserver: WebInterfaceTwo"
     tmux new-window -d -c "${ABCD_FOLDER}/wit/" -P -t ABCD -n wit 'node app.js ./config.json'
 
-    echo "Creating loggers window"
-    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n loggers "./bin/read_events.py -S 'tcp://127.0.0.1:16180' -o log/abcd_events_""$TODAY"".log"
-    tmux split-window -d -c "${ABCD_FOLDER}" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16183' -o log/hivo_events_""$TODAY"".log"
-    tmux split-window -d -c "${ABCD_FOLDER}" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16185' -o log/dasa_events_""$TODAY"".log"
-    tmux split-window -d -c "${ABCD_FOLDER}" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16187' -o log/spec_events_""$TODAY"".log"
-
-    tmux select-layout -t ABCD:2 even-vertical
+    echo "Creating logger window"
+    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n logger "python3 ./bin/log_status_events.py -v -o ${ABCD_FOLDER}/log/ABCD_status_events_${TODAY}.tsv -S 'tcp://127.0.0.1:16180' 'tcp://127.0.0.1:16185' 'tcp://127.0.0.1:16206'"
 
     echo "Waiting for node.js to start"
     sleep 2
@@ -71,13 +59,14 @@ else
     echo "Creating DaSa window, folder: ${DATA_FOLDER}"
     tmux new-window -d -c "${DATA_FOLDER}" -P -t ABCD -n dasa "${ABCD_FOLDER}/dasa/dasa -v"
 
-    echo "Creating WaDi window"
-    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n wadi './wadi/wadi -v'
+    echo "Creating WaDi windows"
+    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n wadidigi './wadi/wadi -v -A tcp://127.0.0.1:16207'
+    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n wadiwaan './wadi/wadi -v -A tcp://127.0.0.1:16181 -D tcp://*:17190'
 
-    echo "Creating tofcalc windows"
+    echo "Creating tofcalc window"
     tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n tofcalc "./tofcalc/tofcalc -f ./tofcalc/configs/RedPitaya_CeBr.json"
 
-    echo "Creating spec windows"
+    echo "Creating spec window"
     tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n spec "./spec/spec"
 
     echo "System started!"

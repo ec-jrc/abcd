@@ -53,58 +53,32 @@
 #include "socket_functions.h"
 #include "utilities_functions.h"
 
+// Reverse strstr(): searches small_string in big_string
+char *rstrstr(char *big_string, char *small_string);
+
 unsigned int terminate_flag = 0;
-
-char *rstrstr(char *big_string, char *small_string)
-{
-    size_t  big_string_len = strlen(big_string);
-    size_t  small_string_len = strlen(small_string);
-    char *s;
-
-    if (small_string_len > big_string_len)
-    {
-        return NULL;
-    }
-    for (s = big_string + big_string_len - small_string_len; s >= big_string; --s)
-    {
-        if (strncmp(s, small_string, small_string_len) == 0)
-        {
-            return s;
-        }
-    }
-
-    return NULL;
-}
 
 // Handle standard signals
 // SIGTERM (from kill): terminates kindly forcing the status to the closing branch of the state machine.
 // SIGINT (from ctrl-c): same behaviour as SIGTERM
 // SIGHUP (from shell processes): same behaviour as SIGTERM
 
-void signal_handler(int signum)
+void signal_handler(int signum);
+
+void print_usage(const char *name)
 {
-    if (signum == SIGINT || signum == SIGTERM || signum == SIGHUP)
-    {
-        terminate_flag = 1;
-    }
-}
-
-void print_usage(const char *name) {
-    char data_address[sizeof("[wxyz://255.255.255.255:65535]")];
-    address_bind_to_connect(data_address, sizeof(data_address), defaults_abcd_data_address, defaults_abcd_ip);
-
     printf("Usage: %s [options]\n", name);
     printf("\n");
     printf("Datastream filter that compressed packets with the zlib or with bz2.\n");
     printf("\n");
     printf("Optional arguments:\n");
     printf("\t-h: Display this message\n");
-    printf("\t-v: Set verbose execution\n");
-    printf("\t-b: Enable usage of bz2\n");
+    printf("\t-v: Set verbose execution, repeating the option increases the verbosity level\n");
     printf("\t-t <topic>: Topic to subscribe to, default: '%s'\n", defaults_gzad_topic_subscribe);
-    printf("\t-S <address>: SUB socket address, default: %s\n", data_address);
-    printf("\t-P <address>: PUB socket address, default: %s\n", defaults_gzad_data_address);
+    printf("\t-A <address>: Input socket address, default: %s\n", defaults_abcd_data_address_sub);
+    printf("\t-D <address>: Output socket address, default: %s\n", defaults_gzad_data_address);
     printf("\t-T <period>: Set base period in milliseconds, default: %d\n", defaults_gzad_base_period);
+    printf("\t-b: Enable usage of bz2\n");
 
     return;
 }
@@ -124,7 +98,7 @@ int main(int argc, char *argv[])
     bool use_bz2 = false;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hbt:S:P:T:v")) != -1) {
+    while ((c = getopt(argc, argv, "hbt:A:D:T:v")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
@@ -135,17 +109,17 @@ int main(int argc, char *argv[])
             case 't':
                 subscription_topic = optarg;
                 break;
-            case 'S':
+            case 'A':
                 input_address = optarg;
                 break;
-            case 'P':
+            case 'D':
                 output_address = optarg;
                 break;
             case 'T':
                 base_period = atoi(optarg);
                 break;
             case 'v':
-                verbosity = 1;
+                verbosity += 1;
                 break;
             default:
                 printf("Unknown command: %c", c);
@@ -232,7 +206,7 @@ int main(int argc, char *argv[])
         }
         else if (size == 0 && result == EXIT_SUCCESS)
         {
-            if (verbosity > 1)
+            if (verbosity > 2)
             {
                 printf("[%zu] No message available\n", counter);
             }
@@ -367,7 +341,7 @@ int main(int argc, char *argv[])
         nanosleep(&wait, NULL);
         //usleep(base_period * 1000);
 
-        if (verbosity > 1)
+        if (verbosity > 2)
         {
             printf("counter: %zu; msg_counter: %zu, msg_ID: %zu\n", counter, msg_counter, msg_ID);
         }
@@ -399,4 +373,32 @@ int main(int argc, char *argv[])
     }
     
     return EXIT_SUCCESS;
+}
+
+void signal_handler(int signum)
+{
+    if (signum == SIGINT || signum == SIGTERM || signum == SIGHUP)
+    {
+        terminate_flag = 1;
+    }
+}
+
+char *rstrstr(char *big_string, char *small_string)
+{
+    size_t big_string_len = strlen(big_string);
+    size_t small_string_len = strlen(small_string);
+
+    if (small_string_len > big_string_len)
+    {
+        return NULL;
+    }
+    for (char *s = big_string + big_string_len - small_string_len; s >= big_string; --s)
+    {
+        if (strncmp(s, small_string, small_string_len) == 0)
+        {
+            return s;
+        }
+    }
+
+    return NULL;
 }

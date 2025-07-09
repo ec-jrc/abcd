@@ -1,7 +1,9 @@
 ABCD-VERSION = 1.0.0
 
 MODULES = dasa chafi cofi sofi califo wadi enfi pufi gzad unzad fifo waan spec tofcalc
+
 HARDWARE_MODULES = abad2 abcd abps5000a abrp absp
+
 EXECUTABLES_DIRS = bin replay convert examples
 EXECUTABLES = \
 bin/send_command.py \
@@ -39,7 +41,7 @@ SHAREDIR = usr/share/abcd/
 CONFIGDIR = $(SHAREDIR)/configs/
 WITDIR = opt/local/abcd/
 
-.PHONY: all clean deb
+.PHONY: all clean $(MODULES)
 
 all: $(MODULES) $(EXECUTABLES_DIRS)
 	$(foreach module,$(MODULES),$(MAKE) -C $(module);)

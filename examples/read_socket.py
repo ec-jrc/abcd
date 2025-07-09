@@ -21,66 +21,95 @@ import argparse
 import zmq
 import json
 
-parser = argparse.ArgumentParser(description='Read and print ABCD messages')
-parser.add_argument('-S',
-                    '--socket',
+import numpy as np
+
+TOPIC = "data_abcd"
+ADDRESS_INPUT = "tcp://127.0.0.1:16181"
+ADDRESS_OUTPUT = "tcp://127.0.0.1:19181"
+
+parser = argparse.ArgumentParser(description='Read and forward ABCD data sockets')
+parser.add_argument('-A',
+                    '--input_socket',
                     type = str,
-                    help = 'Socket address',
-                    default = "tcp://127.0.0.1:16180")
+                    default = ADDRESS_INPUT,
+                    help = f'Input socket address, default: {ADDRESS_INPUT}')
+parser.add_argument('-D',
+                    '--output_socket',
+                    type = str,
+                    default = ADDRESS_OUTPUT,
+                    help = f'Output socket address, default: {ADDRESS_OUTPUT}')
 parser.add_argument('-t',
                     '--topic',
                     type = str,
-                    default = "",
-                    help = 'Topic to subscribe to, default: ""')
+                    default = TOPIC,
+                    help = f'Topic to subscribe to, default: "{TOPIC}"')
 parser.add_argument('-T',
                     '--polling_time',
                     type = float,
-                    default = 200,
-                    help = 'Socket polling time')
+                    help = 'Socket polling time',
+                    default = 200)
 
 args = parser.parse_args()
 
 topic = args.topic.encode('ascii')
 
-print("Connecting to: {}".format(args.socket))
-print("Subscribing to topic: '{}'".format(topic))
+print(f"Input socket: {args.input_socket}")
+print(f"Output socket: {args.output_socket}")
+print(f"Subscribing to topic: '{topic}'")
+
+event_PSD_dtype = np.dtype([('timestamp', np.uint64),
+                            ('qshort', np.uint16),
+                            ('qlong', np.uint16),
+                            ('baseline', np.uint16),
+                            ('channel', np.uint8),
+                            ('pur', np.uint8),
+                            ])
 
 with zmq.Context() as context:
     poller = zmq.Poller()
 
-    socket = context.socket(zmq.SUB)
+    socket_input = context.socket(zmq.SUB)
+    socket_input.connect(args.input_socket)
+    socket_input.setsockopt(zmq.SUBSCRIBE, args.topic.encode('ascii'))
 
-    socket.connect(args.socket)
-    socket.setsockopt(zmq.SUBSCRIBE, topic)
+    socket_output = context.socket(zmq.PUB)
+    socket_output.connect(args.output_socket)
 
-    poller.register(socket, zmq.POLLIN)
+    poller.register(socket_input, zmq.POLLIN)
 
-    msg_counter = 0
-
+    counter_msg = 0
     try:
         while True:
             socks = dict(poller.poll(args.polling_time))
 
-            if socket in socks and socks[socket] == zmq.POLLIN:
-                message = socket.recv()
+            if socket_input in socks and socks[socket_input] == zmq.POLLIN:
+                message = socket_input.recv()
 
-                print("Message [{:d}]:".format(msg_counter))
+                print(f"Message [{counter_msg}]")
 
                 try:
-                    topic, json_message = message.decode('ascii', 'ignore').split(' ', 1)
+                    separator_index = message.find(b' ')
+
+                    topic = message[:separator_index].decode('ascii')
 
                     print("\tTopic: {}".format(topic))
             
-                    status = json.loads(json_message)
+                    if topic.startswith("data_abcd_events"):
+                        buffer = message[separator_index+1:]
+                        data = np.frombuffer(buffer, dtype = event_PSD_dtype)
 
-                    print("\tmsg_ID: {:d}".format(status["msg_ID"]))
-                    print("\tdatetime: {}".format(status["timestamp"]))
-                    print("\tkeys: {}".format(list(status.keys())))
-                except:
-                    pass
+                        # Do something here with the data
+                        #timestamps = data['timestamp']
+                        #channels = data['channel']
+                        #...
 
-                msg_counter += 1
+                    socket_output.send(topic.encode('ascii') + b' ' + buffer)
+                except Exception as error:
+                    print(error)
+
+                counter_msg += 1
                     
 
     except KeyboardInterrupt:
-        socket.close()
+        socket_input.close()
+        socket_output.close()

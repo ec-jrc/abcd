@@ -108,7 +108,7 @@ void print_usage(const char *name)
     return;
 }
 
-bool in_array(int channel, int *reference_channels, size_t number_of_channels);
+bool in_array(int channel, int *selected_channels, size_t number_of_channels);
 int compare_events(const void *a, const void *b);
 void reallocate_array(size_t entries_number, size_t *previous_entries_number, void **entries_array, size_t sizeof_type);
 
@@ -971,11 +971,11 @@ void signal_handler(int signum)
     }
 }
 
-bool in_array(int channel, int *reference_channels, size_t number_of_channels)
+bool in_array(int channel, int *selected_channels, size_t number_of_channels)
 {
     for (size_t i = 0; i < number_of_channels; i++)
     {
-        if (channel == reference_channels[i])
+        if (channel == selected_channels[i])
         {
             return true;
         }

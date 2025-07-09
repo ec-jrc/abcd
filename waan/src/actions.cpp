@@ -1371,7 +1371,7 @@ state actions::read_socket(status &global_status)
 
                 // We add 14 bytes to the input_offset because we want to be sure to read at least
                 // the first header of the waveform
-                while ((input_offset + 14) < size)
+                while ((input_offset + waveform_header_size()) < size)
                 {
                     if (verbosity > 1)
                     {
@@ -1401,7 +1401,7 @@ state actions::read_socket(status &global_status)
                     const bool is_active = std::find(global_status.active_channels.begin(),
                                                      global_status.active_channels.end(),
                                                      this_channel) != global_status.active_channels.end();
-                    const size_t needed_offset = input_offset + 14
+                    const size_t needed_offset = input_offset + waveform_header_size()
                                                + (samples_number * sizeof(uint16_t))
                                                + (samples_number * gates_number * sizeof(uint8_t));
 
@@ -1443,23 +1443,25 @@ state actions::read_socket(status &global_status)
 
                         waveforms_number += 1;
 
-                        const uint16_t *samples = (uint16_t *)(input_buffer + input_offset + 14);
-                        // Should I store the digitizer gates to the waveform?
-                        // They are not standard and not quantitative, let's not bother
-                        //const uint8_t *gates = (uint8_t *)(input_buffer + input_offset + 14 + samples_number * sizeof(uint16_t));
+                        const uint16_t *samples = (uint16_t *)(input_buffer + input_offset + waveform_header_size());
+                        // Should I store the additionals to the waveform?
+                        // They are not standard and not quantitative, let's not bother...
+                        // Actually, they might be useful as users might have
+                        // stored important information in them.
+                        const uint8_t *gates = (uint8_t *)(input_buffer + input_offset + waveform_header_size() + samples_number * sizeof(uint16_t));
 
                         struct event_waveform this_waveform = waveform_create(timestamp,
                                                                               this_channel,
                                                                               samples_number,
-                                                                              0);
+                                                                              gates_number);
 
                         waveform_samples_set(&this_waveform, samples);
 
-                        //for (uint8_t i = 0; i < gates_number; i++) {
-                        //    waveform_additional_set(&this_waveform,
-                        //                            i,
-                        //                            gates + samples_number * i * sizeof(uint8_t));
-                        //}
+                        for (uint8_t i = 0; i < gates_number; i++) {
+                            waveform_additional_set(&this_waveform,
+                                                    i,
+                                                    gates + samples_number * i * sizeof(uint8_t));
+                        }
 
                         if (verbosity > 1)
                         {
@@ -1566,7 +1568,7 @@ state actions::read_socket(status &global_status)
                     }
 
                     // Compute the waveform event size
-                    const size_t this_size = 14 + samples_number * sizeof(uint16_t) + gates_number * samples_number * sizeof(uint8_t);
+                    const size_t this_size = waveform_header_size() + samples_number * sizeof(uint16_t) + gates_number * samples_number * sizeof(uint8_t);
                     input_offset += this_size;
                 }
 

@@ -26,9 +26,9 @@
         "zzz": null
     },
     {
-        "name": "waveforms_display",
+        "name": "waveforms_display_digitizer",
         "type": "wadi",
-        "description": "On-line waveforms display",
+        "description": "On-line waveforms display (from digitizer)",
         "sockets": [
         {
             "type": "data",
@@ -57,6 +57,20 @@
         {
             "type": "commands",
             "address": "tcp://127.0.0.1:16208"
+        },
+        {}
+        ],
+        "zzz": null
+    },
+    {
+        "name": "waveforms_display_waan",
+        "type": "wadi",
+        "description": "On-line waveforms display (from waan)",
+        "sockets": [
+        {
+            "type": "data",
+            "address": "tcp://127.0.0.1:17190",
+            "topic": "data_wadi_waveforms"
         },
         {}
         ],

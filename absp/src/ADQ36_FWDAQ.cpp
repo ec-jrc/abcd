@@ -30,6 +30,8 @@ extern "C" {
 // The dump of the default configuration has 47130 characters
 #define ADQAPI_JSON_BUFFER_SIZE 65536
 
+const unsigned int ABCD::ADQ36_FWDAQ::default_data_reading_timeout = 3000;
+
 ABCD::ADQ36_FWDAQ::ADQ36_FWDAQ(void* adq, int num, int Verbosity) : ABCD::Digitizer(Verbosity),
                                                                   adq_cu_ptr(adq),
                                                                   adq_num(num)
@@ -379,6 +381,9 @@ int ABCD::ADQ36_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
         std::cout << std::endl;
     }
 
+    const std::chrono::time_point<std::chrono::system_clock> waveforms_reading_start = std::chrono::system_clock::now();
+    auto delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - waveforms_reading_start);
+
     int64_t available_records = ADQ_EAGAIN;
 
     do {
@@ -450,7 +455,13 @@ int ABCD::ADQ36_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
                 const uint8_t channel = ADQ_records_array->record[record_index]->header->channel;
                 const uint32_t record_number = ADQ_records_array->record[record_index]->header->record_number;
                 const uint32_t samples_per_record = ADQ_records_array->record[record_index]->header->record_length;
-                const uint64_t timestamp = ADQ_records_array->record[record_index]->header->timestamp;
+                // Timestamp of the waveform's begin
+                const uint64_t timestamp_begin = ADQ_records_array->record[record_index]->header->timestamp;
+                // Timestamp of the start of the record relative to the threshold crossing sample
+                // These two numbers might have different time resolutions
+                // (even if they have the same time unit)
+                const int64_t record_start = ADQ_records_array->record[record_index]->header->record_start;
+                const uint64_t timestamp = timestamp_begin + record_start;
 
                 if (GetVerbosity() > 1)
                 {
@@ -546,7 +557,20 @@ int ABCD::ADQ36_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
                                                  ADQ_records_array));
         }
 
-    } while (available_records >= 0);
+
+        delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - waveforms_reading_start);
+
+
+        if (GetVerbosity() > 1)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::AcquisitionReady() ";
+            std::cout << "Time since the last buffer ready: " << delta_time.count() << " ms; ";
+            std::cout << std::endl;
+        }
+
+    } while ((available_records >= 0) && (delta_time < std::chrono::milliseconds(data_reading_timeout)));
 
     if (GetVerbosity() > 0)
     {
@@ -741,6 +765,23 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
 
         clock_system.low_jitter_mode_enabled = 1;
     }
+
+    data_reading_timeout = json_number_value(json_object_get(config, "data_reading_timeout"));
+
+    if (data_reading_timeout <= 0) {
+        data_reading_timeout = default_data_reading_timeout;
+    }
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
+        std::cout << "Data reading timeout: " << data_reading_timeout << " ms; ";
+        std::cout << std::endl;
+    }
+
+    json_object_set_nocheck(config, "data_reading_timeout", json_integer(data_reading_timeout));
 
     timestamp_bit_shift = json_number_value(json_object_get(config, "timestamp_bit_shift"));
 

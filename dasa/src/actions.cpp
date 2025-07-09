@@ -37,11 +37,11 @@ extern "C"
 #include "utilities_functions.h"
 #include "socket_functions.h"
 #include "jansson_socket_functions.h"
+#include "events.h"
 }
 
 #include "typedefs.hpp"
 #include "states.hpp"
-#include "events.hpp"
 #include "actions.hpp"
 
 #define BUFFER_SIZE 32
@@ -893,7 +893,7 @@ state actions::write_data(status &global_status)
             (topic.compare(0, strlen(defaults_abcd_data_events_topic), defaults_abcd_data_events_topic) == 0))
         {
             const size_t data_size = size - topic.size() - 1;
-            const size_t events_number = data_size / sizeof(event_PSD);
+            const size_t events_number = data_size / sizeof(struct event_PSD);
 
             if (global_status.verbosity > 0)
             {
@@ -903,7 +903,7 @@ state actions::write_data(status &global_status)
                 std::cout << "Saving to events file: " << global_status.events_file_name << "; ";
                 std::cout << "Data size: " << data_size << "; ";
                 std::cout << "Events number: " << events_number << "; ";
-                std::cout << "mod: " << data_size % sizeof(event_PSD) << "; ";
+                std::cout << "mod: " << data_size % sizeof(struct event_PSD) << "; ";
                 std::cout << std::endl;
             }
 
