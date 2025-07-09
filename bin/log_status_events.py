@@ -25,7 +25,7 @@ import json
 
 topic = "events".encode('ascii')
 
-parser = argparse.ArgumentParser(description='Reads and logs ABCD events from multiple status sockets')
+parser = argparse.ArgumentParser(description='Reads and logs ABCD status events from multiple status sockets')
 parser.add_argument('-S',
                     '--status_socket',
                     type = str,
