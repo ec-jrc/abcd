@@ -36,10 +36,6 @@ then
     printf '\e[1m\e[32mSuggestions:\e[0m Was ABCD correctly compiled?\n'
     printf '             Is the ${ABCD_FOLDER} variable set correctly in the environment or in the script?\n'
 else
-    #This is needed only on older versions of tmux, if the -c option does not work
-    #echo "Changing folder to: ""${ABCD_FOLDER}"
-    #cd "${ABCD_FOLDER}"
-
     echo "Replaying data file: ${FILE_NAME}"
 
     # Checking if another ABCD session is running
@@ -56,13 +52,8 @@ else
     echo "Creating the window for the GUI webserver: WebInterfaceTwo"
     tmux new-window -d -c "${ABCD_FOLDER}/wit/" -P -t ABCD -n wit 'node app.js ./config.json'
 
-    echo "Creating loggers window"
-    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n loggers "./bin/read_events.py -S 'tcp://127.0.0.1:16180' -o log/abcd_events_""$TODAY"".log"
-    tmux split-window -d -c "${ABCD_FOLDER}" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16183' -o log/hivo_events_""$TODAY"".log"
-    tmux split-window -d -c "${ABCD_FOLDER}" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16185' -o log/dasa_events_""$TODAY"".log"
-    tmux split-window -d -c "${ABCD_FOLDER}" -P -t ABCD:2.0 -h "./bin/read_events.py -S 'tcp://127.0.0.1:16206' -o log/waan_events_""$TODAY"".log"
-
-    tmux select-layout -t ABCD:2 even-vertical
+    echo "Creating logger window"
+    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n logger "python3 ./bin/log_status_events.py -v -o ${ABCD_FOLDER}/log/ABCD_status_events_${TODAY}.tsv -S 'tcp://127.0.0.1:16180' 'tcp://127.0.0.1:16185' 'tcp://127.0.0.1:16206'"
 
     echo "Waiting for node.js to start"
     sleep 2
@@ -76,13 +67,14 @@ else
     echo "Creating DaSa window, folder: ${DATA_FOLDER}"
     tmux new-window -d -c "${DATA_FOLDER}" -P -t ABCD -n dasa "${ABCD_FOLDER}/dasa/dasa -v"
 
-    echo "Creating WaDi window"
-    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n wadi './wadi/wadi -v'
+    echo "Creating WaDi windows"
+    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n wadidigi './wadi/wadi -v -A tcp://127.0.0.1:16207'
+    tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n wadiwaan './wadi/wadi -v -A tcp://127.0.0.1:16181 -D tcp://*:17190'
 
-    echo "Creating tofcalc windows"
+    echo "Creating tofcalc window"
     tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n tofcalc "./tofcalc/tofcalc -f ./tofcalc/configs/DT5730_LaBr_CeBr.json"
 
-    echo "Creating spec windows"
+    echo "Creating spec window"
     tmux new-window -d -c "${ABCD_FOLDER}" -P -t ABCD -n spec "./spec/spec"
 
     echo "System started!"
