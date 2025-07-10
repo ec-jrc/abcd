@@ -3,6 +3,7 @@
 #define LINUX
 #include "ADQAPI.h"
 #include "ADQ_descriptions.hpp"
+#include "Digitizer.hpp"
 
 const std::map<int, std::string> ADQ_descriptions::error = {
     {ADQ_EOK, "OK"},
@@ -193,6 +194,13 @@ const std::map<unsigned int, std::string> ADQ_descriptions::ADQ214_temperatures 
     {ADQ_ADQ214_TEMPERATURE_ADC1, "ADC1"},
     {ADQ_ADQ214_TEMPERATURE_FPGA, "FPGA"},
     {ADQ_ADQ214_TEMPERATURE_PCB, "PCB"}
+};
+
+const std::map<int, std::string> ADQ_descriptions::ADQ36_errors = {
+    {DIGITIZER_SUCCESS, "OK"},
+    {DIGITIZER_FAILURE, "Generic failure"},
+    {ADQ_ADQ36_ERROR_PARAMETERS_VALIDATION, "Parameters validation"},
+    {ADQ_ADQ36_ERROR_CONFIGURATION, "Configuration"},
 };
 
 const std::map<unsigned int, std::string> ADQ_descriptions::ADQ_firmware_revisions = {
