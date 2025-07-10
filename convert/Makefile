@@ -1,11 +1,4 @@
-nclude ../common_definitions.mk
-
-CC = gcc
-
-CFLAGS = -std=c99 -O3 -W -Wall -pedantic 
-
-LIBS = -lc
-LDFLAGS = $(LIBS)
+include ../common_definitions.mk
 
 SOURCES = ade2ascii.c adr2ade.c adw2ascii.c
 EXECS = $(SOURCES:.c=)
