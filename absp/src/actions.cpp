@@ -933,7 +933,7 @@ bool actions::generic::configure_digitizer(status &global_status)
 
                     auto delta_time = std::chrono::duration_cast<std::chrono::duration<long int>>(global_status.stop_time - global_status.start_time);
 
-                    (digitizer)->Configure();
+                    const int config_result = (digitizer)->Configure();
 
                     if (verbosity > 0)
                     {
@@ -945,6 +945,7 @@ bool actions::generic::configure_digitizer(status &global_status)
                         std::cout << '[' << time_buffer << "] ";
                         std::cout << "digitizer_index: " << digitizer_index << "; ";
                         std::cout << "user id: " << user_id << "; ";
+                        std::cout << "config result: " << (config_result == DIGITIZER_SUCCESS ? "success" : "failure") << "; ";
                         std::cout << std::endl;
                     }
 
@@ -969,24 +970,52 @@ bool actions::generic::configure_digitizer(status &global_status)
                     const std::chrono::time_point<std::chrono::system_clock> configuration_single_stop = std::chrono::system_clock::now();
                     const auto configuration_single_delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(configuration_single_stop - configuration_single_start);
 
-                    std::string configure_string = "Digitizer configuration, model: ";
-                    configure_string += digitizer->GetModel();
-                    configure_string += ", serial: ";
-                    configure_string += digitizer->GetName();
-                    configure_string += ", user id: ";
-                    configure_string += std::to_string(user_id);
-                    configure_string += " (time: ";
-                    configure_string += std::to_string(configuration_single_delta_time.count());
-                    configure_string += " ms)";
+                    if (config_result == DIGITIZER_SUCCESS) {
+                        std::string configure_string = "Digitizer configuration, model: ";
+                        configure_string += digitizer->GetModel();
+                        configure_string += ", serial: ";
+                        configure_string += digitizer->GetName();
+                        configure_string += ", user id: ";
+                        configure_string += std::to_string(user_id);
+                        configure_string += " (time: ";
+                        configure_string += std::to_string(configuration_single_delta_time.count());
+                        configure_string += " ms)";
 
-                    json_t *json_event_message = json_object();
+                        json_t *json_event_message = json_object();
 
-                    json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
-                    json_object_set_new_nocheck(json_event_message, "event", json_string(configure_string.c_str()));
+                        json_object_set_new_nocheck(json_event_message, "type", json_string("event"));
+                        json_object_set_new_nocheck(json_event_message, "event", json_string(configure_string.c_str()));
 
-                    actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+                        actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
 
-                    json_decref(json_event_message);
+                        json_decref(json_event_message);
+		    } else {
+                    	global_status.digitizers_user_ids[digitizer_index] = user_id;
+
+                    	const std::chrono::time_point<std::chrono::system_clock> configuration_single_stop = std::chrono::system_clock::now();
+                    	const auto configuration_single_delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(configuration_single_stop - configuration_single_start);
+
+                    	std::string configure_string = "Digitizer configuration, model: ";
+                    	configure_string += digitizer->GetModel();
+                    	configure_string += ", serial: ";
+                    	configure_string += digitizer->GetName();
+                    	configure_string += ", user id: ";
+                    	configure_string += std::to_string(user_id);
+                    	configure_string += ", error: ";
+                    	configure_string += ADQ_descriptions::ADQ36_errors.at(config_result);
+                    	configure_string += " (time: ";
+                    	configure_string += std::to_string(configuration_single_delta_time.count());
+                    	configure_string += " ms)";
+
+                    	json_t *json_event_message = json_object();
+
+                    	json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
+                    	json_object_set_new_nocheck(json_event_message, "error", json_string(configure_string.c_str()));
+
+                    	actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+
+                    	json_decref(json_event_message);
+		    }
 
                     break;
                 }
