@@ -1,14 +1,8 @@
-CC = gcc
-CXX = g++
-
-CFLAGS = -std=gnu99 -O3 -W -Wall -pedantic -I../include
-CXXFLAGS = -O3 -W -Wall -pedantic -I../include
-
-LIBS = -lc
-LDFLAGS = $(LIBS)
+include ../common_definitions.mk
 
 CSOURCES = sort_ade.c
 CXXSOURCES = filter_timestamps.cpp events_counter.cpp
+
 EXECS = $(CSOURCES:.c=) $(CXXSOURCES:.cpp=)
 
 .PHONY: all clean
