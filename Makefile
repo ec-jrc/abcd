@@ -36,9 +36,9 @@ convert/adr2events.py \
 convert/adr2configs.py \
 convert/adw2ascii
 
-.PHONY: all clean $(MODULES)
+.PHONY: all clean
 
-all: $(SIMPLE_MODULES) $(COMPLEX_MODULES) $(EXECUTABLES_DIRS)
+all:
 	$(foreach module,$(SIMPLE_MODULES) $(COMPLEX_MODULES) $(EXECUTABLES_DIRS),$(MAKE) -C $(module) || exit 1;)
 
 clean:
@@ -69,7 +69,7 @@ install: $(MODULES) $(EXECUTABLES_DIRS)
 	$(foreach executable,$(EXECUTABLES),install -v -m 755 $(executable) $(BINDIR);)
 
 	@echo "Installing node.js dependencies..."
-	#cd wit && npm install
+	cd wit && npm install
 	@echo "Copying wit..."
 	mkdir -p $(LIBEXECDIR)
 	cp -r wit $(LIBEXECDIR)
