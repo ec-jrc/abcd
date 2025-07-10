@@ -1,13 +1,16 @@
 ABCD-VERSION = 1.0.0
 
-MODULES = dasa chafi cofi sofi califo wadi enfi pufi gzad unzad fifo waan spec tofcalc
-
+# Modules that do not need a configuration file
+SIMPLE_MODULES = dasa chafi cofi sofi califo wadi enfi gzad unzad fifo
+# Modules that need a configuration file
+COMPLEX_MODULES = pufi waan spec tofcalc
+# Modules that need the hardware support, they are not compiled by default
 HARDWARE_MODULES = abad2 abcd abps5000a abrp absp
 
 EXECUTABLES_DIRS = bin replay convert examples
 EXECUTABLES = \
 bin/send_command.py \
-bin/read_events.py \
+bin/log_status_events.py \
 bin/filter_timestamps \
 bin/sort_ade \
 bin/split_events_files.py \
@@ -33,84 +36,87 @@ convert/adr2events.py \
 convert/adr2configs.py \
 convert/adw2ascii
 
-DEBDIR = deb/
-SRCDIR = usr/src/abcd-$(ABCD-VERSION)/
-BINDIR = usr/bin/
-LIBDIR = usr/lib/abcd/
-SHAREDIR = usr/share/abcd/
-CONFIGDIR = $(SHAREDIR)/configs/
-WITDIR = opt/local/abcd/
-
 .PHONY: all clean $(MODULES)
 
-all: $(MODULES) $(EXECUTABLES_DIRS)
-	$(foreach module,$(MODULES),$(MAKE) -C $(module);)
-	$(foreach executables_dirs,$(EXECUTABLES_DIRS),$(MAKE) -C $(executables_dirs);)
+all: $(SIMPLE_MODULES) $(COMPLEX_MODULES) $(EXECUTABLES_DIRS)
+	$(foreach module,$(SIMPLE_MODULES) $(COMPLEX_MODULES) $(EXECUTABLES_DIRS),$(MAKE) -C $(module) || exit 1;)
 
 clean:
-	$(foreach module,$(MODULES),$(MAKE) -C $(module) clean;)
-	$(foreach module,$(HARDWARE_MODULES),$(MAKE) -C $(module) clean;)
-	$(foreach executables_dirs,$(EXECUTABLES_DIRS) ,$(MAKE) -C $(executables_dirs) clean;)
+	$(foreach module,$(SIMPLE_MODULES) $(COMPLEX_MODULES) $(HARDWARE_MODULES) $(EXECUTABLES_DIRS),$(MAKE) -C $(module) clean;)
 
-deb: $(MODULES) $(EXECUTABLES_DIRS)
-	@echo "Cleaning..."
-	#make clean
-	rm -rf $(DEBDIR)/DEBIAN/
-	rm -rf $(DEBDIR)/usr/
-	rm -rf $(DEBDIR)/etc/
-	rm -rf $(DEBDIR)/opt/
-	@echo "Copying sources..."
-	mkdir -p $(DEBDIR)$(SRCDIR)
-	cp common_definitions.mk $(DEBDIR)$(SRCDIR)
-	cp Makefile $(DEBDIR)$(SRCDIR)
-	$(foreach executables_dirs,$(EXECUTABLES_DIRS) ,cp -r $(executables_dirs) $(DEBDIR)$(SRCDIR);)
-	$(foreach module,$(MODULES),cp -r $(module) $(DEBDIR)$(SRCDIR)$(module);)
-	$(foreach module,$(HARDWARE_MODULES),cp -r $(module) $(DEBDIR)$(SRCDIR)$(module);)
-	@echo "Compiling..."
-	make
+DESTDIR ?=
+PREFIX ?= /usr/local
+
+ROOTDIR = $(DESTDIR)$(PREFIX)
+SRCDIR = $(ROOTDIR)/src/abcd-$(ABCD-VERSION)
+BINDIR = $(ROOTDIR)/bin
+SHAREDIR = $(ROOTDIR)/share/abcd
+CONFIGDIR = $(SHAREDIR)/configs
+LIBEXECDIR = $(ROOTDIR)/libexec/abcd
+# We need to manually add the $(DESTDIR) afterwards, not to mess up with ldconfig
+LIBDIR = $(PREFIX)/lib/abcd
+
+install: $(MODULES) $(EXECUTABLES_DIRS)
+	mkdir -p $(ROOTDIR)
+
+	@echo "Copying source code..."
+	mkdir -p $(SRCDIR)
+	cp -r * $(SRCDIR)
+
 	@echo "Copying executables..."
-	mkdir -p $(DEBDIR)$(BINDIR)
-	$(foreach module,$(MODULES),cp $(module)/$(module) $(DEBDIR)$(BINDIR);)
-	$(foreach executable,$(EXECUTABLES),cp $(executable) $(DEBDIR)$(BINDIR);)
+	mkdir -p $(BINDIR)
+	$(foreach module,$(SIMPLE_MODULES) $(COMPLEX_MODULES),install -v -m 755 $(module)/$(module) $(BINDIR);)
+	$(foreach executable,$(EXECUTABLES),install -v -m 755 $(executable) $(BINDIR);)
+
 	@echo "Installing node.js dependencies..."
 	#cd wit && npm install
 	@echo "Copying wit..."
-	mkdir -p $(DEBDIR)$(WITDIR)
-	cp -r wit $(DEBDIR)$(WITDIR)
+	mkdir -p $(LIBEXECDIR)
+	cp -r wit $(LIBEXECDIR)
+
 	@echo "Copying example configuration files..."
-	mkdir -p $(DEBDIR)$(CONFIGDIR)
-	$(foreach module,$(HARDWARE_MODULES),mkdir -p $(DEBDIR)$(CONFIGDIR)$(module);)
-	$(foreach module,$(HARDWARE_MODULES),cp $(module)/configs/*.json $(DEBDIR)$(CONFIGDIR)$(module)/;)
-	mkdir -p $(DEBDIR)$(CONFIGDIR)tofcalc/
-	cp tofcalc/configs/*.json $(DEBDIR)$(CONFIGDIR)tofcalc/
-	mkdir -p $(DEBDIR)$(CONFIGDIR)waan/
-	cp waan/configs/*.json $(DEBDIR)$(CONFIGDIR)waan/
+	mkdir -p $(CONFIGDIR)
+	$(foreach module,$(COMPLEX_MODULES) $(HARDWARE_MODULES), \
+	    mkdir -p $(CONFIGDIR)/$(module); \
+	    $(foreach config, $(wildcard $(module)/configs/*.json), \
+		    install -v -m 644 $(config) $(CONFIGDIR)/$(module)/;))
+
 	@echo "Copying waan libraries..."
-	mkdir -p $(DEBDIR)$(LIBDIR)
-	cp waan/src/lib*.so $(DEBDIR)$(LIBDIR)
-	mkdir -p $(DEBDIR)/etc/ld.so.conf.d/
-	echo "/""$(LIBDIR)" > $(DEBDIR)/etc/ld.so.conf.d/abcd.conf
+	mkdir -p $(DESTDIR)$(LIBDIR)
+	$(foreach lib, $(wildcard waan/src/*.so), \
+	    install -v -m 644 $(lib) $(DESTDIR)$(LIBDIR);)
+
+	mkdir -p $(DESTDIR)/etc/ld.so.conf.d/
+	echo "$(LIBDIR)" > $(DESTDIR)/etc/ld.so.conf.d/abcd.conf
+
 	@echo "Copying startups..."
-	mkdir -p $(DEBDIR)$(SHAREDIR)
-	cp -r startup $(DEBDIR)$(SHAREDIR)
+	mkdir -p $(SHAREDIR)/startup
+	$(foreach startup, $(wildcard startup/*.sh), \
+	    install -v -m 755 $(startup) $(SHAREDIR)/startup;)
+
 	@echo "Copying examples..."
-	cp -r examples $(DEBDIR)$(SHAREDIR)
+	mkdir -p $(SHAREDIR)/examples
+	$(foreach example, $(wildcard examples/*), \
+	    install -v -m 755 $(example) $(SHAREDIR)/examples;)
+
 	@echo "Copying example data..."
-	mkdir -p $(DEBDIR)$(SHAREDIR)data/
-	cp data/example_data* $(DEBDIR)$(SHAREDIR)data/
-	@echo "Creating DEBIAN..."
-	mkdir -p $(DEBDIR)"DEBIAN/"
-	@echo "Creating post-installation script..."
-	echo "ldconfig" > $(DEBDIR)"DEBIAN/postinst"
-	chmod +x $(DEBDIR)"DEBIAN/postinst"
-	@echo "Creating control file..."
-	echo "Package: abcd" > $(DEBDIR)"DEBIAN/control"
-	echo "Version: $(ABCD-VERSION)" >> $(DEBDIR)"DEBIAN/control"
-	echo "Section: science" >> $(DEBDIR)"DEBIAN/control"
-	echo "Priority: optional" >> $(DEBDIR)"DEBIAN/control"
-	echo "Architecture: amd64" >> $(DEBDIR)"DEBIAN/control"
-	echo "Depends: tmux, libc++1, libc++-dev, libc++abi-dev, libzmq5, libzmq3-dev, libjsoncpp-dev, libjsoncpp25, libjansson4, libjansson-dev, zlib1g, zlib1g-dev, libbz2-1.0, libbz2-dev, python3, python3-zmq, python3-numpy, python3-scipy, python3-matplotlib, nodejs, npm, linux-headers-generic, build-essential, dkms, libgsl-dev, lua5.4, liblua5.4-dev, liblua5.4-0, swig" >> $(DEBDIR)"DEBIAN/control"
-	echo "Maintainer: Cristiano Fontana" >> $(DEBDIR)"DEBIAN/control"
-	echo "Description: A data acquisition system for signal digitizers from multiple vendors" >> $(DEBDIR)"DEBIAN/control"
-	@echo "Creating deb file..."
-	dpkg-deb -v --build deb/ abcd
+	mkdir -p $(SHAREDIR)/data
+	$(foreach datafile, $(wildcard data/example_data_*), \
+	    install -v -m 644 $(datafile) $(SHAREDIR)/data;)
+
+#@echo "Creating DEBIAN..."
+#mkdir -p "DEBIAN/"
+#@echo "Creating post-installation script..."
+#echo "ldconfig" > "DEBIAN/postinst"
+#chmod +x "DEBIAN/postinst"
+#@echo "Creating control file..."
+#echo "Package: abcd" > "DEBIAN/control"
+#echo "Version: $(ABCD-VERSION)" >> "DEBIAN/control"
+#echo "Section: science" >> "DEBIAN/control"
+#echo "Priority: optional" >> "DEBIAN/control"
+#echo "Architecture: amd64" >> "DEBIAN/control"
+#echo "Depends: tmux, libc++1, libc++-dev, libc++abi-dev, libzmq5, libzmq3-dev, libjsoncpp-dev, libjsoncpp25, libjansson4, libjansson-dev, zlib1g, zlib1g-dev, libbz2-1.0, libbz2-dev, python3, python3-zmq, python3-numpy, python3-scipy, python3-matplotlib, nodejs, npm, linux-headers-generic, build-essential, dkms, libgsl-dev, lua5.4, liblua5.4-dev, liblua5.4-0, swig" >> "DEBIAN/control"
+#echo "Maintainer: Cristiano Fontana" >> "DEBIAN/control"
+#echo "Description: A data acquisition system for signal digitizers from multiple vendors" >> "DEBIAN/control"
+#@echo "Creating deb file..."
+#dpkg-deb -v --build deb/ abcd
