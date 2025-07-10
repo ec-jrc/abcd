@@ -33,6 +33,10 @@ private:
     int adq_num;
 
 public:
+    // -------------------------------------------------------------------------
+    //  Digitizer configuration
+    // -------------------------------------------------------------------------
+
     // Parameters that configure the digitizer
     struct ADQParameters adq_parameters;
 
