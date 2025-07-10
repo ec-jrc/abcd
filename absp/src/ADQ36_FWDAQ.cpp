@@ -183,6 +183,28 @@ int ABCD::ADQ36_FWDAQ::Configure()
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
+        std::cout << "Validating parameters with ADQ_ValidateParameters(); ";
+        std::cout << std::endl;
+    }
+
+    const int vp_result = ADQ_ValidateParameters(adq_cu_ptr, adq_num,
+                                                 reinterpret_cast<void*>(&adq_parameters));
+
+    if (vp_result < 0) {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
+        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failure in parameters validation; ";
+        std::cout << std::endl;
+
+        return ADQ_ADQ36_ERROR_PARAMETERS_VALIDATION;
+    }
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Configure() ";
         std::cout << "Setting parameters; ";
         std::cout << std::endl;
@@ -198,7 +220,7 @@ int ABCD::ADQ36_FWDAQ::Configure()
         std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to set parameters; ";
         std::cout << std::endl;
 
-        return DIGITIZER_FAILURE;
+        return ADQ_ADQ36_ERROR_CONFIGURATION;
     }
 
     // -------------------------------------------------------------------------
@@ -395,10 +417,10 @@ int ABCD::ADQ36_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
         const int timeout = 0;
 
         available_records = ADQ_WaitForRecordBuffer(adq_cu_ptr, adq_num,
-                                                              &available_channel,
-                                                              reinterpret_cast<void**>(&ADQ_records_array),
-                                                              timeout,
-                                                              &ADQ_status);
+                                                    &available_channel,
+                                                    reinterpret_cast<void**>(&ADQ_records_array),
+                                                    timeout,
+                                                    &ADQ_status);
 
         if (available_records == 0) {
             // This is a status only record, I am not sure how to handle it
@@ -557,9 +579,7 @@ int ABCD::ADQ36_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
                                                  ADQ_records_array));
         }
 
-
         delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - waveforms_reading_start);
-
 
         if (GetVerbosity() > 1)
         {
@@ -571,6 +591,15 @@ int ABCD::ADQ36_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
         }
 
     } while ((available_records >= 0) && (delta_time < std::chrono::milliseconds(data_reading_timeout)));
+
+    if ((available_records >= 0) && (delta_time > std::chrono::milliseconds(data_reading_timeout)))
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetWaveformsFromCard() ";
+        std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Timeout in the data reading";
+        std::cout << std::endl;
+    }
 
     if (GetVerbosity() > 0)
     {
@@ -1336,28 +1365,6 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                 }
             }
         }
-    }
-
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-        std::cout << "Validating parameters with ADQ_ValidateParameters(); ";
-        std::cout << std::endl;
-    }
-
-    const int vp_result = ADQ_ValidateParameters(adq_cu_ptr, adq_num,
-                                                 reinterpret_cast<void*>(&adq_parameters));
-
-    if (vp_result < 0) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failure in parameters validation; ";
-        std::cout << std::endl;
-
-        return DIGITIZER_FAILURE;
     }
 
     // -------------------------------------------------------------------------

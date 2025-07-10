@@ -74,6 +74,9 @@
 #define ADQ_ADQ214_TEMPERATURE_FPGA 3
 #define ADQ_ADQ214_TEMPERATURE_PCB 4
 
+#define ADQ_ADQ36_ERROR_PARAMETERS_VALIDATION -1
+#define ADQ_ADQ36_ERROR_CONFIGURATION -2
+
 class ADQ_descriptions {
 public:
     // Descriptions of the flag values
@@ -103,6 +106,7 @@ public:
     static const std::map<unsigned int, std::string> ADQ14_temperatures;
     static const std::map<unsigned int, std::string> ADQ412_temperatures;
     static const std::map<unsigned int, std::string> ADQ214_temperatures;
+    static const std::map<int, std::string> ADQ36_errors;
     static const std::map<unsigned int, std::string> ADQ_firmware_revisions;
     static const std::map<unsigned int, std::string> ADQ_firmware_type;
 };
