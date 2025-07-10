@@ -1,0 +1,5 @@
+include/swigluarun.h
+src/ADQAPI_wrap.cpp
+src/ADQAPI_wrap.o
+src/Digitizers_wrap.cpp
+src/Digitizers_wrap.o
