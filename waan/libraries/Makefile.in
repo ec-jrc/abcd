@@ -1,0 +1,19 @@
+SRC_DIR = src
+
+CFLAGS += -std=gnu99 -O3 -W -Wall -pedantic -Iinclude/ -I/usr/include/ -I@CMAKE_INSTALL_FULL_INCLUDEDIR@/abcd
+
+LIBS = -ljansson -lm -lgsl -lgslcblas
+LDFLAGS += -L/usr/lib/ -L/usr/lib64/ -L/usr/local/lib/ $(LIBS)
+
+SOURCES = $(wildcard $(SRC_DIR)/*.c)
+SHARED_OBJECTS = $(SOURCES:.c=.so)
+
+.PHONY: all clean
+
+all: $(SHARED_OBJECTS)
+
+%.so: %.c
+	$(CC) -shared -fPIC $(CFLAGS) $< $(LIBS) -o $@
+
+clean:
+	rm -f $(SHARED_OBJECTS)

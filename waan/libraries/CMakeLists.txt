@@ -17,6 +17,13 @@ pkg_check_modules(JANSSON REQUIRED jansson)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -O3 -Wall -Wextra -pedantic")
 
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/Makefile.in
+    ${CMAKE_CURRENT_BINARY_DIR}/Makefile_waan_libraries
+    @ONLY
+)
+
+file(GLOB HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/*.h")
 file(GLOB SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
 
 foreach(source_file ${SOURCES})
@@ -30,6 +37,10 @@ foreach(source_file ${SOURCES})
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/abcd/
     )
 endforeach()
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile_waan_libraries DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/ RENAME Makefile)
+install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/)
+install(FILES ${SOURCES} DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/src/)
 
 install(CODE "file(WRITE /etc/ld.so.conf.d/abcd.conf \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/abcd\n\")")
 install(CODE "execute_process(COMMAND ldconfig)")
