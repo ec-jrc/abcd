@@ -23,6 +23,8 @@ foreach(dir ${CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES})
     string(APPEND IMPLICIT_INCLUDE_DIRECTORIES "-I${dir} ")
 endforeach()
 
+string(APPEND IMPLICIT_INCLUDE_DIRECTORIES "-I${CMAKE_INSTALL_FULL_INCLUDEDIR}/abcd/ ")
+
 set(IMPLICIT_LINK_DIRECTORIES "")
 
 foreach(dir ${CMAKE_C_IMPLICIT_LINK_DIRECTORIES})
@@ -51,7 +53,7 @@ foreach(source_file ${SOURCES})
 endforeach()
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile_waan_libraries DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/ RENAME Makefile)
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/abcd.conf DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/ RENAME Makefile)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../include/events.h DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../include/analysis_functions.h DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/)
 install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/)
 install(FILES ${SOURCES} DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/src/)
@@ -65,6 +67,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/abcd.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/ld.so.conf.d/)
 
-    install(CODE "message(STATUS \"Configuring libraries with ldconfig\")")
-    install(CODE "execute_process(COMMAND ldconfig)")
+    install(CODE "message(WARNING \"If manually installing, the libraries location must be configured with ldconfig after the installation\")")
+    #install(CODE "execute_process(COMMAND ldconfig)")
 endif()
