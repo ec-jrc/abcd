@@ -10,8 +10,8 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/../../include
 )
 
-find_package(PkgConfig REQUIRED)
 find_package(GSL REQUIRED)
+find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(JANSSON REQUIRED jansson)
 
@@ -46,6 +46,8 @@ foreach(source_file ${SOURCES})
     add_library(${lib_name} SHARED ${source_file})
 
     set_target_properties(${lib_name} PROPERTIES PREFIX "")
+
+    target_include_directories(${lib_name} PUBLIC ${GSL_INCLUDE_DIRS} ${JANSSON_INCLUDE_DIRS})
 
     install(TARGETS ${lib_name}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/abcd/
