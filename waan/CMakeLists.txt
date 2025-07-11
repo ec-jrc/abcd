@@ -37,8 +37,4 @@ install(TARGETS ${EXEC}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-foreach(config_file ${CONFIGS})
-    install(FILES ${config_file}
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/${EXEC}
-    )
-endforeach()
+install(FILES ${CONFIGS} DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/${EXEC})
