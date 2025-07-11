@@ -2,7 +2,7 @@ import numpy as np
 import struct
 
 # Define the waveform header size in bytes
-WAVEFORM_HEADER_SIZE = 13
+WAVEFORM_HEADER_SIZE = 14
 
 # Define the format string for the header fields
 HEADER_FORMAT = "<QBLB"
