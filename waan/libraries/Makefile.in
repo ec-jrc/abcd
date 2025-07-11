@@ -1,9 +1,9 @@
 SRC_DIR = src
 
-CFLAGS += -std=gnu99 -O3 -W -Wall -pedantic -Iinclude/ -I/usr/include/ -I@CMAKE_INSTALL_FULL_INCLUDEDIR@/abcd
+CFLAGS += -std=gnu99 -O3 -W -Wall -pedantic -Iinclude/ @IMPLICIT_INCLUDE_DIRECTORIES@ -I@CMAKE_INSTALL_FULL_INCLUDEDIR@/abcd
 
-LIBS = -ljansson -lm -lgsl -lgslcblas
-LDFLAGS += -L/usr/lib/ -L/usr/lib64/ -L/usr/local/lib/ $(LIBS)
+LIBS = -lm -ljansson -lgsl -lgslcblas
+LDFLAGS += @IMPLICIT_LINK_DIRECTORIES@ $(LIBS)
 
 SOURCES = $(wildcard $(SRC_DIR)/*.c)
 SHARED_OBJECTS = $(SOURCES:.c=.so)
@@ -13,7 +13,7 @@ SHARED_OBJECTS = $(SOURCES:.c=.so)
 all: $(SHARED_OBJECTS)
 
 %.so: %.c
-	$(CC) -shared -fPIC $(CFLAGS) $< $(LIBS) -o $@
+	$(CC) -shared -fPIC $(CFLAGS) $< $(LDFLAGS) -o $@
 
 clean:
 	rm -f $(SHARED_OBJECTS)

@@ -17,6 +17,18 @@ pkg_check_modules(JANSSON REQUIRED jansson)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -O3 -Wall -Wextra -pedantic")
 
+set(IMPLICIT_INCLUDE_DIRECTORIES "")
+
+foreach(dir ${CMAKE_C_IMPLICIT_INCLUDE_DIRECTORIES})
+    string(APPEND IMPLICIT_INCLUDE_DIRECTORIES "-I${dir} ")
+endforeach()
+
+set(IMPLICIT_LINK_DIRECTORIES "")
+
+foreach(dir ${CMAKE_C_IMPLICIT_LINK_DIRECTORIES})
+    string(APPEND IMPLICIT_LINK_DIRECTORIES "-L${dir} ")
+endforeach()
+
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/Makefile.in
     ${CMAKE_CURRENT_BINARY_DIR}/Makefile_waan_libraries
@@ -39,6 +51,7 @@ foreach(source_file ${SOURCES})
 endforeach()
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile_waan_libraries DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/ RENAME Makefile)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../include/analysis_functions.h" DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/)
 install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/)
 install(FILES ${SOURCES} DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/src/)
 
