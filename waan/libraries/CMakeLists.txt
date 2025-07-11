@@ -42,5 +42,8 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile_waan_libraries DESTINATION ${
 install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/)
 install(FILES ${SOURCES} DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/src/)
 
-install(CODE "file(WRITE /etc/ld.so.conf.d/abcd.conf \"${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}/abcd\n\")")
-install(CODE "execute_process(COMMAND ldconfig)")
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    install(CODE "message(STATUS \"Configuring libraries with ldconfig\")")
+    install(CODE "file(WRITE /etc/ld.so.conf.d/abcd.conf \"${CMAKE_INSTALL_FULL_LIBDIR}/abcd\n\")")
+    install(CODE "execute_process(COMMAND ldconfig)")
+endif()
