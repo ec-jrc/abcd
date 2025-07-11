@@ -10,5 +10,5 @@ set(CPACK_PACKAGE_DESCRIPTION
 set(CPACK_PACKAGE_CONTACT "Cristiano Fontana")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Cristiano Fontana")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "tmux, clang, libc++1, libc++-dev, libc++abi-dev, libzmq5, libzmq3-dev, libjsoncpp-dev, libjsoncpp25, libjansson4, libjansson-dev, zlib1g, zlib1g-dev, libbz2-1.0, libbz2-dev, python3, python3-zmq, python3-numpy, python3-scipy, python3-matplotlib, nodejs, npm, linux-headers-generic, build-essential, dkms, libgsl-dev, lua5.4, liblua5.4-dev, liblua5.4-0, swig")
-set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "deb/postinst")
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/deb/postinst")
 include(CPack)
