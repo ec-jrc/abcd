@@ -31,7 +31,7 @@ file(GLOB CONFIGS "${CMAKE_CURRENT_SOURCE_DIR}/configs/*.json")
 add_executable(${EXEC} ${SOURCES} ${EXEC}.cpp)
 
 target_include_directories(${EXEC} PUBLIC ${ZMQ_INCLUDE_DIRS} ${JANSSON_INCLUDE_DIRS})
-target_link_libraries(${EXEC} PUBLIC dl ${ZMQ_LIBRARY} ${JANSSON_LIBRARIES} ${ZMQ_LIBRARIES})
+target_link_libraries(${EXEC} PUBLIC dl ${ZMQ_LIBRARIES} ${JANSSON_LIBRARIES})
 
 install(TARGETS ${EXEC}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
