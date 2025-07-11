@@ -1,0 +1,32 @@
+{
+    "module": "califo",
+    "channels": [{
+        "id": 4,
+        "enable": true,
+        "bins": 1000,
+        "min": 8500,
+        "max": 12700,
+        "peak": {
+            "position": 9700,
+            "width": 350,
+            "height": 8,
+            "alpha": 2e-4,
+            "beta": 69,
+            "tolerance": 300
+        },
+        "background_estimate": {
+            "enable": true,
+            "iterations": 15,
+            "smooth": 3,
+            "order": 2,
+            "compton": false
+        },
+        "note": "Alpha detector X"
+    },
+    {}
+    ],
+    "accumulation_time": 600,
+    "publish_time": 3,
+    "publish_fit_events": true,
+    "zzz": null
+}
