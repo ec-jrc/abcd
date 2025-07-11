@@ -103,6 +103,12 @@ install(DIRECTORY data
 )
 
 add_subdirectory(wit)
+add_subdirectory(califo)
+add_subdirectory(spec)
+add_subdirectory(tofcalc)
+# Better keep waan as the last module as it warns the user that ldconfig should
+# be called after a manual installation. If placed before wit, the warning would
+# be flooded by the installation of the node_modules folder
 add_subdirectory(waan)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deb")
