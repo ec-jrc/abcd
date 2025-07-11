@@ -51,12 +51,20 @@ foreach(source_file ${SOURCES})
 endforeach()
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile_waan_libraries DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/ RENAME Makefile)
-install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../include/analysis_functions.h" DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/abcd.conf DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/ RENAME Makefile)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../include/analysis_functions.h DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/)
 install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/)
 install(FILES ${SOURCES} DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/src/)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/abcd.conf.in
+        ${CMAKE_CURRENT_BINARY_DIR}/abcd.conf
+        @ONLY
+    )
+
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/abcd.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/ld.so.conf.d/)
+
     install(CODE "message(STATUS \"Configuring libraries with ldconfig\")")
-    install(CODE "file(WRITE /etc/ld.so.conf.d/abcd.conf \"${CMAKE_INSTALL_FULL_LIBDIR}/abcd\n\")")
     install(CODE "execute_process(COMMAND ldconfig)")
 endif()
