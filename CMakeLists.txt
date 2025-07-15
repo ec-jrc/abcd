@@ -1,10 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-if(CMAKE_VERSION VERSION_LESS "3.14")
-    message(FATAL_ERROR "CMake >= 3.14 is required. You are running ${CMAKE_VERSION}")
-endif()
-
-project(ABCD VERSION 1.0.0)
+project(abcd VERSION 1.0.0)
 
 include(GNUInstallDirs)
 
@@ -46,16 +42,15 @@ include_directories(
 
 set(ABCD_HEADERS include/events.h)
 
-add_library(ABCD INTERFACE
-    "${ABCD_HEADERS}"
-)
+add_library(abcd_headers INTERFACE "${ABCD_HEADERS}")
 
-set_target_properties(ABCD
+set_target_properties(abcd_headers
     PROPERTIES PUBLIC_HEADER ${ABCD_HEADERS}
 )
 
-install(TARGETS ABCD
+install(TARGETS abcd_headers
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/abcd
+    COMPONENT core
 )
 
 install(PROGRAMS
@@ -86,19 +81,23 @@ install(PROGRAMS
     convert/adr2configs.py
     convert/adw2ascii
     DESTINATION ${CMAKE_INSTALL_BINDIR}
+    COMPONENT core
 )
 
 install(DIRECTORY startup
     DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/startup
+    COMPONENT core
     FILES_MATCHING PATTERN "*.sh"
 )
 
 install(DIRECTORY examples
     DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/examples
+    COMPONENT core
 )
 
 install(DIRECTORY data
     DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/data
+    COMPONENT core
     FILES_MATCHING PATTERN "example_data_*"
 )
 
@@ -108,10 +107,13 @@ add_subdirectory(califo)
 add_subdirectory(spec)
 add_subdirectory(tofcalc)
 
+add_subdirectory(absp)
+
 # Better keep waan as the last module as it warns the user that ldconfig should
 # be called after a manual installation. If placed before wit, the warning would
 # be flooded by the installation of the node_modules folder
 add_subdirectory(waan)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/deb")
-include(CPackConfig)
+
+include(CPackConfiguration)
