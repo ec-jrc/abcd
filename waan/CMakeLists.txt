@@ -21,20 +21,23 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
 )
 
-set(EXEC waan)
 set(SOURCES
     src/actions.cpp
     src/states.cpp
 )
 file(GLOB CONFIGS "${CMAKE_CURRENT_SOURCE_DIR}/configs/*.json")
 
-add_executable(${EXEC} ${SOURCES} ${EXEC}.cpp)
+add_executable(${PROJECT_NAME} ${SOURCES} ${PROJECT_NAME}.cpp)
 
-target_include_directories(${EXEC} PUBLIC ${ZMQ_INCLUDE_DIRS} ${JANSSON_INCLUDE_DIRS})
-target_link_libraries(${EXEC} PUBLIC dl ${ZMQ_LIBRARIES} ${JANSSON_LIBRARIES})
+target_include_directories(${PROJECT_NAME} PUBLIC ${ZMQ_INCLUDE_DIRS} ${JANSSON_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PUBLIC dl ${ZMQ_LIBRARIES} ${JANSSON_LIBRARIES})
 
-install(TARGETS ${EXEC}
+install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    COMPONENT core
 )
 
-install(FILES ${CONFIGS} DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/${EXEC})
+install(FILES ${CONFIGS}
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/${PROJECT_NAME}
+    COMPONENT core
+)
