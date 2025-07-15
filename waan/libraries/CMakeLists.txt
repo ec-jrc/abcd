@@ -51,14 +51,31 @@ foreach(source_file ${SOURCES})
 
     install(TARGETS ${lib_name}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/abcd/
+        COMPONENT core
     )
 endforeach()
 
-install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile_waan_libraries DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/ RENAME Makefile)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../include/events.h DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/)
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../include/analysis_functions.h DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/)
-install(FILES ${HEADERS} DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/)
-install(FILES ${SOURCES} DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/src/)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile_waan_libraries
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/
+    RENAME Makefile
+    COMPONENT core
+)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../include/events.h
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/
+    COMPONENT core
+)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../include/analysis_functions.h
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/
+    COMPONENT core
+)
+install(FILES ${HEADERS}
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/
+    COMPONENT core
+)
+install(FILES ${SOURCES}
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/src/
+    COMPONENT core
+)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     configure_file(
@@ -67,7 +84,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         @ONLY
     )
 
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/abcd.conf DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/ld.so.conf.d/)
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/abcd.conf
+        DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/ld.so.conf.d/
+        COMPONENT core
+    )
 
     install(CODE "message(WARNING \"If manually installing, the libraries location must be configured with ldconfig after the installation\")")
     #install(CODE "execute_process(COMMAND ldconfig)")
