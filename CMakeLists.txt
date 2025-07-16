@@ -61,7 +61,6 @@ install(TARGETS abcd_headers
 install(PROGRAMS
     bin/send_command.py
     bin/log_status_events.py
-    bin/filter_timestamps
     bin/split_events_files.py
     bin/fan-in.py
     bin/fan-out.py
@@ -141,6 +140,7 @@ add_subdirectory(cofi)
 add_subdirectory(sofi)
 
 add_subdirectory(sort_ade)
+add_subdirectory(filter_timestamps)
 
 if(BUILD_ABSP)
     message(STATUS "Building absp module")
