@@ -39,7 +39,7 @@ sleep 2
 
 echo "Creating ABCD window"
 # Example for a CAEN desktop digitizer
-#tmux new-window -d -P -t ABCD -n abcd './abcd/abcd -c 0 -l 0 -n 0 -B 8192 -T 50 -f abcd/configs/DT5751_DPP-PSD_NaI.json'
+#tmux new-window -d -P -t ABCD -n abcd './abcd/abcd -c 0 -l 0 -n 0 -B 8192 -T 50 -f DT5751_DPP-PSD_NaI.json'
 # Example for a CAEN VME digitizer with USB bridge
 #tmux new-window -d -P -t ABCD -n abcd './abcd/abcd -c 0 -l 0 -n 0 -V "0x210000" -B 8192 -T 50 -f abcd/v1730_NaI_Coincidence_DCFD.json'
 # Example for a CAEN VME digitizer with optical bridge
@@ -56,7 +56,7 @@ echo "Creating WaDi windows"
 tmux new-window -d -P -t ABCD -n wadidigi 'wadi -v -A tcp://127.0.0.1:16207'
 
 echo "Creating tofcalc window"
-tmux new-window -d -P -t ABCD -n tofcalc "tofcalc -f @ABCD_FULL_DATADIR@/tofcalc/configs/DT5730_LaBr_CeBr.json"
+tmux new-window -d -P -t ABCD -n tofcalc "tofcalc -f @ABCD_FULL_DATADIR@/tofcalc/DT5730_LaBr_CeBr.json"
 
 echo "Creating spec window"
 tmux new-window -d -P -t ABCD -n spec "./spec/spec"
