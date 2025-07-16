@@ -61,17 +61,17 @@ install(TARGETS abcd_headers
 install(PROGRAMS
     bin/send_command.py
     bin/log_status_events.py
-    bin/split_events_files.py
     bin/fan-in.py
     bin/fan-out.py
     bin/save_to_file.py
     bin/close_file.py
-    bin/plot_Evst.py
-    bin/plot_PSD.py
-    bin/plot_spectra.py
-    bin/plot_timestamps.py
-    bin/plot_ToF.py
     bin/plot_waveforms.py
+    ade_tools/plot_Evst.py
+    ade_tools/plot_PSD.py
+    ade_tools/plot_spectra.py
+    ade_tools/plot_timestamps.py
+    ade_tools/plot_ToF.py
+    ade_tools/split_ade.py
     replay/replay_raw.py
     convert/adr2adeadw.py
     convert/ade2ascii.m
@@ -134,9 +134,7 @@ add_subdirectory(enfi)
 add_subdirectory(cofi)
 add_subdirectory(sofi)
 
-add_subdirectory(sort_ade)
-add_subdirectory(filter_timestamps)
-add_subdirectory(events_counter)
+add_subdirectory(ade_tools)
 add_subdirectory(convert)
 add_subdirectory(replay)
 
