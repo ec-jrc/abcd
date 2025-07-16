@@ -129,14 +129,17 @@ install(DIRECTORY data
 )
 
 add_subdirectory(wit)
+add_subdirectory(wadi)
+
 add_subdirectory(dasa)
+add_subdirectory(spec)
+add_subdirectory(tofcalc)
+
 add_subdirectory(califo)
 add_subdirectory(chafi)
 add_subdirectory(enfi)
 add_subdirectory(cofi)
 add_subdirectory(sofi)
-add_subdirectory(spec)
-add_subdirectory(tofcalc)
 
 if(BUILD_ABSP)
     message(STATUS "Building absp module")
