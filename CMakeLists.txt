@@ -128,12 +128,7 @@ add_subdirectory(dasa)
 add_subdirectory(spec)
 add_subdirectory(tofcalc)
 
-add_subdirectory(califo)
-add_subdirectory(chafi)
-add_subdirectory(enfi)
-add_subdirectory(cofi)
-add_subdirectory(sofi)
-
+add_subdirectory(filters)
 add_subdirectory(ade_tools)
 add_subdirectory(convert)
 add_subdirectory(replay)
