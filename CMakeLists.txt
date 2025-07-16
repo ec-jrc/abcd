@@ -62,7 +62,6 @@ install(PROGRAMS
     bin/send_command.py
     bin/log_status_events.py
     bin/filter_timestamps
-    bin/sort_ade
     bin/split_events_files.py
     bin/fan-in.py
     bin/fan-out.py
@@ -140,6 +139,8 @@ add_subdirectory(chafi)
 add_subdirectory(enfi)
 add_subdirectory(cofi)
 add_subdirectory(sofi)
+
+add_subdirectory(sort_ade)
 
 if(BUILD_ABSP)
     message(STATUS "Building absp module")
