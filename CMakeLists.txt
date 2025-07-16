@@ -85,8 +85,6 @@ install(PROGRAMS
 file(GLOB STARTUPS_IN "${CMAKE_CURRENT_SOURCE_DIR}/startup/*.sh.in")
 file(GLOB STARTUPS "${CMAKE_CURRENT_SOURCE_DIR}/startup/*.sh")
 
-file(MAKE_DIRECTORY ${ABCD_DATADIR}/startup)
-
 foreach(startup_in ${STARTUPS_IN})
     get_filename_component(startup_name ${startup_in} NAME)
     string(REPLACE ".in" "" startup ${startup_name})
