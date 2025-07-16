@@ -45,3 +45,4 @@ bin/events_counter
 absp/include/swigluarun.h
 absp/src/Digitizers_wrap.cpp
 build
+.vscode
