@@ -131,6 +131,7 @@ install(DIRECTORY data
 add_subdirectory(wit)
 add_subdirectory(dasa)
 add_subdirectory(califo)
+add_subdirectory(cofi)
 add_subdirectory(spec)
 add_subdirectory(tofcalc)
 
