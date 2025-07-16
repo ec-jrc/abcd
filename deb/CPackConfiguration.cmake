@@ -1,13 +1,18 @@
 set(CPACK_GENERATOR "DEB")
-set(CPACK_DEB_COMPONENT_INSTALL ON)
+
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+
+set(CPACK_DEB_COMPONENT_INSTALL ON)
+set(CPACK_COMPONENTS_ALL core)
+
+if(BUILD_ABSP)
+    list(APPEND CPACK_COMPONENTS_ALL absp)
+endif()
 
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Cristiano Fontana <cristiano.fontana@ec.europa.eu>")
 set(CPACK_DEBIAN_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_DEBIAN_PACKAGE_SECTION "science")
 set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
-
-set(CPACK_COMPONENTS_ALL core absp)
 
 set(CPACK_COMPONENT_CORE_DESCRIPTION_SUMMARY
     "ABCD is a distributed data acquisistion system that can acquire waveforms and processed data from digitizers of multiple vendors."
@@ -25,4 +30,7 @@ set(CPACK_DEBIAN_ABSP_PACKAGE_DEPENDS "libzmq5, libjansson4, lua5.4, liblua5.4-0
 include(CPack)
 
 cpack_add_component(core REQUIRED)
-cpack_add_component(absp)
+
+if(BUILD_ABSP)
+    cpack_add_component(absp DEPENDS core)
+endif()
