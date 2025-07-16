@@ -13,19 +13,13 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
 )
 
-add_executable(ade2ascii ade2ascii.c)
-add_executable(adr2ade adr2ade.c)
-add_executable(adw2ascii adw2ascii.c)
+set(EXECUTABLES ade2ascii adw2ascii adr2ade)
 
-install(TARGETS ade2ascii
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    COMPONENT core
-)
-install(TARGETS adr2ade
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    COMPONENT core
-)
-install(TARGETS adw2ascii
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-    COMPONENT core
-)
+foreach(executable ${EXECUTABLES})
+    add_executable(${executable} ${executable}.c)
+
+    install(TARGETS ${executable}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        COMPONENT core
+    )
+endforeach()
