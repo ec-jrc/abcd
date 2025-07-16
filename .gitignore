@@ -5,8 +5,6 @@
 __pycache__
 *.log
 abcd/abcd
-hivo/hivo
-node_modules
 replay/replay_raw
 replay/replay_events
 background_estimate/background_estimate
@@ -46,3 +44,4 @@ bin/filter_timestamps
 bin/events_counter
 absp/include/swigluarun.h
 absp/src/Digitizers_wrap.cpp
+build
