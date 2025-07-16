@@ -73,8 +73,6 @@ install(PROGRAMS
     bin/plot_ToF.py
     bin/plot_waveforms.py
     replay/replay_raw.py
-    replay/replay_raw
-    replay/replay_events
     convert/adr2adeadw.py
     convert/ade2ascii.m
     convert/ade2ascii.py
@@ -140,6 +138,7 @@ add_subdirectory(sort_ade)
 add_subdirectory(filter_timestamps)
 add_subdirectory(events_counter)
 add_subdirectory(convert)
+add_subdirectory(replay)
 
 if(BUILD_ABSP)
     message(STATUS "Building absp module")
