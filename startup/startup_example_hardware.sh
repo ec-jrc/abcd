@@ -53,7 +53,7 @@ sleep 2
 #tmux new-window -d -P -t ABCD -n abad 'abad2 -v -T 10 -D "tcp://*:16207" -f AD2_SiPM.json'
 
 echo "Creating WaAn window"
-tmux new-window -d -P -t ABCD -n waan 'waan -v -T 100 -A tcp://127.0.0.1:16207 -D tcp://*:16181 -f @ABCD_FULL_DATADIR@/waan/configs/config_example_data.json'
+tmux new-window -d -P -t ABCD -n waan 'waan -v -T 100 -A tcp://127.0.0.1:16207 -D tcp://*:16181 -f @ABCD_FULL_DATADIR@/waan/config_example_data.json'
 
 echo "Creating DaSa window, directory: ${DATA_DIRECTORY}"
 tmux new-window -d -c "${DATA_DIRECTORY}" -P -t ABCD -n dasa "dasa -v"
@@ -63,7 +63,7 @@ tmux new-window -d -P -t ABCD -n wadidigi 'wadi -v -A tcp://127.0.0.1:16207'
 tmux new-window -d -P -t ABCD -n wadiwaan 'wadi -v -A tcp://127.0.0.1:16181 -D tcp://*:17190'
 
 echo "Creating tofcalc window"
-tmux new-window -d -P -t ABCD -n tofcalc "tofcalc -f @ABCD_FULL_DATADIR@/tofcalc/configs/DT5730_LaBr_CeBr.json"
+tmux new-window -d -P -t ABCD -n tofcalc "tofcalc -f @ABCD_FULL_DATADIR@/tofcalc/DT5730_LaBr_CeBr.json"
 
 echo "Creating spec window"
 tmux new-window -d -P -t ABCD -n spec "./spec/spec"
