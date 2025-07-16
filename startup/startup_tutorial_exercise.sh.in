@@ -66,10 +66,11 @@ sleep 2
 #echo "Creating WaAn window"
 #tmux new-window -d -P -t ABCD -n waan 'waan -v -T 100 -A tcp://127.0.0.1:16207 -D tcp://*:16181 -f @ABCD_FULL_DATADIR@/waan/configs/config_example_data.json'
 
-# This module is needed for the waveforms visualization, in this example is
-# useless but it uses very little resources and we can leave it here
+# These modules are needed for the waveforms visualization, in this example
+# they are useless but it uses very little resources and we can leave it here
 echo "Creating WaDi windows"
 tmux new-window -d -P -t ABCD -n wadidigi 'wadi -v -A tcp://127.0.0.1:16207'
+tmux new-window -d -P -t ABCD -n wadiwaan 'wadi -v -A tcp://127.0.0.1:16181 -D tcp://*:17190'
 
 # This module reads the singles data stream, but it calculates the time coincidences by itself.
 # It does not need to be attached after a cofi module.
