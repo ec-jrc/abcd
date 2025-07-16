@@ -76,13 +76,10 @@ install(PROGRAMS
     replay/replay_raw
     replay/replay_events
     convert/adr2adeadw.py
-    convert/ade2ascii
     convert/ade2ascii.m
     convert/ade2ascii.py
-    convert/adr2ade
     convert/adr2events.py
     convert/adr2configs.py
-    convert/adw2ascii
     DESTINATION ${CMAKE_INSTALL_BINDIR}
     COMPONENT core
 )
@@ -142,6 +139,7 @@ add_subdirectory(sofi)
 add_subdirectory(sort_ade)
 add_subdirectory(filter_timestamps)
 add_subdirectory(events_counter)
+add_subdirectory(convert)
 
 if(BUILD_ABSP)
     message(STATUS "Building absp module")
