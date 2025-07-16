@@ -141,6 +141,7 @@ add_subdirectory(sofi)
 
 add_subdirectory(sort_ade)
 add_subdirectory(filter_timestamps)
+add_subdirectory(events_counter)
 
 if(BUILD_ABSP)
     message(STATUS "Building absp module")
