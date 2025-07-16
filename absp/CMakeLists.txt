@@ -4,6 +4,10 @@ project(absp VERSION 1.0.0 LANGUAGES CXX)
 
 include(GNUInstallDirs)
 
+if(NOT DEFINED ABCD_DATADIR)
+    set(ABCD_DATADIR ${CMAKE_INSTALL_DATADIR}/abcd)
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -Wextra -pedantic")
@@ -66,11 +70,7 @@ foreach(wrapper ${SWIG_WRAPPERS})
     get_filename_component(SWIG_WRAPPER_DIR ${wrapper} DIRECTORY)
     file(MAKE_DIRECTORY ${SWIG_WRAPPER_DIR})
 
-    set(wrapper_name "")
-
     get_filename_component(wrapper_name ${wrapper} NAME)
-
-    set(wrapper_source "")
 
     string(REPLACE "_wrap.cpp" ".i" wrapper_source ${wrapper_name})
     string(PREPEND wrapper_source "${CMAKE_CURRENT_SOURCE_DIR}/src/")
@@ -89,7 +89,7 @@ add_library(LuaDigitizers OBJECT ${SWIG_WRAPPERS})
 add_dependencies(LuaDigitizers swig_runtime)
 target_include_directories(LuaDigitizers PUBLIC ${LUA_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR}/include)
 
-# I cannot get this to work:
+# FIXME I cannot get this to work:
 # It generates a shared library without the luaopen_digitizers() function
 #set_source_files_properties(
 #    SOURCE include/Digitizers.i
@@ -98,13 +98,11 @@ target_include_directories(LuaDigitizers PUBLIC ${LUA_INCLUDE_DIRS} ${CMAKE_CURR
 #    PROPERTY USE_SWIG_DEPENDENCIES TRUE
 #    PROPERTY USE_TARGET_INCLUDE_DIRECTORIES TRUE
 #)
-#
 #swig_add_library(digitizers
 #    TYPE SHARED
 #    LANGUAGE lua
 #    SOURCES include/Digitizers.i
 #)
-#
 #set_target_properties(digitizers PROPERTIES LINKER_LANGUAGE CXX)
 
 add_library(LuaManager INTERFACE include/LuaManager.hpp)
@@ -124,6 +122,6 @@ install(TARGETS ${PROJECT_NAME}
 )
 
 install(FILES ${CONFIGS}
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/${PROJECT_NAME}
+    DESTINATION ${ABCD_DATADIR}/${PROJECT_NAME}
     COMPONENT absp
 )
