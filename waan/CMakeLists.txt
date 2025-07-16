@@ -4,6 +4,10 @@ project(waan LANGUAGES CXX)
 
 include(GNUInstallDirs)
 
+if(NOT DEFINED ABCD_DATADIR)
+    set(ABCD_DATADIR ${CMAKE_INSTALL_DATADIR}/abcd)
+endif()
+
 add_subdirectory(libraries)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -38,6 +42,6 @@ install(TARGETS ${PROJECT_NAME}
 )
 
 install(FILES ${CONFIGS}
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/${PROJECT_NAME}
+    DESTINATION ${ABCD_DATADIR}/${PROJECT_NAME}
     COMPONENT core
 )
