@@ -4,6 +4,10 @@ project(waan_libraries LANGUAGES C)
 
 include(GNUInstallDirs)
 
+if(NOT DEFINED ABCD_DATADIR)
+    set(ABCD_DATADIR ${CMAKE_INSTALL_DATADIR}/abcd)
+endif()
+
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
@@ -56,24 +60,24 @@ foreach(source_file ${SOURCES})
 endforeach()
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/Makefile_waan_libraries
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/
+    DESTINATION ${ABCD_DATADIR}/waan_libraries
     RENAME Makefile
     COMPONENT core
 )
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../../include/events.h
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/
+    DESTINATION ${ABCD_DATADIR}/waan_libraries/include
     COMPONENT core
 )
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../include/analysis_functions.h
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/
+    DESTINATION ${ABCD_DATADIR}/waan_libraries/include
     COMPONENT core
 )
 install(FILES ${HEADERS}
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/include/
+    DESTINATION ${ABCD_DATADIR}/waan_libraries/include
     COMPONENT core
 )
 install(FILES ${SOURCES}
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/waan_libraries/src/
+    DESTINATION ${ABCD_DATADIR}/waan_libraries/src
     COMPONENT core
 )
 
@@ -90,5 +94,4 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     )
 
     install(CODE "message(WARNING \"If manually installing, the libraries location must be configured with ldconfig after the installation\")")
-    #install(CODE "execute_process(COMMAND ldconfig)")
 endif()
