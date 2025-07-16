@@ -133,6 +133,7 @@ add_subdirectory(dasa)
 add_subdirectory(califo)
 add_subdirectory(chafi)
 add_subdirectory(cofi)
+add_subdirectory(enfi)
 add_subdirectory(spec)
 add_subdirectory(tofcalc)
 
