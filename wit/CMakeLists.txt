@@ -2,15 +2,19 @@ cmake_minimum_required(VERSION 3.14)
 
 project(wit LANGUAGES C)
 
-option(FORCE_NPM_INSTALL "Force 'npm install' execution, even if node_modules/ directory already exists" OFF)
+option(FORCE_NPM_INSTALL "Force 'npm install' execution, even if node_modules/ directory already exists. It requires an internet connection at build phase." OFF)
 
 include(GNUInstallDirs)
+
+if(NOT DEFINED ABCD_DATADIR)
+    set(ABCD_DATADIR ${CMAKE_INSTALL_DATADIR}/abcd)
+endif()
 
 set(REQUIRED_EXECUTABLES "node" "npm")
 
 foreach(executable ${REQUIRED_EXECUTABLES})
-    find_program(EXECUTABLE_FOUND ${executable})
-    if(NOT EXECUTABLE_FOUND)
+    find_program(executable_found ${executable} NO_CACHE)
+    if(NOT executable_found)
         message(FATAL_ERROR "'${executable}' is required but not found. Please install it.")
     endif()
 endforeach()
@@ -56,6 +60,6 @@ install(PROGRAMS
 )
 
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/config_coincidences.json"
+    DESTINATION ${ABCD_DATADIR}/wit
     COMPONENT core
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/wit
 )
