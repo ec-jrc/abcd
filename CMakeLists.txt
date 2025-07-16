@@ -2,17 +2,22 @@ cmake_minimum_required(VERSION 3.14)
 
 project(abcd VERSION 1.0.0)
 
+option(BUILD_ABSP "Build also the absp module, that interfaces SP Devices digitizers." OFF)
+
 include(GNUInstallDirs)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+set(ABCD_DATADIR ${CMAKE_INSTALL_DATADIR}/abcd)
+set(ABCD_FULL_DATADIR ${CMAKE_INSTALL_FULL_DATADIR}/abcd)
+
 set(REQUIRED_EXECUTABLES "tmux")
 
 foreach(executable ${REQUIRED_EXECUTABLES})
-    find_program(EXECUTABLE_FOUND ${executable})
-    if(NOT EXECUTABLE_FOUND)
+    find_program(executable_found ${executable} NO_CACHE)
+    if(NOT executable_found)
         message(FATAL_ERROR "'${executable}' is required but not found. Please install it.")
     endif()
 endforeach()
@@ -84,19 +89,41 @@ install(PROGRAMS
     COMPONENT core
 )
 
-install(DIRECTORY startup
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/startup
-    COMPONENT core
-    FILES_MATCHING PATTERN "*.sh"
-)
+file(GLOB STARTUPS_IN "${CMAKE_CURRENT_SOURCE_DIR}/startup/*.sh.in")
+file(GLOB STARTUPS "${CMAKE_CURRENT_SOURCE_DIR}/startup/*.sh")
+
+file(MAKE_DIRECTORY ${ABCD_DATADIR}/startup)
+
+foreach(startup_in ${STARTUPS_IN})
+    get_filename_component(startup_name ${startup_in} NAME)
+    string(REPLACE ".in" "" startup ${startup_name})
+
+    configure_file(
+        ${startup_in}
+        "${CMAKE_CURRENT_BINARY_DIR}/startup/${startup}"
+        @ONLY
+    )
+
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/startup/${startup}"
+        COMPONENT core
+        DESTINATION ${ABCD_DATADIR}/startup
+    )
+endforeach()
+
+foreach(startup ${STARTUPS})
+    install(FILES ${startup}
+        DESTINATION ${ABCD_DATADIR}/startup
+        COMPONENT core
+    )
+endforeach()
 
 install(DIRECTORY examples
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/examples
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd
     COMPONENT core
 )
 
 install(DIRECTORY data
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd/data
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/abcd
     COMPONENT core
     FILES_MATCHING PATTERN "example_data_*"
 )
@@ -107,7 +134,10 @@ add_subdirectory(califo)
 add_subdirectory(spec)
 add_subdirectory(tofcalc)
 
-add_subdirectory(absp)
+if(BUILD_ABSP)
+    message(STATUS "Building absp module")
+    add_subdirectory(absp)
+endif()
 
 # Better keep waan as the last module as it warns the user that ldconfig should
 # be called after a manual installation. If placed before wit, the warning would
