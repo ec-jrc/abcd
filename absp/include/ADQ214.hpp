@@ -11,8 +11,10 @@ extern "C" {
 
 #define ADQ214_RECORD_HEADER_SIZE 32 // byte
 #define ADQ214_EXTENDED_TIMESTAMP_BITMASK ((1 << 16) | (1 << 17))
+#define ADQ214_EXTENDED_TIMESTAMP_OFFSET 16
+#define ADQ214_EXTENDED_TIMESTAMP_NUMBER 2
 
-#define ADQ214_TIMESTAMP_BITS 42
+#define ADQ214_TIMESTAMP_BITS 63
 #define ADQ214_TIMESTAMP_MAX (1UL << ADQ214_TIMESTAMP_BITS)
 #define ADQ214_TIMESTAMP_THRESHOLD (1L << (ADQ214_TIMESTAMP_BITS - 1))
 
@@ -109,6 +111,8 @@ public:
     // -------------------------------------------------------------------------
     //  Timestamps settings
     // -------------------------------------------------------------------------
+    // Applied bit shift to the read timestamp values
+    unsigned int timestamp_bit_shift;
 
     // Variables to keep track of timestamp overflows during acquisitions
     int64_t timestamp_last;
