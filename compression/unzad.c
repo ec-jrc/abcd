@@ -51,9 +51,7 @@
 
 #include "defaults.h"
 #include "socket_functions.h"
-
-// Reverse strstr(): searches small_string in big_string
-char *rstrstr(char *big_string, char *small_string);
+#include "utilities_functions.h"
 
 unsigned int terminate_flag = 0;
 
@@ -128,7 +126,7 @@ int main(int argc, char *argv[])
         printf("Base period: %u\n", base_period);
     }
 
-    // Creates a ØMQ context
+    // Creates a ï¿½MQ context
     void *context = zmq_ctx_new();
     if (!context)
     {
@@ -417,24 +415,4 @@ void signal_handler(int signum)
     {
         terminate_flag = 1;
     }
-}
-
-char *rstrstr(char *big_string, char *small_string)
-{
-    size_t big_string_len = strlen(big_string);
-    size_t small_string_len = strlen(small_string);
-
-    if (small_string_len > big_string_len)
-    {
-        return NULL;
-    }
-    for (char *s = big_string + big_string_len - small_string_len; s >= big_string; --s)
-    {
-        if (strncmp(s, small_string, small_string_len) == 0)
-        {
-            return s;
-        }
-    }
-
-    return NULL;
 }
