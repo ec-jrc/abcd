@@ -20,7 +20,7 @@ set(CPACK_COMPONENT_CORE_DESCRIPTION_SUMMARY
     "The waveforms processing, spectra calculation and Time-of-Flight analysis may be performed online and offline."
 )
 set(CPACK_DEBIAN_CORE_PACKAGE_NAME "abcd-core")
-set(CPACK_DEBIAN_CORE_PACKAGE_DEPENDS "tmux, libzmq5, libjansson-dev, libjansson4, libgsl-dev, gsl-bin, zlib1g, libbz2-1.0, python3, python3-zmq, python3-numpy, python3-scipy, python3-matplotlib, nodejs, npm")
+set(CPACK_DEBIAN_CORE_PACKAGE_DEPENDS "tmux, libzmq5, libjansson-dev, libjansson4, libgsl-dev, gsl-bin, libgslcblas0, zlib1g, libbz2-1.0, python3, python3-zmq, python3-numpy, python3-scipy, python3-matplotlib, nodejs, npm")
 set(CPACK_DEBIAN_CORE_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/deb/postinst")
 
 set(CPACK_COMPONENT_ABSP_DESCRIPTION_SUMMARY "ABCD's interface for SP Devices digitizers")
