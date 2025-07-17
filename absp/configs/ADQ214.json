@@ -16,23 +16,27 @@
             "scope_samples": 1000,
             "pretrigger": 150,
             "records_number": 2000,
-            "PLL_divider": 16,
+            "records_number_note": "This should be comparable to the expected rate",
+            "PLL_divider": 2,
             "PLL_divider_note1": "The internal reference clock runs at 800 MHz, but the minimum value for the PLL divider is 2",
             "PLL_divider_note2": "WARNING: Some values to not appear to work",
             "clock_source": "internal",
             "clock_source0": "internal",
             "clock_source1": "external_10MHz",
             "clock_source2": "external",
-            "clock_source3": "external_PXIsync",
             "channels": [
                 {
-                    "name": "PLC",
+                    "name": "Detector",
                     "id": 0,
                     "enable": false,
                     "triggering": false,
-                    "coupling": "DC"
+                    "triggering_note": "Enables the self triggering on this channel",
+                    "coupling": "DC",
+                    "coupling_possible_value0": "DC",
+                    "coupling_possible_value1": "DC"
                 },
                 {
+                    "name": "Detector",
                     "id": 1,
                     "enable": true,
                     "triggering": true,
