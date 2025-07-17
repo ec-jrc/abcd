@@ -145,6 +145,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
+    // One point is added to copy the first point to the end and close the loop
     struct Point_t *polygon = (struct Point_t *)malloc((number_of_points + 1) * sizeof(struct Point_t));
 
     if (polygon == NULL)
@@ -178,7 +179,9 @@ int main(int argc, char *argv[])
         printf("Output socket address: %s\n", output_address);
         printf("Verbosity: %u\n", verbosity);
         printf("Base period: %u\n", base_period);
+    }
 
+    if (verbosity > 1) {
         for (size_t i = 0; i < number_of_points + 1; i++)
         {
             printf("[i: %zu] point x: %f; y: %f;\n", i, polygon[i].x, polygon[i].y);
@@ -189,7 +192,7 @@ int main(int argc, char *argv[])
                                                             bounding_box.top_left.y);
     }
 
-    // Creates a �MQ context
+    // Creates a ZeroMQ context
     void *context = zmq_ctx_new();
     if (!context)
     {
@@ -233,12 +236,8 @@ int main(int argc, char *argv[])
     slow_joiner_wait.tv_sec = defaults_all_slow_joiner_wait / 1000;
     slow_joiner_wait.tv_nsec = (defaults_all_slow_joiner_wait % 1000) * 1000000L;
     nanosleep(&slow_joiner_wait, NULL);
-    //usleep(defaults_all_slow_joiner_wait * 1000);
 
     // Setting up the wait for the main loop
-    // If you're asking why, on earth, are we using something so complicated,
-    // on the man page of usleep it is said:
-    // 4.3BSD, POSIX.1-2001.  POSIX.1-2001  declares  this  function  obsolete;  use  nanosleep(2)
     struct timespec wait;
     wait.tv_sec = base_period / 1000;
     wait.tv_nsec = (base_period % 1000) * 1000000L;
@@ -291,10 +290,6 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    // At most we can have a events_number**2 number of coincidences,
-                    // but that would be too much for a buffer...
-                    // We can estimate a very wide coincidence window and say that there
-                    // will be at most COINCIDENCE_defaults_all_topic_buffer_size * events_number coincidences.
                     struct event_PSD *selected_events = malloc(sizeof(struct event_PSD) * events_number);
 
                     if (selected_events == NULL)
@@ -344,7 +339,6 @@ int main(int argc, char *argv[])
 
                         // Compute the new topic
                         char new_topic[defaults_all_topic_buffer_size];
-                        // I am not sure if snprintf is standard or not, apprently it is in the C99 standard
                         snprintf(new_topic, defaults_all_topic_buffer_size, "data_abcd_events_v0_s%zu", output_size);
 
                         send_byte_message(output_socket, new_topic, (void *)selected_events, output_size, verbosity);
@@ -385,7 +379,6 @@ int main(int argc, char *argv[])
 
         // Putting a delay in order not to fill-up the queues
         nanosleep(&wait, NULL);
-        //usleep(base_period * 1000);
 
         if (verbosity > 2)
         {
@@ -397,7 +390,6 @@ int main(int argc, char *argv[])
 
     // Wait a bit to allow the sockets to deliver
     nanosleep(&slow_joiner_wait, NULL);
-    //usleep(defaults_all_slow_joiner_wait * 1000);
 
     const int ic = zmq_close(input_socket);
     if (ic != 0)
