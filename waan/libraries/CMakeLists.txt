@@ -89,7 +89,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     )
 
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/abcd.conf
-        DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/ld.so.conf.d/
+        DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/etc/ld.so.conf.d/
         COMPONENT core
     )
 
