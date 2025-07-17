@@ -77,4 +77,29 @@ int file_size_to_human(char *output_buffer, size_t N, const size_t size) {
     return EXIT_SUCCESS;
 }
 
+/// @brief Reverse strstr(): searches small_string in big_string
+/// @param big_string Bigger string that might contain small_string
+/// @param small_string Smaller string that might be contained in big_string
+/// @return Pointer to the identified position in the big_string
+extern inline
+char *rstrstr(char *big_string, char *small_string)
+{
+    size_t big_string_len = strlen(big_string);
+    size_t small_string_len = strlen(small_string);
+
+    if (small_string_len > big_string_len)
+    {
+        return NULL;
+    }
+    for (char *s = big_string + big_string_len - small_string_len; s >= big_string; --s)
+    {
+        if (strncmp(s, small_string, small_string_len) == 0)
+        {
+            return s;
+        }
+    }
+
+    return NULL;
+}
+
 #endif
