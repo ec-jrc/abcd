@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2016 Cristiano Lino Fontana
+ * (C) Copyright 2016, 2025 Cristiano Lino Fontana
  *
  * This file is part of ABCD.
  *
@@ -67,27 +67,7 @@ void signal_handler(int signum)
     }
 }
 
-void print_usage(const char *name) {
-    printf("Usage: %s [options] <polygon_file_name>\n", name);
-    printf("\n");
-    printf("Datastream filter that selects data according to the PSD parameter:\n");
-    printf("\n");
-    printf("    PSD = Qtail / Qlong\n");
-    printf("\n");
-    printf("The selection is defined by a polygon on the (energy, PSD) plane.\n");
-    printf("The polygon points shall be defined in a JSON file containing a signle array of x and y values\n");
-    printf("Of course there should be at least three points to have a valid polygon.\n");
-    printf("\n");
-    printf("Optional arguments:\n");
-    printf("\t-h: Display this message\n");
-    printf("\t-v: Set verbose execution\n");
-    printf("\t-V: Set verbose execution with more output\n");
-    printf("\t-S <address>: SUB socket address, default: %s\n", defaults_abcd_data_address_sub);
-    printf("\t-P <address>: PUB socket address, default: %s\n", defaults_pufi_data_address);
-    printf("\t-T <period>: Set base period in milliseconds, default: %d\n", defaults_pufi_base_period);
-
-    return;
-}
+void print_usage(const char *name);
 
 int main(int argc, char *argv[])
 {
@@ -102,25 +82,22 @@ int main(int argc, char *argv[])
     char *output_address = defaults_pufi_data_address;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hS:P:T:w:l:r:n:vV")) != -1) {
+    while ((c = getopt(argc, argv, "hA:D:T:v")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
                 return EXIT_SUCCESS;
-            case 'S':
+            case 'A':
                 input_address = optarg;
                 break;
-            case 'P':
+            case 'D':
                 output_address = optarg;
                 break;
             case 'T':
                 base_period = atoi(optarg);
                 break;
             case 'v':
-                verbosity = 1;
-                break;
-            case 'V':
-                verbosity = 2;
+                verbosity += 1;
                 break;
             default:
                 printf("Unknown command: %c", c);
@@ -159,11 +136,23 @@ int main(int argc, char *argv[])
 
     const size_t number_of_points = json_array_size(json_polygon);
 
+    if (number_of_points < 3)
+    {
+        printf("ERROR: Polygon needs at least three points\n");
+
+        json_decref(json_polygon);
+
+        return EXIT_FAILURE;
+    }
+
     struct Point_t *polygon = (struct Point_t *)malloc((number_of_points + 1) * sizeof(struct Point_t));
 
     if (polygon == NULL)
     {
         printf("ERROR: Unable to allocate memory for polygon\n");
+
+        json_decref(json_polygon);
+
         return EXIT_FAILURE;
     }
 
@@ -200,7 +189,7 @@ int main(int argc, char *argv[])
                                                             bounding_box.top_left.y);
     }
 
-    // Creates a ØMQ context
+    // Creates a ï¿½MQ context
     void *context = zmq_ctx_new();
     if (!context)
     {
@@ -432,4 +421,25 @@ int main(int argc, char *argv[])
     }
     
     return EXIT_SUCCESS;
+}
+
+void print_usage(const char *name) {
+    printf("Usage: %s [options] <polygon_file_name>\n", name);
+    printf("\n");
+    printf("Datastream filter that selects data according to the PSD parameter:\n");
+    printf("\n");
+    printf("    PSD = Qtail / Qlong\n");
+    printf("\n");
+    printf("The selection is defined by a polygon on the (energy, PSD) plane.\n");
+    printf("The polygon points shall be defined in a JSON file containing a signle array of x and y values\n");
+    printf("Of course there should be at least three points to have a valid polygon.\n");
+    printf("\n");
+    printf("Optional arguments:\n");
+    printf("\t-h: Display this message\n");
+    printf("\t-v: Set verbose execution, can be repeated to increase verbosity level\n");
+    printf("\t-A <address>: Input socket address, default: %s\n", defaults_abcd_data_address_sub);
+    printf("\t-D <address>: Output socket address for coincidence data, default: %s\n", defaults_pufi_data_address);
+    printf("\t-T <period>: Set base period in milliseconds, default: %d\n", defaults_pufi_base_period);
+
+    return;
 }
