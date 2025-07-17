@@ -127,6 +127,7 @@ add_subdirectory(spec)
 add_subdirectory(tofcalc)
 
 add_subdirectory(filters)
+add_subdirectory(compression)
 add_subdirectory(ade_tools)
 add_subdirectory(convert)
 add_subdirectory(replay)
