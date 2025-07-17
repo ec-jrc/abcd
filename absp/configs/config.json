@@ -1,4 +1,31 @@
 {
+    "global": {
+        "waveforms_buffer_max_size": 4096,
+        "waveforms_buffer_max_size_note1": "This value is in number of waveforms in the buffer",
+        "waveforms_buffer_max_size_note2": "It is not a strict threshold, if more are available in the readout they are not discarded.",
+        "waveforms_buffer_max_size_note3": "If too big, the following analysis steps might slow down",
+        "waveforms_buffer_max_size_note4": "If too small, then the overhead might be too much",
+        "waveforms_buffer_max_size_note5": "Waveform minimum dimension: 14 B (header) + 2 B * samples_number",
+        "zzz": null
+    },
+    "scripts": [
+        {
+            "enable": true,
+            "state": [
+                108,
+                408
+            ],
+            "state_note": "The scripts are executed in the mentioned states, refer to states.cpp of absp to see the states ID",
+            "when": "post",
+            "when_possible_value0": "pre",
+            "when_possible_value1": "post",
+            "when_note": "The script may be executed right before or after the action associated to that state",
+            "source": "ADQ214_timestamp_sync.lua",
+            "source_note1": "The source can be the actual lua script, or the filename to the script",
+            "source_note2": "WARNING: Pay attention to the script path, so that absp can access it!"
+        },
+        {}
+    ],
     "cards": [
         {
             "id": 0,
