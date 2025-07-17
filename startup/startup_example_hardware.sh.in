@@ -14,12 +14,6 @@ fi
 # Unsetting $TMUX in order to be able to launch new sessions from tmux
 unset TMUX
 
-if command -v waan &> /dev/null
-then
-    printf '\e[1m\e[31mERROR:\e[0m cannot find waan. \e[1m\e[32mSuggestion:\e[0m Was ABCD correctly installed?\n'
-    return 1
-fi
-
 # Checking if another ABCD session is running
 if [ "`tmux ls 2> /dev/null | grep ABCD | wc -l`" -gt 0 ]
 then
