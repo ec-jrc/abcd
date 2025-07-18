@@ -93,19 +93,20 @@ foreach(startup_in ${STARTUPS_IN})
     configure_file(
         ${startup_in}
         "${CMAKE_CURRENT_BINARY_DIR}/startup/${startup}"
-        FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
         @ONLY
     )
 
     install(FILES "${CMAKE_CURRENT_BINARY_DIR}/startup/${startup}"
-        COMPONENT core
         DESTINATION ${ABCD_DATADIR}/startup
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+        COMPONENT core
     )
 endforeach()
 
 foreach(startup ${STARTUPS})
     install(FILES ${startup}
         DESTINATION ${ABCD_DATADIR}/startup
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
         COMPONENT core
     )
 endforeach()
