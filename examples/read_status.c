@@ -17,9 +17,6 @@
  * along with ABCD.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// This is a personal academic project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-
 // This macro is to use nanosleep even with compilation flag: -std=c99
 #define _POSIX_C_SOURCE 199309L
 #define _C99_SOURCE
@@ -127,7 +124,7 @@ int main(int argc, char *argv[])
         printf("Base period: %u\n", base_period);
     }
 
-    // Creates a ØMQ context
+    // Creates a ï¿½MQ context
     void *context = zmq_ctx_new();
     if (!context)
     {
