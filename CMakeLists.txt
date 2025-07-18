@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.20)
 
 project(abcd VERSION 1.0.0)
 
@@ -93,6 +93,7 @@ foreach(startup_in ${STARTUPS_IN})
     configure_file(
         ${startup_in}
         "${CMAKE_CURRENT_BINARY_DIR}/startup/${startup}"
+        FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
         @ONLY
     )
 

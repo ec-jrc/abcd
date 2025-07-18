@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.20)
 
 project(wit LANGUAGES C)
 
@@ -24,6 +24,7 @@ set(WIT_INSTALLDIR ${CMAKE_INSTALL_FULL_LIBEXECDIR}/abcd/wit)
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/wit.sh.in
     ${CMAKE_CURRENT_BINARY_DIR}/wit.sh
+    FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
     @ONLY
 )
 
