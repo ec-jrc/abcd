@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.14)
 project(abcd VERSION 1.0.0)
 
 option(BUILD_ABSP "Build also the absp module, that interfaces SP Devices digitizers." OFF)
+option(BUILD_ABCD "Build also the abcd module, that interfaces CAEN digitizers." OFF)
 
 include(GNUInstallDirs)
 
@@ -135,6 +136,10 @@ add_subdirectory(replay)
 if(BUILD_ABSP)
     message(STATUS "Building absp module")
     add_subdirectory(absp)
+endif()
+if(BUILD_ABCD)
+    message(STATUS "Building abcd module")
+    add_subdirectory(abcd)
 endif()
 
 # Better keep waan as the last module as it warns the user that ldconfig should
