@@ -8,7 +8,7 @@ The user interface is implemented as a web-service and can be accessed with a re
 
 The official documentation and tutorial reside at: https://abcd-docs.readthedocs.io/
 
-## Compilation
+## Compilation and installation
 
 Use CMake to build and install ABCD:
 
@@ -30,7 +30,7 @@ cmake --build build --parallel 8
 sudo cmake --install build
 ```
 
-## Ubuntu package(s) generation
+## Ubuntu package(s) generation and installation
 
 An Ubuntu package may be generated with CMake and CPack.
 The default prefix for CMake on UNIX platforms is `/usr/local`, but if should be changed to `/usr` at the configuration phase to generate a proper `deb` package.
@@ -58,4 +58,10 @@ cpack
 sudo dpkg -i abcd-core-...
 sudo dpkg -i abcd-absp-...
 sudo dpkg -i abcd-abcd-...
+```
+
+If there were some missing packages on which ABCD depends on, install them with:
+
+```
+sudo apt install --fix-broken
 ```
