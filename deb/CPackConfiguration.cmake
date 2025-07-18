@@ -8,6 +8,9 @@ set(CPACK_COMPONENTS_ALL core)
 if(BUILD_ABSP)
     list(APPEND CPACK_COMPONENTS_ALL absp)
 endif()
+if(BUILD_ABCD)
+    list(APPEND CPACK_COMPONENTS_ALL abcd)
+endif()
 
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Cristiano Fontana <cristiano.fontana@ec.europa.eu>")
 set(CPACK_DEBIAN_PACKAGE_VERSION ${PROJECT_VERSION})
@@ -27,10 +30,18 @@ set(CPACK_COMPONENT_ABSP_DESCRIPTION_SUMMARY "ABCD's interface for SP Devices di
 set(CPACK_DEBIAN_ABSP_PACKAGE_NAME "abcd-absp")
 set(CPACK_DEBIAN_ABSP_PACKAGE_DEPENDS "libzmq5, libjansson4, lua5.4, liblua5.4-0, swig, spd-adq-pci-dkms, libadq0, adqtools")
 
+set(CPACK_COMPONENT_ABCD_DESCRIPTION_SUMMARY "ABCD's interface for CAEN digitizers")
+set(CPACK_DEBIAN_ABCD_PACKAGE_NAME "abcd-abcd")
+set(CPACK_DEBIAN_ABCD_PACKAGE_DEPENDS "libzmq5, libjsoncpp25")
+set(CPACK_DEBIAN_ABCD_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/abcd/deb/preinst")
+
 include(CPack)
 
 cpack_add_component(core REQUIRED)
 
 if(BUILD_ABSP)
     cpack_add_component(absp DEPENDS core)
+endif()
+if(BUILD_ABCD)
+    cpack_add_component(abcd DEPENDS core)
 endif()
