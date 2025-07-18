@@ -25,7 +25,7 @@ Modules interfacing with hardware are not built by default, as they depend on sp
 To compile the specific modules use the `-D BUILD_<MODULE>=ON` option in the configuration phase, as in:
 
 ```
-cmake -S . -B build -D BUILD_ABSP=ON
+cmake -S . -B build -D BUILD_ABSP=ON -D BUILD_ABCD=ON
 cmake --build build --parallel 8
 sudo cmake --install build
 ```
@@ -51,10 +51,11 @@ Hardware interfacing modules need to be explicitly enabled as in the standard bu
 If enabled, separate packages are generated for each hardware module, as in:
 
 ```
-cmake -S . -B build -D BUILD_ABSP=ON --install-prefix /usr
+cmake -S . -B build -D BUILD_ABSP=ON -D BUILD_ABCD=ON --install-prefix /usr
 cmake --build build --parallel 8
 cd build/
 cpack
 sudo dpkg -i abcd-core-...
 sudo dpkg -i abcd-absp-...
+sudo dpkg -i abcd-abcd-...
 ```
