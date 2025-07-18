@@ -61,6 +61,9 @@ void signal_handler(int signum)
     #ifdef SIGINFO
     else if (signum == SIGINFO)
     {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+
         std::cout << '[' << time_buffer << "] " << "Running" << std::endl;
     }
     #endif
