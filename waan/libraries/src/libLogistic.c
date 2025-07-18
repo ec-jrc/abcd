@@ -38,6 +38,7 @@
  *   Optional, default value: 1
  * - `energy_threshold`: pulses with an energy lower than the threshold are
  *   discared. Optional, default value: 0
+ * - `verbosity`: define the verbosity level, output is sent to stdout
  */
 
 #include <stdio.h>

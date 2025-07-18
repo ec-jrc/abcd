@@ -1,0 +1,37 @@
+{
+    "forward_waveforms": true,
+    "enable_additional": true,
+    "high_water_mark": "no limit",
+    "channels": [
+        {
+            "id": [2, 3, 4, 8, 10],
+            "name": "Si detectors",
+            "enabled": true,
+            "user_libraries": {
+                "timestamp": "libRT.so",
+                "energy": "libLogistic.so"
+            },
+            "user_config": {
+                "baseline_samples": 1000,
+                "smooth_samples": 500,
+                "fraction": 0.5,
+                "delay": 300,
+                "zero_crossing_samples": 4,
+                "fractional_bits": 8,
+                "disable_shift": true,
+                "analysis_start": -3000,
+                "analysis_end": 4000,
+                "pulse_polarity": "negative",
+                "decay_time": 26000,
+                "guessed_tau": 14,
+                "fit_tolerance": 0.1,
+                "max_iterations": 300,
+                "height_scaling": 1,
+                "energy_threshold": 200,
+                "verbosity": 0
+            }
+        },
+        {}
+    ],
+    "zzz": null
+}
