@@ -1,6 +1,6 @@
 #! /usr/bin/bash
 
-REQUIRED_LIBRARIES=('libCAENVME.so' 'libCAENComm.so' 'libCAENDigitizer.so')
+REQUIRED_LIBRARIES=('libCAENVME' 'libCAENComm' 'libCAENDigitizer')
 
 for library_name in "${REQUIRED_LIBRARIES[@]}"; do
     if ! ldconfig -p | grep -q "${library_name}"; then
