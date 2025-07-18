@@ -9,7 +9,7 @@
             "name": "CeBr",
             "enabled": true,
             "user_libraries": {
-                "energy": "src/libRC4.so"
+                "energy": "libRC4.so"
             },
             "user_config": {
                 "baseline_samples": 25,
@@ -24,8 +24,8 @@
             "name": "CeBr other",
             "enabled": false,
             "user_libraries": {
-                "timestamp": "src/libRT.so",
-                "energy": "src/libPSD.so"
+                "timestamp": "libRT.so",
+                "energy": "libPSD.so"
             },
             "user_config": {
                 "baseline_samples": 25,

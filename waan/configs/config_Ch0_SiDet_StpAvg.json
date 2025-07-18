@@ -9,8 +9,8 @@
             "name": "Si detector",
             "enabled": true,
             "user_libraries": {
-                "timestamp": "src/libTFACFD.so",
-                "energy": "src/libStpAvg.so"
+                "timestamp": "libTFACFD.so",
+                "energy": "libStpAvg.so"
             },
             "user_config": {
                 "baseline_samples": 29000,

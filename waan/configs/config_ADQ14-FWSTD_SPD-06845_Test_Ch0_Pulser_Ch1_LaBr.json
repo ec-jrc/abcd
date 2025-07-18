@@ -9,8 +9,8 @@
             "name": "Pulser",
             "enabled": true,
             "user_libraries": {
-                "timestamp": "src/libRT.so",
-                "energy": "src/libCRRC4.so"
+                "timestamp": "libRT.so",
+                "energy": "libCRRC4.so"
             },
             "user_config": {
                 "baseline_samples": 200,
@@ -29,8 +29,8 @@
             "name": "LaBr",
             "enabled": true,
             "user_libraries": {
-                "timestamp": "src/libRT.so",
-                "energy": "src/libPSD.so"
+                "timestamp": "libRT.so",
+                "energy": "libPSD.so"
             },
             "user_config": {
                 "baseline_samples": 200,

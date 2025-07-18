@@ -10,10 +10,10 @@
             "note": "This channel is used to analyze a LaBr3 scintillator.",
             "enabled": true,
             "user_libraries": {
-                "timestamp": "src/libCFD.so",
-                "energy": "src/libPSD.so",
+                "timestamp": "libCFD.so",
+                "energy": "libPSD.so",
                 "note1": "Insert here the library file names with the analysis functions.",
-                "note2": "If using a file and not a system wide library, the filename shall contain a '/'."
+                "note2": "If using a file and not a system wide library, the filename shall contain a '/'"
             },
             "user_config": {
                 "baseline_samples": 30,
@@ -36,8 +36,8 @@
             "name": "HPGe",
             "enabled": true,
             "user_libraries": {
-                "timestamp": "src/libCFD.so",
-                "energy": "src/libGeP.so"
+                "timestamp": "libCFD.so",
+                "energy": "libGeP.so"
             },
             "user_config": {
                 "baseline_samples": 64,
@@ -56,7 +56,6 @@
                 "min_delay": 50.0,
                 "max_delay": 350.0,
                 "N_delay": 75,
-                "delay_step": 4.0,
                 "min_clock": 0,
                 "max_clock": 2048.0,
                 "N_clock": 1024,

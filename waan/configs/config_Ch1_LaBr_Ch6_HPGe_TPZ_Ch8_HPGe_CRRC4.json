@@ -9,8 +9,8 @@
             "name": "LaBr",
             "enabled": false,
             "user_libraries": {
-                "timestamp": "src/libCFD.so",
-                "energy": "src/libPSD.so"
+                "timestamp": "libCFD.so",
+                "energy": "libPSD.so"
             },
             "user_config": {
                 "baseline_samples": 30,
@@ -32,8 +32,8 @@
             "name": "HPGe",
             "enabled": true,
             "user_libraries": {
-                "timestamp": "src/libTFACFD.so",
-                "energy": "src/libTPZ.so"
+                "timestamp": "libTFACFD.so",
+                "energy": "libTPZ.so"
             },
             "user_config": {
                 "baseline_samples": 800,
@@ -59,8 +59,8 @@
             "name": "HPGe",
             "enabled": false,
             "user_libraries": {
-                "timestamp": "src/libCFD.so",
-                "energy": "src/libCRRC4.so"
+                "timestamp": "libCFD.so",
+                "energy": "libCRRC4.so"
             },
             "user_config": {
                 "baseline_samples": 800,
