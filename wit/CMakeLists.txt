@@ -28,19 +28,12 @@ configure_file(
     @ONLY
 )
 
-file(GLOB NODE_MODULES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/node_modules")
-
-if(NOT EXISTS ${NODE_MODULES_DIR} OR FORCE_NPM_INSTALL)
-    add_custom_target(wit_install ALL
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/node_modules" OR FORCE_NPM_INSTALL)
+    add_custom_target(npm_install ALL
         COMMAND npm install
-        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-        RESULT_VARIABLE result
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         COMMENT "Installing Node.js dependencies in ${CMAKE_CURRENT_SOURCE_DIR}"
     )
-
-    if(NOT result EQUAL 0)
-        message(FATAL_ERROR "npm install failed with exit code ${result}")
-    endif()
 else()
     message(STATUS "Skipping 'npm install' as node_modules/ directory already exists. Use 'cmake -DFORCE_NPM_INSTALL=ON ...' to force it.")
 endif()
