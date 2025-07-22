@@ -1,0 +1,71 @@
+:root {
+    --dark_color: #333333;
+    --selected_color: #ffe17e;
+    --light_color: #a9a9a9;
+}
+
+body {
+    padding: 5px;
+    font-family: "Fira Sans", sans-serif;
+    font-weight: 400;
+    font-size: 12pt;
+}
+
+h1 {
+    font-family: "Fira Sans", sans-serif;
+    font-weight: 100;
+    font-size: 300%;
+}
+
+h2 {
+    font-family: "Fira Sans", sans-serif;
+    font-weight: 200;
+    font-size: 250%;
+}
+
+h3 {
+    font-family: "Fira Sans", sans-serif;
+    font-weight: 700;
+    display: inline-block;
+}
+
+.display {
+    border: 2px dashed var(--light_color);
+    border-radius: 5px;
+    padding: 15px;
+    margin: 15px;
+    text-align: left;
+    color: var(--dark_color);
+}
+
+.columns {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.column {
+    flex: 1 1 0;
+    min-width: 700px;
+}
+
+.abcd-module {
+    cursor: grab;
+}
+
+.abcd-socket_endpoint {
+    cursor: pointer;
+}
+
+.abcd-socket {
+    cursor: pointer;
+}
+
+.abcd-label {
+    font-family: "Fira Sans", sans-serif;
+}
+
+.abcd-fieldset-selected {
+    background-color: var(--selected_color);
+}

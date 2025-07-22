@@ -1,0 +1,44 @@
+extends layout
+
+block content
+  h2 ABCD launcher
+
+  div.display
+    h2 Warning
+    p This generator is not yet usable. TODO:
+      ul
+        li Display of socket labels when mouse hovers.
+        li Adding custom modules for developers.
+        li Loading the SVG from file and enable the click callbacks on its elements.
+        
+  div.columns
+    div.display.column
+      h2 Connections scheme
+      p #[em N.B.] Status and command sockets are automatically connected to the user interface.
+      fieldset
+        div#online_editor
+        legend File
+        button(id="button-download_startup_script") Download startup script
+        button(id="button-download_SVG") Download SVG
+        button(id="button-upload_SVG") Upload and Replace SVG
+        label Select file to upload:
+          input(type="file" id="input-file" accept=".svg")
+      fieldset
+        legend Modules
+        button(id="button-new_module") New
+        label(for="select-new_module") Select new module:
+        select(id="select-new_module")
+        button(id="button-delete_module") Delete
+
+      div#drawing
+    div.display.column
+      h2 Global options
+      div#global_options
+        label Experiment name:
+          input(type="text" id="input-experiment_name" value="experiment")
+        p #[em N.B.] This name will be used in the generated file names.
+        label Working directory:
+          input(type="text" id="input-working_directory" value="abcd_data/")
+        p #[em N.B.] Relative paths are relative to the user home directory.
+      h2 Modules options
+      div#modules_options
