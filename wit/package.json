@@ -16,7 +16,7 @@
     "@fontsource/fira-mono": "^5.2.6",
     "@fontsource/fira-sans": "^5.2.6",
     "@fontsource/material-icons": "^5.2.5",
-    "ace-builds": "^1.37.5",
+    "ace-builds": "^1.43.2",
     "argparse": "^2.0.1",
     "dayjs": "^1.11.13",
     "debug": "^4.4.0",
