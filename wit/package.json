@@ -26,7 +26,7 @@
     "humanize-duration": "^3.33.0",
     "jquery": "^3.7.1",
     "lodash": "^4.17.21",
-    "morgan": "^1.10.0",
+    "morgan": "^1.10.1",
     "plotly.js": "^2.35.3",
     "pug": "^3.0.3",
     "socket.io": "^4.8.1",
