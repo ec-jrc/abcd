@@ -20,7 +20,7 @@
     "argparse": "^2.0.1",
     "dayjs": "^1.11.13",
     "debug": "^4.4.1",
-    "express": "^4.21.2",
+    "express": "^5.1.0",
     "file-size": "^1.0.0",
     "fmin": "^0.0.2",
     "humanize-duration": "^3.33.0",
