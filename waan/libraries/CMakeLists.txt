@@ -15,9 +15,9 @@ include_directories(
 )
 
 find_package(GSL REQUIRED)
-find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(JANSSON REQUIRED jansson)
+find_path(JANSSON_INCLUDE_DIR NAMES jansson.h)
+find_library(JANSSON_LIBRARY NAMES jansson)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -O3 -Wall -Wextra -pedantic")
 
@@ -51,7 +51,7 @@ foreach(source_file ${SOURCES})
 
     set_target_properties(${lib_name} PROPERTIES PREFIX "")
 
-    target_include_directories(${lib_name} PUBLIC ${GSL_INCLUDE_DIRS} ${JANSSON_INCLUDE_DIRS})
+    target_include_directories(${lib_name} PUBLIC ${GSL_INCLUDE_DIRS} ${JANSSON_INCLUDE_DIR})
 
     install(TARGETS ${lib_name}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/abcd/

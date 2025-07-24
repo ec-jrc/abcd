@@ -12,18 +12,26 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -Wextra -pedantic")
 
-# This one generates the wrong LUA_INCLUDE_DIRS
-# (e.g. it gives /usr/include instead of /usr/include/lua5.4)
-#find_package(Lua 5.4 REQUIRED)
 find_package(SWIG 4.2 REQUIRED COMPONENTS lua)
 include(UseSWIG)
 
-find_package(PkgConfig REQUIRED)
+find_path(ZMQ_INCLUDE_DIR NAMES zmq.h)
+find_library(ZMQ_LIBRARY NAMES zmq)
 
-pkg_check_modules(ZMQ REQUIRED libzmq)
-pkg_check_modules(JANSSON REQUIRED jansson)
-pkg_check_modules(ADQ REQUIRED libadq)
-pkg_check_modules(LUA REQUIRED lua5.4)
+find_path(JANSSON_INCLUDE_DIR NAMES jansson.h)
+find_library(JANSSON_LIBRARY NAMES jansson)
+
+# This one generates the wrong LUA_INCLUDE_DIRS
+# (e.g. it gives /usr/include instead of /usr/include/lua5.4)
+#find_package(Lua 5.4 REQUIRED)
+find_path(LUA_INCLUDE_DIR
+    NAMES lua.hpp
+    PATH_SUFFIXES "lua5.4"
+)
+find_library(LUA_LIBRARY NAMES lua5.4)
+
+find_path(ADQ_INCLUDE_DIR NAMES ADQAPI.h)
+find_library(ADQ_LIBRARY NAMES adq)
 
 include_directories(
     include
@@ -79,7 +87,7 @@ foreach(wrapper ${SWIG_WRAPPERS})
     add_custom_command(
         OUTPUT ${wrapper}
         # The -D__linux__ definition is required by ADQAPI.h
-        COMMAND ${SWIG_EXECUTABLE} -c++ -lua -D__linux__ -I${LUA_INCLUDE_DIRS} -I${ADQ_INCLUDE_DIRS} -I${CMAKE_CURRENT_SOURCE_DIR}/include -I${CMAKE_CURRENT_SOURCE_DIR}/../include -o ${wrapper} ${wrapper_source}
+        COMMAND ${SWIG_EXECUTABLE} -c++ -lua -D__linux__ -I${LUA_INCLUDE_DIR} -I${ADQ_INCLUDE_DIR} -I${CMAKE_CURRENT_SOURCE_DIR}/include -I${CMAKE_CURRENT_SOURCE_DIR}/../include -o ${wrapper} ${wrapper_source}
         DEPENDS ${wrapper_source}
         COMMENT "Generating SWIG wrapper for lua with: ${wrapper_source}"
     )
@@ -88,7 +96,7 @@ endforeach()
 add_library(LuaDigitizers OBJECT ${SWIG_WRAPPERS})
 
 add_dependencies(LuaDigitizers swig_runtime)
-target_include_directories(LuaDigitizers PUBLIC ${LUA_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR}/include)
+target_include_directories(LuaDigitizers PUBLIC ${LUA_INCLUDE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/include)
 
 # FIXME I cannot get this to work:
 # It generates a shared library without the luaopen_digitizers() function
@@ -114,8 +122,8 @@ set_target_properties(LuaManager
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${PROJECT_NAME}.cpp $<TARGET_OBJECTS:LuaDigitizers>)
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${ZMQ_INCLUDE_DIRS} ${JANSSON_INCLUDE_DIRS} ${ADQ_INCLUDE_DIRS} ${LUA_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR}/include)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${ZMQ_LIBRARIES} ${JANSSON_LIBRARIES} ${ADQ_LIBRARIES} ${LUA_LIBRARIES} LuaManager)
+target_include_directories(${PROJECT_NAME} PUBLIC ${ZMQ_INCLUDE_DIR} ${JANSSON_INCLUDE_DIR} ${ADQ_INCLUDE_DIR} ${LUA_INCLUDE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/include)
+target_link_libraries(${PROJECT_NAME} PUBLIC ${ZMQ_LIBRARY} ${JANSSON_LIBRARY} ${ADQ_LIBRARY} ${LUA_LIBRARY} LuaManager)
 
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

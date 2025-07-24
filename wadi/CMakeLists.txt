@@ -9,10 +9,11 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wall -Wextra -pedantic")
 
-find_package(PkgConfig REQUIRED)
+find_path(ZMQ_INCLUDE_DIR NAMES zmq.h)
+find_library(ZMQ_LIBRARY NAMES zmq)
 
-pkg_check_modules(ZMQ REQUIRED libzmq)
-pkg_check_modules(JANSSON REQUIRED jansson)
+find_path(JANSSON_INCLUDE_DIR NAMES jansson.h)
+find_library(JANSSON_LIBRARY NAMES jansson)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -21,8 +22,8 @@ include_directories(
 
 add_executable(${PROJECT_NAME} ${PROJECT_NAME}.c)
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${ZMQ_INCLUDE_DIRS} ${JANSSON_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PUBLIC ${ZMQ_LIBRARIES} ${JANSSON_LIBRARIES})
+target_include_directories(${PROJECT_NAME} PUBLIC ${ZMQ_INCLUDE_DIR} ${JANSSON_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${ZMQ_LIBRARY} ${JANSSON_LIBRARY})
 
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

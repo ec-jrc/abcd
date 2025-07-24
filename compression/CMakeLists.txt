@@ -10,9 +10,9 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wall -Wextra -pedantic")
 
 find_package(ZLIB)
 find_package(BZip2)
-find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(ZMQ REQUIRED libzmq)
+find_path(ZMQ_INCLUDE_DIR NAMES zmq.h)
+find_library(ZMQ_LIBRARY NAMES zmq)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
@@ -24,8 +24,8 @@ set(EXECUTABLES gzad unzad)
 foreach(executable ${EXECUTABLES})
     add_executable(${executable} ${executable}.c)
 
-    target_include_directories(${executable} PUBLIC ${ZMQ_INCLUDE_DIRS} ${ZLIB_INCLUDE_DIRS} ${BZIP2_INCLUDE_DIRS})
-    target_link_libraries(${executable} PUBLIC m ${ZMQ_LIBRARIES} ${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES})
+    target_include_directories(${executable} PUBLIC ${ZMQ_INCLUDE_DIR} ${ZLIB_INCLUDE_DIRS} ${BZIP2_INCLUDE_DIRS})
+    target_link_libraries(${executable} PUBLIC m ${ZMQ_LIBRARY} ${ZLIB_LIBRARIES} ${BZIP2_LIBRARIES})
 
     install(TARGETS ${executable}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

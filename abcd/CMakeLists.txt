@@ -16,10 +16,15 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -Wextra -pedantic")
 
 find_package(CAEN REQUIRED)
 
-find_package(PkgConfig REQUIRED)
+find_path(ZMQ_INCLUDE_DIR NAMES zmq.h)
+find_library(ZMQ_LIBRARY NAMES zmq)
 
-pkg_check_modules(ZMQ REQUIRED libzmq)
-pkg_check_modules(JSONCPP REQUIRED jsoncpp)
+find_path(JSONCPP_INCLUDE_DIR
+    NAMES json/json.h
+    PATH_SUFFIXES "jsoncpp"
+)
+
+find_library(JSONCPP_LIBRARY NAMES jsoncpp)
 
 include_directories(
     include
@@ -38,8 +43,8 @@ file(GLOB ABCD_CONFIGS "${CMAKE_CURRENT_SOURCE_DIR}/configs/*.json")
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${PROJECT_NAME}.cpp)
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${ZMQ_INCLUDE_DIRS} ${JSONCPP_INCLUDE_DIRS} ${CAEN_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} PUBLIC ${ZMQ_LIBRARIES} ${JSONCPP_LIBRARIES} ${CAEN_LIBRARIES})
+target_include_directories(${PROJECT_NAME} PUBLIC ${ZMQ_INCLUDE_DIR} ${JSONCPP_INCLUDE_DIR} ${CAEN_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${ZMQ_LIBRARY} ${JSONCPP_LIBRARY} ${CAEN_LIBRARIES})
 
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

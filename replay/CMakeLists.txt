@@ -9,9 +9,8 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -Wall -Wextra -pedantic")
 
-find_package(PkgConfig REQUIRED)
-
-pkg_check_modules(ZMQ REQUIRED libzmq)
+find_path(ZMQ_INCLUDE_DIR NAMES zmq.h)
+find_library(ZMQ_LIBRARY NAMES zmq)
 
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
@@ -19,8 +18,8 @@ include_directories(
 
 add_executable(replay_events replay_events.c)
 
-target_include_directories(replay_events PUBLIC ${ZMQ_INCLUDE_DIRS})
-target_link_libraries(replay_events PUBLIC ${ZMQ_LIBRARIES})
+target_include_directories(replay_events PUBLIC ${ZMQ_INCLUDE_DIR})
+target_link_libraries(replay_events PUBLIC ${ZMQ_LIBRARY})
 
 install(TARGETS replay_events
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
