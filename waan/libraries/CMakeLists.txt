@@ -52,6 +52,7 @@ foreach(source_file ${SOURCES})
     set_target_properties(${lib_name} PROPERTIES PREFIX "")
 
     target_include_directories(${lib_name} PUBLIC ${GSL_INCLUDE_DIRS} ${JANSSON_INCLUDE_DIR})
+    target_link_libraries(${lib_name} PUBLIC ${GSL_LIBRARIES} ${JANSSON_LIBRARY})
 
     install(TARGETS ${lib_name}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/abcd/
