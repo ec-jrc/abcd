@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.20)
 
 project(abcd VERSION 1.0.0)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    list(APPEND CMAKE_PREFIX_PATH "/opt/local")
+    set(Python3_ROOT_DIR "/opt/local")
+endif()
+
 option(BUILD_ABSP "Build also the absp module, that interfaces SP Devices digitizers." OFF)
 option(BUILD_ABCD "Build also the abcd module, that interfaces CAEN digitizers." OFF)
 
