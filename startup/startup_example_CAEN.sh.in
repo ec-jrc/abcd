@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 #
 # Example of startup script for a CAEN digitizer
 # CAEN digitizers process waveforms on-board, so there is no need to use waan

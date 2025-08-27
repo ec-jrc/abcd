@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 #
 # Example of startup script to determine the effects of temporal coincidences between two detectors
 
@@ -44,7 +44,7 @@ tmux new-session -d -s ABCD
 echo "Creating the window for the GUI webserver: WebInterfaceTwo"
 # The webserver uses a configuration different from the default one for this example.
 # This configuration informs it that there will be several parallel instances of some modules.
-tmux new-window -d -P -t ABCD -n wit 'wit.sh "@ABCD_FULL_DATADIR@/wit/config_coincidences.json'
+tmux new-window -d -P -t ABCD -n wit 'wit.sh "@ABCD_FULL_DATADIR@/wit/config_coincidences.json"'
 
 echo "Creating logger window"
 mkdir -p "${DATA_DIRECTORY}/log"

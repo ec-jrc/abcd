@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /usr/bin/env bash
 
 # Unsetting $TMUX in order to be able to launch new sessions from tmux
 unset TMUX
