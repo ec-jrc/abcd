@@ -28,7 +28,7 @@ echo "Starting a new ABCD session"
 tmux new-session -d -s ABCD
 
 echo "Creating the window for the GUI webserver: WebInterfaceTwo"
-tmux new-window -d -P -t ABCD -n wit 'wit.sh'
+tmux new-window -d -P -t ABCD -n wit "wit.sh"
 
 echo "Creating logger window"
 mkdir -p "${DATA_DIRECTORY}/log"
@@ -53,7 +53,7 @@ echo "Creating DaSa window, directory: ${DATA_DIRECTORY}"
 tmux new-window -d -c "${DATA_DIRECTORY}" -P -t ABCD -n dasa "dasa -v"
 
 echo "Creating WaDi windows"
-tmux new-window -d -P -t ABCD -n wadidigi 'wadi -v -A tcp://127.0.0.1:16207'
+tmux new-window -d -P -t ABCD -n wadidigi "wadi -v -A tcp://127.0.0.1:16207"
 
 echo "Creating tofcalc window"
 tmux new-window -d -P -t ABCD -n tofcalc "tofcalc -f @ABCD_FULL_DATADIR@/tofcalc/DT5730_LaBr_CeBr.json"
