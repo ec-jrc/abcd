@@ -1,4 +1,4 @@
-#! /usr/bin/bash
+#! /usr/bin/env sh
 
 export NODE_PATH=@WIT_INSTALLDIR@/node_modules
 
