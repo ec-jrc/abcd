@@ -33,7 +33,7 @@ unset TMUX
 # Checking if another ABCD session is running
 if [ "`tmux ls 2> /dev/null | grep ABCD | wc -l`" -gt 0 ]
 then
-    echo "Kiling previous ABCD sessions"
+    echo "Killing previous ABCD sessions"
     tmux kill-session -t ABCD
     sleep 2
 fi
