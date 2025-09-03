@@ -1,0 +1,86 @@
+#! /usr/bin/env bash
+#
+# Example of startup script for hardware interfacing modules and parallel waveform analysis
+
+NUMBER_OF_WAANS=5
+# The port numbers will start from this value
+BASE_PORT_NUMBER=57000
+
+TODAY="$(date "+%Y%m%d")"
+
+# Check if the DATA_DIRECTORY variable is set in the environment
+# The DATA_DIRECTORY indicates where the data should be saved
+if [[ -z "${DATA_DIRECTORY}" ]]; then
+    DATA_DIRECTORY="${PWD}/abcd_data_${TODAY}/"
+    mkdir -p "${DATA_DIRECTORY}"
+fi
+
+# The user may provide the file name to replay as an argument to this script
+# Otherwise it will use the standard example data
+if [[ -z "$1" ]]
+then
+    FILE_NAME="@ABCD_FULL_DATADIR@/data/example_data_DT5730_Ch1_LaBr3_Ch6_CeBr3_Ch7_CeBr3_coincidence_raw.adr.bz2"
+else
+    FILE_NAME="$1"
+fi
+
+# Unsetting $TMUX in order to be able to launch new sessions from tmux
+unset TMUX
+
+# Checking if another ABCD session is running
+if [ "`tmux ls 2> /dev/null | grep ABCD | wc -l`" -gt 0 ]
+then
+    echo "Killing previous ABCD sessions"
+    tmux kill-session -t ABCD
+    sleep 2
+fi
+
+echo "Starting a new ABCD session"
+tmux new-session -d -s ABCD
+
+echo "Creating the window for the GUI webserver: WebInterfaceTwo"
+tmux new-window -d -P -t ABCD -n wit "wit.sh"
+
+echo "Creating logger window"
+mkdir -p "${DATA_DIRECTORY}/log"
+tmux new-window -d -P -t ABCD -n logger "log_status_events.py -v -o ${DATA_DIRECTORY}/log/ABCD_status_events_${TODAY}.tsv -S 'tcp://127.0.0.1:16180' 'tcp://127.0.0.1:16185' 'tcp://127.0.0.1:16206'"
+
+echo "Waiting for node.js to start"
+sleep 2
+
+echo "Creating replayer window, replaying file: ${FILE_NAME}"
+tmux new-window -d -P -t ABCD -n replay "replay_raw.py -c -D 'tcp://*:16207' -T 100 ${FILE_NAME}"
+
+echo "Creating fan-out window with ${NUMBER_OF_WAANS} outputs"
+tmux new-window -d -P -t ABCD -n fanout "fan-out.py -v -A tcp://127.0.0.1:16195 -N ${NUMBER_OF_WAANS} -D 'tcp://*:${BASE_PORT_NUMBER}'"
+
+for (( i = 0; i < ${NUMBER_OF_WAANS}; i++ ))
+do
+    ((input_port_number=${BASE_PORT_NUMBER} + ${i}))
+    ((output_port_number=${BASE_PORT_NUMBER} + ${i} + ${NUMBER_OF_WAANS}))
+    ((status_port_number=${BASE_PORT_NUMBER} + ${i} + 2 * ${NUMBER_OF_WAANS}))
+    ((commands_port_number=${BASE_PORT_NUMBER} + ${i} + 3 * ${NUMBER_OF_WAANS}))
+
+    echo "Creating WaAn window: window number: ${i}; data ports: ${input_port_number} -> waan -> ${output_port_number}; status port: ${status_port_number}; commands port: ${commands_port_number}"
+
+    tmux new-window -d -P -t ABCD -n "waan${i}" "waan -T 20 -S 'tcp://*:'"${status_port_number}" -C 'tcp://*:'"${commands_port_number}" -A tcp://127.0.0.1:${input_port_number} -D 'tcp://*:'"${output_port_number}" -f @ABCD_FULL_DATADIR@/waan/config_example_data.json"
+done
+
+echo "Creating fan-in window with ${NUMBER_OF_WAANS} inputs}"
+tmux new-window -d -P -t ABCD -n fanin "fan-in.py -v -A tcp://127.0.0.1:${BASE_PORT_NUMBER} -N ${NUMBER_OF_WAANS} -D 'tcp://*:16181'"
+
+echo "Creating DaSa window, directory: ${DATA_DIRECTORY}"
+tmux new-window -d -c "${DATA_DIRECTORY}" -P -t ABCD -n dasa "dasa -v"
+
+echo "Creating WaDi windows"
+tmux new-window -d -P -t ABCD -n wadidigi "wadi -v -A tcp://127.0.0.1:16207"
+tmux new-window -d -P -t ABCD -n wadiwaan "wadi -v -A tcp://127.0.0.1:16181 -D 'tcp://*:17190'"
+
+echo "Creating tofcalc window"
+tmux new-window -d -P -t ABCD -n tofcalc "tofcalc -f @ABCD_FULL_DATADIR@/tofcalc/DT5730_LaBr_CeBr.json"
+
+echo "Creating spec window"
+tmux new-window -d -P -t ABCD -n spec "spec"
+
+echo "System started!"
+echo "Connect to GUI on addresses: http://127.0.0.1:8080/"
