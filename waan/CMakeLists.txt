@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
+set(CMAKE_MACOSX_RPATH ON)
+
 project(waan LANGUAGES CXX)
 
 include(GNUInstallDirs)
@@ -36,6 +38,13 @@ add_executable(${PROJECT_NAME} ${SOURCES} ${PROJECT_NAME}.cpp)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${ZMQ_INCLUDE_DIR} ${JANSSON_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} PUBLIC dl ${ZMQ_LIBRARY} ${JANSSON_LIBRARY})
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        INSTALL_RPATH "${CMAKE_INSTALL_LIBDIR}/;@executable_path/../lib"
+        BUILD_WITH_INSTALL_RPATH TRUE
+    )
+endif()
 
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

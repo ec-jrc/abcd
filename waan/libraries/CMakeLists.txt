@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 
+set(CMAKE_MACOSX_RPATH ON)
+
 project(waan_libraries LANGUAGES C)
 
 include(GNUInstallDirs)
@@ -53,6 +55,13 @@ foreach(source_file ${SOURCES})
 
     target_include_directories(${lib_name} PUBLIC ${GSL_INCLUDE_DIRS} ${JANSSON_INCLUDE_DIR})
     target_link_libraries(${lib_name} PUBLIC ${GSL_LIBRARIES} ${JANSSON_LIBRARY})
+
+    if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+        set_target_properties(${lib_name} PROPERTIES
+            INSTALL_RPATH "@rpath/abcd"
+            BUILD_WITH_INSTALL_RPATH TRUE
+        )
+    endif()
 
     install(TARGETS ${lib_name}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/abcd/
