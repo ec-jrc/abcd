@@ -40,8 +40,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${ZMQ_INCLUDE_DIR} ${JANSSON_I
 target_link_libraries(${PROJECT_NAME} PUBLIC dl ${ZMQ_LIBRARY} ${JANSSON_LIBRARY})
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    # This property will tell macOS' dyld where to look for user libraries
     set_target_properties(${PROJECT_NAME} PROPERTIES
-        INSTALL_RPATH "${CMAKE_INSTALL_LIBDIR}/;@executable_path/../lib"
+        INSTALL_RPATH "${CMAKE_INSTALL_LIBDIR}/abcd;@executable_path/../lib/abcd"
         BUILD_WITH_INSTALL_RPATH TRUE
     )
 endif()

@@ -58,7 +58,7 @@ foreach(source_file ${SOURCES})
 
     if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         set_target_properties(${lib_name} PROPERTIES
-            INSTALL_RPATH "@rpath/abcd"
+            INSTALL_RPATH "@rpath/"
             BUILD_WITH_INSTALL_RPATH TRUE
         )
     endif()
