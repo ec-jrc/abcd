@@ -561,7 +561,7 @@ bool actions::generic::configure(status &global_status)
                         void *dl_handle = dlopen(lib_energy.c_str(), RTLD_NOW);
 
                         if (!dl_handle) {
-			    const std::string error_description = dlerror();
+                            const std::string error_description = dlerror();
 
                             char time_buffer[BUFFER_SIZE];
                             time_string(time_buffer, BUFFER_SIZE, NULL);
@@ -1798,9 +1798,9 @@ state actions::file_reading_error(status &global_status)
     json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
 
     if (feof(global_status.data_input_file)) {
-    	json_object_set_new_nocheck(json_event_message, "error", json_string("Reached EOF (End Of File)"));
+        json_object_set_new_nocheck(json_event_message, "error", json_string("Reached EOF (End Of File)"));
     } else {
-    	json_object_set_new_nocheck(json_event_message, "error", json_string("File reading error"));
+        json_object_set_new_nocheck(json_event_message, "error", json_string("File reading error"));
     }
 
     actions::generic::publish_message(global_status, defaults_waan_events_topic, json_event_message);
