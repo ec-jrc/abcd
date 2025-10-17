@@ -217,11 +217,10 @@ int main(int argc, char *argv[])
 
     if (verbosity > 0)
     {
-        printf("Input source type: %s (%d)\n",  (data_input_source == SOCKET_INPUT) ? "SOCKET_INPUT" : 
-                                               ((data_input_source == EVENTS_FILE_INPUT) ? "EVENTS_FILE_INPUT" : 
-                                               ((data_input_source == WAVEFORMS_FILE_INPUT) ? "WAVEFORMS_FILE_INPUT" : 
-                                               ((data_input_source == RAW_FILE_INPUT) ? "RAW_FILE_INPUT" : 
-                                               "UNKNOWN"))), data_input_source);
+        printf("Input source type: %s (%d)\n", (data_input_source == SOCKET_INPUT) ? "SOCKET_INPUT" : \
+                                              ((data_input_source == EVENTS_FILE_INPUT) ? "EVENTS_FILE_INPUT" : \
+                                              ((data_input_source == WAVEFORMS_FILE_INPUT) ? "WAVEFORMS_FILE_INPUT" : \
+                                              ((data_input_source == RAW_FILE_INPUT) ? "RAW_FILE_INPUT" : "UNKNOWN"))), data_input_source);
     }
 
     char *data_input_filename = NULL;
@@ -297,7 +296,8 @@ int main(int argc, char *argv[])
 
     FILE *data_input_file = NULL;
 
-    if (data_input_source == SOCKET_INPUT) {
+    if (data_input_source == SOCKET_INPUT)
+    {
         const int is = zmq_connect(data_input_socket, data_input_address);
         if (is != 0)
         {
@@ -312,14 +312,16 @@ int main(int argc, char *argv[])
     {
         data_input_file = fopen(data_input_filename, "rb");
 
-        if (!data_input_file) {
+        if (!data_input_file)
+        {
             printf("ERROR: Error on opening file %s: %s\n", data_input_filename, zmq_strerror(errno));
 
             return EXIT_FAILURE;
         }
     }
 
-    if (data_input_filename) {
+    if (data_input_filename)
+    {
         free(data_input_filename);
     }
 
@@ -413,14 +415,17 @@ int main(int argc, char *argv[])
         // =====================================================================
         int result = EXIT_FAILURE;
 
-        if (data_input_source == RAW_FILE_INPUT) {
+        if (data_input_source == RAW_FILE_INPUT)
+        {
             result = read_byte_message_from_adr(data_input_file, &topic, (void **)(&buffer_input), &size, true, 0);
-
-        } else if (data_input_source == EVENTS_FILE_INPUT) {
+        }
+        else if (data_input_source == EVENTS_FILE_INPUT)
+        {
             size = ade_buffer_size * sizeof(struct event_PSD);
             result = read_byte_message_from_ade(data_input_file, &topic, (void **)(&buffer_input), &size, true, 0);
-
-        } else {
+        }
+        else
+        {
             result = receive_byte_message(data_input_socket, &topic, (void **)(&buffer_input), &size, true, 0);
         }
 
@@ -428,7 +433,8 @@ int main(int argc, char *argv[])
         {
             printf("[%zu] ERROR: Some error occurred while receiving messages!!!\n", loops_counter);
 
-            if (data_input_source != SOCKET_INPUT) {
+            if (data_input_source != SOCKET_INPUT)
+            {
                 terminate_flag = 1;
             }
         }
