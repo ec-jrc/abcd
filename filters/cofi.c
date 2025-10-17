@@ -49,6 +49,8 @@
 #include "defaults.h"
 #include "events.h"
 #include "socket_functions.h"
+#include "files_functions.h"
+#include "utilities_functions.h"
 
 #define INITIAL_BUFFER_SIZE 1024
 
@@ -87,7 +89,12 @@ void print_usage(const char *name)
     printf("\t-h: Display this message\n");
     printf("\t-v: Set verbose execution, repeating the option increases the verbosity level\n");
     printf("\n");
-    printf("\t-A <address>: Input socket address, default: %s\n", defaults_abcd_data_address_sub);
+    printf("\t-A <address>: Data input socket address, default: %s\n", defaults_abcd_data_address_sub);
+    printf("\t              If it has the form 'file://<path_to_file>' then data will be read from an ade or adr file.\n");
+    printf("\t              The path may be absolute: file:///home/user/data/data.ade or relative: file://../data/data.ade (mind the number of '/')\n");
+    printf("\t              For ade files the address may have the form 'file://<path_to_file>[:<buffer_size>]'.");
+    printf("\t              The <buffer_size> may be optionally specified as a number of events that will end in the generated messages, default: %d.\n", defaults_cofi_ade_buffer_size);
+    printf("\t              When the file is finished, cofi will quit.\n");
     printf("\t-D <address>: Output socket address for coincidence data, default: %s\n", defaults_cofi_coincidence_data_address);
     printf("\t-N <address>: Output socket address for anti-coincidence data, default: %s\n", defaults_cofi_anticoincidence_data_address);
     printf("\t-T <period>: Set base period in milliseconds, default: %d\n", defaults_cofi_base_period);
@@ -119,7 +126,7 @@ int main(int argc, char *argv[])
     bool keep_reference_event = false;
     unsigned int verbosity = 0;
     unsigned int base_period = defaults_cofi_base_period;
-    char *input_address = defaults_abcd_data_address_sub;
+    char *data_input_address = defaults_abcd_data_address_sub;
     char *output_address_coincidences = defaults_cofi_coincidence_data_address;
     char *output_address_anticoincidences = defaults_cofi_anticoincidence_data_address;
     bool enable_anticoincidences = false;
@@ -137,7 +144,7 @@ int main(int argc, char *argv[])
             print_usage(argv[0]);
             return EXIT_SUCCESS;
         case 'A':
-            input_address = optarg;
+            data_input_address = optarg;
             break;
         case 'D':
             output_address_coincidences = optarg;
@@ -206,9 +213,35 @@ int main(int argc, char *argv[])
     const int64_t left_coincidence_window = (int64_t)(left_coincidence_window_ns / ns_per_sample);
     const int64_t right_coincidence_window = (int64_t)(right_coincidence_window_ns / ns_per_sample);
 
+    const enum input_sources_t data_input_source = get_input_source_type(data_input_address);
+
     if (verbosity > 0)
     {
-        printf("Input socket address: %s\n", input_address);
+        printf("Input source type: %s (%d)\n",  (data_input_source == SOCKET_INPUT) ? "SOCKET_INPUT" : 
+                                               ((data_input_source == EVENTS_FILE_INPUT) ? "EVENTS_FILE_INPUT" : 
+                                               ((data_input_source == WAVEFORMS_FILE_INPUT) ? "WAVEFORMS_FILE_INPUT" : 
+                                               ((data_input_source == RAW_FILE_INPUT) ? "RAW_FILE_INPUT" : 
+                                               "UNKNOWN"))), data_input_source);
+    }
+
+    char *data_input_filename = NULL;
+    size_t ade_buffer_size = 0;
+
+    get_filename_buffersize(data_input_address, &data_input_filename, &ade_buffer_size);
+
+    ade_buffer_size = (ade_buffer_size != 0) ? ade_buffer_size : defaults_cofi_ade_buffer_size;
+
+    if (verbosity > 0)
+    {
+        if (data_input_source == SOCKET_INPUT)
+        {
+            printf("Input socket address: %s\n", data_input_address);
+        }
+        else
+        {
+            printf("Input file name: %s (buffer size: %zu)\n", data_input_filename, ade_buffer_size);
+        }
+
         printf("Output socket address for coincidences: %s\n", output_address_coincidences);
         printf("Output socket address for anticoincidences: %s\n", output_address_anticoincidences);
         printf("Selected channel(s): ");
@@ -233,8 +266,11 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    void *input_socket = zmq_socket(context, ZMQ_SUB);
-    if (!input_socket)
+    // Creating a data_input_socket even if we are going to read data from a
+    // file, it should not hurt and it makes things easier
+    // It will not be connected afterwards
+    void *data_input_socket = zmq_socket(context, ZMQ_SUB);
+    if (!data_input_socket)
     {
         printf("ERROR: ZeroMQ Error on input socket creation\n");
         return EXIT_FAILURE;
@@ -259,11 +295,32 @@ int main(int argc, char *argv[])
         }
     }
 
-    const int is = zmq_connect(input_socket, input_address);
-    if (is != 0)
+    FILE *data_input_file = NULL;
+
+    if (data_input_source == SOCKET_INPUT) {
+        const int is = zmq_connect(data_input_socket, data_input_address);
+        if (is != 0)
+        {
+            printf("ERROR: ZeroMQ Error on input socket connection: %s\n", zmq_strerror(errno));
+            return EXIT_FAILURE;
+        }
+
+        // Subscribe to data topic
+        zmq_setsockopt(data_input_socket, ZMQ_SUBSCRIBE, "data_abcd", strlen("data_abcd"));
+    }
+    else
     {
-        printf("ERROR: ZeroMQ Error on input socket connection: %s\n", zmq_strerror(errno));
-        return EXIT_FAILURE;
+        data_input_file = fopen(data_input_filename, "rb");
+
+        if (!data_input_file) {
+            printf("ERROR: Error on opening file %s: %s\n", data_input_filename, zmq_strerror(errno));
+
+            return EXIT_FAILURE;
+        }
+    }
+
+    if (data_input_filename) {
+        free(data_input_filename);
     }
 
     const int osc = zmq_bind(output_socket_coincidences, output_address_coincidences);
@@ -282,9 +339,6 @@ int main(int argc, char *argv[])
             return EXIT_FAILURE;
         }
     }
-
-    // Subscribe to data topic
-    zmq_setsockopt(input_socket, ZMQ_SUBSCRIBE, "data_abcd", strlen("data_abcd"));
 
     // Wait a bit to prevent the slow-joiner syndrome
     struct timespec slow_joiner_wait;
@@ -357,11 +411,26 @@ int main(int argc, char *argv[])
         // =====================================================================
         //  Messages reception
         // =====================================================================
-        const int result = receive_byte_message(input_socket, &topic, (void **)(&buffer_input), &size, true, 0);
+        int result = EXIT_FAILURE;
+
+        if (data_input_source == RAW_FILE_INPUT) {
+            result = read_byte_message_from_adr(data_input_file, &topic, (void **)(&buffer_input), &size, true, 0);
+
+        } else if (data_input_source == EVENTS_FILE_INPUT) {
+            size = ade_buffer_size * sizeof(struct event_PSD);
+            result = read_byte_message_from_ade(data_input_file, &topic, (void **)(&buffer_input), &size, true, 0);
+
+        } else {
+            result = receive_byte_message(data_input_socket, &topic, (void **)(&buffer_input), &size, true, 0);
+        }
 
         if (result == EXIT_FAILURE)
         {
             printf("[%zu] ERROR: Some error occurred while receiving messages!!!\n", loops_counter);
+
+            if (data_input_source != SOCKET_INPUT) {
+                terminate_flag = 1;
+            }
         }
         else if (size == 0 && result == EXIT_SUCCESS)
         {
@@ -926,7 +995,7 @@ int main(int argc, char *argv[])
     nanosleep(&slow_joiner_wait, NULL);
     // usleep(defaults_all_slow_joiner_wait * 1000);
 
-    const int ic = zmq_close(input_socket);
+    const int ic = zmq_close(data_input_socket);
     if (ic != 0)
     {
         printf("ERROR: ZeroMQ Error on input socket close: %s\n", zmq_strerror(errno));
