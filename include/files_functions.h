@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2023, European Union, Cristiano Lino Fontana
+ * (C) Copyright 2023, 2025, European Union, Cristiano Lino Fontana
  *
  * This file is part of ABCD.
  *
@@ -31,16 +31,146 @@
 #include <stdbool.h>
 
 #include "defaults.h"
+#include "utilities_functions.h"
+
+#define ADDRESS_PREFIX_FILE "file://"
+#define ADDRESS_BUFFER_SIZE_SEPARATOR ":"
+
+enum input_sources_t {
+    UNKNOWN_INPUT,
+    SOCKET_INPUT,
+    RAW_FILE_INPUT,
+    EVENTS_FILE_INPUT,
+    WAVEFORMS_FILE_INPUT,
+};
+
+/// @brief Returns the input source type type to identify the events source.
+/// Addresses that start with 'file://' can be interpreted as ABCD data files:
+/// 1. Raw files should have an address of the form 'file://<path_to_file>.adr'
+/// 2. Events files should have an address of the form 'file://<path_to_file>.ade[:<buffer_size>]'
+///    The <buffer_size> is optional
+/// 3. Waveforms files should have an address of the form 'file://<path_to_file>.adw[:<buffer_size>]'
+///    The <buffer_size> is optional
+/// Otherwise the address is interpreted as a socket address
+///
+/// @param address A string containing the address
+/// @return An enum input_sources_t
+extern inline
+enum input_sources_t get_input_source_type(const char *address)
+{
+    if (strstr(address, ADDRESS_PREFIX_FILE) != address)
+    {
+        return SOCKET_INPUT;
+    }
+    else
+    {
+        // If it does not end with '.adr' then it may end with a size or with .ade or .adw
+        if (ends_with(address, ".adr")) 
+        {
+            return RAW_FILE_INPUT;
+        }
+        else if (ends_with(address, ".ade")) 
+        {
+            return EVENTS_FILE_INPUT;
+        }
+        else if (ends_with(address, ".adw")) 
+        {
+            return WAVEFORMS_FILE_INPUT;
+        }
+        else
+        {
+            // There might be a buffer size
+            if (rstrstr(address, ".ade" ADDRESS_BUFFER_SIZE_SEPARATOR))
+            {
+                return EVENTS_FILE_INPUT;
+            }
+            else if (rstrstr(address, ".adw" ADDRESS_BUFFER_SIZE_SEPARATOR))
+            {
+                return WAVEFORMS_FILE_INPUT;
+            }
+            else
+            {
+                return UNKNOWN_INPUT;
+            }
+        }
+    }
+}
+
+/// @brief Extract from a file-type address the file_name and the associated buffer_size (if specified)
+/// @param[in] address Addresses that start with 'file://' can be interpreted as ABCD data files:
+/// 1. Raw files should have an address of the form 'file://<path_to_file>.adr'
+/// 2. Events files should have an address of the form 'file://<path_to_file>.ade[:<buffer_size>]'
+///    The <buffer_size> is optional
+/// 3. Waveforms files should have an address of the form 'file://<path_to_file>.adw[:<buffer_size>]'
+///    The <buffer_size> is optional
+/// Otherwise the address is interpreted as a socket address
+/// @param[out] file_name The extracted file name, the memory will be allocated in the function if no error occurred, it needs to be freed
+/// @param[out] buffer_size The buffer size as specified in the address, if not specified it returns 0 (no multiplication to sizeof(event_PSD) is performed)
+/// @return EXIT_SUCCESS on success, EXIT_FAILURE on failure
+extern inline
+int get_filename_buffersize(const char *address, char **file_name, size_t *buffer_size)
+{
+    const enum input_sources_t type = get_input_source_type(address);
+
+    (*file_name) = (char*)calloc(strlen(address) + 1, sizeof(char));
+
+    if (!(*file_name))
+    {
+        printf("ERROR: Unable to allocate file_name\n");
+        return EXIT_FAILURE;
+    }
+    
+    printf("Empty filename: '%s' %d\n", (*file_name), type);
+
+    if (type == RAW_FILE_INPUT)
+    {
+        // Raw files should have an address of the form 'file://<path_to_file>.adr'
+        strcpy((*file_name), address + strlen(ADDRESS_PREFIX_FILE));
+
+        printf("Raw filename: '%s'\n", (*file_name));
+
+        (*buffer_size) = 0;
+
+        return EXIT_SUCCESS;
+    }
+    else if (type == EVENTS_FILE_INPUT || type == WAVEFORMS_FILE_INPUT)
+    {
+        // Events files should have an address of the form 'file://<path_to_file>.ade[:<buffer_size>]'
+        // Waveforms files should have an address of the form 'file://<path_to_file>.adw[:<buffer_size>]'
+        const char *extension = (type == EVENTS_FILE_INPUT) ? ".ade" ADDRESS_BUFFER_SIZE_SEPARATOR : ".adw" ADDRESS_BUFFER_SIZE_SEPARATOR;
+        char *str_buffer_size = rstrstr(address, extension);
+        str_buffer_size = (str_buffer_size) ? str_buffer_size + strlen(extension) : NULL;
+
+        if (str_buffer_size) {
+            strncpy((*file_name), address + strlen(ADDRESS_PREFIX_FILE), strlen(address) - strlen(ADDRESS_PREFIX_FILE) - 1 - strlen(str_buffer_size));
+            (*buffer_size) = abs(atol(str_buffer_size));
+        }
+        else
+        {
+            strcpy((*file_name), address + strlen(ADDRESS_PREFIX_FILE));
+            (*buffer_size) = 0;
+        }
+
+        return EXIT_SUCCESS;
+    }
+    else
+    {
+        free(*file_name);
+        (*file_name) = NULL;
+        return EXIT_FAILURE;
+    }
+}
 
 /// @brief Read a binary message from an ABCD events file, the message size should be given to the function as input and the topic will be generated accordingly
 /// @param[in] input_file the pointer to the file
 /// @param[out] topic the address of a pointer to a string, the memory will be allocated in the function, it needs to be freed
 /// @param[out] buffer the address of a pointer to a buffer of data, the memory will be allocated in the function, it needs to be freed
-/// @param[in] size the address of the size of the buffer
+/// @param[in] size the address of the size of the buffer, this should be specified in bytes not number of events
 /// @param[in] extract_topic if false, the topic will be placed in `buffer` with the standard separator, otherwise topic will be placed in `topic` and `buffer` will not contain it
 /// @param[in] verbosity a flag to activate debug output
 /// @return EXIT_SUCCESS on success, EXIT_FAILURE on failure
-extern inline int read_byte_message_from_ade(FILE *input_file, char **topic, void **buffer, size_t *size, bool extract_topic, unsigned int verbosity)
+extern inline
+int read_byte_message_from_ade(FILE *input_file, char **topic, void **buffer, size_t *size, bool extract_topic, unsigned int verbosity)
 {
     if ((*size) % sizeof(struct event_PSD) != 0)
     {
@@ -83,7 +213,7 @@ extern inline int read_byte_message_from_ade(FILE *input_file, char **topic, voi
 
         memset(topic_buffer, '\0', defaults_all_topic_buffer_size);
 
-        snprintf(topic_buffer, defaults_all_topic_buffer_size, "data_abcd_events_s%zu", data_size);
+        snprintf(topic_buffer, defaults_all_topic_buffer_size, "data_abcd_events_v0_s%zu", data_size);
 
         const size_t topic_size = strlen(topic_buffer);
 
@@ -108,8 +238,13 @@ extern inline int read_byte_message_from_ade(FILE *input_file, char **topic, voi
             // Remeber to terminate the string!!!
             (*topic)[topic_size] = '\0';
 
+            if (verbosity > 0)
+            {
+                printf("Topic: %s\n", (*topic));
+            }
+
             // Allocates the data buffer
-            *buffer = malloc(data_size * sizeof(char));
+            *buffer = malloc(bytes_read * sizeof(char));
 
             if (!(*buffer))
             {
@@ -121,16 +256,16 @@ extern inline int read_byte_message_from_ade(FILE *input_file, char **topic, voi
                 return EXIT_FAILURE;
             }
 
-            memcpy(*buffer, data_buffer, data_size);
+            memcpy(*buffer, data_buffer, bytes_read);
 
-            *size = data_size;
+            *size = bytes_read;
         }
         else
         {
             *topic = NULL;
 
             // Allocates the buffer
-            *buffer = malloc((topic_size + 1 + data_size) * sizeof(char));
+            *buffer = malloc((topic_size + 1 + bytes_read) * sizeof(char));
 
             if (!(*buffer))
             {
@@ -146,9 +281,9 @@ extern inline int read_byte_message_from_ade(FILE *input_file, char **topic, voi
             // Remember to add the topic separator!
             ((char *)*buffer)[topic_size] = ' ';
 
-            memcpy((void *)((char *)*buffer + (topic_size + 1)), data_buffer, data_size);
+            memcpy((void *)((char *)*buffer + (topic_size + 1)), data_buffer, bytes_read);
 
-            *size = topic_size + 1 + data_size;
+            *size = topic_size + 1 + bytes_read;
         }
 
         if (data_buffer)
@@ -170,7 +305,8 @@ extern inline int read_byte_message_from_ade(FILE *input_file, char **topic, voi
 /// @param[in] extract_topic if false, the topic will be placed in `buffer` with the standard separator, otherwise topic will be placed in `topic` and `buffer` will not contain it
 /// @param[in] verbosity a flag to activate debug output
 /// @return EXIT_SUCCESS on success, EXIT_FAILURE on failure
-extern inline int read_byte_message_from_raw(FILE *input_file, char **topic, void **buffer, size_t *size, bool extract_topic, unsigned int verbosity)
+extern inline
+int read_byte_message_from_adr(FILE *input_file, char **topic, void **buffer, size_t *size, bool extract_topic, unsigned int verbosity)
 {
     // Set size to 0 to notify that no message was received or an error occurred
     *size = 0;
