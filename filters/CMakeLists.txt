@@ -25,7 +25,7 @@ foreach(executable ${EXECUTABLES})
     add_executable(${executable} ${executable}.c)
 
     target_include_directories(${executable} PUBLIC ${ZMQ_INCLUDE_DIR} ${JANSSON_INCLUDE_DIR})
-    target_link_libraries(${executable} PUBLIC ${ZMQ_LIBRARY} ${JANSSON_LIBRARY})
+    target_link_libraries(${executable} PUBLIC m ${ZMQ_LIBRARY} ${JANSSON_LIBRARY})
 
     install(TARGETS ${executable}
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
