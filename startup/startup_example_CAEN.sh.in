@@ -1,0 +1,65 @@
+#! /usr/bin/env bash
+#
+# Example of startup script for a CAEN digitizer
+# CAEN digitizers process waveforms on-board, so there is no need to use waan
+# In case custom-processing is desired, use the startp_example_hardware.sh
+
+TODAY="$(date "+%Y%m%d")"
+
+# Check if the DATA_DIRECTORY variable is set in the environment
+# The DATA_DIRECTORY indicates where the data should be saved
+if [[ -z "${DATA_DIRECTORY}" ]]; then
+    DATA_DIRECTORY="${PWD}/abcd_data_${TODAY}/"
+    mkdir -p "${DATA_DIRECTORY}"
+fi
+
+# Unsetting $TMUX in order to be able to launch new sessions from tmux
+unset TMUX
+
+# Checking if another ABCD session is running
+if [ "`tmux ls 2> /dev/null | grep ABCD | wc -l`" -gt 0 ]
+then
+    echo "Killing previous ABCD sessions"
+    tmux kill-session -t ABCD
+    sleep 2
+fi
+
+echo "Starting a new ABCD session"
+tmux new-session -d -s ABCD
+
+echo "Creating the window for the GUI webserver: WebInterfaceTwo"
+tmux new-window -d -P -t ABCD -n wit "wit.sh"
+
+echo "Creating logger window"
+mkdir -p "${DATA_DIRECTORY}/log"
+tmux new-window -d -P -t ABCD -n logger "log_status_events.py -v -o ${DATA_DIRECTORY}/log/ABCD_status_events_${TODAY}.tsv -S 'tcp://127.0.0.1:16180' 'tcp://127.0.0.1:16185' 'tcp://127.0.0.1:16206'"
+
+echo "Waiting for node.js to start"
+sleep 2
+
+echo "Creating ABCD window"
+# Example for a CAEN desktop digitizer
+#tmux new-window -d -P -t ABCD -n abcd 'abcd -c 0 -l 0 -n 0 -B 8192 -T 50 -f DT5751_DPP-PSD_NaI.json'
+# Example for a CAEN VME digitizer with USB bridge
+#tmux new-window -d -P -t ABCD -n abcd 'abcd -c 0 -l 0 -n 0 -V "0x210000" -B 8192 -T 50 -f abcd/v1730_NaI_Coincidence_DCFD.json'
+# Example for a CAEN VME digitizer with optical bridge
+#tmux new-window -d -P -t ABCD -n abcd 'abcd -c 1 -l 0 -n 0 -V "0x210000" -B 8192 -T 50 -f abcd/v1730_NaI_Coincidence_DCFD.json'
+# Example for a CAEN VME digitizer with direct optical link
+#tmux new-window -d -P -t ABCD -n abcd 'abcd -c 1 -l 0 -n 0 -B 8192 -T 10 -f abcd/v1730_NaI_Coincidence_DCFD.json'
+# Example for a CAEN digitizer with optical link through A4818 the link number (-l) shall be the PID of the A4818
+#tmux new-window -d -P -t ABCD -n abcd 'abcd -c 5 -l 0 -n 0 -B 8192 -T 10 -f abcd/v1730_NaI_Coincidence_DCFD.json'
+
+echo "Creating DaSa window, directory: ${DATA_DIRECTORY}"
+tmux new-window -d -c "${DATA_DIRECTORY}" -P -t ABCD -n dasa "dasa -v"
+
+echo "Creating WaDi windows"
+tmux new-window -d -P -t ABCD -n wadidigi "wadi -v -A tcp://127.0.0.1:16207"
+
+echo "Creating tofcalc window"
+tmux new-window -d -P -t ABCD -n tofcalc "tofcalc -f @ABCD_FULL_DATADIR@/tofcalc/DT5730_LaBr_CeBr.json"
+
+echo "Creating spec window"
+tmux new-window -d -P -t ABCD -n spec "spec"
+
+echo "System started!"
+echo "Connect to GUI on addresses: http://127.0.0.1:8080/"

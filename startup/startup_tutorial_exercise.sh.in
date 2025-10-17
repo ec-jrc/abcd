@@ -1,0 +1,117 @@
+#! /usr/bin/env bash
+#
+# Example of startup script to determine the effects of temporal coincidences between two detectors
+
+TODAY="$(date "+%Y%m%d")"
+
+# Check if the DATA_DIRECTORY variable is set in the environment
+# The DATA_DIRECTORY indicates where the data should be saved
+if [[ -z "${DATA_DIRECTORY}" ]]; then
+    DATA_DIRECTORY="${PWD}/abcd_data_${TODAY}/"
+    mkdir -p "${DATA_DIRECTORY}"
+fi
+
+# The file to be replayed is passed as an argument to this script
+if [[ -z "$1" ]]
+then
+    # If no argument is given, then use the default example file
+    FILE_NAME="@ABCD_FULL_DATADIR@/data/example_data_SPD214_Ch4_BGO_anticompton_Ch5_LaCl_background_events.ade"
+else
+    FILE_NAME="$1"
+fi
+
+# This check if this variable is set in the environment.
+# It should contain the space-separated list of reference channels for the coincidence determination
+if [[ -z "${REFERENCE_CHANNELS}" ]]
+then
+    REFERENCE_CHANNELS="4"
+fi
+
+# Unsetting $TMUX in order to be able to launch new sessions from tmux
+unset TMUX
+
+# Checking if another ABCD session is running
+if [ "`tmux ls 2> /dev/null | grep ABCD | wc -l`" -gt 0 ]
+then
+    echo "Killing previous ABCD sessions"
+    tmux kill-session -t ABCD
+    sleep 2
+fi
+
+echo "Starting a new ABCD session"
+tmux new-session -d -s ABCD
+
+echo "Creating the window for the GUI webserver: WebInterfaceTwo"
+# The webserver uses a configuration different from the default one for this example.
+# This configuration informs it that there will be several parallel instances of some modules.
+tmux new-window -d -P -t ABCD -n wit 'wit.sh "@ABCD_FULL_DATADIR@/wit/config_coincidences.json"'
+
+echo "Creating logger window"
+mkdir -p "${DATA_DIRECTORY}/log"
+tmux new-window -d -P -t ABCD -n logger "log_status_events.py -v -o ${DATA_DIRECTORY}/log/ABCD_status_events_${TODAY}.tsv -S 'tcp://127.0.0.1:16180' 'tcp://127.0.0.1:16185' 'tcp://127.0.0.1:16206'"
+
+echo "Waiting for node.js to start"
+sleep 2
+
+# Since we are replaying events files, activating waan would be problematic,
+# because it reads the data stream and will discard the processed events, as it will recalculate them.
+# We will leave this here but commented as a placeholder
+#echo "Creating WaAn window"
+#tmux new-window -d -P -t ABCD -n waan "waan -v -T 100 -A tcp://127.0.0.1:16207 -D 'tcp://*:16181' -f @ABCD_FULL_DATADIR@/waan/configs/config_example_data.json"
+
+# These modules are needed for the waveforms visualization, in this example
+# they are useless but it uses very little resources and we can leave it here
+echo "Creating WaDi windows"
+tmux new-window -d -P -t ABCD -n wadidigi "wadi -v -A tcp://127.0.0.1:16207"
+tmux new-window -d -P -t ABCD -n wadiwaan "wadi -v -A tcp://127.0.0.1:16181 -D 'tcp://*:17190'"
+
+# This module reads the singles data stream, but it calculates the time coincidences by itself.
+# It does not need to be attached after a cofi module.
+echo "Creating tofcalc window"
+tmux new-window -d -P -t ABCD -n tofcalc "tofcalc -f @ABCD_FULL_DATADIR@/tofcalc/SPD214_BGO_LaCl.json"
+
+# This module generates the coincidences and anticoincidences datastreams
+echo "Creating cofi window"
+tmux new-window -d -P -t ABCD -n cofi "cofi -A tcp://127.0.0.1:16181 -D 'tcp://*:17181' -N 'tcp://*:18181' -a -w 100 -n 0.0024414063 ${REFERENCE_CHANNELS}"
+
+# This is the first dasa that will see all the data being replayed.
+# It is connected to the default data port tcp://127.0.0.1:16181 and it is in parallel to cofi.
+echo "Creating dasa window 1, directory: ${DATA_DIRECTORY}"
+tmux new-window -d -c "${DATA_DIRECTORY}" -P -t ABCD -n dasa1 "dasa -v"
+
+# This is the second dasa that will see only the coincidences data being replayed.
+# It is connected to the data port tcp://127.0.0.1:17181 of cofi.
+echo "Creating DaSa window 2, directory: ${DATA_DIRECTORY}"
+tmux new-window -d -c "${DATA_DIRECTORY}" -P -t ABCD -n dasa2 "dasa -v -A tcp://127.0.0.1:17181 -S 'tcp://*:17185' -C 'tcp://*:17186'"
+
+# This is the third dasa that will see only the anticoincidences data being replayed.
+# It is connected to the data port tcp://127.0.0.1:18181 of cofi.
+echo "Creating DaSa window 3, directory: ${DATA_DIRECTORY}"
+tmux new-window -d -c "${DATA_DIRECTORY}" -P -t ABCD -n dasa3 "dasa -v -A tcp://127.0.0.1:18181 -S 'tcp://*:18185' -C 'tcp://*:18186'"
+
+# This is the first spec that will see all the data being replayed.
+# It is connected to the default data port tcp://127.0.0.1:16181 and it is in parallel to cofi.
+echo "Creating spec window 1"
+tmux new-window -d -P -t ABCD -n spec1 "spec"
+
+# This is the second spec that will see only the coincidences data being replayed.
+# It is connected to the data port tcp://127.0.0.1:17181 of cofi.
+echo "Creating spec window 2"
+tmux new-window -d -P -t ABCD -n spec2 "spec -A tcp://127.0.0.1:17181 -S 'tcp://*:17187' -D 'tcp://*:17188' -C 'tcp://*:17189'"
+
+# This is the third spec that will see only the anticoincidences data being replayed.
+# It is connected to the data port tcp://127.0.0.1:18181 of cofi.
+echo "Creating spec window 3"
+tmux new-window -d -P -t ABCD -n spec3 "spec -A tcp://127.0.0.1:18181 -S 'tcp://*:18187' -D 'tcp://*:18188' -C 'tcp://*:18189'"
+
+echo "System started!"
+echo "Connect to GUI on addresses: http://127.0.0.1:8080/"
+
+echo "Waiting for the framework to be ready for the replay..."
+sleep 5
+
+# We will replay only events from the events file, so we are using replay_events
+# When the replayer finishes the file it will quit, so we have to launch it as the last process.
+echo "Creating replayer window, file: ${FILE_NAME}"
+tmux new-window -d -P -t ABCD -n replay "replay_events -v -D 'tcp://*:16181' -T 100 -B 2048 ${FILE_NAME}"
+

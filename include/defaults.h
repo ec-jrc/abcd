@@ -206,6 +206,7 @@
 #define defaults_cofi_ns_per_sample (2.0 / 1024.0)
 #define defaults_cofi_coincidence_buffer_multiplier 2
 #define defaults_cofi_multiplicity 1
+#define defaults_cofi_ade_buffer_size 1000
 
 #define defaults_chafi_topic_subscribe "data_abcd"
 

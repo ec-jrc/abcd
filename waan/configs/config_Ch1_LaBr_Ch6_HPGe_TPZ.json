@@ -9,8 +9,8 @@
             "name": "LaBr",
             "enabled": false,
             "user_libraries": {
-                "timestamp": "src/libCFD.so",
-                "energy": "src/libPSD.so"
+                "timestamp": "libCFD.so",
+                "energy": "libPSD.so"
             },
             "user_config": {
                 "baseline_samples": 30,
@@ -32,8 +32,8 @@
             "name": "HPGe",
             "enabled": true,
             "user_libraries": {
-                "timestamp": "src/libCFD.so",
-                "energy": "src/libTPZ.so"
+                "timestamp": "libCFD.so",
+                "energy": "libTPZ.so"
             },
             "user_config": {
                 "baseline_samples": 800,

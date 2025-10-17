@@ -13,23 +13,23 @@
     "start": "node ./app.js config.json"
   },
   "dependencies": {
-    "@fontsource/fira-mono": "^5.1.1",
-    "@fontsource/fira-sans": "^5.1.1",
-    "@fontsource/material-icons": "^5.1.1",
-    "ace-builds": "^1.37.5",
+    "@fontsource/fira-mono": "^5.2.6",
+    "@fontsource/fira-sans": "^5.2.6",
+    "@fontsource/material-icons": "^5.2.5",
+    "ace-builds": "^1.43.2",
     "argparse": "^2.0.1",
     "dayjs": "^1.11.13",
-    "debug": "^4.4.0",
-    "express": "^4.21.2",
+    "debug": "^4.4.1",
+    "express": "^5.1.0",
     "file-size": "^1.0.0",
     "fmin": "^0.0.2",
-    "humanize-duration": "^3.32.1",
+    "humanize-duration": "^3.33.0",
     "jquery": "^3.7.1",
     "lodash": "^4.17.21",
-    "morgan": "^1.10.0",
-    "plotly.js": "^2.35.3",
+    "morgan": "^1.10.1",
+    "plotly.js": "^3.0.1",
     "pug": "^3.0.3",
     "socket.io": "^4.8.1",
-    "zeromq": "^6.3.0"
+    "zeromq": "^6.5.0"
   }
 }

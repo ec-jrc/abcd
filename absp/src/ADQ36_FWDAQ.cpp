@@ -1189,10 +1189,17 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                     std::cout << std::endl;
                 }
 
-                // This level should be the relative to the baseline
-                const int64_t trigger_level = json_number_value(json_object_get(value, "trigger_level"));
+                const int64_t raw_trigger_level = json_number_value(json_object_get(value, "trigger_level"));
 
-                json_object_set_nocheck(value, "trigger_level", json_integer(trigger_level));
+                json_object_set_nocheck(value, "trigger_level", json_integer(raw_trigger_level));
+
+                // This level should be the absolute trigger level.
+                // In the rest of ABCD the waveforms' samples are treated as uint16_t and we
+                // are offsetting what we read from the ABCD::ADQ36_FWDAQ to convert from int16_t.
+                // The user should be able to set a trigger level according to what it is
+                // shown in the waveforms display, thus we should expect a uin16_t number
+                // that we convert to a int16_t.
+                const int64_t trigger_level = (raw_trigger_level - 0x7FFF);
 
                 if (GetVerbosity() > 0) {
                     char time_buffer[BUFFER_SIZE];

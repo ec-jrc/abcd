@@ -1,0 +1,25 @@
+{
+  "name": "launcher",
+  "version": "0.1.0",
+  "main": "launcher.js",
+  "engine": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ec-jrc/abcd.git"
+  },
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "@fontsource/fira-mono": "^5.2.6",
+    "@fontsource/fira-sans": "^5.2.6",
+    "@svgdotjs/svg.draggable.js": "^3.0.6",
+    "@svgdotjs/svg.js": "^3.2.4",
+    "argparse": "^2.0.1",
+    "express": "^5.1.0",
+    "morgan": "^1.10.1",
+    "pug": "^3.0.3"
+  }
+}

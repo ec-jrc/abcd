@@ -1,0 +1,12 @@
+#! /usr/bin/env bash
+
+export NODE_PATH=@WIT_INSTALLDIR@/node_modules
+
+CONFIG_FILE="@WIT_INSTALLDIR@/config.json"
+
+if [ $# -gt 0 ]; then
+    CONFIG_FILE="$1"
+    echo "Using configuration file: ${CONFIG_FILE}"
+fi
+
+node @WIT_INSTALLDIR@/app.js "${CONFIG_FILE}"

@@ -77,4 +77,56 @@ int file_size_to_human(char *output_buffer, size_t N, const size_t size) {
     return EXIT_SUCCESS;
 }
 
+/// @brief Reverse strstr(): searches small_string in big_string
+/// @param big_string Bigger string that might contain small_string
+/// @param small_string Smaller string that might be contained in big_string
+/// @return Pointer to the identified position in the big_string
+extern inline
+char *rstrstr(const char *big_string, const char *small_string)
+{
+    size_t big_string_len = strlen(big_string);
+    size_t small_string_len = strlen(small_string);
+
+    if (small_string_len > big_string_len)
+    {
+        return NULL;
+    }
+    for (char *s = (char*)(big_string + big_string_len - small_string_len); s >= big_string; --s)
+    {
+        if (strncmp(s, small_string, small_string_len) == 0)
+        {
+            return s;
+        }
+    }
+
+    return NULL;
+}
+
+/// @brief Returns true if big_string ends with small_string
+/// @param big_string Bigger string that might contain small_string
+/// @param small_string Smaller string that might be contained in big_string
+/// @return true when big_string ends with small_string, false otherwise or if one of the strings is empty
+extern inline
+bool ends_with(const char* big_string, const char *small_string)
+{
+    if (!big_string || !small_string)
+    {
+        return false;
+    }
+    else
+    {
+        size_t length_string = strlen(big_string);
+        size_t length_suffix = strlen(small_string);
+
+        if (length_suffix > length_string)
+        {
+            return false;
+        }
+        else
+        {
+            return (strncmp(big_string + (length_string - length_suffix), small_string, length_suffix) == 0);
+        }
+    }
+}
+
 #endif

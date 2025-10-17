@@ -17,10 +17,6 @@
  * along with ABCD.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// This is a personal academic project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-// vim: tabstop=8 expandtab shiftwidth=4 softtabstop=4
-
 // For getopt()
 #include <unistd.h>
 #include <csignal>

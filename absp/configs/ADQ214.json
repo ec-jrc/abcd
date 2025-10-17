@@ -1,0 +1,81 @@
+{
+    "global": {
+        "waveforms_buffer_max_size": 4096,
+        "waveforms_buffer_max_size_note1": "This value is in number of waveforms in the buffer",
+        "waveforms_buffer_max_size_note2": "It is not a strict threshold, if more are available in the readout they are not discarded.",
+        "waveforms_buffer_max_size_note3": "If too big, the following analysis steps might slow down",
+        "waveforms_buffer_max_size_note4": "If too small, then the overhead might be too much",
+        "waveforms_buffer_max_size_note5": "Waveform minimum dimension: 14 B (header) + 2 B * samples_number",
+        "zzz": null
+    },
+    "cards": [
+        {
+            "id": 0,
+            "serial": "SPD-01373",
+            "enable": true,
+            "scope_samples": 1000,
+            "pretrigger": 150,
+            "records_number": 200,
+            "records_number_note": "This should be comparable to the expected rate",
+            "timestamp_bit_shift": 5,
+            "timestamp_bit_shift_note1": "the timestamp may be shifted in order to align it with the waan analysis module",
+            "timestamp_bit_shift_note2": "to have 8 bits of fractional part use: 5 bit",
+            "timestamp_bit_shift_note3": "the conversion factor then would be 1 / (400 MHz) / 256 (for PLL divider 2)",
+            "timestamp_bit_shift_note4": "it seems that the timestamp has a step of 1 / (800 MHz)",
+            "timestamp_bit_shift_note5": "there are two additional bits that increase its time resolution when using an external trigger",
+            "timestamp_bit_shift_note6": "in total there are then 3 bits of fractional part given by the digitizer",
+            "PLL_divider": 2,
+            "PLL_divider_note1": "The internal reference clock runs at 800 MHz, but the minimum value for the PLL divider is 2, maximum is 20",
+            "PLL_divider_note2": "WARNING: Some values to not appear to work",
+            "clock_source": "internal",
+            "clock_source0": "internal",
+            "clock_source1": "external_10MHz",
+            "clock_source2": "external",
+            "channels": [
+                {
+                    "name": "Detector",
+                    "id": 0,
+                    "enable": false,
+                    "triggering": false,
+                    "triggering_note": "Enables the self triggering on this channel",
+                    "coupling": "DC",
+                    "coupling_possible_value0": "DC",
+                    "coupling_possible_value1": "DC"
+                },
+                {
+                    "name": "Detector",
+                    "id": 1,
+                    "enable": true,
+                    "triggering": true,
+                    "coupling": "DC"
+                },
+                {}
+            ],
+            "trigger": {
+                "source": "channels",
+                "source1": "software",
+                "source2": "external",
+                "source3": "channels",
+                "slope": "rising",
+                "slope0": "rising",
+                "slope1": "falling",
+                "level": 32850
+            },
+            "trigger_output": {
+                "enable": false,
+                "source": "channels",
+                "source_possible_value1": "channels",
+                "source_possible_value2": "event",
+                "source_note1": "'channels' uses the level triggering on the channels",
+                "source_note2": "'event' uses whatever trigger event of the board, check datasheet",
+                "width": 50,
+                "width_note1": "length of the output pulse in ns",
+                "width_note2": "minimum value 20 ns",
+                "zzz": null
+            },
+            "zzz": null
+        },
+        {}
+    ],
+    "zzz": null
+}

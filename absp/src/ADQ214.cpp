@@ -59,6 +59,7 @@ ABCD::ADQ214::ADQ214(void* adq, int num, int Verbosity) : ABCD::Digitizer(Verbos
     timestamp_last = 0;
     timestamp_offset = 0;
     timestamp_overflows = 0;
+    timestamp_bit_shift = 0;
 }
 
 //==============================================================================
@@ -585,7 +586,7 @@ int ABCD::ADQ214::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
     }
 
     for (unsigned int record_index = 0; record_index < records_number; record_index++) {
-	const size_t header_start = record_index * (ADQ214_RECORD_HEADER_SIZE / sizeof(uint32_t));
+        const size_t header_start = record_index * (ADQ214_RECORD_HEADER_SIZE / sizeof(uint32_t));
 
         if (GetVerbosity() > 2)
         {
@@ -594,19 +595,19 @@ int ABCD::ADQ214::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
             std::cout << '[' << time_buffer << "] ABCD::ADQ214::GetWaveformsFromCard() ";
             std::cout << "Record header words: ";
 
-	    for (unsigned int i = 0; i < (ADQ214_RECORD_HEADER_SIZE / sizeof(uint32_t)); i++)
+            for (unsigned int i = 0; i < (ADQ214_RECORD_HEADER_SIZE / sizeof(uint32_t)); i++)
             {
-	        const uint32_t word = target_headers[header_start + i];
+                const uint32_t word = target_headers[header_start + i];
                 std::cout << "0x" << std::setfill('0') << std::setw(8) << std::hex << word << std::dec << " ";
             }
 
             std::cout << "; " << std::endl;
 
             std::cout << '[' << time_buffer << "] ABCD::ADQ214::GetWaveformsFromCard() ";
-            std::cout << "Sub-sample time resolution bits: " << "0x" << std::setw(1) << std::hex << (target_headers[header_start + 2] & ADQ214_EXTENDED_TIMESTAMP_BITMASK) << std::dec << "; ";
-            std::cout << "Last timestamp bits: " << "0x" << std::setw(1) << std::hex << (target_timestamps[record_index] & 0b11) << std::dec << "; ";
+            std::cout << "Sub-sample time resolution bits: " << "0x" << std::setw(1) << std::hex << ((target_headers[header_start + 2] & ADQ214_EXTENDED_TIMESTAMP_BITMASK) >> ADQ214_EXTENDED_TIMESTAMP_OFFSET) << std::dec << "; ";
+            std::cout << "Last timestamp bit: " << "0x" << std::setw(1) << std::hex << (target_timestamps[record_index] & 0b1) << std::dec << "; ";
             std::cout << std::endl;
-	}
+        }
 
         // If we see a jump backward in timestamp bigger than half the timestamp
         // range we assume that there was an overflow in the timestamp counter.
@@ -631,11 +632,16 @@ int ABCD::ADQ214::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
             timestamp_overflows += 1;
         }
 
+        // The board provides an extended timestamp with a sub-sampling resolution, only when using an external trigger.
+        // We then shift the timestamp to fit the extended bits.
+        const uint64_t timestamp_basic = (target_timestamps[record_index] << ADQ214_EXTENDED_TIMESTAMP_NUMBER);
+        const uint64_t timestamp_extended = ((target_headers[header_start + 2] & ADQ214_EXTENDED_TIMESTAMP_BITMASK) >> ADQ214_EXTENDED_TIMESTAMP_OFFSET);
+
         // We do not add the offset here because we want to check the digitizer
         // behaviour and not the correction.
-        timestamp_last = target_timestamps[record_index] + (target_headers[header_start + 2] & ADQ214_EXTENDED_TIMESTAMP_BITMASK);
+        timestamp_last = timestamp_basic + timestamp_extended;
 
-        const uint64_t timestamp_waveform = target_timestamps[record_index] + timestamp_offset;
+        const uint64_t timestamp_waveform = (timestamp_basic + timestamp_extended + timestamp_offset) << timestamp_bit_shift;
 
         for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
             if (IsChannelEnabled(channel)) {
@@ -778,6 +784,19 @@ int ABCD::ADQ214::ReadConfig(json_t *config)
         std::cout << "Clock source: got: " << ADQ_descriptions::clock_source.at(clock_source) << " (index: " << clock_source << "); ";
         std::cout << std::endl;
     }
+
+    timestamp_bit_shift = json_number_value(json_object_get(config, "timestamp_bit_shift"));
+
+    if (GetVerbosity() > 0)
+    {
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ABCD::ADQ214::ReadConfig() ";
+        std::cout << "Timestamp bit shift: " << timestamp_bit_shift << " bits; ";
+        std::cout << std::endl;
+    }
+
+    json_object_set_nocheck(config, "timestamp_bit_shift", json_integer(timestamp_bit_shift));
 
     const int raw_PLL_divider = json_integer_value(json_object_get(config, "PLL_divider"));
 

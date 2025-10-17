@@ -9,8 +9,8 @@
             "name": "LaBr",
             "enabled": true,
             "user_libraries": {
-                "timestamp": "src/libCFD.so",
-                "energy": "src/libPSD.so"
+                "timestamp": "libCFD.so",
+                "energy": "libPSD.so"
             },
             "user_config": {
                 "baseline_samples": 64,
@@ -32,8 +32,8 @@
             "name": "CeBr",
             "enabled": true,
             "user_libraries": {
-                "timestamp": "src/libCFD.so",
-                "energy": "src/libPSD.so"
+                "timestamp": "libCFD.so",
+                "energy": "libPSD.so"
             },
             "user_config": {
                 "baseline_samples": 64,

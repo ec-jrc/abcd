@@ -1,0 +1,14 @@
+#! /usr/bin/bash
+
+REQUIRED_LIBRARIES=('libCAENVME' 'libCAENComm' 'libCAENDigitizer')
+
+for library_name in "${REQUIRED_LIBRARIES[@]}"; do
+    if ! ldconfig -p | grep -q "${library_name}"; then
+        echo "ERROR: Missing required library: ${library_name}"
+        echo "ERROR: Required CAEN libraries are not fully installed on your system. Please install: ${REQUIRED_LIBRARIES[@]}"
+        exit 1
+    fi
+done
+
+echo "All required CAEN libraries are installed"
+exit 0
