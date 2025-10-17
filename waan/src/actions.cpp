@@ -824,6 +824,7 @@ state actions::create_sockets(status &global_status)
     }
     // Creating a data_input_socket even if we are going to read data from a
     // file, it should not hurt and it makes things easier
+    // It will not be connected afterwards
     void *data_input_socket = zmq_socket(context, ZMQ_SUB);
     if (!data_input_socket)
     {
@@ -893,19 +894,24 @@ state actions::bind_sockets(status &global_status)
         return states::COMMUNICATION_ERROR;
     }
 
-    const std::string file_prefix = "file://";
+    global_status.data_input_source = get_input_source_type(data_input_address.c_str());
 
-    if (data_input_address.find(file_prefix) == 0) {
+    if (global_status.data_input_source == RAW_FILE_INPUT) {
+        char *data_input_filename = NULL;
+        size_t ade_buffer_size = 0;
+
+        get_filename_buffersize(data_input_address.c_str(), &data_input_filename, &ade_buffer_size);
+
         if (global_status.verbosity > 0)
         {
             char time_buffer[BUFFER_SIZE];
             time_string(time_buffer, BUFFER_SIZE, NULL);
             std::cout << '[' << time_buffer << "] ";
-            std::cout << "Opening data file: " << (data_input_address.c_str() + file_prefix.size()) << " ";
+            std::cout << "Opening data file: " << data_input_filename << " ";
             std::cout << std::endl;
         }
 
-        global_status.data_input_file = fopen(data_input_address.c_str() + file_prefix.size(), "rb");
+        global_status.data_input_file = fopen(data_input_filename, "rb");
 
         if (!global_status.data_input_file) {
             char time_buffer[BUFFER_SIZE];
@@ -916,9 +922,6 @@ state actions::bind_sockets(status &global_status)
 
             return states::COMMUNICATION_ERROR;
         }
-
-        global_status.data_input_source = RAW_FILE_INPUT;
-
     } else {
         if (global_status.verbosity > 0)
         {
@@ -946,8 +949,6 @@ state actions::bind_sockets(status &global_status)
                        ZMQ_SUBSCRIBE,
                        defaults_abcd_data_waveforms_topic,
                        strlen(defaults_abcd_data_waveforms_topic));
-
-        global_status.data_input_source = SOCKET_INPUT;
     }
 
     const int c = zmq_bind(global_status.commands_socket, commands_address.c_str());
@@ -1289,17 +1290,17 @@ state actions::read_socket(status &global_status)
     const int verbosity = global_status.verbosity;
 
     char *topic = NULL;
-    char *input_buffer = NULL;
+    char *buffer_input = NULL;
     size_t size;
     int result = EXIT_FAILURE;
     // Using int here instead of size_t to be compatible with the
     // high_water_mark, that for the ZeroMQ must be an int.
     int inner_counter = 0;
 
-    if (global_status.data_input_source == SOCKET_INPUT) {
-        result = receive_byte_message(data_input_socket, &topic, (void **)(&input_buffer), &size, true, global_status.verbosity);
+    if (global_status.data_input_source == RAW_FILE_INPUT) {
+        result = read_byte_message_from_adr(data_input_file, &topic, (void **)(&buffer_input), &size, true, global_status.verbosity);
     } else {
-        result = read_byte_message_from_raw(data_input_file, &topic, (void **)(&input_buffer), &size, true, global_status.verbosity);
+        result = receive_byte_message(data_input_socket, &topic, (void **)(&buffer_input), &size, true, global_status.verbosity);
     }
 
     const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
@@ -1380,10 +1381,10 @@ state actions::read_socket(status &global_status)
                         std::cout << std::endl;
                     }
 
-                    uint64_t timestamp = *((uint64_t *)(input_buffer + input_offset));
-                    const uint8_t this_channel = *((uint8_t *)(input_buffer + input_offset + 8));
-                    const uint32_t samples_number = *((uint32_t *)(input_buffer + input_offset + 9));
-                    const uint8_t gates_number = *((uint8_t *)(input_buffer + input_offset + 13));
+                    uint64_t timestamp = *((uint64_t *)(buffer_input + input_offset));
+                    const uint8_t this_channel = *((uint8_t *)(buffer_input + input_offset + 8));
+                    const uint32_t samples_number = *((uint32_t *)(buffer_input + input_offset + 9));
+                    const uint8_t gates_number = *((uint8_t *)(buffer_input + input_offset + 13));
 
                     if (verbosity > 1)
                     {
@@ -1440,12 +1441,12 @@ state actions::read_socket(status &global_status)
 
                         waveforms_number += 1;
 
-                        const uint16_t *samples = (uint16_t *)(input_buffer + input_offset + waveform_header_size());
+                        const uint16_t *samples = (uint16_t *)(buffer_input + input_offset + waveform_header_size());
                         // Should I store the additionals to the waveform?
                         // They are not standard and not quantitative, let's not bother...
                         // Actually, they might be useful as users might have
                         // stored important information in them.
-                        const uint8_t *gates = (uint8_t *)(input_buffer + input_offset + waveform_header_size() + samples_number * sizeof(uint16_t));
+                        const uint8_t *gates = (uint8_t *)(buffer_input + input_offset + waveform_header_size() + samples_number * sizeof(uint16_t));
 
                         struct event_waveform this_waveform = waveform_create(timestamp,
                                                                               this_channel,
@@ -1659,23 +1660,23 @@ state actions::read_socket(status &global_status)
         }
 
         free(topic);
-        free(input_buffer);
+        free(buffer_input);
 
         topic = NULL;
-        input_buffer = NULL;
+        buffer_input = NULL;
 
-        if (global_status.data_input_source == SOCKET_INPUT) {
-            result = receive_byte_message(data_input_socket, &topic, (void **)(&input_buffer), &size, true, global_status.verbosity);
+        if (global_status.data_input_source == RAW_FILE_INPUT) {
+            result = read_byte_message_from_adr(data_input_file, &topic, (void **)(&buffer_input), &size, true, global_status.verbosity);
         } else {
-            result = read_byte_message_from_raw(data_input_file, &topic, (void **)(&input_buffer), &size, true, global_status.verbosity);
+            result = receive_byte_message(data_input_socket, &topic, (void **)(&buffer_input), &size, true, global_status.verbosity);
         }
     }
 
     if (topic) {
         free(topic);
     }
-    if (input_buffer) {
-        free(input_buffer);
+    if (buffer_input) {
+        free(buffer_input);
     }
 
     if (result == EXIT_FAILURE && global_status.data_input_source == SOCKET_INPUT) {

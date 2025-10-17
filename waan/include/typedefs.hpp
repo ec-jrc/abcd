@@ -18,13 +18,8 @@ extern "C" {
 #include <jansson.h>
 
 #include "analysis_functions.h"
+#include "files_functions.h"
 }
-
-enum input_sources_t {
-    SOCKET_INPUT,
-    RAW_FILE_INPUT,
-    WAVEFORMS_FILE_INPUT, // Placeholder
-};
 
 struct status
 {
