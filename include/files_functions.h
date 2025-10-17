@@ -36,7 +36,8 @@
 #define ADDRESS_PREFIX_FILE "file://"
 #define ADDRESS_BUFFER_SIZE_SEPARATOR ":"
 
-enum input_sources_t {
+enum input_sources_t
+{
     UNKNOWN_INPUT,
     SOCKET_INPUT,
     RAW_FILE_INPUT,
@@ -55,8 +56,7 @@ enum input_sources_t {
 ///
 /// @param address A string containing the address
 /// @return An enum input_sources_t
-extern inline
-enum input_sources_t get_input_source_type(const char *address)
+extern inline enum input_sources_t get_input_source_type(const char *address)
 {
     if (strstr(address, ADDRESS_PREFIX_FILE) != address)
     {
@@ -65,15 +65,15 @@ enum input_sources_t get_input_source_type(const char *address)
     else
     {
         // If it does not end with '.adr' then it may end with a size or with .ade or .adw
-        if (ends_with(address, ".adr")) 
+        if (ends_with(address, ".adr"))
         {
             return RAW_FILE_INPUT;
         }
-        else if (ends_with(address, ".ade")) 
+        else if (ends_with(address, ".ade"))
         {
             return EVENTS_FILE_INPUT;
         }
-        else if (ends_with(address, ".adw")) 
+        else if (ends_with(address, ".adw"))
         {
             return WAVEFORMS_FILE_INPUT;
         }
@@ -107,19 +107,18 @@ enum input_sources_t get_input_source_type(const char *address)
 /// @param[out] file_name The extracted file name, the memory will be allocated in the function if no error occurred, it needs to be freed
 /// @param[out] buffer_size The buffer size as specified in the address, if not specified it returns 0 (no multiplication to sizeof(event_PSD) is performed)
 /// @return EXIT_SUCCESS on success, EXIT_FAILURE on failure
-extern inline
-int get_filename_buffersize(const char *address, char **file_name, size_t *buffer_size)
+extern inline int get_filename_buffersize(const char *address, char **file_name, size_t *buffer_size)
 {
     const enum input_sources_t type = get_input_source_type(address);
 
-    (*file_name) = (char*)calloc(strlen(address) + 1, sizeof(char));
+    (*file_name) = (char *)calloc(strlen(address) + 1, sizeof(char));
 
     if (!(*file_name))
     {
         printf("ERROR: Unable to allocate file_name\n");
         return EXIT_FAILURE;
     }
-    
+
     printf("Empty filename: '%s' %d\n", (*file_name), type);
 
     if (type == RAW_FILE_INPUT)
@@ -141,7 +140,8 @@ int get_filename_buffersize(const char *address, char **file_name, size_t *buffe
         char *str_buffer_size = rstrstr(address, extension);
         str_buffer_size = (str_buffer_size) ? str_buffer_size + strlen(extension) : NULL;
 
-        if (str_buffer_size) {
+        if (str_buffer_size)
+        {
             strncpy((*file_name), address + strlen(ADDRESS_PREFIX_FILE), strlen(address) - strlen(ADDRESS_PREFIX_FILE) - 1 - strlen(str_buffer_size));
             (*buffer_size) = abs(atol(str_buffer_size));
         }
@@ -169,8 +169,7 @@ int get_filename_buffersize(const char *address, char **file_name, size_t *buffe
 /// @param[in] extract_topic if false, the topic will be placed in `buffer` with the standard separator, otherwise topic will be placed in `topic` and `buffer` will not contain it
 /// @param[in] verbosity a flag to activate debug output
 /// @return EXIT_SUCCESS on success, EXIT_FAILURE on failure
-extern inline
-int read_byte_message_from_ade(FILE *input_file, char **topic, void **buffer, size_t *size, bool extract_topic, unsigned int verbosity)
+extern inline int read_byte_message_from_ade(FILE *input_file, char **topic, void **buffer, size_t *size, bool extract_topic, unsigned int verbosity)
 {
     if ((*size) % sizeof(struct event_PSD) != 0)
     {
@@ -305,8 +304,7 @@ int read_byte_message_from_ade(FILE *input_file, char **topic, void **buffer, si
 /// @param[in] extract_topic if false, the topic will be placed in `buffer` with the standard separator, otherwise topic will be placed in `topic` and `buffer` will not contain it
 /// @param[in] verbosity a flag to activate debug output
 /// @return EXIT_SUCCESS on success, EXIT_FAILURE on failure
-extern inline
-int read_byte_message_from_adr(FILE *input_file, char **topic, void **buffer, size_t *size, bool extract_topic, unsigned int verbosity)
+extern inline int read_byte_message_from_adr(FILE *input_file, char **topic, void **buffer, size_t *size, bool extract_topic, unsigned int verbosity)
 {
     // Set size to 0 to notify that no message was received or an error occurred
     *size = 0;
