@@ -33,7 +33,7 @@ sudo cmake --install build
 ## Ubuntu package(s) generation and installation
 
 An Ubuntu package may be generated with CMake and CPack.
-The default prefix for CMake on UNIX platforms is `/usr/local`, but if should be changed to `/usr` at the configuration phase to generate a proper `deb` package.
+The default prefix for CMake on UNIX platforms is `/usr/local`, but it should be changed to `/usr` at the configuration phase to generate a proper `deb` package.
 Some scripts need to be configured with the proper prefix and this is done at the configuration phase.
 There is no need to run `ldconfig` after the installation, as it is automatically run by the `postinst` script of the `deb` package.
 
