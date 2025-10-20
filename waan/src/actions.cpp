@@ -253,298 +253,175 @@ bool actions::generic::configure(status &global_status)
 
     json_t *json_channels = json_object_get(config, "channels");
 
-    if (json_channels != NULL && json_is_array(json_channels))
+    if (json_channels == NULL || !json_is_array(json_channels))
     {
-        size_t index;
-        json_t *value;
+        char time_buffer[BUFFER_SIZE];
+        time_string(time_buffer, BUFFER_SIZE, NULL);
+        std::cout << '[' << time_buffer << "] ";
+        std::cout << YELLOW_COLOR << "WARNING" << NO_COLOR << ": No channels configuration; ";
+        std::cout << std::endl;
 
-        json_array_foreach(json_channels, index, value) {
-            // The id may be a single integer or an array of integers
-            json_t *json_id = json_object_get(value, "id");
+        json_channels = json_array();
 
-            std::vector<int> channel_ids;
+        json_object_set_nocheck(config, "channels", json_channels);
+    }
 
-            if (json_id != NULL && json_is_integer(json_id)) {
-                const int id = json_number_value(json_id);
-                channel_ids.push_back(id);
-            } else if (json_id != NULL && json_is_array(json_id)) {
-                size_t id_index;
-                json_t *id_value;
+    size_t index;
+    json_t *value;
 
-                json_array_foreach(json_id, id_index, id_value) {
-                    if (id_value != NULL && json_is_integer(id_value)) {
-                        const int id = json_number_value(id_value);
-                        channel_ids.push_back(id);
-                    }
+    json_array_foreach(json_channels, index, value) {
+        // The id may be a single integer or an array of integers
+        json_t *json_id = json_object_get(value, "id");
+
+        std::vector<int> channel_ids;
+
+        if (json_id != NULL && json_is_integer(json_id)) {
+            const int id = json_number_value(json_id);
+            channel_ids.push_back(id);
+        } else if (json_id != NULL && json_is_array(json_id)) {
+            size_t id_index;
+            json_t *id_value;
+
+            json_array_foreach(json_id, id_index, id_value) {
+                if (id_value != NULL && json_is_integer(id_value)) {
+                    const int id = json_number_value(id_value);
+                    channel_ids.push_back(id);
                 }
             }
+        }
 
-            if (channel_ids.size() > 0) {
+        if (channel_ids.size() > 0) {
+            if (verbosity > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << "Found channel(s): ";
+                for (auto& id : channel_ids) {
+                    std::cout << id << " ";
+                }
+                std::cout << "; ";
+                std::cout << std::endl;
+            }
+
+            const bool enabled = json_is_true(json_object_get(value, "enable"))
+                                 || json_is_true(json_object_get(value, "enabled"));
+
+            if (verbosity > 0 && enabled)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << "Channel is enabled; ";
+                std::cout << std::endl;
+            }
+            else if (verbosity > 0 && !enabled)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << "Channel is disabled; ";
+                std::cout << std::endl;
+            }
+
+            bool dl_loading_error = false;
+
+            json_t *libraries_json = json_object_get(value, "user_libraries");
+
+            ////////////////////////////////////////////////////////////////
+            // Libraries loading                                          //
+            ////////////////////////////////////////////////////////////////
+            if (!enabled) {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << "Not loading libraries for disabled channel; ";
+                std::cout << std::endl;
+
+                dl_loading_error = true;
+            } else if (!json_is_object(libraries_json)) {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ";
+                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": user_libraries is not an object; ";
+                std::cout << std::endl;
+
+                dl_loading_error = true;
+            } else {
+                const char *json_timestamp =
+                    json_string_value(json_object_get(libraries_json, "timestamp"));
+                const char *json_energy =
+                    json_string_value(json_object_get(libraries_json, "energy"));
+
+                const std::string lib_timestamp =
+                    json_timestamp ? json_timestamp : "";
+                const std::string lib_energy =
+                    json_energy ? json_energy : "";
+
                 if (verbosity > 0)
                 {
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
                     std::cout << '[' << time_buffer << "] ";
-                    std::cout << "Found channel(s): ";
-                    for (auto& id : channel_ids) {
-                        std::cout << id << " ";
-                    }
-                    std::cout << "; ";
+                    std::cout << "Library for timestamp: " << lib_timestamp << "; ";
+                    std::cout << std::endl;
+                    std::cout << '[' << time_buffer << "] ";
+                    std::cout << "Library for energy:    " << lib_energy << "; ";
                     std::cout << std::endl;
                 }
 
-                const bool enabled = json_is_true(json_object_get(value, "enable"))
-                                     || json_is_true(json_object_get(value, "enabled"));
-
-                if (verbosity > 0 && enabled)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ";
-                    std::cout << "Channel is enabled; ";
-                    std::cout << std::endl;
-                }
-                else if (verbosity > 0 && !enabled)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ";
-                    std::cout << "Channel is disabled; ";
-                    std::cout << std::endl;
-                }
-
-                bool dl_loading_error = false;
-
-                json_t *libraries_json = json_object_get(value, "user_libraries");
-
-                ////////////////////////////////////////////////////////////////
-                // Libraries loading                                          //
-                ////////////////////////////////////////////////////////////////
-                if (!enabled) {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ";
-                    std::cout << "Not loading libraries for disabled channel; ";
-                    std::cout << std::endl;
-
-                    dl_loading_error = true;
-                } else if (!json_is_object(libraries_json)) {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ";
-                    std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": user_libraries is not an object; ";
-                    std::cout << std::endl;
-
-                    dl_loading_error = true;
-                } else {
-                    const char *json_timestamp =
-                        json_string_value(json_object_get(libraries_json, "timestamp"));
-                    const char *json_energy =
-                        json_string_value(json_object_get(libraries_json, "energy"));
-
-                    const std::string lib_timestamp =
-                        json_timestamp ? json_timestamp : "";
-                    const std::string lib_energy =
-                        json_energy ? json_energy : "";
-
+                ////////////////////////////////////////////////////////////
+                // Timestamp analysis library                             //
+                ////////////////////////////////////////////////////////////
+                if (lib_timestamp.length() == 0) {
                     if (verbosity > 0)
                     {
                         char time_buffer[BUFFER_SIZE];
                         time_string(time_buffer, BUFFER_SIZE, NULL);
                         std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Library for timestamp: " << lib_timestamp << "; ";
-                        std::cout << std::endl;
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Library for energy:    " << lib_energy << "; ";
+                        std::cout << YELLOW_COLOR << "WARNING" << NO_COLOR << ": Empty timestamp library, using dummy_timestamp_analysis(); ";
                         std::cout << std::endl;
                     }
 
-                    ////////////////////////////////////////////////////////////
-                    // Timestamp analysis library                             //
-                    ////////////////////////////////////////////////////////////
-                    if (lib_timestamp.length() == 0) {
-                        if (verbosity > 0)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "WARNING: Empty timestamp library, using dummy_timestamp_analysis(); ";
-                            std::cout << std::endl;
-                        }
+                    for (auto& id : channel_ids) {
+                        global_status.channels_timestamp_init[id].fn = dummy_init;
+                        global_status.channels_timestamp_close[id].fn = dummy_close;
+                        global_status.channels_timestamp_analysis[id].fn = dummy_timestamp_analysis;
+                    }
+                } else {
+                    if (verbosity > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "Loading library: " << lib_timestamp << "; ";
+                        std::cout << std::endl;
+                    }
+
+                    void *dl_handle = dlopen(lib_timestamp.c_str(), RTLD_NOW);
+
+                    if (!dl_handle) {
+                        const std::string error_description = dlerror();
+
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load timestamp library: " << error_description << "; ";
+                        std::cout << std::endl;
 
                         for (auto& id : channel_ids) {
-                            global_status.channels_timestamp_init[id].fn = dummy_init;
-                            global_status.channels_timestamp_close[id].fn = dummy_close;
-                            global_status.channels_timestamp_analysis[id].fn = dummy_timestamp_analysis;
-                        }
-                    } else {
-                        if (verbosity > 0)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Loading library: " << lib_timestamp << "; ";
-                            std::cout << std::endl;
-                        }
+                            const std::string event_description = "Load error on channel: " + std::to_string(id) \
+                                                                  + "; Unable to load library: " + lib_timestamp \
+                                                                  + " (" + error_description + ")";
 
-                        void *dl_handle = dlopen(lib_timestamp.c_str(), RTLD_NOW);
+                            json_t *json_event_message = json_object();
 
-                        if (!dl_handle) {
-                            const std::string error_description = dlerror();
+                            json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
+                            json_object_set_new_nocheck(json_event_message, "error", json_string(event_description.c_str()));
 
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load timestamp library: " << error_description << "; ";
-                            std::cout << std::endl;
+                            actions::generic::publish_message(global_status, defaults_waan_events_topic, json_event_message);
 
-                            for (auto& id : channel_ids) {
-                                const std::string event_description = "Load error on channel: " + std::to_string(id) \
-                                                                      + "; Unable to load library: " + lib_timestamp \
-                                                                      + " (" + error_description + ")";
-
-                                json_t *json_event_message = json_object();
-
-                                json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
-                                json_object_set_new_nocheck(json_event_message, "error", json_string(event_description.c_str()));
-
-                                actions::generic::publish_message(global_status, defaults_waan_events_topic, json_event_message);
-
-                                json_decref(json_event_message);
-                            }
-
-                            dl_loading_error = true;
-                        } else {
-                            if (verbosity > 0)
-                            {
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << "Loading timestamp_init() function; ";
-                                std::cout << std::endl;
-                            }
-
-                            void *dl_init = dlsym(dl_handle, "timestamp_init");
-
-                            if (!dl_init) {
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << "WARNING: Unable to load timestamp init function: " << dlerror() << "; ";
-                                std::cout << std::endl;
-
-                                for (auto& id : channel_ids) {
-                                    global_status.channels_timestamp_init[id].fn = dummy_init;
-                                }
-                            } else {
-                                for (auto& id : channel_ids) {
-                                    global_status.channels_timestamp_init[id].obj = dl_init;
-                                }
-                            }
-
-                            if (verbosity > 0)
-                            {
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << "Loading timestamp_close() function; ";
-                                std::cout << std::endl;
-                            }
-
-                            void *dl_close = dlsym(dl_handle, "timestamp_close");
-
-                            if (!dl_close) {
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << "WARNING: Unable to load timestamp close function: " << dlerror() << "; ";
-                                std::cout << std::endl;
-
-                                for (auto& id : channel_ids) {
-                                    global_status.channels_timestamp_close[id].fn = dummy_close;
-                                }
-                            } else {
-                                for (auto& id : channel_ids) {
-                                    global_status.channels_timestamp_close[id].obj = dl_close;
-                                }
-                            }
-
-                            if (verbosity > 0)
-                            {
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << "Loading timestamp_analysis() function; ";
-                                std::cout << std::endl;
-                            }
-
-                            void *dl_timestamp = dlsym(dl_handle, "timestamp_analysis");
-
-                            if (!dl_timestamp) {
-                                const std::string error_description = dlerror();
-
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load timestamp function: " << error_description << "; ";
-                                std::cout << std::endl;
-
-                                for (auto& id : channel_ids) {
-                                    const std::string event_description = "Load error on channel: " + std::to_string(id) \
-                                                                          + "; Unable to load the timestamp_analysis function from library: " + lib_timestamp \
-                                                                          + " (" + error_description + ")";
-
-                                    json_t *json_event_message = json_object();
-
-                                    json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
-                                    json_object_set_new_nocheck(json_event_message, "error", json_string(event_description.c_str()));
-
-                                    actions::generic::publish_message(global_status, defaults_waan_events_topic, json_event_message);
-
-                                    json_decref(json_event_message);
-                                }
-
-                                dl_loading_error = true;
-                            }
-
-                            if (!dl_loading_error) {
-                                if (verbosity > 0)
-                                {
-                                    char time_buffer[BUFFER_SIZE];
-                                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                                    std::cout << '[' << time_buffer << "] ";
-                                    std::cout << "Successfully loaded the functions; ";
-                                    std::cout << std::endl;
-                                }
-
-                                for (auto& id : channel_ids) {
-                                    global_status.dl_timestamp_handles[id] = dl_handle;
-                                    global_status.channels_timestamp_analysis[id].obj = dl_timestamp;
-                                }
-                            } else {
-                                if (verbosity > 0)
-                                {
-                                    char time_buffer[BUFFER_SIZE];
-                                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                                    std::cout << '[' << time_buffer << "] ";
-                                    std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": unable to load the functions; ";
-                                    std::cout << std::endl;
-                                }
-                            }
-                        }
-                    }
-
-                    ////////////////////////////////////////////////////////////
-                    // Energy analysis library                                //
-                    ////////////////////////////////////////////////////////////
-                    if (lib_energy.length() == 0) {
-                        if (verbosity > 0)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Empty energy library; ";
-                            std::cout << std::endl;
+                            json_decref(json_event_message);
                         }
 
                         dl_loading_error = true;
@@ -554,24 +431,78 @@ bool actions::generic::configure(status &global_status)
                             char time_buffer[BUFFER_SIZE];
                             time_string(time_buffer, BUFFER_SIZE, NULL);
                             std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Loading library: " << lib_energy << "; ";
+                            std::cout << "Loading timestamp_init() function; ";
                             std::cout << std::endl;
                         }
 
-                        void *dl_handle = dlopen(lib_energy.c_str(), RTLD_NOW);
+                        void *dl_init = dlsym(dl_handle, "timestamp_init");
 
-                        if (!dl_handle) {
+                        if (!dl_init) {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << YELLOW_COLOR << "WARNING" << NO_COLOR << ": Unable to load timestamp init function: " << dlerror() << "; ";
+                            std::cout << std::endl;
+
+                            for (auto& id : channel_ids) {
+                                global_status.channels_timestamp_init[id].fn = dummy_init;
+                            }
+                        } else {
+                            for (auto& id : channel_ids) {
+                                global_status.channels_timestamp_init[id].obj = dl_init;
+                            }
+                        }
+
+                        if (verbosity > 0)
+                        {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "Loading timestamp_close() function; ";
+                            std::cout << std::endl;
+                        }
+
+                        void *dl_close = dlsym(dl_handle, "timestamp_close");
+
+                        if (!dl_close) {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << YELLOW_COLOR << "WARNING" << NO_COLOR << ": Unable to load timestamp close function: " << dlerror() << "; ";
+                            std::cout << std::endl;
+
+                            for (auto& id : channel_ids) {
+                                global_status.channels_timestamp_close[id].fn = dummy_close;
+                            }
+                        } else {
+                            for (auto& id : channel_ids) {
+                                global_status.channels_timestamp_close[id].obj = dl_close;
+                            }
+                        }
+
+                        if (verbosity > 0)
+                        {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "Loading timestamp_analysis() function; ";
+                            std::cout << std::endl;
+                        }
+
+                        void *dl_timestamp = dlsym(dl_handle, "timestamp_analysis");
+
+                        if (!dl_timestamp) {
                             const std::string error_description = dlerror();
 
                             char time_buffer[BUFFER_SIZE];
                             time_string(time_buffer, BUFFER_SIZE, NULL);
                             std::cout << '[' << time_buffer << "] ";
-                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy library: " << error_description << "; ";
+                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load timestamp function: " << error_description << "; ";
                             std::cout << std::endl;
 
                             for (auto& id : channel_ids) {
                                 const std::string event_description = "Load error on channel: " + std::to_string(id) \
-                                                                      + "; Unable to load library: " + lib_energy \
+                                                                      + "; Unable to load the timestamp_analysis function from library: " + lib_timestamp \
                                                                       + " (" + error_description + ")";
 
                                 json_t *json_event_message = json_object();
@@ -585,143 +516,112 @@ bool actions::generic::configure(status &global_status)
                             }
 
                             dl_loading_error = true;
+                        }
+
+                        if (!dl_loading_error) {
+                            if (verbosity > 0)
+                            {
+                                char time_buffer[BUFFER_SIZE];
+                                time_string(time_buffer, BUFFER_SIZE, NULL);
+                                std::cout << '[' << time_buffer << "] ";
+                                std::cout << "Successfully loaded the functions; ";
+                                std::cout << std::endl;
+                            }
+
+                            for (auto& id : channel_ids) {
+                                global_status.dl_timestamp_handles[id] = dl_handle;
+                                global_status.channels_timestamp_analysis[id].obj = dl_timestamp;
+                            }
                         } else {
                             if (verbosity > 0)
                             {
                                 char time_buffer[BUFFER_SIZE];
                                 time_string(time_buffer, BUFFER_SIZE, NULL);
                                 std::cout << '[' << time_buffer << "] ";
-                                std::cout << "Loading energy_init() function; ";
+                                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": unable to load the functions; ";
                                 std::cout << std::endl;
-                            }
-
-                            void *dl_init = dlsym(dl_handle, "energy_init");
-
-                            if (!dl_init) {
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy init function: " << dlerror() << "; ";
-                                std::cout << std::endl;
-
-                                for (auto& id : channel_ids) {
-                                    global_status.channels_energy_init[id].fn = dummy_init;
-                                }
-                            } else {
-                                for (auto& id : channel_ids) {
-                                    global_status.channels_energy_init[id].obj = dl_init;
-                                }
-                            }
-
-                            if (verbosity > 0)
-                            {
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << "Loading energy_close() function; ";
-                                std::cout << std::endl;
-                            }
-
-                            void *dl_close = dlsym(dl_handle, "energy_close");
-
-                            if (!dl_close) {
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy close function: " << dlerror() << "; ";
-                                std::cout << std::endl;
-
-                                for (auto& id : channel_ids) {
-                                    global_status.channels_energy_close[id].fn = dummy_close;
-                                }
-                            } else {
-                                for (auto& id : channel_ids) {
-                                    global_status.channels_energy_close[id].obj = dl_close;
-                                }
-                            }
-
-                            if (verbosity > 0)
-                            {
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << "Loading energy_analysis() function; ";
-                                std::cout << std::endl;
-                            }
-
-                            void *dl_energy = dlsym(dl_handle, "energy_analysis");
-
-                            if (!dl_energy) {
-                                const std::string error_description = dlerror();
-
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy function: " << error_description << "; ";
-                                std::cout << std::endl;
-
-                                for (auto& id : channel_ids) {
-                                    const std::string event_description = "Load error on channel: " + std::to_string(id) \
-                                                                          + "; Unable to load the energy_analysis function from library: " + lib_energy \
-                                                                          + " (" + error_description + ")";
-
-                                    json_t *json_event_message = json_object();
-
-                                    json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
-                                    json_object_set_new_nocheck(json_event_message, "error", json_string(event_description.c_str()));
-
-                                    actions::generic::publish_message(global_status, defaults_waan_events_topic, json_event_message);
-
-                                    json_decref(json_event_message);
-                                }
-
-                                dl_loading_error = true;
-                            }
-
-                            if (!dl_loading_error) {
-                                if (verbosity > 0)
-                                {
-                                    char time_buffer[BUFFER_SIZE];
-                                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                                    std::cout << '[' << time_buffer << "] ";
-                                    std::cout << "Successfully loaded the functions; ";
-                                    std::cout << std::endl;
-                                }
-
-                                for (auto& id : channel_ids) {
-                                    global_status.dl_energy_handles[id] = dl_handle;
-                                    global_status.channels_energy_analysis[id].obj = dl_energy;
-                                }
-                            } else {
-                                if (verbosity > 0)
-                                {
-                                    char time_buffer[BUFFER_SIZE];
-                                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                                    std::cout << '[' << time_buffer << "] ";
-                                    std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": unable to load the functions; ";
-                                    std::cout << std::endl;
-                                }
                             }
                         }
                     }
                 }
 
-                ////////////////////////////////////////////////////////////////
-                // Libraries storing in global_status                         //
-                ////////////////////////////////////////////////////////////////
-                if (!dl_loading_error) {
-                    for (auto& id : channel_ids) {
-                        void *timestamp_user_config = NULL;
-                        void *energy_user_config = NULL;
+                ////////////////////////////////////////////////////////////
+                // Energy analysis library                                //
+                ////////////////////////////////////////////////////////////
+                if (lib_energy.length() == 0) {
+                    if (verbosity > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Empty energy library; ";
+                        std::cout << std::endl;
+                    }
 
-                        json_t *user_config = json_object_get(value, "user_config");
+                    dl_loading_error = true;
+                } else {
+                    if (verbosity > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "Loading library: " << lib_energy << "; ";
+                        std::cout << std::endl;
+                    }
 
-                        if (!json_is_object(user_config)) {
+                    void *dl_handle = dlopen(lib_energy.c_str(), RTLD_NOW);
+
+                    if (!dl_handle) {
+                        const std::string error_description = dlerror();
+
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy library: " << error_description << "; ";
+                        std::cout << std::endl;
+
+                        for (auto& id : channel_ids) {
+                            const std::string event_description = "Load error on channel: " + std::to_string(id) \
+                                                                  + "; Unable to load library: " + lib_energy \
+                                                                  + " (" + error_description + ")";
+
+                            json_t *json_event_message = json_object();
+
+                            json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
+                            json_object_set_new_nocheck(json_event_message, "error", json_string(event_description.c_str()));
+
+                            actions::generic::publish_message(global_status, defaults_waan_events_topic, json_event_message);
+
+                            json_decref(json_event_message);
+                        }
+
+                        dl_loading_error = true;
+                    } else {
+                        if (verbosity > 0)
+                        {
                             char time_buffer[BUFFER_SIZE];
                             time_string(time_buffer, BUFFER_SIZE, NULL);
                             std::cout << '[' << time_buffer << "] ";
-                            std::cout << "WARNING: user_config is not an object for channel " << id << "; ";
+                            std::cout << "Loading energy_init() function; ";
                             std::cout << std::endl;
+                        }
+
+                        void *dl_init = dlsym(dl_handle, "energy_init");
+
+                        if (!dl_init) {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy init function: " << dlerror() << "; ";
+                            std::cout << std::endl;
+
+                            for (auto& id : channel_ids) {
+                                global_status.channels_energy_init[id].fn = dummy_init;
+                            }
+                        } else {
+                            for (auto& id : channel_ids) {
+                                global_status.channels_energy_init[id].obj = dl_init;
+                            }
                         }
 
                         if (verbosity > 0)
@@ -729,22 +629,136 @@ bool actions::generic::configure(status &global_status)
                             char time_buffer[BUFFER_SIZE];
                             time_string(time_buffer, BUFFER_SIZE, NULL);
                             std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Calling user init; ";
-                            std::cout << "Channel: " << id << "; ";
+                            std::cout << "Loading energy_close() function; ";
                             std::cout << std::endl;
                         }
 
-                        global_status.channels_timestamp_init[id].fn(user_config,
-                                                                     &timestamp_user_config);
-                        global_status.channels_energy_init[id].fn(user_config,
-                                                                  &energy_user_config);
+                        void *dl_close = dlsym(dl_handle, "energy_close");
 
-                        global_status.channels_timestamp_user_config[id] = timestamp_user_config;
-                        global_status.channels_energy_user_config[id] = energy_user_config;
-                        global_status.partial_counts[id] = 0;
+                        if (!dl_close) {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy close function: " << dlerror() << "; ";
+                            std::cout << std::endl;
 
-                        global_status.active_channels.insert(id);
+                            for (auto& id : channel_ids) {
+                                global_status.channels_energy_close[id].fn = dummy_close;
+                            }
+                        } else {
+                            for (auto& id : channel_ids) {
+                                global_status.channels_energy_close[id].obj = dl_close;
+                            }
+                        }
+
+                        if (verbosity > 0)
+                        {
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << "Loading energy_analysis() function; ";
+                            std::cout << std::endl;
+                        }
+
+                        void *dl_energy = dlsym(dl_handle, "energy_analysis");
+
+                        if (!dl_energy) {
+                            const std::string error_description = dlerror();
+
+                            char time_buffer[BUFFER_SIZE];
+                            time_string(time_buffer, BUFFER_SIZE, NULL);
+                            std::cout << '[' << time_buffer << "] ";
+                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy function: " << error_description << "; ";
+                            std::cout << std::endl;
+
+                            for (auto& id : channel_ids) {
+                                const std::string event_description = "Load error on channel: " + std::to_string(id) \
+                                                                      + "; Unable to load the energy_analysis function from library: " + lib_energy \
+                                                                      + " (" + error_description + ")";
+
+                                json_t *json_event_message = json_object();
+
+                                json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
+                                json_object_set_new_nocheck(json_event_message, "error", json_string(event_description.c_str()));
+
+                                actions::generic::publish_message(global_status, defaults_waan_events_topic, json_event_message);
+
+                                json_decref(json_event_message);
+                            }
+
+                            dl_loading_error = true;
+                        }
+
+                        if (!dl_loading_error) {
+                            if (verbosity > 0)
+                            {
+                                char time_buffer[BUFFER_SIZE];
+                                time_string(time_buffer, BUFFER_SIZE, NULL);
+                                std::cout << '[' << time_buffer << "] ";
+                                std::cout << "Successfully loaded the functions; ";
+                                std::cout << std::endl;
+                            }
+
+                            for (auto& id : channel_ids) {
+                                global_status.dl_energy_handles[id] = dl_handle;
+                                global_status.channels_energy_analysis[id].obj = dl_energy;
+                            }
+                        } else {
+                            if (verbosity > 0)
+                            {
+                                char time_buffer[BUFFER_SIZE];
+                                time_string(time_buffer, BUFFER_SIZE, NULL);
+                                std::cout << '[' << time_buffer << "] ";
+                                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": unable to load the functions; ";
+                                std::cout << std::endl;
+                            }
+                        }
                     }
+                }
+            }
+
+            ////////////////////////////////////////////////////////////////
+            // Libraries storing in global_status                         //
+            ////////////////////////////////////////////////////////////////
+            if (!dl_loading_error) {
+                for (auto& id : channel_ids) {
+                    void *timestamp_user_config = NULL;
+                    void *energy_user_config = NULL;
+
+                    json_t *user_config = json_object_get(value, "user_config");
+
+                    if (user_config == NULL || !json_is_object(user_config)) {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << YELLOW_COLOR << "WARNING" << NO_COLOR << ": user_config is not an object for channel " << id << "; ";
+                        std::cout << std::endl;
+
+                        user_config = json_object();
+
+                        json_object_set_nocheck(value, "user_config", user_config);
+                    }
+
+                    if (verbosity > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ";
+                        std::cout << "Calling user init; ";
+                        std::cout << "Channel: " << id << "; ";
+                        std::cout << std::endl;
+                    }
+
+                    global_status.channels_timestamp_init[id].fn(user_config,
+                                                                 &timestamp_user_config);
+                    global_status.channels_energy_init[id].fn(user_config,
+                                                              &energy_user_config);
+
+                    global_status.channels_timestamp_user_config[id] = timestamp_user_config;
+                    global_status.channels_energy_user_config[id] = energy_user_config;
+                    global_status.partial_counts[id] = 0;
+
+                    global_status.active_channels.insert(id);
                 }
             }
         }
@@ -1422,7 +1436,7 @@ state actions::read_socket(status &global_status)
                             char time_buffer[BUFFER_SIZE];
                             time_string(time_buffer, BUFFER_SIZE, NULL);
                             std::cout << '[' << time_buffer << "] ";
-                            std::cout << "WARNING: Uncomplete waveform in buffer; ";
+                            std::cout << YELLOW_COLOR << "WARNING" << NO_COLOR << ": Uncomplete waveform in buffer; ";
                             std::cout << "needed offset: " << needed_offset << "; size:" << size << "; ";
                             std::cout << std::endl;
                         }
