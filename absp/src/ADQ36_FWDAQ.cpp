@@ -1375,6 +1375,125 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
     }
 
     // -------------------------------------------------------------------------
+    //  Reading the event sources configuration
+    // -------------------------------------------------------------------------
+    json_t *json_event_source = json_object_get(config, "event_source");
+
+    if (json_event_source != NULL && json_is_object(json_event_source)) {
+        // We will not force the existance of the event_source member as it is probably not used by most users
+        if (GetVerbosity() > 0)
+        {
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
+            std::cout << "Reading event_source configuration; ";
+            std::cout << std::endl;
+        }
+
+        json_t *json_level_matrix = json_object_get(json_event_source, "level_matrix");
+        if (json_level_matrix != NULL && json_is_object(json_level_matrix)) {
+            if (GetVerbosity() > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
+                std::cout << "Reading event_source.level_matrix configuration; ";
+                std::cout << std::endl;
+            }
+
+            json_t *json_channels = json_object_get(json_level_matrix, "channels");
+            if (json_channels == NULL || !json_is_array(json_channels)) {
+                json_channels = json_array();
+                json_object_set_nocheck(json_level_matrix, "channels", json_channels);
+            }
+
+            if (GetVerbosity() > 0)
+            {
+                char time_buffer[BUFFER_SIZE];
+                time_string(time_buffer, BUFFER_SIZE, NULL);
+                std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
+                std::cout << "Reading event_source.level_matrix.channels configuration; ";
+                std::cout << std::endl;
+            }
+
+            size_t index;
+            json_t *value;
+
+            json_array_foreach(json_channels, index, value) {
+                json_t *json_id = json_object_get(value, "id");
+
+                if (json_id != NULL && json_is_integer(json_id)) {
+                    const int id = json_integer_value(json_id);
+
+                    if (GetVerbosity() > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
+                        std::cout << "Found channel: " << id << "; ";
+                        std::cout << std::endl;
+                    }
+
+                    const bool enabled = json_is_true(json_object_get(value, "enable"));
+
+                    if (GetVerbosity() > 0)
+                    {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
+                        std::cout << "Channel is " << (enabled ? "enabled" : "disabled") << "; ";
+                        std::cout << std::endl;
+                    }
+
+                    json_object_set_nocheck(value, "enable", json_boolean(enabled));
+
+                    const char *cstr_slope = json_string_value(json_object_get(value, "slope"));
+                    const std::string str_slope = (cstr_slope) ? std::string(cstr_slope) : std::string();
+
+                    if (GetVerbosity() > 0) {
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
+                        std::cout << "Trigger slope: " << str_slope<< "; ";
+                        std::cout << std::endl;
+                    }
+
+                    // Looking for the settings in the description map
+                    const auto tsl_result = map_utilities::find_item(ADQ_descriptions::slope, str_slope);
+
+                    enum ADQEdge slope = ADQ_EDGE_RISING;
+
+                    if (tsl_result != ADQ_descriptions::slope.end() && str_slope.length() > 0) {
+                        slope = tsl_result->first;
+
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
+                        std::cout << "Found matching slope; ";
+                        std::cout << "Got: " << str_slope << "; ";
+                        std::cout << "index: " << slope << "; ";
+                        std::cout << std::endl;
+                    } else {
+                        slope = ADQ_EDGE_RISING;
+
+                        char time_buffer[BUFFER_SIZE];
+                        time_string(time_buffer, BUFFER_SIZE, NULL);
+                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
+                        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid slope; ";
+                        std::cout << "Got: " << str_slope << "; ";
+                        std::cout << std::endl;
+                    }
+
+                    json_object_set_nocheck(value, "slope", json_string(ADQ_descriptions::slope.at(slope).c_str()));
+
+                    adq_parameters.event_source.level_matrix.channel[id].enabled = enabled ? 1 : 0;
+                    adq_parameters.event_source.level_matrix.channel[id].edge = slope;
+                }
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
     //  Reading the native ADQ36 configuration
     // -------------------------------------------------------------------------
     native_config.clear();
