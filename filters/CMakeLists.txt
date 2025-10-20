@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(convert LANGUAGES C)
+project(filters LANGUAGES C)
 
 include(GNUInstallDirs)
 
