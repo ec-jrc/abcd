@@ -61,6 +61,9 @@
                     "trigger_source_possible_value1": "self",
                     "trigger_source_possible_value2": "trig_port",
                     "trigger_source_possible_value3": "sync_port",
+                    "trigger_source_possible_value4": "level_matrix",
+                    "trigger_source_possible_value5": "channelN",
+                    "trigger_source_possible_value5bis": "where N is the number of any channel starting from 0",
                     "trigger_level": 32000,
                     "trigger_level_note": "absolute value, in ADC channels",
                     "trigger_hysteresis": 30,
@@ -149,7 +152,30 @@
                     "function": "gpio"
                 },
                 {}
-            ]
+            ],
+            "event_source": {
+                "note": "Event sources may be used to create complex triggering logics",
+                "level_matrix": {
+                    "note": "The level_matrix calculates the OR of the enabled channels",
+                    "channels": [
+                        {
+                            "id": 0,
+                            "enable": false,
+                            "slope": "rising",
+                            "slope_note1": "This should match the channel's trigger_slope, or be 'both'",
+                            "slope_note2": "If this does not match the channel's trigger_slope it does not seem to work",
+                            "slope_possible_value1": "rising",
+                            "slope_possible_value2": "falling",
+                            "slope_possible_value3": "both"
+                        },
+                        {
+                            "id": 1,
+                            "enable": false,
+                            "slope": "rising"
+                        }
+                    ]
+                }
+            }
         },
         {}
     ],
