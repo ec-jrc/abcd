@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(abcd VERSION 1.1.1)
+project(abcd VERSION 1.2.0)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     list(APPEND CMAKE_PREFIX_PATH "/opt/local")
