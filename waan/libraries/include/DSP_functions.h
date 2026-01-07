@@ -471,6 +471,72 @@ inline extern int find_fine_zero_crossing(const double *samples, size_t samples_
     return EXIT_SUCCESS;
 }
 
+/*! \brief Function that linearly interpolates the samples around the threshold crossing index.
+ *
+ * \param[in] samples an array with the input samples.
+ * \param[in] samples_number the number of samples in the array.
+ * \param[in] threshold the threshold value
+ * \param[in] threshold_crossing_index the index of the threshold crossing.
+ * \param[in] threshold_crossing_samples the number of points to use in the interpolation.
+ *
+ * \param[out] the position of the threshold crossing with better resolution.
+ *
+ * \return EXIT_SUCCESS if it was able to find the extrema, EXIT_FAILURE otherwise.
+ */
+inline extern int find_fine_threshold_crossing(const double *samples, size_t samples_number, \
+                                               double threshold, \
+                                               unsigned int threshold_crossing_index, unsigned int threshold_crossing_samples, \
+                                               double *fine_threshold_crossing)
+{
+    if (!samples)
+    {
+        return EXIT_FAILURE;
+    }
+
+    if (threshold_crossing_samples < 2)
+    {
+        *fine_threshold_crossing = threshold_crossing_index;
+
+        return EXIT_SUCCESS;
+    }
+
+    unsigned int W = (threshold_crossing_samples / 2) * 2 + 1;
+    unsigned int half_W = W / 2;
+
+    if (((int)threshold_crossing_index - (int)half_W) < 0 || (threshold_crossing_index + half_W +1) > samples_number)
+    {
+        return EXIT_FAILURE;
+    }
+
+    unsigned int sum_x = 0;
+    unsigned int sum_xx = 0;
+    double sum_y = 0;
+    double sum_xy = 0;
+    //unsigned int N = 0;
+
+    for (size_t i = (threshold_crossing_index - half_W); i < (threshold_crossing_index + half_W + 1); ++i)
+    {
+        const double sample = samples[i] - threshold;
+
+        //N += 1;
+        sum_x += i;
+        sum_xx += i * i;
+        sum_y += sample;
+        sum_xy += i * sample;
+    }
+
+    const double Delta = W * sum_xx - sum_x * sum_x;
+    const double q = 1.0 / Delta * (sum_xx * sum_y - sum_x * sum_xy);
+    const double m = 1.0 / Delta * (W * sum_xy - sum_x * sum_y);
+
+    //printf("N: %u, sum_x: %u, sum_xx: %u, sum_xy: %f, sum_y: %f\n", N, sum_x, sum_xx, sum_xy, sum_y);
+    //printf("Delta: %f, m: %f, q: %f\n", Delta, m, q);
+
+    *fine_threshold_crossing = - q / m;
+
+    return EXIT_SUCCESS;
+}
+
 /*! \brief Function that calculates the cumulative sum of all the samples.
  *
  * \param[in] samples an array with the input samples.
