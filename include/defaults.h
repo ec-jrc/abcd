@@ -23,7 +23,7 @@
 /******************************************************************************/
 /* Sockets configurations                                                     */
 /******************************************************************************/
-#define defaults_all_slow_joiner_wait 1000
+#define defaults_all_slow_joiner_wait 1500
 
 #define defaults_abcd_ip "127.0.0.1"
 #define defaults_abcd_status_address "tcp://*:16180"
