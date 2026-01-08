@@ -226,7 +226,7 @@ int main(int argc, char *argv[])
     char *data_input_filename = NULL;
     size_t ade_buffer_size = 0;
 
-    get_filename_buffersize(data_input_address, &data_input_filename, &ade_buffer_size);
+    get_filename_and_buffersize(data_input_address, &data_input_filename, &ade_buffer_size);
 
     ade_buffer_size = (ade_buffer_size != 0) ? ade_buffer_size : defaults_cofi_ade_buffer_size;
 

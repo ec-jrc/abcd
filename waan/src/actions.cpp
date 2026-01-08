@@ -914,7 +914,7 @@ state actions::bind_sockets(status &global_status)
         char *data_input_filename = NULL;
         size_t ade_buffer_size = 0;
 
-        get_filename_buffersize(data_input_address.c_str(), &data_input_filename, &ade_buffer_size);
+        get_filename_and_buffersize(data_input_address.c_str(), &data_input_filename, &ade_buffer_size);
 
         if (global_status.verbosity > 0)
         {
