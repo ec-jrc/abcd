@@ -1725,9 +1725,6 @@ state actions::clear_memory(status &global_status)
 
 state actions::close_sockets(status &global_status)
 {
-    // Wait a bit to prevent the slow-joiner syndrome
-    std::this_thread::sleep_for(std::chrono::milliseconds(defaults_all_slow_joiner_wait));
-
     std::this_thread::sleep_for(std::chrono::milliseconds(defaults_abcd_zmq_delay));
 
     void *status_socket = global_status.status_socket;
