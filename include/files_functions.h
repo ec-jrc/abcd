@@ -17,9 +17,6 @@
  * along with ABCD.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-// This is a personal academic project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
-
 #ifndef __FILES_FUNCTIONS_C__
 #define __FILES_FUNCTIONS_C__ 1
 
@@ -107,7 +104,7 @@ extern inline enum input_sources_t get_input_source_type(const char *address)
 /// @param[out] file_name The extracted file name, the memory will be allocated in the function if no error occurred, it needs to be freed
 /// @param[out] buffer_size The buffer size as specified in the address, if not specified it returns 0 (no multiplication to sizeof(event_PSD) is performed)
 /// @return EXIT_SUCCESS on success, EXIT_FAILURE on failure
-extern inline int get_filename_buffersize(const char *address, char **file_name, size_t *buffer_size)
+extern inline int get_filename_and_buffersize(const char *address, char **file_name, size_t *buffer_size)
 {
     const enum input_sources_t type = get_input_source_type(address);
 
