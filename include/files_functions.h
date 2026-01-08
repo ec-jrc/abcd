@@ -116,14 +116,12 @@ extern inline int get_filename_and_buffersize(const char *address, char **file_n
         return EXIT_FAILURE;
     }
 
-    printf("Empty filename: '%s' %d\n", (*file_name), type);
-
     if (type == RAW_FILE_INPUT)
     {
         // Raw files should have an address of the form 'file://<path_to_file>.adr'
         strcpy((*file_name), address + strlen(ADDRESS_PREFIX_FILE));
 
-        printf("Raw filename: '%s'\n", (*file_name));
+        //printf("Raw filename: '%s'\n", (*file_name));
 
         (*buffer_size) = 0;
 
