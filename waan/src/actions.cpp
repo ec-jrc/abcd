@@ -78,7 +78,7 @@ void actions::generic::publish_message(status &global_status,
     json_object_set_new(status_message, "timestamp", json_string(time_buffer));
     json_object_set_new(status_message, "msg_ID", json_integer(status_msg_ID));
 
-    send_json_message(status_socket, const_cast<char*>(topic.c_str()), status_message, 1);
+    send_json_message(status_socket, const_cast<char*>(topic.c_str()), status_message, global_status.verbosity);
 
     global_status.status_msg_ID += 1;
 }
@@ -1611,7 +1611,7 @@ state actions::read_socket(status &global_status)
                     const int result = send_byte_message(global_status.data_output_socket,
                                                          topic.c_str(),
                                                          reinterpret_cast<void*>(output_waveforms.data()),
-                                                         total_waveforms_size, 1);
+                                                         total_waveforms_size, global_status.verbosity);
 
                     global_status.waveforms_msg_ID += 1;
 
@@ -1649,7 +1649,7 @@ state actions::read_socket(status &global_status)
                     const int result = send_byte_message(global_status.data_output_socket,
                                                          topic.c_str(),
                                                          reinterpret_cast<void*>(output_events.data()),
-                                                         total_events_size, 1);
+                                                         total_events_size, global_status.verbosity);
 
                     global_status.events_msg_ID += 1;
 
