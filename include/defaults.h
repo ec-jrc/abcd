@@ -13,7 +13,6 @@
 #define defaults_enfi_base_period 10
 #define defaults_cofi_base_period 10
 #define defaults_chafi_base_period 10
-#define defaults_waps_base_period 10
 #define defaults_fifo_base_period 100
 #define defaults_califo_base_period 100
 #define defaults_replay_base_period 100
@@ -69,9 +68,6 @@
 
 #define defaults_chafi_ip "127.0.0.1"
 #define defaults_chafi_data_address "tcp://*:16209"
-
-#define defaults_waps_ip "127.0.0.1"
-#define defaults_waps_data_address "tcp://*:16197"
 
 #define defaults_fifo_ip "127.0.0.1"
 #define defaults_fifo_status_address "tcp://*:16198"
@@ -210,9 +206,6 @@
 
 #define defaults_chafi_topic_subscribe "data_abcd"
 
-#define defaults_waps_waveforms_buffer_multiplier 2
-#define defaults_waps_fixed_point_fractional_bits 10
-
 #define defaults_gzad_topic_subscribe ""
 #define defaults_unzad_topic_subscribe "compressed_"
 #define defaults_unzad_output_buffer_multiplier 4
@@ -259,5 +252,4 @@
 #define defaults_waan_config_file "config.json"
 #define defaults_waan_publish_period 3
 #define defaults_waan_waveforms_buffer_multiplier 2
-#define defaults_waan_fixed_point_fractional_bits 10
 #define defaults_waan_zmq_flush_delay 3000
