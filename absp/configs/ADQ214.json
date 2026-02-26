@@ -19,11 +19,11 @@
             "records_number_note": "This should be comparable to the expected rate",
             "timestamp_bit_shift": 5,
             "timestamp_bit_shift_note1": "the timestamp may be shifted in order to align it with the waan analysis module",
-            "timestamp_bit_shift_note2": "to have 8 bits of fractional part use: 5 bit",
-            "timestamp_bit_shift_note3": "the conversion factor then would be 1 / (400 MHz) / 256 (for PLL divider 2)",
-            "timestamp_bit_shift_note4": "it seems that the timestamp has a step of 1 / (800 MHz)",
-            "timestamp_bit_shift_note5": "there are two additional bits that increase its time resolution when using an external trigger",
-            "timestamp_bit_shift_note6": "in total there are then 3 bits of fractional part given by the digitizer",
+            "timestamp_bit_shift_note2": "the ADQ214 timestamp has a step of 1 / (800 MHz)",
+            "timestamp_bit_shift_note3": "there are two additional bits that increase its time resolution, only when using an external trigger",
+            "timestamp_bit_shift_note4": "so in total there are then 3 bits of fractional part given by the digitizer",
+            "timestamp_bit_shift_note5": "to have 8 bits of fractional part use: 5 bit",
+            "timestamp_bit_shift_note6": "the conversion factor is (PLL divider) / (800 MHz) / 2^(total number of fractional bits)",
             "PLL_divider": 2,
             "PLL_divider_note1": "The internal reference clock runs at 800 MHz, but the minimum value for the PLL divider is 2, maximum is 20",
             "PLL_divider_note2": "WARNING: Some values to not appear to work",
@@ -35,19 +35,21 @@
                 {
                     "name": "Detector",
                     "id": 0,
-                    "enable": false,
-                    "triggering": false,
+                    "enable": true,
+                    "triggering": true,
                     "triggering_note": "Enables the self triggering on this channel",
-                    "coupling": "DC",
-                    "coupling_possible_value0": "DC",
-                    "coupling_possible_value1": "DC"
+                    "coupling": "AC",
+                    "coupling_possible_value0": "AC",
+                    "coupling_possible_value1": "DC",
+                    "coupling_note1": "WARNING: The DC coupling has a significant higher noise level",
+                    "coupling_note2": "WARNING: The DC coupling has different offsets for the two channels, while the trigger level is common, so the effective minimum threshold for the two channels is different"
                 },
                 {
                     "name": "Detector",
                     "id": 1,
                     "enable": true,
                     "triggering": true,
-                    "coupling": "DC"
+                    "coupling": "AC"
                 },
                 {}
             ],
@@ -59,7 +61,8 @@
                 "slope": "rising",
                 "slope0": "rising",
                 "slope1": "falling",
-                "level": 32850
+                "level": 32850,
+                "level_note": "in absolute ADC channels, not relative to the baseline"
             },
             "trigger_output": {
                 "enable": false,
