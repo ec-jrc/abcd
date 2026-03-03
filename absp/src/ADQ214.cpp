@@ -442,7 +442,7 @@ int ABCD::ADQ214::Configure()
     }
 
     target_timestamps.resize(records_number);
-    target_headers.resize(records_number * ADQ214_RECORD_HEADER_SIZE / sizeof(uint32_t));
+    target_headers.resize(records_number * ADQ214_RECORD_HEADER_SIZE / sizeof(uint32_t), 0);
 
     // -------------------------------------------------------------------------
     //  Streaming setup
@@ -634,14 +634,32 @@ int ABCD::ADQ214::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
 
         // The board provides an extended timestamp with a sub-sampling resolution, only when using an external trigger.
         // We then shift the timestamp to fit the extended bits.
-        const uint64_t timestamp_basic = (target_timestamps[record_index] << ADQ214_EXTENDED_TIMESTAMP_NUMBER);
+        const uint64_t timestamp_basic = target_timestamps[record_index];
         const uint64_t timestamp_extended = ((target_headers[header_start + 2] & ADQ214_EXTENDED_TIMESTAMP_BITMASK) >> ADQ214_EXTENDED_TIMESTAMP_OFFSET);
 
         // We do not add the offset here because we want to check the digitizer
         // behaviour and not the correction.
-        timestamp_last = timestamp_basic + timestamp_extended;
+        timestamp_last = timestamp_basic;
 
-        const uint64_t timestamp_waveform = (timestamp_basic + timestamp_extended + timestamp_offset) << timestamp_bit_shift;
+        const uint64_t timestamp_waveform = ((timestamp_basic << ADQ214_EXTENDED_TIMESTAMP_NUMBER) + timestamp_extended + timestamp_offset) << timestamp_bit_shift;
+
+        if (GetVerbosity() > 2)
+        {
+            // According to 11-0701-C-Trigger_ApplicationNote.pdf the header should also contain the timestamp
+            const uint64_t timestamp_from_header = target_headers[header_start + 6] + (static_cast<uint64_t>(target_headers[header_start + 7]) << 32);
+
+            char time_buffer[BUFFER_SIZE];
+            time_string(time_buffer, BUFFER_SIZE, NULL);
+            std::cout << '[' << time_buffer << "] ABCD::ADQ214::GetWaveformsFromCard() ";
+            std::cout << "Timestamp basic:       0x" << std::setfill('0') << std::setw(16) << std::hex << timestamp_basic << std::dec << "; " << std::endl;
+            std::cout << '[' << time_buffer << "] ABCD::ADQ214::GetWaveformsFromCard() ";
+            std::cout << "Timestamp from header: 0x" << std::setfill('0') << std::setw(16) << std::hex << timestamp_from_header << std::dec << "; " << std::endl;
+            std::cout << '[' << time_buffer << "] ABCD::ADQ214::GetWaveformsFromCard() ";
+            std::cout << "Timestamp extended:    0x" << std::setfill('0') << std::setw(16) << std::hex << timestamp_extended << std::dec << "; " << std::endl;
+            std::cout << '[' << time_buffer << "] ABCD::ADQ214::GetWaveformsFromCard() ";
+            std::cout << "Timestamp waveform:    0x" << std::setfill('0') << std::setw(16) << std::hex << timestamp_waveform << std::dec << "; " << std::endl;
+            std::cout << std::endl;
+        }
 
         for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
             if (IsChannelEnabled(channel)) {
