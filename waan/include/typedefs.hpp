@@ -9,9 +9,9 @@
 #include <cstdint>
 #include <set>
 
-#include "defaults.h"
+#include <spdlog/spdlog.h>
 
-#define counter_type uint64_t
+#include "defaults.h"
 
 extern "C" {
 #include <zmq.h>
@@ -32,9 +32,10 @@ struct status
     std::string config_filename;
     std::string log_filename;
 
-    double ns_per_sample;
-
     json_t *config = nullptr;
+
+    std::shared_ptr<spdlog::logger> logger_console;
+    std::shared_ptr<spdlog::logger> logger_error;
 
     enum input_sources_t data_input_source;
 
@@ -46,7 +47,6 @@ struct status
 
     FILE *data_input_file = NULL;
 
-    unsigned int verbosity = 0;
     unsigned long int status_msg_ID = 0;
     unsigned long int waveforms_msg_ID = 0;
     unsigned long int events_msg_ID = 0;

@@ -29,6 +29,10 @@
 // For std::this_thread::sleep_for
 #include <thread>
 
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/basic_file_sink.h>
+
 extern "C" {
 #include "defaults.h"
 #include "utilities_functions.h"
@@ -36,9 +40,7 @@ extern "C" {
 
 #include "states.hpp"
 
-#define BUFFER_SIZE 32
-
-unsigned int verbosity = defaults_abcd_verbosity;
+unsigned int verbosity = 0;
 bool terminate_flag = false;
 
 //! Handles standard signals.
@@ -50,10 +52,7 @@ void signal_handler(int signum)
 {
     if (verbosity > 0)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-
-        std::cout << '[' << time_buffer << "] Signal: ";
+        std::cout << "Signal: ";
 
         if (signum == SIGINT)
             std::cout << "SIGINT" << std::endl;
@@ -95,8 +94,8 @@ void print_usage(const std::string &name = std::string("waan")) {
     std::cout << defaults_waan_base_period << std::endl;
     std::cout << "\t-p <period>: Set publish period in seconds, default: ";
     std::cout << defaults_waan_publish_period << std::endl;
-    std::cout << "\t-v: Set verbose execution" << std::endl;
-    std::cout << "\t-V: Set verbose execution with more output" << std::endl;
+    std::cout << "\t-v: Set verbose execution, repeating the option increases the verbosity level" << std::endl;
+    std::cout << "\t-l <log_filename>: Log to file instead of to the console" << std::endl;
 
     return;
 }
@@ -113,11 +112,12 @@ int main(int argc, char *argv[])
     std::string data_output_address = defaults_waan_data_address;
     std::string commands_address = defaults_waan_commands_address;
     std::string config_filename = defaults_waan_config_filename;
+    std::string log_filename;
     unsigned int base_period = defaults_waan_base_period;
     unsigned int publish_period = defaults_waan_publish_period;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hS:A:D:C:f:T:p:vl")) != -1) {
+    while ((c = getopt(argc, argv, "hS:A:D:C:f:T:p:vl:")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
@@ -152,10 +152,10 @@ int main(int argc, char *argv[])
                 }
                 break;
             case 'v':
-                verbosity = 1;
+                verbosity += 1;
                 break;
-            case 'V':
-                verbosity = 2;
+            case 'l':
+                log_filename = optarg;
                 break;
             default:
                 std::cout << "Unknown command: " << c << std::endl;
@@ -165,24 +165,51 @@ int main(int argc, char *argv[])
 
     status global_status;
 
-    global_status.verbosity = verbosity;
     global_status.publish_period = publish_period;
     global_status.config_filename = config_filename;
+    global_status.log_filename = log_filename;
     global_status.status_address = status_address;
     global_status.data_input_address = data_input_address;
     global_status.data_output_address = data_output_address;
     global_status.commands_address = commands_address;
 
-    if (global_status.verbosity > 0) {
-        std::cout << "Status socket address: " << status_address << std::endl;
-        std::cout << "Data input socket address: " << data_input_address << std::endl;
-        std::cout << "Data output socket address: " << data_output_address << std::endl;
-        std::cout << "Commands socket address: " << commands_address << std::endl;
-        std::cout << "Configuration file: " << config_filename << std::endl;
-        std::cout << "Verbosity: " << verbosity << std::endl;
-        std::cout << "Base period: " << base_period << std::endl;
-        std::cout << "Publish period: " << publish_period << std::endl;
+    try
+    {
+        if (log_filename.length() == 0)
+        {
+            global_status.logger_console = spdlog::stdout_color_mt("logger");
+            global_status.logger_error = spdlog::stderr_color_mt("error");
+        }
+        else
+        {
+            global_status.logger_console = spdlog::basic_logger_mt("logger", log_filename);
+            global_status.logger_error = global_status.logger_console;
+        }
     }
+    catch (const spdlog::spdlog_ex &ex)
+    {
+        std::cerr << "ERROR: Unable to initiate logger to file: " + log_filename << std::endl;
+
+        return EXIT_FAILURE;
+    }
+
+    if (verbosity == 0) {
+        global_status.logger_console->set_level(spdlog::level::off);
+    } else if (verbosity == 1) {
+        global_status.logger_console->set_level(spdlog::level::info);
+    } else if (verbosity == 2) {
+        global_status.logger_console->set_level(spdlog::level::debug);
+    }
+
+    global_status.logger_console->info("Status socket address: {}", status_address);
+    global_status.logger_console->info("Data input socket address: {}", data_input_address);
+    global_status.logger_console->info("Data output socket address: {}", data_output_address);
+    global_status.logger_console->info("Commands socket address: {}", commands_address);
+    global_status.logger_console->info("Configuration file: {}", config_filename);
+    global_status.logger_console->info("Verbosity: {}", verbosity);
+    global_status.logger_console->info("Log file: {}", log_filename);
+    global_status.logger_console->info("Base period: {}", base_period);
+    global_status.logger_console->info("Publish period: {}", publish_period);
 
     state current_state = states::START;
 
@@ -191,15 +218,7 @@ int main(int argc, char *argv[])
 
     while (!stop_execution)
     {
-        if (global_status.verbosity > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Current state (" << current_state.ID << "): ";
-            std::cout << current_state.description;
-            std::cout << std::endl;
-        }
+        global_status.logger_console->info("Current state ({0}): {1}", current_state.ID, current_state.description);
 
         if (terminate_flag)
         {

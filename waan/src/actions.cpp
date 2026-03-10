@@ -31,6 +31,10 @@
 #include <thread>
 #include <algorithm>
 
+#include <fmt/format.h>
+#include <spdlog/spdlog.h>
+#include <spdlog/stopwatch.h>
+
 extern "C" {
 #include <zmq.h>
 #include <jansson.h>
@@ -42,8 +46,6 @@ extern "C" {
 #include "states.hpp"
 #include "actions.hpp"
 
-#define counter_type uint64_t
-
 extern "C" {
 #include "defaults.h"
 #include "utilities_functions.h"
@@ -53,12 +55,6 @@ extern "C" {
 #include "events.h"
 #include "analysis_functions.h"
 }
-
-#define BUFFER_SIZE 32
-
-#define RED_COLOR "\x1b[0;31m"
-#define YELLOW_COLOR "\x1b[0;33m"
-#define NO_COLOR "\x1b[0m"
 
 /******************************************************************************/
 /* Generic actions                                                            */
@@ -71,27 +67,21 @@ void actions::generic::publish_message(status &global_status,
     void *status_socket = global_status.status_socket;
     const unsigned long int status_msg_ID = global_status.status_msg_ID;
 
-    char time_buffer[BUFFER_SIZE];
-    time_string(time_buffer, BUFFER_SIZE, NULL);
+    char time_buffer[std::size("  yyyy-mm-ddThh:mm:ssZ+00:00  ")];
+    time_string(time_buffer, std::size(time_buffer), NULL);
 
     json_object_set_new(status_message, "module", json_string("waan"));
     json_object_set_new(status_message, "timestamp", json_string(time_buffer));
     json_object_set_new(status_message, "msg_ID", json_integer(status_msg_ID));
 
-    send_json_message(status_socket, const_cast<char*>(topic.c_str()), status_message, global_status.verbosity);
+    send_json_message(status_socket, const_cast<char*>(topic.c_str()), status_message, 0);
 
     global_status.status_msg_ID += 1;
 }
 
 void actions::generic::clear_memory(status &global_status)
 {
-    if (global_status.verbosity > 0) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Cleaning up memory; ";
-        std::cout << std::endl;
-    }
+    global_status.logger_console->info("Cleaning up memory");
 
     ////////////////////////////////////////////////////////////////////////////
     // Cleaning up the memory and configurations                              //
@@ -108,14 +98,7 @@ void actions::generic::clear_memory(status &global_status)
         const unsigned int id = pair.first;
         void *const timestamp_config = pair.second;
 
-        if (global_status.verbosity > 0) {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Calling user close on the timestamp_user_config; ";
-            std::cout << "Channel: " << id << "; ";
-            std::cout << std::endl;
-        }
+        global_status.logger_console->info("Calling user close on the timestamp_user_config; Channel: {}", id);
 
         global_status.channels_timestamp_close[id].fn(timestamp_config);
     }
@@ -127,14 +110,7 @@ void actions::generic::clear_memory(status &global_status)
         const unsigned int id = pair.first;
         void *const energy_config = pair.second;
 
-        if (global_status.verbosity > 0) {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Calling user close on the energy_user_config; ";
-            std::cout << "Channel: " << id << "; ";
-            std::cout << std::endl;
-        }
+        global_status.logger_console->info("Calling user close on the energy_user_config; Channel: {}", id);
 
         global_status.channels_energy_close[id].fn(energy_config);
     }
@@ -166,15 +142,7 @@ void actions::generic::clear_memory(status &global_status)
 
 bool actions::generic::configure(status &global_status)
 {
-    unsigned int verbosity = global_status.verbosity;
-
-    if (global_status.verbosity > 0) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Configuring waan; ";
-        std::cout << std::endl;
-    }
+    global_status.logger_console->info("Configuring waan");
 
     actions::generic::clear_memory(global_status);
 
@@ -183,13 +151,7 @@ bool actions::generic::configure(status &global_status)
     ////////////////////////////////////////////////////////////////////////////
     // Starting the global configuration                                      //
     ////////////////////////////////////////////////////////////////////////////
-    if (global_status.verbosity > 0) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Global configuration; ";
-        std::cout << std::endl;
-    }
+    global_status.logger_console->info("Global configuration");
 
     global_status.forward_waveforms = json_is_true(json_object_get(config, "forward_waveforms"));
     global_status.enable_additional = json_is_true(json_object_get(config, "enable_additional"));
@@ -222,44 +184,20 @@ bool actions::generic::configure(status &global_status)
         json_object_set(config, "high_water_mark", json_integer(global_status.high_water_mark));
     }
 
-    if (global_status.verbosity > 0) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Forward waveforms: " << (global_status.forward_waveforms ? "true" : "false") << "; ";
-        std::cout << std::endl;
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Enable additional: " << (global_status.enable_additional ? "true" : "false") << "; ";
-        std::cout << std::endl;
-        std::cout << '[' << time_buffer << "] ";
-        if (global_status.high_water_mark > 0) {
-            std::cout << "High water mark: " << global_status.high_water_mark << "; ";
-        } else {
-            std::cout << "High water mark: " << "no limit" << "; ";
-        }
-        std::cout << std::endl;
-    }
+    global_status.logger_console->info("Forward waveforms: {}", global_status.forward_waveforms);
+    global_status.logger_console->info("Enable additional: {}", global_status.enable_additional);
+    global_status.logger_console->info("High water mark: {}", global_status.high_water_mark);
 
     ////////////////////////////////////////////////////////////////////////////
     // Starting the single channels configuration                             //
     ////////////////////////////////////////////////////////////////////////////
-    if (global_status.verbosity > 0) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Channels configuration; ";
-        std::cout << std::endl;
-    }
+    global_status.logger_console->info("Channels configuration");
 
     json_t *json_channels = json_object_get(config, "channels");
 
     if (json_channels == NULL || !json_is_array(json_channels))
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << YELLOW_COLOR << "WARNING" << NO_COLOR << ": No channels configuration; ";
-        std::cout << std::endl;
+        global_status.logger_error->warn("No channels configuration");
 
         json_channels = json_array();
 
@@ -291,38 +229,12 @@ bool actions::generic::configure(status &global_status)
         }
 
         if (channel_ids.size() > 0) {
-            if (verbosity > 0)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Found channel(s): ";
-                for (auto& id : channel_ids) {
-                    std::cout << id << " ";
-                }
-                std::cout << "; ";
-                std::cout << std::endl;
-            }
+            global_status.logger_console->info("Found channel(s): {}", fmt::join(channel_ids, ", "));
 
             const bool enabled = json_is_true(json_object_get(value, "enable"))
                                  || json_is_true(json_object_get(value, "enabled"));
 
-            if (verbosity > 0 && enabled)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Channel is enabled; ";
-                std::cout << std::endl;
-            }
-            else if (verbosity > 0 && !enabled)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Channel is disabled; ";
-                std::cout << std::endl;
-            }
+            global_status.logger_console->info("Channel is {}", enabled ? "enabled" : "disabled");
 
             bool dl_loading_error = false;
 
@@ -332,19 +244,11 @@ bool actions::generic::configure(status &global_status)
             // Libraries loading                                          //
             ////////////////////////////////////////////////////////////////
             if (!enabled) {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Not loading libraries for disabled channel; ";
-                std::cout << std::endl;
+                global_status.logger_console->info("Not loading libraries for disabled channel");
 
                 dl_loading_error = true;
             } else if (!json_is_object(libraries_json)) {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": user_libraries is not an object; ";
-                std::cout << std::endl;
+                global_status.logger_error->error("user_libraries is not an object");
 
                 dl_loading_error = true;
             } else {
@@ -358,30 +262,14 @@ bool actions::generic::configure(status &global_status)
                 const std::string lib_energy =
                     json_energy ? json_energy : "";
 
-                if (verbosity > 0)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ";
-                    std::cout << "Library for timestamp: " << lib_timestamp << "; ";
-                    std::cout << std::endl;
-                    std::cout << '[' << time_buffer << "] ";
-                    std::cout << "Library for energy:    " << lib_energy << "; ";
-                    std::cout << std::endl;
-                }
+                global_status.logger_console->info("Library for timestamp: {}", lib_timestamp);
+                global_status.logger_console->info("Library for energy: {}", lib_energy);
 
                 ////////////////////////////////////////////////////////////
                 // Timestamp analysis library                             //
                 ////////////////////////////////////////////////////////////
                 if (lib_timestamp.length() == 0) {
-                    if (verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << YELLOW_COLOR << "WARNING" << NO_COLOR << ": Empty timestamp library, using dummy_timestamp_analysis(); ";
-                        std::cout << std::endl;
-                    }
+                    global_status.logger_error->warn("Empty timestamp library, using dummy_timestamp_analysis()");
 
                     for (auto& id : channel_ids) {
                         global_status.channels_timestamp_init[id].fn = dummy_init;
@@ -389,25 +277,14 @@ bool actions::generic::configure(status &global_status)
                         global_status.channels_timestamp_analysis[id].fn = dummy_timestamp_analysis;
                     }
                 } else {
-                    if (verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Loading library: " << lib_timestamp << "; ";
-                        std::cout << std::endl;
-                    }
+                    global_status.logger_console->info("Loading library: {}", lib_timestamp);
 
                     void *dl_handle = dlopen(lib_timestamp.c_str(), RTLD_NOW);
 
                     if (!dl_handle) {
                         const std::string error_description = dlerror();
 
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load timestamp library: " << error_description << "; ";
-                        std::cout << std::endl;
+                        global_status.logger_error->error("Unable to load timestamp library: {}", error_description);
 
                         for (auto& id : channel_ids) {
                             const std::string event_description = "Load error on channel: " + std::to_string(id) \
@@ -426,23 +303,12 @@ bool actions::generic::configure(status &global_status)
 
                         dl_loading_error = true;
                     } else {
-                        if (verbosity > 0)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Loading timestamp_init() function; ";
-                            std::cout << std::endl;
-                        }
+                        global_status.logger_console->info("Loading timestamp_init() function");
 
                         void *dl_init = dlsym(dl_handle, "timestamp_init");
 
                         if (!dl_init) {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << YELLOW_COLOR << "WARNING" << NO_COLOR << ": Unable to load timestamp init function: " << dlerror() << "; ";
-                            std::cout << std::endl;
+                            global_status.logger_error->warn("Unable to load timestamp_init() function: {}", dlerror());
 
                             for (auto& id : channel_ids) {
                                 global_status.channels_timestamp_init[id].fn = dummy_init;
@@ -453,23 +319,12 @@ bool actions::generic::configure(status &global_status)
                             }
                         }
 
-                        if (verbosity > 0)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Loading timestamp_close() function; ";
-                            std::cout << std::endl;
-                        }
+                        global_status.logger_console->info("Loading timestamp_close() function");
 
                         void *dl_close = dlsym(dl_handle, "timestamp_close");
 
                         if (!dl_close) {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << YELLOW_COLOR << "WARNING" << NO_COLOR << ": Unable to load timestamp close function: " << dlerror() << "; ";
-                            std::cout << std::endl;
+                            global_status.logger_error->warn("Unable to load timestamp_close() function: {}", dlerror());
 
                             for (auto& id : channel_ids) {
                                 global_status.channels_timestamp_close[id].fn = dummy_close;
@@ -480,29 +335,18 @@ bool actions::generic::configure(status &global_status)
                             }
                         }
 
-                        if (verbosity > 0)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Loading timestamp_analysis() function; ";
-                            std::cout << std::endl;
-                        }
+                        global_status.logger_console->info("Loading timestamp_analysis() function");
 
                         void *dl_timestamp = dlsym(dl_handle, "timestamp_analysis");
 
                         if (!dl_timestamp) {
                             const std::string error_description = dlerror();
 
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load timestamp function: " << error_description << "; ";
-                            std::cout << std::endl;
+                            global_status.logger_error->error("Unable to load timestamp_analysis() function: {}", error_description);
 
                             for (auto& id : channel_ids) {
                                 const std::string event_description = "Load error on channel: " + std::to_string(id) \
-                                                                      + "; Unable to load the timestamp_analysis function from library: " + lib_timestamp \
+                                                                      + "; Unable to load the timestamp_analysis() function from library: " + lib_timestamp \
                                                                       + " (" + error_description + ")";
 
                                 json_t *json_event_message = json_object();
@@ -519,28 +363,14 @@ bool actions::generic::configure(status &global_status)
                         }
 
                         if (!dl_loading_error) {
-                            if (verbosity > 0)
-                            {
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << "Successfully loaded the functions; ";
-                                std::cout << std::endl;
-                            }
+                            global_status.logger_console->info("Successfully loaded the functions");
 
                             for (auto& id : channel_ids) {
                                 global_status.dl_timestamp_handles[id] = dl_handle;
                                 global_status.channels_timestamp_analysis[id].obj = dl_timestamp;
                             }
                         } else {
-                            if (verbosity > 0)
-                            {
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": unable to load the functions; ";
-                                std::cout << std::endl;
-                            }
+                            global_status.logger_error->error("Unable to load the functions");
                         }
                     }
                 }
@@ -549,36 +379,18 @@ bool actions::generic::configure(status &global_status)
                 // Energy analysis library                                //
                 ////////////////////////////////////////////////////////////
                 if (lib_energy.length() == 0) {
-                    if (verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Empty energy library; ";
-                        std::cout << std::endl;
-                    }
+                    global_status.logger_error->error("Empty energy library");
 
                     dl_loading_error = true;
                 } else {
-                    if (verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Loading library: " << lib_energy << "; ";
-                        std::cout << std::endl;
-                    }
+                    global_status.logger_console->info("Loading library: {}", lib_energy);
 
                     void *dl_handle = dlopen(lib_energy.c_str(), RTLD_NOW);
 
                     if (!dl_handle) {
                         const std::string error_description = dlerror();
 
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy library: " << error_description << "; ";
-                        std::cout << std::endl;
+                        global_status.logger_error->error("Unable to load energy library: {}", error_description);
 
                         for (auto& id : channel_ids) {
                             const std::string event_description = "Load error on channel: " + std::to_string(id) \
@@ -597,23 +409,12 @@ bool actions::generic::configure(status &global_status)
 
                         dl_loading_error = true;
                     } else {
-                        if (verbosity > 0)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Loading energy_init() function; ";
-                            std::cout << std::endl;
-                        }
+                        global_status.logger_console->info("Loading energy_init() function");
 
                         void *dl_init = dlsym(dl_handle, "energy_init");
 
                         if (!dl_init) {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy init function: " << dlerror() << "; ";
-                            std::cout << std::endl;
+                            global_status.logger_error->warn("Unable to load energy_init() function: {}", dlerror());
 
                             for (auto& id : channel_ids) {
                                 global_status.channels_energy_init[id].fn = dummy_init;
@@ -624,23 +425,12 @@ bool actions::generic::configure(status &global_status)
                             }
                         }
 
-                        if (verbosity > 0)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Loading energy_close() function; ";
-                            std::cout << std::endl;
-                        }
+                        global_status.logger_console->info("Loading energy_close() function");
 
                         void *dl_close = dlsym(dl_handle, "energy_close");
 
                         if (!dl_close) {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy close function: " << dlerror() << "; ";
-                            std::cout << std::endl;
+                            global_status.logger_error->warn("Unable to load energy_close() function: {}", dlerror());
 
                             for (auto& id : channel_ids) {
                                 global_status.channels_energy_close[id].fn = dummy_close;
@@ -651,29 +441,18 @@ bool actions::generic::configure(status &global_status)
                             }
                         }
 
-                        if (verbosity > 0)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Loading energy_analysis() function; ";
-                            std::cout << std::endl;
-                        }
+                        global_status.logger_console->info("Loading energy_analysis() function");
 
                         void *dl_energy = dlsym(dl_handle, "energy_analysis");
 
                         if (!dl_energy) {
                             const std::string error_description = dlerror();
 
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to load energy function: " << error_description << "; ";
-                            std::cout << std::endl;
+                            global_status.logger_error->error("Unable to load energy_analysis() function: {}", error_description);
 
                             for (auto& id : channel_ids) {
                                 const std::string event_description = "Load error on channel: " + std::to_string(id) \
-                                                                      + "; Unable to load the energy_analysis function from library: " + lib_energy \
+                                                                      + "; Unable to load the energy_analysis() function from library: " + lib_energy \
                                                                       + " (" + error_description + ")";
 
                                 json_t *json_event_message = json_object();
@@ -690,28 +469,14 @@ bool actions::generic::configure(status &global_status)
                         }
 
                         if (!dl_loading_error) {
-                            if (verbosity > 0)
-                            {
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << "Successfully loaded the functions; ";
-                                std::cout << std::endl;
-                            }
+                            global_status.logger_console->info("Successfully loaded the functions");
 
                             for (auto& id : channel_ids) {
                                 global_status.dl_energy_handles[id] = dl_handle;
                                 global_status.channels_energy_analysis[id].obj = dl_energy;
                             }
                         } else {
-                            if (verbosity > 0)
-                            {
-                                char time_buffer[BUFFER_SIZE];
-                                time_string(time_buffer, BUFFER_SIZE, NULL);
-                                std::cout << '[' << time_buffer << "] ";
-                                std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": unable to load the functions; ";
-                                std::cout << std::endl;
-                            }
+                            global_status.logger_error->error("Unable to load the functions");
                         }
                     }
                 }
@@ -728,26 +493,14 @@ bool actions::generic::configure(status &global_status)
                     json_t *user_config = json_object_get(value, "user_config");
 
                     if (user_config == NULL || !json_is_object(user_config)) {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << YELLOW_COLOR << "WARNING" << NO_COLOR << ": user_config is not an object for channel " << id << "; ";
-                        std::cout << std::endl;
+                        global_status.logger_error->warn("user_config is not an object for channel {}", id);
 
                         user_config = json_object();
 
                         json_object_set_nocheck(value, "user_config", user_config);
                     }
 
-                    if (verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Calling user init; ";
-                        std::cout << "Channel: " << id << "; ";
-                        std::cout << std::endl;
-                    }
+                    global_status.logger_console->info("Calling user inits; Channel: {}", id);
 
                     global_status.channels_timestamp_init[id].fn(user_config,
                                                                  &timestamp_user_config);
@@ -764,14 +517,7 @@ bool actions::generic::configure(status &global_status)
         }
     }
 
-    if (verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Configuration of waan completed successfully!";
-        std::cout << std::endl;
-    }
+    global_status.logger_console->info("Configuration of waan completed successfully!");
 
     return true;
 }
@@ -791,11 +537,7 @@ state actions::create_context(status &global_status)
     if (!context)
     {
         // No errors are defined for this function
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on context creation";
-        std::cout << std::endl;
+        global_status.logger_error->error("ZeroMQ Error on context creation");
 
         return states::COMMUNICATION_ERROR;
     }
@@ -814,12 +556,7 @@ state actions::create_sockets(status &global_status)
     void *status_socket = zmq_socket(context, ZMQ_PUB);
     if (!status_socket)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on status socket creation: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        global_status.logger_error->error("ZeroMQ Error on status socket creation: {}", zmq_strerror(errno));
 
         return states::COMMUNICATION_ERROR;
     }
@@ -827,12 +564,7 @@ state actions::create_sockets(status &global_status)
     void *data_output_socket = zmq_socket(context, ZMQ_PUB);
     if (!data_output_socket)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on output data socket creation: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        global_status.logger_error->error("ZeroMQ Error on data output socket creation: {}", zmq_strerror(errno));
 
         return states::COMMUNICATION_ERROR;
     }
@@ -842,12 +574,7 @@ state actions::create_sockets(status &global_status)
     void *data_input_socket = zmq_socket(context, ZMQ_SUB);
     if (!data_input_socket)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on input data socket creation: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        global_status.logger_error->error("ZeroMQ Error on data input socket creation: {}", zmq_strerror(errno));
 
         return states::COMMUNICATION_ERROR;
     }
@@ -855,12 +582,7 @@ state actions::create_sockets(status &global_status)
     void *commands_socket = zmq_socket(context, ZMQ_PULL);
     if (!commands_socket)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on commands socket creation: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        global_status.logger_error->error("ZeroMQ Error on commands socket creation: {}", zmq_strerror(errno));
 
         return states::COMMUNICATION_ERROR;
     }
@@ -885,12 +607,7 @@ state actions::bind_sockets(status &global_status)
     const int s = zmq_bind(global_status.status_socket, status_address.c_str());
     if (s != 0)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on status socket binding: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        global_status.logger_error->error("ZeroMQ Error on status socket binding: {}", zmq_strerror(errno));
 
         return states::COMMUNICATION_ERROR;
     }
@@ -898,12 +615,7 @@ state actions::bind_sockets(status &global_status)
     const int d = zmq_bind(global_status.data_output_socket, data_output_address.c_str());
     if (d != 0)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on data socket binding: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        global_status.logger_error->error("ZeroMQ Error on data output socket binding: {}", zmq_strerror(errno));
 
         return states::COMMUNICATION_ERROR;
     }
@@ -916,45 +628,22 @@ state actions::bind_sockets(status &global_status)
 
         get_filename_and_buffersize(data_input_address.c_str(), &data_input_filename, &ade_buffer_size);
 
-        if (global_status.verbosity > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Opening data file: " << data_input_filename << " ";
-            std::cout << std::endl;
-        }
+        global_status.logger_console->info("Opening data file: {}", data_input_filename);
 
         global_status.data_input_file = fopen(data_input_filename, "rb");
 
         if (!global_status.data_input_file) {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to open file to be read";
-            std::cout << std::endl;
+            global_status.logger_error->error("Unable to open file {} to read", data_input_filename);
 
             return states::COMMUNICATION_ERROR;
         }
     } else {
-        if (global_status.verbosity > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Connecting data input socket to: " << data_input_address << " ";
-            std::cout << std::endl;
-        }
+        global_status.logger_console->info("Connecting data input socket to: {}", data_input_address);
 
         const int a = zmq_connect(global_status.data_input_socket, data_input_address.c_str());
         if (a != 0)
         {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on data socket connection: ";
-            std::cout << zmq_strerror(errno);
-            std::cout << std::endl;
+            global_status.logger_error->error("ZeroMQ Error on data input socket connection: {}", zmq_strerror(errno));
 
             return states::COMMUNICATION_ERROR;
         }
@@ -968,12 +657,7 @@ state actions::bind_sockets(status &global_status)
     const int c = zmq_bind(global_status.commands_socket, commands_address.c_str());
     if (c != 0)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": ZeroMQ Error on commands socket binding: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        global_status.logger_error->error("ZeroMQ Error on commands socket binding: {}", zmq_strerror(errno));
 
         return states::COMMUNICATION_ERROR;
     }
@@ -990,14 +674,7 @@ state actions::read_config(status &global_status)
 {
     const std::string config_filename = global_status.config_filename;
 
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Reading config file: " << config_filename << " ";
-        std::cout << std::endl;
-    }
+    global_status.logger_console->info("Reading config file: {}", config_filename);
 
     json_error_t error;
 
@@ -1005,21 +682,7 @@ state actions::read_config(status &global_status)
 
     if (!new_config)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Parse error while reading config file: ";
-        std::cout << error.text;
-        std::cout << " (source: ";
-        std::cout << error.source;
-        std::cout << ", line: ";
-        std::cout << error.line;
-        std::cout << ", column: ";
-        std::cout << error.column;
-        std::cout << ", position: ";
-        std::cout << error.position;
-        std::cout << "); ";
-        std::cout << std::endl;
+        global_status.logger_error->error("Parse error while reading config file: {} (source: {}, line: {}, column: {}, position: {}", error.text, error.source, error.line, error.column, error.position);
 
         return states::PARSE_ERROR;
     }
@@ -1058,23 +721,12 @@ state actions::apply_config(status &global_status)
 
 state actions::publish_status(status &global_status)
 {
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Publishing status; ";
-        std::cout << std::endl;
-    }
+    global_status.logger_console->info("Publishing status");
 
     json_t *status_message = json_object();
     if (status_message == NULL)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to create status_message json; ";
-        std::cout << std::endl;
+        global_status.logger_error->error("Unable to create status_message json");
 
         // I am not sure what to do here...
         //return false;
@@ -1083,11 +735,7 @@ state actions::publish_status(status &global_status)
     json_t *active_channels = json_array();
     if (active_channels == NULL)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to create active_channels json; ";
-        std::cout << std::endl;
+        global_status.logger_error->error("Unable to create active_channels json");
 
         json_decref(status_message);
 
@@ -1098,11 +746,7 @@ state actions::publish_status(status &global_status)
     json_t *disabled_channels = json_array();
     if (disabled_channels == NULL)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to create disabled_channels json; ";
-        std::cout << std::endl;
+        global_status.logger_error->error("Unable to create disabled_channels json");
 
         json_decref(status_message);
         json_decref(active_channels);
@@ -1114,11 +758,7 @@ state actions::publish_status(status &global_status)
     json_t *channels_statuses = json_array();
     if (channels_statuses == NULL)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Unable to create active_channels json; ";
-        std::cout << std::endl;
+        global_status.logger_error->error("Unable to create active_channels json");
 
         json_decref(status_message);
         json_decref(active_channels);
@@ -1139,14 +779,7 @@ state actions::publish_status(status &global_status)
 
         global_status.partial_counts[channel] = 0;
 
-        if (global_status.verbosity > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Publishing status for active channel: " << channel << "; ";
-            std::cout << std::endl;
-        }
+        global_status.logger_console->info("Publishing status for active channel: {}", channel);
 
         json_t *channel_status = json_object();
 
@@ -1182,38 +815,21 @@ state actions::receive_commands(status &global_status)
 {
     void *commands_socket = global_status.commands_socket;
 
-    if (global_status.verbosity > 1) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Receiving command... ";
-        std::cout << std::endl;
-    }
+    global_status.logger_console->debug("Receiving command...");
 
     json_t *json_message = NULL;
 
-    const int result = receive_json_message(commands_socket, NULL, &json_message, false, global_status.verbosity);
+    const int result = receive_json_message(commands_socket, NULL, &json_message, false, 0);
 
     if (!json_message || result == EXIT_FAILURE)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << RED_COLOR << "ERROR" << NO_COLOR << ": Error on receiving JSON commands message";
-        std::cout << std::endl;
+        global_status.logger_error->error("Error on receiving JSON commands message");
     }
     else
     {
         const size_t command_ID = json_integer_value(json_object_get(json_message, "msg_ID"));
 
-        if (global_status.verbosity > 1) {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Received command; ";
-            std::cout << "Command ID: " << command_ID << "; ";
-            std::cout << std::endl;
-        }
+        global_status.logger_console->debug("Received command; msg_ID: {}", command_ID);
 
         json_t *json_command = json_object_get(json_message, "command");
         json_t *json_arguments = json_object_get(json_message, "arguments");
@@ -1222,14 +838,7 @@ state actions::receive_commands(status &global_status)
         {
             const std::string command = json_string_value(json_command);
 
-            if (global_status.verbosity > 0)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Received command: " << command << "; ";
-                std::cout << std::endl;
-            }
+            global_status.logger_console->debug("Received command: {}", command);
 
             if (command == std::string("reconfigure") && json_arguments) {
                 json_t *new_config = json_object_get(json_arguments, "config");
@@ -1260,11 +869,7 @@ state actions::receive_commands(status &global_status)
                 {
                     std::string event_description = "Unable to store configuration file to: " + config_filename;
 
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ";
-                    std::cout << "ERROR: " << event_description << "; ";
-                    std::cout << std::endl;
+                    global_status.logger_error->error(event_description);
 
                     json_t *json_event_message = json_object();
 
@@ -1304,7 +909,6 @@ state actions::read_socket(status &global_status)
 {
     void *data_input_socket = global_status.data_input_socket;
     FILE *data_input_file = global_status.data_input_file;
-    const int verbosity = global_status.verbosity;
 
     char *topic = NULL;
     char *buffer_input = NULL;
@@ -1315,9 +919,9 @@ state actions::read_socket(status &global_status)
     int inner_counter = 0;
 
     if (global_status.data_input_source == RAW_FILE_INPUT) {
-        result = read_byte_message_from_adr(data_input_file, &topic, (void **)(&buffer_input), &size, true, global_status.verbosity);
+        result = read_byte_message_from_adr(data_input_file, &topic, (void **)(&buffer_input), &size, true, 0);
     } else {
-        result = receive_byte_message(data_input_socket, &topic, (void **)(&buffer_input), &size, true, global_status.verbosity);
+        result = receive_byte_message(data_input_socket, &topic, (void **)(&buffer_input), &size, true, 0);
     }
 
     const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
@@ -1331,44 +935,19 @@ state actions::read_socket(status &global_status)
 
         const std::string topic_string(topic);
 
-        if (verbosity > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Message size: " << size << "; ";
-            std::cout << "Topic: " << topic << "; ";
-            std::cout << "Inner counter: " << inner_counter << "; ";
-            std::cout << "verbosity: " << verbosity << "; ";
-            std::cout << "Topic search: " << topic_string.find(defaults_abcd_data_waveforms_topic) << "; ";
-            std::cout << std::endl;
-        }
+        global_status.logger_console->debug("Message size: {}; Topic: {}; inner_counter: {}; topic search: {}", size, inner_counter, topic_string.find(defaults_abcd_data_waveforms_topic));
 
         if (topic_string.find(defaults_abcd_data_waveforms_topic) == 0) {
 
             // According to the ZeroMQ documentation a high_water_mark of zero
             // means no limit, so we use the same convention.
             if (inner_counter > global_status.high_water_mark && global_status.high_water_mark > 0) {
-                if (verbosity > 1)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ";
-                    std::cout << YELLOW_COLOR << "ERROR" << NO_COLOR << ": ";
-                    std::cout << "Reached the high water mark, consuming message but not analysing it; ";
-                    std::cout << std::endl;
-                }
+                global_status.logger_error->warn("Reached the high water mark, consuming message but not analysing it");
             } else {
-                if (verbosity > 1)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ";
-                    std::cout << "Waveform message to be analyzed; ";
-                    std::cout << std::endl;
-                }
+                global_status.logger_console->info("Waveform message to be analyzed of size: {}", size);
 
-                const clock_t event_start = clock();
+                spdlog::stopwatch stopwatch;
+
                 size_t waveforms_number = 0;
 
                 std::vector<struct event_PSD> output_events;
@@ -1382,36 +961,22 @@ state actions::read_socket(status &global_status)
                 // waveforms data as the gates are half as big as the samples.
                 output_waveforms.reserve(size * defaults_waan_waveforms_buffer_multiplier);
 
+                std::map<unsigned int, bool> disabled_already_warned;
+
                 size_t input_offset = 0;
 
                 // We add 14 bytes to the input_offset because we want to be sure to read at least
                 // the first header of the waveform
                 while ((input_offset + waveform_header_size()) < size)
                 {
-                    if (verbosity > 1)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Message size: " << (unsigned long)size << "; ";
-                        std::cout << "Input offset: " << (unsigned long)input_offset << "; ";
-                        std::cout << std::endl;
-                    }
+                    global_status.logger_console->debug("Message size: {}; input_offset: {}", size, input_offset);
 
                     uint64_t timestamp = *((uint64_t *)(buffer_input + input_offset));
                     const uint8_t this_channel = *((uint8_t *)(buffer_input + input_offset + 8));
                     const uint32_t samples_number = *((uint32_t *)(buffer_input + input_offset + 9));
                     const uint8_t gates_number = *((uint8_t *)(buffer_input + input_offset + 13));
 
-                    if (verbosity > 1)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Channel: " << (unsigned int)this_channel << "; ";
-                        std::cout << "Samples number: " << (unsigned int)samples_number << "; ";
-                        std::cout << std::endl;
-                    }
+                    global_status.logger_console->debug("Channel: {}; number of samples: {}", this_channel, samples_number);
 
                     const bool is_active = std::find(global_status.active_channels.begin(),
                                                      global_status.active_channels.end(),
@@ -1421,40 +986,20 @@ state actions::read_socket(status &global_status)
                                                + (samples_number * gates_number * sizeof(uint8_t));
 
                     if (!is_active) {
-                        if (verbosity > 0)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Channel " << (unsigned int)this_channel << " is disabled; ";
-                            std::cout << std::endl;
+                        if (!disabled_already_warned[this_channel]) {
+                            global_status.logger_console->warn("Channel {} is disabled", this_channel);
+                            disabled_already_warned[this_channel] = true;
                         }
 
                         global_status.disabled_channels.insert(this_channel);
                     }
 
                     if  (needed_offset > size) {
-                        if (verbosity > 0)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << YELLOW_COLOR << "WARNING" << NO_COLOR << ": Uncomplete waveform in buffer; ";
-                            std::cout << "needed offset: " << needed_offset << "; size:" << size << "; ";
-                            std::cout << std::endl;
-                        }
+                        global_status.logger_error->warn("Incomplete waveform in buffer; needed_offset: {}; size: {}", needed_offset, size);
                     }
 
                     if (is_active && (needed_offset <= size)) {
-
-                        if (verbosity > 1)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Channel is active, reading samples; ";
-                            std::cout << std::endl;
-                        }
+                        global_status.logger_console->debug("Channel {} is active, reading samples...", this_channel);
 
                         waveforms_number += 1;
 
@@ -1478,14 +1023,7 @@ state actions::read_socket(status &global_status)
                                                     gates + samples_number * i * sizeof(uint8_t));
                         }
 
-                        if (verbosity > 1)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Allocating events buffer; ";
-                            std::cout << std::endl;
-                        }
+                        global_status.logger_console->debug("Allocating events buffer");
 
                         struct event_PSD *events_buffer = (struct event_PSD *)calloc(1, sizeof(struct event_PSD));
                         uint32_t *trigger_positions = (uint32_t*)calloc(1, sizeof(uint32_t));
@@ -1494,14 +1032,7 @@ state actions::read_socket(status &global_status)
                         events_buffer[0].timestamp = timestamp;
                         events_buffer[0].channel = this_channel;
 
-                        if (verbosity > 1)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Timestamp analysis; ";
-                            std::cout << std::endl;
-                        }
+                        global_status.logger_console->debug("Timestamp analysis");
 
                         global_status.channels_timestamp_analysis[this_channel].
                             fn(samples,
@@ -1512,18 +1043,9 @@ state actions::read_socket(status &global_status)
                                &events_number,
                                global_status.channels_timestamp_user_config[this_channel]);
 
-                        if (verbosity > 1)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Samples number: " << (unsigned int)samples_number << "; ";
-                            std::cout << "Events number: " << (unsigned int)events_number << "; ";
-                            std::cout << std::endl;
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Energy analysis; ";
-                            std::cout << std::endl;
-                        }
+                        global_status.logger_console->debug("Channel {}; samples_number: {}, events_number: {}", this_channel, samples_number, events_number);
+
+                        global_status.logger_console->debug("Energy analysis");
 
                         global_status.channels_energy_analysis[this_channel].
                             fn(samples,
@@ -1533,6 +1055,8 @@ state actions::read_socket(status &global_status)
                                &events_buffer,
                                &events_number,
                                global_status.channels_energy_user_config[this_channel]);
+
+                        global_status.logger_console->debug("Channel {}; samples_number: {}, events_number: {}", this_channel, samples_number, events_number);
 
                         if (events_number > 0 && global_status.forward_waveforms) {
                             if (!global_status.enable_additional) {
@@ -1561,14 +1085,7 @@ state actions::read_socket(status &global_status)
                                    events_number * sizeof(struct event_PSD));
                         }
 
-                        if (verbosity > 1)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Events number: " << (unsigned int)events_number << "; ";
-                            std::cout << std::endl;
-                        }
+                        global_status.logger_console->debug("Channel {}; samples_number: {}, events_number: {}", this_channel, samples_number, events_number);
 
                         if (trigger_positions) {
                             free(trigger_positions);
@@ -1597,31 +1114,18 @@ state actions::read_socket(status &global_status)
                     topic += "_s";
                     topic += std::to_string(total_waveforms_size);
 
-                    if (global_status.verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Sending waveforms buffer; ";
-                        std::cout << "Topic: " << topic << "; ";
-                        std::cout << "buffer size: " << total_waveforms_size << "; ";
-                        std::cout << std::endl;
-                    }
+                    global_status.logger_console->info("Sending waveforms buffer; Topic: {}; buffer size: {}", topic, total_waveforms_size);
 
                     const int result = send_byte_message(global_status.data_output_socket,
                                                          topic.c_str(),
                                                          reinterpret_cast<void*>(output_waveforms.data()),
-                                                         total_waveforms_size, global_status.verbosity);
+                                                         total_waveforms_size, 0);
 
                     global_status.waveforms_msg_ID += 1;
 
                     if (result == EXIT_FAILURE)
                     {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "ZeroMQ Error publishing events waveforms";
-                        std::cout << std::endl;
+                        global_status.logger_error->error("ZeroMQ Error on publishing events' waveforms");
                     }
                 }
 
@@ -1635,44 +1139,26 @@ state actions::read_socket(status &global_status)
                     topic += "_s";
                     topic += std::to_string(total_events_size);
 
-                    if (global_status.verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Sending events buffer; ";
-                        std::cout << "Topic: " << topic << "; ";
-                        std::cout << "buffer size: " << total_events_size << "; ";
-                        std::cout << std::endl;
-                    }
+                    global_status.logger_console->info("Sending events buffer; Topic: {}; buffer size: {}", topic, total_events_size);
+
 
                     const int result = send_byte_message(global_status.data_output_socket,
                                                          topic.c_str(),
                                                          reinterpret_cast<void*>(output_events.data()),
-                                                         total_events_size, global_status.verbosity);
+                                                         total_events_size, 0);
 
                     global_status.events_msg_ID += 1;
 
                     if (result == EXIT_FAILURE)
                     {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "ZeroMQ Error publishing events PSDs";
-                        std::cout << std::endl;
+                        global_status.logger_error->error("ZeroMQ Error on publishing events' event_PSDs");
                     }
                 }
 
-                const clock_t event_stop = clock();
+                const auto elapsed = stopwatch.elapsed();
+                const double elapsed_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count();
 
-                if (verbosity > 0)
-                {
-                    const float elaboration_time = (float)(event_stop - event_start) / CLOCKS_PER_SEC * 1000;
-                    const float elaboration_speed = size / elaboration_time * 1000.0 / 1024.0 / 1024.0;
-                    const float elaboration_rate = waveforms_number / elaboration_time * 1000.0;
-
-                    printf("size: %zu; waveforms_number: %zu; elaboration_time: %f ms; elaboration_speed: %f MBi/s, %f evts/s\n", size, waveforms_number, elaboration_time, elaboration_speed, elaboration_rate);
-                }
+                global_status.logger_console->info("Elaboration end; elapsed: {:.2f} ms; number of waveforms: {}; elaboration speed: {:.2f} events/s", elapsed_ns / 1e6, waveforms_number, waveforms_number / (elapsed_ns / 1e6));
             }
         }
 
@@ -1683,9 +1169,9 @@ state actions::read_socket(status &global_status)
         buffer_input = NULL;
 
         if (global_status.data_input_source == RAW_FILE_INPUT) {
-            result = read_byte_message_from_adr(data_input_file, &topic, (void **)(&buffer_input), &size, true, global_status.verbosity);
+            result = read_byte_message_from_adr(data_input_file, &topic, (void **)(&buffer_input), &size, true, 0);
         } else {
-            result = receive_byte_message(data_input_socket, &topic, (void **)(&buffer_input), &size, true, global_status.verbosity);
+            result = receive_byte_message(data_input_socket, &topic, (void **)(&buffer_input), &size, true, 0);
         }
     }
 
@@ -1736,45 +1222,25 @@ state actions::close_sockets(status &global_status)
     const int s = zmq_close(status_socket);
     if (s != 0)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ZeroMQ Error on status socket close: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        global_status.logger_error->error("ZeroMQ Error on status socket close");
     }
 
     const int i = zmq_close(data_input_socket);
     if (i != 0)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ZeroMQ Error on input data socket close: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        global_status.logger_error->error("ZeroMQ Error on data input socket close");
     }
 
     const int o = zmq_close(data_output_socket);
     if (o != 0)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ZeroMQ Error on output data socket close: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        global_status.logger_error->error("ZeroMQ Error on data output socket close");
     }
 
     const int c = zmq_close(commands_socket);
     if (c != 0)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ZeroMQ Error on commands socket close: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        global_status.logger_error->error("ZeroMQ Error on commands socket close");
     }
 
     if (data_input_file) {
@@ -1793,12 +1259,7 @@ state actions::destroy_context(status &global_status)
     const int c = zmq_ctx_destroy(context);
     if (c != 0)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ZeroMQ Error on context destroy: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        global_status.logger_error->error("ZeroMQ Error on context destroy");
     }
 
     return states::STOP;
