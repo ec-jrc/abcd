@@ -928,8 +928,6 @@ bool actions::generic::configure_digitizer(status &global_status)
 
                     const std::chrono::time_point<std::chrono::system_clock> configuration_single_start = std::chrono::system_clock::now();
 
-                    auto delta_time = std::chrono::duration_cast<std::chrono::duration<long int>>(global_status.stop_time - global_status.start_time);
-
                     const int config_result = (digitizer)->Configure();
 
                     if (verbosity > 0)
