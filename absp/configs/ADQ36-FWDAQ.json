@@ -74,7 +74,8 @@
                     "pretrigger": 128,
                     "pretrigger_note": "it must be a multiple of 8",
                     "scope_samples": 1024,
-                    "scope_samples_note": "minimum value 32",
+                    "scope_samples_note1": "minimum value 32",
+                    "scope_samples_note2": "it must probably be a multiple of 8",
                     "records_per_buffer": 100,
                     "records_per_buffer_note": "This should roughly match the expected rate",
                     "zzz": null
