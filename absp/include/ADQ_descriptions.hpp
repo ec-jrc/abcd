@@ -76,6 +76,8 @@
 
 #define ADQ_ADQ36_ERROR_PARAMETERS_VALIDATION -1
 #define ADQ_ADQ36_ERROR_CONFIGURATION -2
+#define ADQ_ADQ36_SAMPLES_RESOLUTION 8.0 // Some settings must be a multiple of this number
+#define ADQ_ADQ36_MINIMUM_SCOPE_SAMPLES 32
 
 class ADQ_descriptions {
 public:

@@ -1262,7 +1262,7 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
 
                 const int raw_pretrigger = json_number_value(json_object_get(value, "pretrigger"));
 
-                const int64_t pretrigger = (raw_pretrigger - (raw_pretrigger % 8));
+                const int64_t pretrigger = std::ceil(raw_pretrigger / ADQ_ADQ36_SAMPLES_RESOLUTION) * ADQ_ADQ36_SAMPLES_RESOLUTION;
 
                 json_object_set_nocheck(value, "pretrigger", json_integer(pretrigger));
 
@@ -1274,8 +1274,9 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                     std::cout << std::endl;
                 }
 
-                const unsigned int raw_scope_samples = json_number_value(json_object_get(value, "scope_samples"));
-                const int64_t scope_samples = (raw_scope_samples < 32) ? 32 : raw_scope_samples;
+                unsigned int raw_scope_samples = json_number_value(json_object_get(value, "scope_samples"));
+                raw_scope_samples = (raw_scope_samples < ADQ_ADQ36_MINIMUM_SCOPE_SAMPLES) ? ADQ_ADQ36_MINIMUM_SCOPE_SAMPLES : raw_scope_samples;
+                const int64_t scope_samples = std::ceil(raw_scope_samples / ADQ_ADQ36_SAMPLES_RESOLUTION) * ADQ_ADQ36_SAMPLES_RESOLUTION;
 
                 json_object_set_nocheck(value, "scope_samples", json_integer(scope_samples));
 
