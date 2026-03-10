@@ -17,6 +17,12 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -Wall -Wextra -pedantic")
 
+find_path(FMT_INCLUDE_DIR NAMES fmt/format.h)
+find_library(FMT_LIBRARY NAMES fmt)
+
+find_path(SPDLOG_INCLUDE_DIR NAMES spdlog/spdlog.h)
+find_library(SPDLOG_LIBRARY NAMES spdlog)
+
 find_path(ZMQ_INCLUDE_DIR NAMES zmq.h)
 find_library(ZMQ_LIBRARY NAMES zmq)
 
@@ -36,8 +42,8 @@ file(GLOB CONFIGS "${CMAKE_CURRENT_SOURCE_DIR}/configs/*.json")
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${PROJECT_NAME}.cpp)
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${ZMQ_INCLUDE_DIR} ${JANSSON_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} PUBLIC dl ${ZMQ_LIBRARY} ${JANSSON_LIBRARY})
+target_include_directories(${PROJECT_NAME} PUBLIC ${FMT_INCLUDE_DIR} ${SPDLOG_INCLUDE_DIR} ${ZMQ_INCLUDE_DIR} ${JANSSON_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} PUBLIC dl ${FMT_LIBRARY} ${SPDLOG_LIBRARY} ${ZMQ_LIBRARY} ${JANSSON_LIBRARY})
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     # This property will tell macOS' dyld where to look for user libraries
