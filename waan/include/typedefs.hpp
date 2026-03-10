@@ -29,7 +29,8 @@ struct status
     std::string commands_address = defaults_waan_commands_address;
     std::string subscription_topic = defaults_abcd_events_topic;
 
-    std::string config_file;
+    std::string config_filename;
+    std::string log_filename;
 
     double ns_per_sample;
 

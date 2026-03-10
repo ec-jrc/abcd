@@ -988,20 +988,20 @@ state actions::bind_sockets(status &global_status)
 
 state actions::read_config(status &global_status)
 {
-    const std::string config_file_name = global_status.config_file;
+    const std::string config_filename = global_status.config_filename;
 
     if (global_status.verbosity > 0)
     {
         char time_buffer[BUFFER_SIZE];
         time_string(time_buffer, BUFFER_SIZE, NULL);
         std::cout << '[' << time_buffer << "] ";
-        std::cout << "Reading config file: " << config_file_name << " ";
+        std::cout << "Reading config file: " << config_filename << " ";
         std::cout << std::endl;
     }
 
     json_error_t error;
 
-    json_t *new_config = json_load_file(config_file_name.c_str(), 0, &error);
+    json_t *new_config = json_load_file(config_filename.c_str(), 0, &error);
 
     if (!new_config)
     {
@@ -1166,7 +1166,7 @@ state actions::publish_status(status &global_status)
     json_object_set_new_nocheck(status_message, "active_channels", active_channels);
     json_object_set_new_nocheck(status_message, "disabled_channels", disabled_channels);
     json_object_set_new_nocheck(status_message, "config", json_deep_copy(global_status.config));
-    json_object_set_new_nocheck(status_message, "config_file", json_string(global_status.config_file.c_str()));
+    json_object_set_new_nocheck(status_message, "config_file", json_string(global_status.config_filename.c_str()));
 
     actions::generic::publish_message(global_status, defaults_waan_status_topic, status_message);
 
@@ -1252,13 +1252,13 @@ state actions::receive_commands(status &global_status)
 
                 return states::APPLY_CONFIG;
             } else if (command == std::string("store_configuration")) {
-                const std::string config_file_name = global_status.config_file;
+                const std::string config_filename = global_status.config_filename;
 
-                const int r = json_dump_file(global_status.config, config_file_name.c_str(), JSON_INDENT(4));
+                const int r = json_dump_file(global_status.config, config_filename.c_str(), JSON_INDENT(4));
 
                 if (r < 0)
                 {
-                    std::string event_description = "Unable to store configuration file to: " + config_file_name;
+                    std::string event_description = "Unable to store configuration file to: " + config_filename;
 
                     char time_buffer[BUFFER_SIZE];
                     time_string(time_buffer, BUFFER_SIZE, NULL);
@@ -1276,7 +1276,7 @@ state actions::receive_commands(status &global_status)
                     json_decref(json_event_message);
 
                 } else {
-                    const std::string event_description = "Stored configuration to " + config_file_name;
+                    const std::string event_description = "Stored configuration to " + config_filename;
 
                     json_t *json_event_message = json_object();
 

@@ -90,7 +90,7 @@ void print_usage(const std::string &name = std::string("waan")) {
     std::cout << "\t-C <address>: Commands socket address, default: ";
     std::cout << defaults_waan_commands_address << std::endl;
     std::cout << "\t-f <file_name>: Digitizer configuration file, default: ";
-    std::cout << defaults_waan_config_file << std::endl;
+    std::cout << defaults_waan_config_filename << std::endl;
     std::cout << "\t-T <period>: Set base period in milliseconds, default: ";
     std::cout << defaults_waan_base_period << std::endl;
     std::cout << "\t-p <period>: Set publish period in seconds, default: ";
@@ -103,14 +103,6 @@ void print_usage(const std::string &name = std::string("waan")) {
 
 int main(int argc, char *argv[])
 {
-    // Show "splash screen"
-    std::cout << std::endl;
-    std::cout << "=============================" << std::endl;
-    std::cout << " Wa.An. software - v. 0.1    " << std::endl;
-    std::cout << " Waveforms Analysis software " << std::endl;
-    std::cout << "=============================" << std::endl;
-    std::cout << std::endl;
-
     // Register the handler for SIGTERM (from kill), SIGINT (from ctrl-c)
     signal(SIGTERM, signal_handler);
     signal(SIGINT, signal_handler);
@@ -120,12 +112,12 @@ int main(int argc, char *argv[])
     std::string data_input_address = defaults_abcd_data_address_sub;
     std::string data_output_address = defaults_waan_data_address;
     std::string commands_address = defaults_waan_commands_address;
-    std::string config_file = defaults_waan_config_file;
+    std::string config_filename = defaults_waan_config_filename;
     unsigned int base_period = defaults_waan_base_period;
     unsigned int publish_period = defaults_waan_publish_period;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hS:A:D:C:f:T:p:vV")) != -1) {
+    while ((c = getopt(argc, argv, "hS:A:D:C:f:T:p:vl")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
@@ -143,7 +135,7 @@ int main(int argc, char *argv[])
                 commands_address = optarg;
                 break;
             case 'f':
-                config_file = optarg;
+                config_filename = optarg;
                 break;
             case 'T':
                 try
@@ -175,7 +167,7 @@ int main(int argc, char *argv[])
 
     global_status.verbosity = verbosity;
     global_status.publish_period = publish_period;
-    global_status.config_file = config_file;
+    global_status.config_filename = config_filename;
     global_status.status_address = status_address;
     global_status.data_input_address = data_input_address;
     global_status.data_output_address = data_output_address;
@@ -186,7 +178,7 @@ int main(int argc, char *argv[])
         std::cout << "Data input socket address: " << data_input_address << std::endl;
         std::cout << "Data output socket address: " << data_output_address << std::endl;
         std::cout << "Commands socket address: " << commands_address << std::endl;
-        std::cout << "Configuration file: " << config_file << std::endl;
+        std::cout << "Configuration file: " << config_filename << std::endl;
         std::cout << "Verbosity: " << verbosity << std::endl;
         std::cout << "Base period: " << base_period << std::endl;
         std::cout << "Publish period: " << publish_period << std::endl;

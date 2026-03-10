@@ -249,7 +249,7 @@
 #define defaults_califo_background_order 2
 #define defaults_califo_background_compton false
 
-#define defaults_waan_config_file "config.json"
+#define defaults_waan_config_filename "config.json"
 #define defaults_waan_publish_period 3
 #define defaults_waan_waveforms_buffer_multiplier 2
 #define defaults_waan_zmq_flush_delay 3000
