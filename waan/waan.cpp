@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2021,2022,2023,2024 European Union, Cristiano Lino Fontana
+ * (C) Copyright 2021,2022,2023,2024,2026 European Union, Cristiano Lino Fontana
  *
  * This file is part of ABCD.
  *
@@ -40,7 +40,6 @@ extern "C" {
 
 #include "states.hpp"
 
-unsigned int verbosity = 0;
 bool terminate_flag = false;
 
 //! Handles standard signals.
@@ -50,20 +49,6 @@ bool terminate_flag = false;
  */
 void signal_handler(int signum)
 {
-    if (verbosity > 0)
-    {
-        std::cout << "Signal: ";
-
-        if (signum == SIGINT)
-            std::cout << "SIGINT" << std::endl;
-        else if (signum == SIGTERM)
-            std::cout << "SIGTERM" << std::endl;
-        else if (signum == SIGHUP)
-            std::cout << "SIGHUP" << std::endl;
-        else
-            std::cout << signum << std::endl;
-    }
-
     if (signum == SIGINT || signum == SIGTERM || signum == SIGHUP)
     {
         terminate_flag = true;
@@ -115,6 +100,7 @@ int main(int argc, char *argv[])
     std::string log_filename;
     unsigned int base_period = defaults_waan_base_period;
     unsigned int publish_period = defaults_waan_publish_period;
+    unsigned int verbosity = 0;
 
     int c = 0;
     while ((c = getopt(argc, argv, "hS:A:D:C:f:T:p:vl:")) != -1) {
