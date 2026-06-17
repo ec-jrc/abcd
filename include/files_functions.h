@@ -138,7 +138,7 @@ extern inline int get_filename_and_buffersize(const char *address, char **file_n
         if (str_buffer_size)
         {
             strncpy((*file_name), address + strlen(ADDRESS_PREFIX_FILE), strlen(address) - strlen(ADDRESS_PREFIX_FILE) - 1 - strlen(str_buffer_size));
-            (*buffer_size) = abs(atol(str_buffer_size));
+            (*buffer_size) = labs(atol(str_buffer_size));
         }
         else
         {
