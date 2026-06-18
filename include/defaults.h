@@ -26,7 +26,7 @@
 
 #define defaults_abcd_ip "127.0.0.1"
 #define defaults_abcd_status_address "tcp://*:16180"
-#define defaults_abcd_data_address "tcp://*:16181"
+#define defaults_abcd_data_output_address "tcp://*:16181"
 #define defaults_abcd_commands_address "tcp://*:16182"
 #define defaults_abcd_status_address_sub "tcp://127.0.0.1:16180"
 #define defaults_abcd_data_address_sub "tcp://127.0.0.1:16181"
@@ -139,7 +139,7 @@
 /******************************************************************************/
 #define defaults_all_topic_buffer_size 1024
 
-#define defaults_abcd_config_file "config.json"
+#define defaults_abcd_config_filename "config.json"
 #define defaults_abcd_verbosity 0
 #define defaults_abcd_negative_limit 0xfffa
 #define defaults_abcd_events_buffer_max_size 4096
