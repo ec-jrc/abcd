@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2016, 2025 Cristiano Lino Fontana
+ * (C) Copyright 2016, 2025, 2026 Cristiano Lino Fontana
  *
  * This file is part of ABCD.
  *
@@ -113,80 +113,173 @@ int main(int argc, char *argv[])
     const char *polygon_file_name = argv[optind];
 
     json_error_t error;
-    json_t *json_polygon = json_load_file(polygon_file_name, 0, &error);
+    json_t *json_config = json_load_file(polygon_file_name, 0, &error);
 
-    if (!json_polygon)
+    if (!json_config)
     {
         printf("ERROR: Parse error while reading polygon file: %s (source: %s, line: %d, column: %d, position: %d)\n", error.text, error.source, error.line, error.column, error.position);
 
         return EXIT_FAILURE;
     }
 
-    if (!json_is_array(json_polygon))
+    if (!json_is_array(json_config))
     {
         printf("ERROR: JSON file does not contain a single array\n");
 
-        json_decref(json_polygon);
+        json_decref(json_config);
 
         return EXIT_FAILURE;
     }
 
-    const size_t number_of_points = json_array_size(json_polygon);
+    struct Point_t *all_polygons[ABCD_MAX_NUMBER_OF_CHANNELS];
+    struct BoundingBox_t all_bounding_boxes[ABCD_MAX_NUMBER_OF_CHANNELS];
+    size_t all_number_of_points[ABCD_MAX_NUMBER_OF_CHANNELS];
 
-    if (number_of_points < 3)
+    for (int channel = 0; channel < ABCD_MAX_NUMBER_OF_CHANNELS; channel += 1)
     {
-        printf("ERROR: Polygon needs at least three points\n");
-
-        json_decref(json_polygon);
-
-        return EXIT_FAILURE;
+        all_polygons[channel] = NULL;
+        all_number_of_points[channel] = 0;
     }
 
-    // One point is added to copy the first point to the end and close the loop
-    struct Point_t *polygon = (struct Point_t *)malloc((number_of_points + 1) * sizeof(struct Point_t));
-
-    if (polygon == NULL)
-    {
-        printf("ERROR: Unable to allocate memory for polygon\n");
-
-        json_decref(json_polygon);
-
-        return EXIT_FAILURE;
-    }
-
+    size_t polygons_counter = 0;
     size_t index;
-    json_t *json_point;
+    json_t *value;
 
-    json_array_foreach(json_polygon, index, json_point) {
-        polygon[index].x = json_number_value(json_object_get(json_point, "x"));
-        polygon[index].y = json_number_value(json_object_get(json_point, "y"));
+    json_array_foreach(json_config, index, value) {
+        // The id may be a single integer or an array of integers
+        json_t *json_id = json_object_get(value, "id");
+
+        unsigned int channel_ids[ABCD_MAX_NUMBER_OF_CHANNELS];
+        unsigned int channel_ids_counter = 0;
+
+        if (json_id != NULL && json_is_integer(json_id)) {
+            const int id = json_number_value(json_id);
+
+            if (0 <= id && id < ABCD_MAX_NUMBER_OF_CHANNELS) {
+                channel_ids[channel_ids_counter] = id;
+                channel_ids_counter += 1;
+
+                if (verbosity > 0)
+                {
+                    printf("Found single channel %d\n", id);
+                }
+            } else {
+                printf("ERROR: Channel ids out of range, got: %d, skipping it\n", id);
+            }
+        } else if (json_id != NULL && json_is_array(json_id)) {
+            size_t id_index;
+            json_t *id_value;
+
+            json_array_foreach(json_id, id_index, id_value) {
+                if (id_value != NULL && json_is_integer(id_value)) {
+                    const int id = json_number_value(id_value);
+
+                    if (0 <= id && id < ABCD_MAX_NUMBER_OF_CHANNELS) {
+                        channel_ids[channel_ids_counter] = id;
+                        channel_ids_counter += 1;
+
+                        if (verbosity > 0)
+                        {
+                            printf("Found channel %d\n", id);
+                        }
+                    } else {
+                        printf("ERROR: Channel id out of range, got: %d, skipping it\n", id);
+                    }
+                }
+            }
+        } else {
+            printf("ERROR: Unable to find channel id, skipping this configuration\n");
+            continue;
+        }
+
+        json_t *json_polygon = json_object_get(value, "polygon");
+
+        if (!json_is_array(json_polygon))
+        {
+            printf("ERROR: The polygon definition should be an array, skipping this configuration\n");
+            continue;
+        }
+
+        const size_t number_of_points = json_array_size(json_polygon);
+
+        if (number_of_points < 3)
+        {
+            printf("ERROR: Polygon for has less than 3 points, skipping this configuration\n");
+            continue;
+        }
+
+        for (unsigned int id_index = 0; id_index < channel_ids_counter; id_index += 1) {
+            // Recreating the polygon for all the channels so there would
+            // not be a double free for repeated channels
+            struct Point_t *polygon = (struct Point_t *)calloc((number_of_points + 1), sizeof(struct Point_t));
+
+            if (polygon == NULL)
+            {
+                printf("ERROR: Unable to allocate memory for polygon\n");
+                continue;
+            }
+
+            size_t index;
+            json_t *json_point;
+
+            json_array_foreach(json_polygon, index, json_point) {
+                polygon[index].x = json_number_value(json_object_get(json_point, "x"));
+                polygon[index].y = json_number_value(json_object_get(json_point, "y"));
+            }
+
+            // Close the loop
+            polygon[number_of_points].x = polygon[0].x;
+            polygon[number_of_points].y = polygon[0].y;
+
+            struct BoundingBox_t bounding_box = compute_bounding_box(polygon, number_of_points);
+
+            unsigned int channel = channel_ids[id_index];
+
+            all_polygons[channel] = polygon;
+            all_bounding_boxes[channel] = bounding_box;
+            all_number_of_points[channel] = number_of_points;
+
+            if (verbosity > 0)
+            {
+                printf("Loaded polygon for channel %u with %zu points\n", channel, number_of_points);
+            }
+        }
+
+        polygons_counter++;
     }
 
-    json_decref(json_polygon);
+    json_decref(json_config);
 
-    // The winding number algorithm expects a closed loop so we repeat the first point
-    polygon[number_of_points].x = polygon[0].x;
-    polygon[number_of_points].y = polygon[0].y;
-
-    // Compute the bounding box for a faster check up
-    const struct BoundingBox_t bounding_box = compute_bounding_box(polygon, number_of_points);
+    if (polygons_counter == 0)
+    {
+        printf("ERROR: No valid polygons loaded\n");
+        return EXIT_FAILURE;
+    }
 
     if (verbosity > 0) {
         printf("Input socket address: %s\n", input_address);
         printf("Output socket address: %s\n", output_address);
         printf("Verbosity: %u\n", verbosity);
         printf("Base period: %u\n", base_period);
+        printf("Number of polygons: %zu\n", polygons_counter);
     }
 
     if (verbosity > 1) {
-        for (size_t i = 0; i < number_of_points + 1; i++)
+        for (size_t channel = 0; channel < ABCD_MAX_NUMBER_OF_CHANNELS; channel += 1)
         {
-            printf("[i: %zu] point x: %f; y: %f;\n", i, polygon[i].x, polygon[i].y);
+            if (all_polygons[channel] != NULL) {
+                printf("Channel %zu\n", channel);
+
+                for (size_t index_point = 0; index_point < all_number_of_points[channel] + 1; index_point++)
+                {
+                    printf("[i: %zu] point x: %f; y: %f;\n", index_point, all_polygons[channel][index_point].x, all_polygons[channel][index_point].y);
+                }
+                printf("Bounding box: x: [%f, %f]; y: [%f, %f];\n", all_bounding_boxes[channel].top_left.x,
+                                                                    all_bounding_boxes[channel].bottom_right.x,
+                                                                    all_bounding_boxes[channel].bottom_right.y,
+                                                                    all_bounding_boxes[channel].top_left.y);
+            }
         }
-        printf("Bounding box: x: [%f, %f]; y: [%f, %f];\n", bounding_box.top_left.x,
-                                                            bounding_box.bottom_right.x,
-                                                            bounding_box.bottom_right.y,
-                                                            bounding_box.top_left.y);
     }
 
     // Creates a ZeroMQ context
@@ -277,6 +370,7 @@ int main(int argc, char *argv[])
                 const size_t events_number = size / sizeof(struct event_PSD);
 
                 size_t bounding_box_selected_number = 0;
+                size_t polygon_selected_number = 0;
                 size_t selected_number = 0;
 
                 struct event_PSD *events = (void *)input_buffer;
@@ -300,33 +394,53 @@ int main(int argc, char *argv[])
                             const struct event_PSD this_event = events[i];
                             //printf("i: %zu, ch: %d, t: %lu\n", i, this_event.channel, this_event.timestamp);
 
-                            // We cast everything to double because the winding algorithm is
-                            // expecting two variables of the same type.
-                            const double energy = this_event.qlong;
-                            const double PSD = (energy - this_event.qshort) / energy;
-                            const struct Point_t point = {energy, PSD};
+                            const uint8_t channel = this_event.channel;
+                            struct Point_t *polygon = all_polygons[channel];
 
-                            if (point_in_bounding_box(point, bounding_box))
+                            // Not filtering events without a polygon
+                            if (polygon == NULL)
                             {
-                                bounding_box_selected_number++;
-
-                                const int winding_number = point_winding_number(point, polygon, number_of_points);
-
-                                if (verbosity > 1)
+                                if (verbosity > 2)
                                 {
-                                    printf("Point in bounding box i: %zu; energy: %f; PSD: %f; winding_number: %d;\n", i, energy, PSD, winding_number);
+                                    printf("Channel %" PRIu8 " has no polygon, keeping it\n", channel);
                                 }
 
-                                // The winding number is zero only when the point is outside the polygon
-                                if (winding_number != 0)
-                                {
-                                    selected_events[selected_number] = this_event;
+                                selected_events[selected_number] = this_event;
 
-                                    selected_number++;
+                                selected_number++;
+                            } else {
+                                // We cast everything to double because the winding algorithm is
+                                // expecting two variables of the same type.
+                                const double energy = this_event.qlong;
+                                const double PSD = (energy - this_event.qshort) / energy;
+                                const struct Point_t point = {energy, PSD};
+
+                                struct BoundingBox_t bounding_box = all_bounding_boxes[channel];
+                                size_t number_of_points = all_number_of_points[channel];
+
+                                if (point_in_bounding_box(point, bounding_box))
+                                {
+                                    bounding_box_selected_number++;
+
+                                    const int winding_number = point_winding_number(point, polygon, number_of_points);
 
                                     if (verbosity > 1)
                                     {
-                                        printf("Point selected!!!\n");
+                                        printf("Point in bounding box i: %zu; ch: %" PRIu8 "; energy: %f; PSD: %f; winding_number: %d;\n", i, channel, energy, PSD, winding_number);
+                                    }
+
+                                    // The winding number is zero only when the point is outside the polygon
+                                    if (winding_number != 0)
+                                    {
+                                        selected_events[selected_number] = this_event;
+
+                                        selected_number++;
+                                        polygon_selected_number++;
+
+                                        if (verbosity > 1)
+                                        {
+                                            printf("Point selected!!!\n");
+                                        }
                                     }
                                 }
                             }
@@ -354,10 +468,10 @@ int main(int argc, char *argv[])
 
                 if (verbosity > 0)
                 {
-                    const float elaboration_time = (float)(event_stop - event_start) / CLOCKS_PER_SEC * 1000;
-                    const float elaboration_speed = size / elaboration_time * 1000.0 / 1024.0 / 1024.0;
+                    const float elaboration_time = (float)(event_stop - event_start) / CLOCKS_PER_SEC * 1000; // ms
+                    const float elaboration_speed = events_number / (elaboration_time / 1000.0);
 
-                    printf("size: %zu; events_number: %zu; bounding_box_selected_number: %zu; selected_number: %zu; ratio: %.2f%%; elaboration_time: %f ms; elaboration_speed: %f MBi/s\n", size, events_number, bounding_box_selected_number, selected_number, selected_number / (float)events_number * 100, elaboration_time, elaboration_speed);
+                    printf("size: %zu; events_number: %zu; bounding_box_selected_number: %zu; polygon_selected_number: %zu; selected_number: %zu; ratio: %.2f%%; elaboration_time: %f ms; elaboration_speed: %.0f events/s\n", size, events_number, bounding_box_selected_number, polygon_selected_number, selected_number, selected_number / (float)events_number * 100, elaboration_time, elaboration_speed);
                 }
             }
 
@@ -383,7 +497,13 @@ int main(int argc, char *argv[])
         }
     }
 
-    free(polygon);
+    for (int channel = 0; channel < ABCD_MAX_NUMBER_OF_CHANNELS; channel += 1)
+    {
+        if (all_polygons[channel] != NULL)
+        {
+            free(all_polygons[channel]);
+        }
+    }
 
     // Wait a bit to allow the sockets to deliver
     nanosleep(&slow_joiner_wait, NULL);
@@ -413,15 +533,21 @@ int main(int argc, char *argv[])
 }
 
 void print_usage(const char *name) {
-    printf("Usage: %s [options] <polygon_file_name>\n", name);
+    printf("Usage: %s [options] <polygon_config_file_name>\n", name);
     printf("\n");
     printf("Datastream filter that selects data according to the PSD parameter:\n");
     printf("\n");
     printf("    PSD = Qtail / Qlong\n");
     printf("\n");
-    printf("The selection is defined by a polygon on the (energy, PSD) plane.\n");
-    printf("The polygon points shall be defined in a JSON file containing a signle array of x and y values\n");
-    printf("Of course there should be at least three points to have a valid polygon.\n");
+    printf("The selection is defined by polygons on the (energy, PSD) plane.\n");
+    printf("The polygon configuration shall be defined in a JSON file containing\n");
+    printf("an array with channel configurations containing one polygon array.\n");
+    printf("Channels that are not specified are not filtered and retain their whole statistics.\n");
+    printf("Example:\n");
+    printf("  [\n");
+    printf("    { \"id\": 0, \"polygon\": [{\"x\": 0, \"y\": 0}, {\"x\": 100, \"y\": 0}, {\"x\": 100, \"y\": 0.5}, {\"x\": 0, \"y\": 0.5}] },\n");
+    printf("    { \"id\": [1, 2], \"polygon\": [{\"x\": 0, \"y\": 0}, {\"x\": 100, \"y\": 0}, {\"x\": 100, \"y\": 0.5}, {\"x\": 0, \"y\": 0.5}] }\n");
+    printf("  ]\n");
     printf("\n");
     printf("Optional arguments:\n");
     printf("\t-h: Display this message\n");
