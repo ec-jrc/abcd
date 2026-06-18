@@ -2,7 +2,6 @@
 /* Base Periods                                                               */
 /******************************************************************************/
 #define defaults_abcd_base_period 10
-#define defaults_hijk_base_period 500
 #define defaults_dasa_base_period 100
 #define defaults_spec_base_period 100
 #define defaults_wafi_base_period 100
@@ -30,12 +29,6 @@
 #define defaults_abcd_commands_address "tcp://*:16182"
 #define defaults_abcd_status_address_sub "tcp://127.0.0.1:16180"
 #define defaults_abcd_data_address_sub "tcp://127.0.0.1:16181"
-
-#define defaults_efg_http_port 8080
-
-#define defaults_hijk_ip "127.0.0.1"
-#define defaults_hijk_status_address "tcp://*:16183"
-#define defaults_hijk_commands_address "tcp://*:16184"
 
 #define defaults_dasa_ip "127.0.0.1"
 #define defaults_dasa_status_address "tcp://*:16185"
@@ -96,9 +89,6 @@
 #define defaults_abcd_data_events_topic "data_abcd_events"
 #define defaults_abcd_data_waveforms_topic "data_abcd_waveforms"
 
-#define defaults_hijk_status_topic "status_hijk"
-#define defaults_hijk_events_topic "events_hijk"
-
 #define defaults_dasa_status_topic "status_dasa"
 #define defaults_dasa_events_topic "events_dasa"
 
@@ -129,10 +119,6 @@
 #define defaults_abcd_link_number 1
 #define defaults_abcd_CONET_node 0
 #define defaults_abcd_VME_address 0
-#define defaults_hijk_connection_type 0
-#define defaults_hijk_link_number 0
-#define defaults_hijk_CONET_node 0
-#define defaults_hijk_VME_address 0
 
 /******************************************************************************/
 /* Generic configurations                                                     */
@@ -160,12 +146,6 @@
 #define defaults_absp_waveforms_expected_number_of_samples 1024
 #define defaults_absp_counter_restarts_max 3
 #define defaults_absp_counter_resets_max 3
-
-#define defaults_efg_publish_timeout 3
-
-#define defaults_hijk_config_file "config_hv.json"
-#define defaults_hijk_verbosity 1
-#define defaults_hijk_model 6533
 
 #define defaults_dasa_verbosity 0
 #define defaults_dasa_publish_timeout 3
