@@ -8,6 +8,10 @@
 // For memcpy
 #include <string.h>
 
+#define ABCD_MAX_NUMBER_OF_CHANNELS (UINT8_MAX + 1)
+#define ABCD_MAX_NUMBER_OF_SAMPLES (UINT32_MAX + 1)
+#define ABCD_MAX_NUMBER_OF_ADDITIONAL (UINT8_MAX + 1)
+
 struct event_PSD
 {
     // It is necessary to have the size of this struct a multiple of 64 bits.
