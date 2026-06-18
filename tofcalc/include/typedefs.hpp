@@ -24,7 +24,7 @@ struct status
     std::string status_address = defaults_tofcalc_status_address;
     std::string data_address = defaults_tofcalc_data_address;
     std::string commands_address = defaults_tofcalc_commands_address;
-    std::string abcd_data_address = defaults_abcd_data_address;
+    std::string abcd_data_address = defaults_abcd_data_output_address;
     std::string subscription_topic = defaults_abcd_events_topic;
 
     std::string config_file;

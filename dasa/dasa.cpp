@@ -91,7 +91,7 @@ void signal_handler(int signum)
 
 void print_usage(const std::string &name = std::string("dasa")) {
     char abcd_data_address[sizeof("[wxyz://255.255.255.255:65535]")];
-    address_bind_to_connect(abcd_data_address, sizeof(abcd_data_address), defaults_abcd_data_address, defaults_abcd_ip);
+    address_bind_to_connect(abcd_data_address, sizeof(abcd_data_address), defaults_abcd_data_output_address, defaults_abcd_ip);
     
     char abcd_status_address[sizeof("[wxyz://255.255.255.255:65535]")];
     address_bind_to_connect(abcd_status_address, sizeof(abcd_status_address), defaults_abcd_status_address, defaults_abcd_ip);
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
     #endif
 
     char str_abcd_data_address[sizeof("[wxyz://255.255.255.255:65535]")];
-    address_bind_to_connect(str_abcd_data_address, sizeof(str_abcd_data_address), defaults_abcd_data_address, defaults_abcd_ip);
+    address_bind_to_connect(str_abcd_data_address, sizeof(str_abcd_data_address), defaults_abcd_data_output_address, defaults_abcd_ip);
     
     char str_abcd_status_address[sizeof("[wxyz://255.255.255.255:65535]")];
     address_bind_to_connect(str_abcd_status_address, sizeof(str_abcd_status_address), defaults_abcd_status_address, defaults_abcd_ip);

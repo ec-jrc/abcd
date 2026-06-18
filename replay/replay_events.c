@@ -64,7 +64,7 @@ void print_usage(const char *name) {
     printf("\t-v: Set verbose execution\n");
     printf("\t-V: Set verbose execution with more details\n");
     printf("\t-c: Enable continuous execution\n");
-    printf("\t-D <address>: Data socket address, default: %s\n", defaults_abcd_data_address);
+    printf("\t-D <address>: Data socket address, default: %s\n", defaults_abcd_data_output_address);
     printf("\t-T <period>: Set base period in milliseconds, default: %d\n", defaults_replay_base_period);
     printf("\t             For a very fast replay, 0 ms is also accepted.\n");
     printf("\t-B <size>: Events output buffers size, default: %d\n", defaults_all_topic_buffer_size);
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 {
     unsigned int verbosity = 0;
     unsigned int base_period = defaults_replay_base_period;
-    char *data_address = defaults_abcd_data_address;
+    char *data_output_address = defaults_abcd_data_output_address;
     unsigned int skip_packets = defaults_replay_skip;
     size_t buffer_size = defaults_all_topic_buffer_size;
     bool continuous_execution = false;
@@ -89,7 +89,7 @@ int main(int argc, char *argv[])
                 print_usage(argv[0]);
                 return EXIT_SUCCESS;
             case 'D':
-                data_address = optarg;
+                data_output_address = optarg;
                 break;
             case 'T':
                 base_period = atoi(optarg);
@@ -124,7 +124,7 @@ int main(int argc, char *argv[])
     const char *file_name = argv[optind];
 
     if (verbosity > 0) {
-        printf("Data socket address: %s\n", data_address);
+        printf("Data socket address: %s\n", data_output_address);
         printf("Buffer size: %zu\n", buffer_size);
         printf("File: %s\n", file_name);
         printf("Continuous execution: %s\n", continuous_execution ? "true" : "false");
@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    const int d = zmq_bind(data_socket, data_address);
+    const int d = zmq_bind(data_socket, data_output_address);
     if (d != 0)
     {
         printf("ERROR: ZeroMQ Error on data socket binding: %s\n", zmq_strerror(errno));

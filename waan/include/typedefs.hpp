@@ -24,10 +24,16 @@ extern "C" {
 struct status
 {
     std::string status_address = defaults_waan_status_address;
-    std::string data_input_address = defaults_abcd_data_address;
+    std::string data_input_address = defaults_abcd_data_output_address;
     std::string data_output_address = defaults_waan_data_address;
     std::string commands_address = defaults_waan_commands_address;
     std::string subscription_topic = defaults_abcd_events_topic;
+
+    void *context = nullptr;
+    void *status_socket = nullptr;
+    void *data_input_socket = nullptr;
+    void *data_output_socket = nullptr;
+    void *commands_socket = nullptr;
 
     std::string config_filename;
     std::string log_filename;
@@ -38,12 +44,6 @@ struct status
     std::shared_ptr<spdlog::logger> logger_error;
 
     enum input_sources_t data_input_source;
-
-    void *context = nullptr;
-    void *status_socket = nullptr;
-    void *data_input_socket = nullptr;
-    void *data_output_socket = nullptr;
-    void *commands_socket = nullptr;
 
     FILE *data_input_file = NULL;
 

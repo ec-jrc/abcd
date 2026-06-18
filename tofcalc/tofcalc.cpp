@@ -72,7 +72,7 @@ void signal_handler(int signum)
 
 void print_usage(const std::string &name = std::string("spec")) {
     char data_address[sizeof("[wxyz://255.255.255.255:65535]")];
-    address_bind_to_connect(data_address, sizeof(data_address), defaults_abcd_data_address, defaults_abcd_ip);
+    address_bind_to_connect(data_address, sizeof(data_address), defaults_abcd_data_output_address, defaults_abcd_ip);
 
     std::cout << "Usage: " << name << " [options]" << std::endl;
     std::cout << "\t-h: Display this message" << std::endl;
