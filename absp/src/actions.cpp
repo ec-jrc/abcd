@@ -24,7 +24,6 @@
 #include <utility>
 #include <cmath>
 #include <cstring>
-#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -38,6 +37,9 @@
 #include <ctime>
 
 #include <jansson.h>
+
+#include <spdlog/spdlog.h>
+#include <spdlog/stopwatch.h>
 
 extern "C" {
 #include "defaults.h"
@@ -64,12 +66,6 @@ extern "C" {
 #include "ADQ14_FWPD.hpp"
 #include "ADQ36_FWDAQ.hpp"
 
-#define WRITE_RED "\033[0;31m"
-#define WRITE_YELLOW "\033[0;33m"
-#define WRITE_NC "\033[0m"
-
-#define BUFFER_SIZE 32
-
 // The global channel number of each card is calculated with the formula:
 // global_channel_number = board_channel_number + board_user_id * GetChannelsNumber()
 
@@ -87,18 +83,9 @@ void actions::generic::publish_events(status &global_status)
         topic += "_v0_s";
         topic += std::to_string((long long unsigned int)waveforms_buffer_size_Bytes);
 
-        if (global_status.verbosity > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Sending waveforms buffer; ";
-            std::cout << "Topic: " << topic << "; ";
-            std::cout << "waveforms: " << waveforms_buffer_size_Bytes << "; ";
-            std::cout << std::endl;
-        }
+            absp_logger_console->info("Sending waveforms buffer; Topic: {}; waveforms: {};", topic, waveforms_buffer_size_Bytes);
 
-        const bool result = send_byte_message(global_status.data_socket,
+        const bool result = send_byte_message(global_status.data_output_socket,
                                               topic.c_str(),
                                               global_status.waveforms_buffer.data(),
                                               waveforms_buffer_size_Bytes,
@@ -106,11 +93,7 @@ void actions::generic::publish_events(status &global_status)
 
         if (result == EXIT_FAILURE)
         {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "ERROR: ZeroMQ Error publishing events";
-            std::cout << std::endl;
+            absp_logger_error->error("ZeroMQ Error publishing events");
         }
 
         global_status.waveforms_buffer_size_Number = 0;
@@ -132,8 +115,8 @@ void actions::generic::publish_message(status &global_status,
     void *status_socket = global_status.status_socket;
     const unsigned long int status_msg_ID = global_status.status_msg_ID;
 
-    char time_buffer[BUFFER_SIZE];
-    time_string(time_buffer, BUFFER_SIZE, NULL);
+    char time_buffer[std::size("  yyyy-mm-ddThh:mm:ssZ+00:00  ")];
+    time_string(time_buffer, std::size(time_buffer), NULL);
 
     json_object_set_new(status_message, "module", json_string("abcd"));
     json_object_set_new(status_message, "timestamp", json_string(time_buffer));
@@ -143,11 +126,7 @@ void actions::generic::publish_message(status &global_status,
 
     if (!output_buffer)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: Unable to allocate status output buffer; ";
-        std::cout << std::endl;
+        absp_logger_error->error("Unable to allocate status output buffer;");
     }
     else
     {
@@ -156,17 +135,7 @@ void actions::generic::publish_message(status &global_status,
         topic += "_v0_s";
         topic += std::to_string((long long unsigned int)total_size);
 
-        if (global_status.verbosity > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Sending status message; ";
-            std::cout << "Topic: " << topic << "; ";
-            std::cout << "buffer size: " << total_size << "; ";
-            std::cout << "message: " << output_buffer << "; ";
-            std::cout << std::endl;
-        }
+            absp_logger_console->info("Sending status message; Topic: {}; buffer size: {}; message: {};", topic, total_size, output_buffer);
 
         send_byte_message(status_socket, topic.c_str(), output_buffer, total_size, 0);
 
@@ -189,78 +158,41 @@ bool actions::generic::create_control_unit(status &global_status)
 
     const int validation = ADQAPI_ValidateVersion(ADQAPI_VERSION_MAJOR, ADQAPI_VERSION_MINOR);
 
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "API validation: " << validation << "; ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("API validation: {};", validation);
 
     if (validation == -1) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " ADQAPI version is incompatible. The application needs to be recompiled and relinked against the installed ADQAPI; ";
-        std::cout << std::endl;
+        absp_logger_error->error("ERROR ADQAPI version is incompatible. The application needs to be recompiled and relinked against the installed ADQAPI;");
 
         return false;
     } else if (validation == -2) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << " ADQAPI version is backwards compatible. It's suggested to recompile and relink the application against the installed ADQAPI; ";
-        std::cout << std::endl;
+        absp_logger_console->warn("WARNING ADQAPI version is backwards compatible. It's suggested to recompile and relink the application against the installed ADQAPI;");
     }
 
     const char *API_revision = ADQAPI_GetRevisionString();
 
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "API revision: " << API_revision << "; ";
-        std::cout << std::endl;
-    }
+    absp_logger_console->info("API revision: {};", API_revision);
 
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Creating the ADQ control unit; ";
-        std::cout << std::endl;
-    }
+    absp_logger_console->info("Creating the ADQ control unit;");
 
     global_status.adq_cu_ptr = CreateADQControlUnit();
     if(!global_status.adq_cu_ptr)
     {
-        std::cout << "Failed to create adq_cu!" << std::endl;
+        absp_logger_error->error("Failed to create adq_cu!");
 
         return false;
     }
 
-    if (global_status.verbosity > 1)
+    if (absp_logger_console->should_log(spdlog::level::debug))
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Enabling error trace at level INFO; ";
-        std::cout << std::endl;
-    
+        absp_logger_console->debug("Enabling error trace at level INFO;");
+
         // This creates a file when the program is executed
         ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, LOG_LEVEL_INFO, ".");
     }
 
-    if (global_status.verbosity > 2)
+    if (absp_logger_console->should_log(spdlog::level::trace))
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Enabling full error trace of the ADQAPI; ";
-        std::cout << std::endl;
+        absp_logger_console->trace("Enabling full error trace of the ADQAPI;");
 
         // This is to enable all possible log levels
         ADQControlUnit_EnableErrorTrace(global_status.adq_cu_ptr, 0x7FFFFFFF, ".");
@@ -280,14 +212,7 @@ bool actions::generic::destroy_control_unit(status &global_status)
 
     json_decref(json_event_message);
 
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Deleting the ADQ control unit; ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Deleting the ADQ control unit;");
 
     DeleteADQControlUnit(global_status.adq_cu_ptr);
     global_status.adq_cu_ptr = NULL;
@@ -297,74 +222,31 @@ bool actions::generic::destroy_control_unit(status &global_status)
 
 int actions::generic::start_acquisition(status &global_status, unsigned int digitizer_index)
 {
-    const unsigned int verbosity = global_status.verbosity;
-
-    if (verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "#### Starting acquisition!!! ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("#### Starting acquisition!!! ");
 
     const unsigned int user_id = global_status.digitizers_user_ids.at(digitizer_index);
     auto digitizer = global_status.digitizers[digitizer_index];
 
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Starting acquisition of card id: " << user_id << "; ";
-        std::cout << "name: " << digitizer->GetName() << "; ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Starting acquisition of card id: {}; name: {};", user_id, digitizer->GetName());
 
     return digitizer->StartAcquisition();
 }
 
 void actions::generic::rearm_trigger(status &global_status, unsigned int digitizer_index)
 {
-    const unsigned int verbosity = global_status.verbosity;
-
-    if (verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "#### Rearming trigger!!! ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("#### Rearming trigger!!! ");
 
     const unsigned int user_id = global_status.digitizers_user_ids.at(digitizer_index);
     auto digitizer = global_status.digitizers[digitizer_index];
 
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Arming trigger of card: id: " << user_id << "; ";
-        std::cout << "name: " << digitizer->GetName() << "; ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Arming trigger of card: id: {}; name: {};", user_id, digitizer->GetName());
 
     digitizer->RearmTrigger();
 }
 
 void actions::generic::stop_acquisition(status &global_status)
 {
-    const unsigned int verbosity = global_status.verbosity;
-
-    if (verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "#### Stopping acquisition!!! ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("#### Stopping acquisition!!! ");
 
     for (auto value = global_status.digitizers_user_ids.begin(); value != global_status.digitizers_user_ids.end(); ++value)
     {
@@ -372,15 +254,7 @@ void actions::generic::stop_acquisition(status &global_status)
         const unsigned int user_id = value->second;
         auto digitizer = global_status.digitizers[digitizer_index];
 
-        if (global_status.verbosity > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Arming trigger of card: id: " << user_id << "; ";
-            std::cout << "name: " << digitizer->GetName() << "; ";
-            std::cout << std::endl;
-        }
+            absp_logger_console->info("Arming trigger of card: id: {}; name: {};", user_id, digitizer->GetName());
 
         digitizer->StopAcquisition();
     }
@@ -390,15 +264,7 @@ void actions::generic::stop_acquisition(status &global_status)
 
     global_status.stop_time = stop_time;
 
-    if (verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Run time: ";
-        std::cout << delta_time.count();
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Run time: {}", delta_time.count());
 }
 
 void actions::generic::clear_memory(status &global_status)
@@ -412,14 +278,7 @@ void actions::generic::clear_memory(status &global_status)
 
 void actions::generic::destroy_digitizer(status &global_status)
 {
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Destroying digitizers; ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Destroying digitizers;");
 
     json_t *json_event_message = json_object();
 
@@ -434,14 +293,7 @@ void actions::generic::destroy_digitizer(status &global_status)
     {
         ABCD::Digitizer *digitizer = global_status.digitizers[index];
 
-        if (global_status.verbosity > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Destroying card: " << digitizer->GetName() << "; ";
-            std::cout << std::endl;
-        }
+            absp_logger_console->info("Destroying card: {};", digitizer->GetName());
 
         delete digitizer;
     }
@@ -456,14 +308,7 @@ bool actions::generic::create_digitizer(status &global_status)
 {
     const std::chrono::time_point<std::chrono::system_clock> initialization_global_start = std::chrono::system_clock::now();
 
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Initializing digitizers; ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Initializing digitizers;");
 
     //const int number_of_found_devices = ADQControlUnit_FindDevices(global_status.adq_cu_ptr);
 
@@ -480,12 +325,7 @@ bool actions::generic::create_digitizer(status &global_status)
         const unsigned int error_code = ADQControlUnit_GetLastFailedDeviceError(global_status.adq_cu_ptr);
         if (error_code == 0x00000001)
         {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": ADQAPI error: " << error_code << ", ";
-            std::cout << "  description: " << WRITE_RED << "ListDevices failed! The linked ADQAPI is not for the correct OS, please select correct x86/x64 platform when building." << WRITE_NC << "; ";
-            std::cout << std::endl;
+            absp_logger_error->error("ADQAPI error: {},   description: ListDevices failed! The linked ADQAPI is not for the correct OS, please select correct x86/x64 platform when building.;", error_code);
         }
     }
 
@@ -516,20 +356,7 @@ bool actions::generic::create_digitizer(status &global_status)
 
     const unsigned int number_of_ADQs = number_of_ADQ214 + number_of_ADQ412 + number_of_ADQ14;
 
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Number of devices: " << number_of_devices << "; ";
-        std::cout << "Number of ADQs: " << number_of_ADQs << "; ";
-        std::cout << "Number of ADQ214: " << number_of_ADQ214 << "; ";
-        std::cout << "Number of ADQ412: " << number_of_ADQ412 << "; ";
-        std::cout << "Number of ADQ14: " << number_of_ADQ14 << "; ";
-        std::cout << "Number of ADQ36: " << number_of_ADQ36 << "; ";
-        std::cout << "Number of other devices: " << number_of_other << "; ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Number of devices: {}; Number of ADQs: {}; Number of ADQ214: {}; Number of ADQ412: {}; Number of ADQ14: {}; Number of ADQ36: {}; Number of other devices: {};", number_of_devices, number_of_ADQs, number_of_ADQ214, number_of_ADQ412, number_of_ADQ14, number_of_ADQ36, number_of_other);
 
     std::string initialization_begin_string = "Digitizers initialization: ";
     initialization_begin_string += "Number of ADQs: " + std::to_string(number_of_ADQs) + "; ";
@@ -557,106 +384,54 @@ bool actions::generic::create_digitizer(status &global_status)
     json_decref(json_event_begin_message);
 
     for (unsigned int device_index = 0; device_index < number_of_devices; device_index++) {
-        if (global_status.verbosity > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Device index: " << device_index << "; ";
-            std::cout << std::endl;
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Product id: " << ADQlist[device_index].ProductID << "; ";
-            std::cout << std::endl;
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Address: "  << ADQlist[device_index].AddressField1 << " " << ADQlist[device_index].AddressField2 << "; ";
-            std::cout << std::endl;
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Device file: "  << ADQlist[device_index].DevFile << "; ";
-            std::cout << std::endl;
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Opened interface: "  << ADQlist[device_index].DeviceInterfaceOpened << "; ";
-            std::cout << std::endl;
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Set-up completed: "  << ADQlist[device_index].DeviceSetupCompleted << "; ";
-            std::cout << std::endl;
-        }
+            absp_logger_console->info("Device index: {};", device_index);
+            absp_logger_console->info("Product id: {};", ADQlist[device_index].ProductID);
+            absp_logger_console->info("Address: {} {};", ADQlist[device_index].AddressField1, ADQlist[device_index].AddressField2);
+            absp_logger_console->info("Device file: {};", ADQlist[device_index].DevFile);
+            absp_logger_console->info("Opened interface: {};", ADQlist[device_index].DeviceInterfaceOpened);
+            absp_logger_console->info("Set-up completed: {};", ADQlist[device_index].DeviceSetupCompleted);
 
-        if (global_status.verbosity > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Opening device interface establishing a communication channel for device: " << device_index << "; ";
-            std::cout << std::endl;
-        }
+            absp_logger_console->info("Opening device interface establishing a communication channel for device: {};", device_index);
 
         void *adq_cu_ptr = global_status.adq_cu_ptr;
 
         CHECKZERO(ADQControlUnit_OpenDeviceInterface(adq_cu_ptr, device_index));
 
-        if (global_status.verbosity > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Setting-up device: " << device_index << "; ";
-            std::cout << std::endl;
-        }
+            absp_logger_console->info("Setting-up device: {};", device_index);
 
         CHECKZERO(ADQControlUnit_SetupDevice(adq_cu_ptr, device_index));
 
-        if (global_status.verbosity > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Information about device: " << device_index << "; ";
-            std::cout << std::endl;
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "ADQ type: " << ADQ_GetADQType(global_status.adq_cu_ptr, device_index + 1) << "; ";
-            std::cout << "Board product name: " << ADQ_GetBoardProductName(global_status.adq_cu_ptr, device_index + 1) << "; ";
+            absp_logger_console->info("Information about device: {};", device_index);
+            absp_logger_console->info("ADQ type: {}; Board product name: {};", ADQ_GetADQType(global_status.adq_cu_ptr, device_index + 1), ADQ_GetBoardProductName(global_status.adq_cu_ptr, device_index + 1));
             // This is not supported for all cards, and it might generate a
             // segfault since it returns a string that might not have been
             // initialized.
-            //std::cout << "Card option: " << ADQ_GetCardOption(global_status.adq_cu_ptr, device_index + 1) << "; ";
-            std::cout << std::endl;
+            //logger_console->info("Card option: {};", ADQ_GetCardOption(global_status.adq_cu_ptr, device_index + 1));
 
             unsigned int family = 0;
             CHECKZERO(ADQ_GetProductFamily(global_status.adq_cu_ptr, device_index + 1, &family));
-
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Product ID: " << ADQ_GetProductID(global_status.adq_cu_ptr, device_index + 1) << "; ";
-            std::cout << "Product family: " << family << "; ";
-            std::cout << std::endl;
+            absp_logger_console->info("Product ID: {}; Product family: {};", ADQ_GetProductID(global_status.adq_cu_ptr, device_index + 1), family);
 
             uint32_t *revision = ADQ_GetRevision(global_status.adq_cu_ptr, device_index + 1);
+            std::string string_revision = "";
 
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Revision: {";
             for (int i = 0; i < 6; i++) {
-                std::cout << (unsigned int)revision[i] << ", ";
+                string_revision += std::to_string((unsigned int)revision[i]) + ", ";
             }
-            std::cout << "}; ";
-            std::cout << "Firmware type: ";
+            absp_logger_console->info("Revision: {}", string_revision);
             try {
-                std::cout << ADQ_descriptions::ADQ_firmware_revisions.at(revision[0]);
+                absp_logger_console->info("Firmware type: {}", ADQ_descriptions::ADQ_firmware_revisions.at(revision[0]));
             } catch (const std::out_of_range& error) {
-                std::cout << "unknown";
+                absp_logger_console->info("Firmware type: unknown");
             }
 
-            std::cout << "; ";
-            std::cout << std::endl;
-
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Serial number: " << ADQ_GetBoardSerialNumber(global_status.adq_cu_ptr, device_index + 1) << "; ";
-            std::cout << std::endl;
-        }
+            absp_logger_console->info("Serial number: {};", ADQ_GetBoardSerialNumber(global_status.adq_cu_ptr, device_index + 1));
 
         if (ADQlist[device_index].ProductID == PID_ADQ214) {
             // WARNING: boards numbering start from 1 in the next functions
             const int adq214_index = device_index + 1;
 
-            ABCD::ADQ214 *adq214_ptr = new ABCD::ADQ214(global_status.adq_cu_ptr, adq214_index, global_status.verbosity);
+            ABCD::ADQ214 *adq214_ptr = new ABCD::ADQ214(global_status.adq_cu_ptr, adq214_index);
 
             adq214_ptr->Initialize();
 
@@ -665,7 +440,7 @@ bool actions::generic::create_digitizer(status &global_status)
             // WARNING: boards numbering start from 1 in the next functions
             const int adq412_index = device_index + 1;
 
-            ABCD::ADQ412 *adq412_ptr = new ABCD::ADQ412(global_status.adq_cu_ptr, adq412_index, global_status.verbosity);
+            ABCD::ADQ412 *adq412_ptr = new ABCD::ADQ412(global_status.adq_cu_ptr, adq412_index);
 
             adq412_ptr->Initialize();
 
@@ -679,32 +454,13 @@ bool actions::generic::create_digitizer(status &global_status)
 
             // These are just for information
             if (has_FWPD == 1) {
-                if (global_status.verbosity > 0)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ";
-                    std::cout << "ADQ14 (index " << adq14_index << ") Has the Pulse detect firmware; ";
-                    std::cout << std::endl;
-                }
+                    absp_logger_console->info("ADQ14 (index {}) Has the Pulse detect firmware;", adq14_index);
             } else if (has_FWPD == -1) {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") does not have the Pulse Detect firmware; ";
-                std::cout << std::endl;
+                absp_logger_console->warn("ADQ14 (index {}) does not have the Pulse Detect firmware;", adq14_index);
             } else if (has_FWPD == 0) {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") did not respond to the firmware request; ";
-                std::cout << std::endl;
+                absp_logger_console->warn("ADQ14 (index {}) did not respond to the firmware request;", adq14_index);
             } else {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": ADQ14 (index " << adq14_index << ") unexpected value from the firmware request: " << has_FWPD << "; ";
-                std::cout << std::endl;
+                absp_logger_error->error("ADQ14 (index {}) unexpected value from the firmware request: {};", adq14_index, has_FWPD);
             }
 
             // FIXME: This might be more reliable with older cards, but we would
@@ -713,7 +469,7 @@ bool actions::generic::create_digitizer(status &global_status)
             //if (ADQ_descriptions::ADQ_firmware_revisions.at(revision[0]) == "ADQ14_FWPD")
 
             if (has_FWPD) {
-                ABCD::ADQ14_FWPD *adq14_ptr = new ABCD::ADQ14_FWPD(global_status.adq_cu_ptr, adq14_index, global_status.verbosity);
+                ABCD::ADQ14_FWPD *adq14_ptr = new ABCD::ADQ14_FWPD(global_status.adq_cu_ptr, adq14_index);
 
                 adq14_ptr->Initialize();
 
@@ -721,7 +477,7 @@ bool actions::generic::create_digitizer(status &global_status)
 
 
             } else {
-                ABCD::ADQ14_FWDAQ *adq14_ptr = new ABCD::ADQ14_FWDAQ(global_status.adq_cu_ptr, adq14_index, global_status.verbosity);
+                ABCD::ADQ14_FWDAQ *adq14_ptr = new ABCD::ADQ14_FWDAQ(global_status.adq_cu_ptr, adq14_index);
 
                 adq14_ptr->Initialize();
 
@@ -731,7 +487,7 @@ bool actions::generic::create_digitizer(status &global_status)
             // WARNING: boards numbering start from 1 in the next functions
             const int adq36_index = device_index + 1;
 
-            ABCD::ADQ36_FWDAQ *adq36_ptr = new ABCD::ADQ36_FWDAQ(global_status.adq_cu_ptr, adq36_index, global_status.verbosity);
+            ABCD::ADQ36_FWDAQ *adq36_ptr = new ABCD::ADQ36_FWDAQ(global_status.adq_cu_ptr, adq36_index);
 
             adq36_ptr->Initialize();
 
@@ -746,13 +502,7 @@ bool actions::generic::create_digitizer(status &global_status)
         unsigned int error_code = ADQControlUnit_GetLastFailedDeviceErrorWithText(global_status.adq_cu_ptr, error_cstring);
 
         ADQControlUnit_ClearLastFailedDeviceError(global_status.adq_cu_ptr);
-
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": ADQAPI error: " << error_code << ", ";
-        std::cout << "  description: " << WRITE_RED << error_cstring << WRITE_NC << "; ";
-        std::cout << std::endl;
+        absp_logger_error->error("ADQAPI error: {},   description: {};", error_code, error_cstring);
 
         std::string error_string("ADQAPI error: ");
         error_string += std::to_string(error_code);
@@ -793,15 +543,7 @@ bool actions::generic::create_digitizer(status &global_status)
 
 bool actions::generic::configure_digitizer(status &global_status)
 {
-    unsigned int verbosity = global_status.verbosity;
-
-    if (global_status.verbosity > 0) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Configuring digitizer; ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Configuring digitizer;");
 
     global_status.digitizers_user_ids.clear();
     global_status.user_scripts.clear();
@@ -820,14 +562,7 @@ bool actions::generic::configure_digitizer(status &global_status)
         json_object_set_new_nocheck(config, "global", json_object());
         json_global = json_object_get(config, "global");
 
-        if (verbosity > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Missing \"global\" entry in configuration; ";
-            std::cout << std::endl;
-        }
+            absp_logger_error->warn("Missing \"global\" entry in configuration;");
 
 
     }
@@ -841,14 +576,7 @@ bool actions::generic::configure_digitizer(status &global_status)
             waveforms_buffer_size_max_Number = defaults_absp_waveforms_buffer_size_max_Number;
         }
 
-        if (verbosity > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Waveforms buffer max size: " << waveforms_buffer_size_max_Number << "; ";
-            std::cout << std::endl;
-        }
+            absp_logger_console->info("Waveforms buffer max size: {};", waveforms_buffer_size_max_Number);
 
         global_status.waveforms_buffer_size_max_Number = waveforms_buffer_size_max_Number;
 
@@ -869,80 +597,30 @@ bool actions::generic::configure_digitizer(status &global_status)
             const char *cstr_serial = json_string_value(json_object_get(card, "serial"));
             const std::string serial = (cstr_serial) ? std::string(cstr_serial) : std::string();
 
-            if (verbosity > 0)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Found card: " << serial << "; ";
-                std::cout << "user id: " << user_id << "; ";
-                std::cout << std::endl;
-            }
+                absp_logger_console->info("Found card: {}; user id: {};", serial, user_id);
 
             const bool enabled = json_is_true(json_object_get(card, "enable"));
 
-            if (verbosity > 0 && enabled)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Card is enabled; ";
-                std::cout << std::endl;
-            }
-            else if (verbosity > 0 && !enabled)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Card is disabled; ";
-                std::cout << std::endl;
-            }
+            absp_logger_console->info("Card is {}", enabled ? "enabled" : "disabled");
 
             for (unsigned int digitizer_index = 0; digitizer_index < global_status.digitizers.size() && enabled; digitizer_index++)
             {
                 auto digitizer = global_status.digitizers[digitizer_index];
 
                 if ((digitizer)->GetName() == serial) {
-                    if (verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Found matching card: " << serial << "; ";
-                        std::cout << std::endl;
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Parsing configuration; ";
-                        std::cout << std::endl;
-                    }
+                        absp_logger_console->info("Found matching card: {};", serial);
+                        absp_logger_console->info("Parsing configuration;");
 
                     (digitizer)->ReadConfig(card);
 
-                    if (verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Applying configuration; ";
-                        std::cout << std::endl;
-                    }
+                        absp_logger_console->info("Applying configuration;");
 
                     const std::chrono::time_point<std::chrono::system_clock> configuration_single_start = std::chrono::system_clock::now();
 
                     const int config_result = (digitizer)->Configure();
 
-                    if (verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Finished configuration; ";
-                        std::cout << std::endl;
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "digitizer_index: " << digitizer_index << "; ";
-                        std::cout << "user id: " << user_id << "; ";
-                        std::cout << "config result: " << (config_result == DIGITIZER_SUCCESS ? "success" : "failure") << "; ";
-                        std::cout << std::endl;
-                    }
+                        absp_logger_console->info("Finished configuration;");
+                        absp_logger_console->info("digitizer_index: {}; user id: {}; config result: {};", digitizer_index, user_id, (config_result == DIGITIZER_SUCCESS ? "success" : "failure"));
 
                     const unsigned int this_max_channel_number = (user_id + 1) * (digitizer)->GetChannelsNumber();
 
@@ -950,15 +628,7 @@ bool actions::generic::configure_digitizer(status &global_status)
                         max_channel_number = this_max_channel_number;
                     }
 
-                    if (verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Channels number: " << digitizer->GetChannelsNumber() << "; ";
-                        std::cout << "Max channel number: " << this_max_channel_number << "; ";
-                        std::cout << std::endl;
-                    }
+                        absp_logger_console->info("Channels number: {}; Max channel number: {};", digitizer->GetChannelsNumber(), this_max_channel_number);
 
                     global_status.digitizers_user_ids[digitizer_index] = user_id;
 
@@ -1020,22 +690,9 @@ bool actions::generic::configure_digitizer(status &global_status)
 
     global_status.channels_number = max_channel_number;
 
-    if (verbosity > 0) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Channels number: " << max_channel_number << "; ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Channels number: {};", max_channel_number);
 
-    if (verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Digitizers configuration completed successfully!";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Digitizers configuration completed successfully!");
 
     const std::chrono::time_point<std::chrono::system_clock> configuration_global_stop = std::chrono::system_clock::now();
     const auto configuration_global_delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(configuration_global_stop - configuration_global_start);
@@ -1064,22 +721,7 @@ bool actions::generic::configure_digitizer(status &global_status)
         json_array_foreach(json_scripts, index, json_script) {
             const bool enabled = json_is_true(json_object_get(json_script, "enable"));
 
-            if (verbosity > 0 && enabled)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Script is enabled; ";
-                std::cout << std::endl;
-            }
-            else if (verbosity > 0 && !enabled)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Script is disabled; ";
-                std::cout << std::endl;
-            }
+            absp_logger_console->info("Script is {}", enabled ? "enabled" : "disabled");
 
             if (enabled) {
                 // The state may be a single integer or an array of integers
@@ -1122,40 +764,18 @@ bool actions::generic::configure_digitizer(status &global_status)
                 // If the source entry contains the name of an existing file, then
                 // we read the content of the file in the string.
                 if (source_file.good()) {
-                    if (verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "The source of this script is in the file: " << str_source << "; ";
-                        std::cout << std::endl;
-                    }
+                        absp_logger_console->info("The source of this script is in the file: {};", str_source);
 
                     std::stringstream buffer;
                     buffer << source_file.rdbuf();
 
                     str_source = buffer.str();
                 } else {
-                    if (verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "The source of this script is: " << str_source << "; ";
-                        std::cout << std::endl;
-                    }
+                        absp_logger_console->info("The source of this script is: {};", str_source);
                 }
 
                 for (const auto& script_state : script_states) {
-                    if (verbosity > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << "Found script for state: " << script_state << "; ";
-                        std::cout << "When: " << str_when << " (code: " << when << "); ";
-                        std::cout << std::endl;
-                    }
+                        absp_logger_console->info("Found script for state: {}; When: {} (code: {});", script_state, str_when, when);
 
                     global_status.user_scripts[std::pair<unsigned int, unsigned int>(script_state, when)] = str_source;
                 }
@@ -1163,34 +783,17 @@ bool actions::generic::configure_digitizer(status &global_status)
         }
     }
 
-    if (verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Adding the digitizer objects to the Lua runtime environment; ";
-        std::cout << "Number of digitizers: " << global_status.digitizers.size() << "; ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Adding the digitizer objects to the Lua runtime environment; Number of digitizers: {};", global_status.digitizers.size());
 
     global_status.lua_manager.update_digitizers(global_status.digitizers);
 
-    if (verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Finished configuration; ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Finished configuration;");
 
     return true;
 }
 
 bool actions::generic::allocate_memory(status &global_status)
 {
-    unsigned int verbosity = global_status.verbosity;
-
     global_status.counts.clear();
     global_status.counts.resize(global_status.channels_number, 0);
     global_status.partial_counts.clear();
@@ -1200,14 +803,7 @@ bool actions::generic::allocate_memory(status &global_status)
     global_status.ICR_curr_counts.clear();
     global_status.ICR_curr_counts.resize(global_status.channels_number, 0);
 
-    if (verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Memory allocation";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Memory allocation");
 
     global_status.waveforms_buffer_size_Number = 0;
 
@@ -1239,11 +835,7 @@ state actions::create_context(status &global_status)
     if (!context)
     {
         // No errors are defined for this function
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: ZeroMQ Error on context creation";
-        std::cout << std::endl;
+        absp_logger_error->error("ZeroMQ Error on context creation");
 
         return states::communication_error;
     }
@@ -1267,12 +859,7 @@ state actions::create_sockets(status &global_status)
     void *status_socket = zmq_socket(context, ZMQ_PUB);
     if (!status_socket)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: ZeroMQ Error on status socket creation: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        absp_logger_error->error("ZeroMQ Error on status socket creation: {}", zmq_strerror(errno));
 
         return states::communication_error;
     }
@@ -1281,12 +868,7 @@ state actions::create_sockets(status &global_status)
     void *data_socket = zmq_socket(context, ZMQ_PUB);
     if (!data_socket)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: ZeroMQ Error on data socket creation: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        absp_logger_error->error("ZeroMQ Error on data socket creation: {}", zmq_strerror(errno));
 
         return states::communication_error;
     }
@@ -1295,18 +877,13 @@ state actions::create_sockets(status &global_status)
     void *commands_socket = zmq_socket(context, ZMQ_PULL);
     if (!commands_socket)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: ZeroMQ Error on commands socket creation: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        absp_logger_error->error("ZeroMQ Error on commands socket creation: {}", zmq_strerror(errno));
 
         return states::communication_error;
     }
 
     global_status.status_socket = status_socket;
-    global_status.data_socket = data_socket;
+    global_status.data_output_socket = data_socket;
     global_status.commands_socket = commands_socket;
 
     //std::this_thread::sleep_for(std::chrono::milliseconds(defaults_abcd_zmq_delay));
@@ -1321,33 +898,23 @@ state actions::create_sockets(status &global_status)
 state actions::bind_sockets(status &global_status)
 {
     std::string status_address = global_status.status_address;
-    std::string data_address = global_status.data_address;
+    std::string data_address = global_status.data_output_address;
     std::string commands_address = global_status.commands_address;
 
     // Binds the status socket to its address
     const int s = zmq_bind(global_status.status_socket, status_address.c_str());
     if (s != 0)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: ZeroMQ Error on status socket binding: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        absp_logger_error->error("ZeroMQ Error on status socket binding: {}", zmq_strerror(errno));
 
         return states::communication_error;
     }
 
     // Binds the data socket to its address
-    const int d = zmq_bind(global_status.data_socket, data_address.c_str());
+    const int d = zmq_bind(global_status.data_output_socket, data_address.c_str());
     if (d != 0)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: ZeroMQ Error on data socket binding: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        absp_logger_error->error("ZeroMQ Error on data socket binding: {}", zmq_strerror(errno));
 
         return states::communication_error;
     }
@@ -1356,12 +923,7 @@ state actions::bind_sockets(status &global_status)
     const int c = zmq_bind(global_status.commands_socket, commands_address.c_str());
     if (c != 0)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: ZeroMQ Error on commands socket binding: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        absp_logger_error->error("ZeroMQ Error on commands socket binding: {}", zmq_strerror(errno));
 
         return states::communication_error;
     }
@@ -1409,16 +971,9 @@ state actions::create_digitizer(status &global_status)
 
 state actions::read_config(status &global_status)
 {
-    const std::string config_file_name = global_status.config_file;
+    const std::string config_file_name = global_status.config_filename;
 
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Reading config file: " << config_file_name << " ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Reading config file: {} ", config_file_name);
 
     json_error_t error;
 
@@ -1426,21 +981,7 @@ state actions::read_config(status &global_status)
 
     if (!new_config)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Parse error while reading config file: ";
-        std::cout << error.text;
-        std::cout << " (source: ";
-        std::cout << error.source;
-        std::cout << ", line: ";
-        std::cout << error.line;
-        std::cout << ", column: ";
-        std::cout << error.column;
-        std::cout << ", position: ";
-        std::cout << error.position;
-        std::cout << "); ";
-        std::cout << std::endl;
+        absp_logger_error->error("Parse error while reading config file: {} (source: {}, line: {}, column: {}, position: {});", error.text, error.source, error.line, error.column, error.position);
 
         return states::parse_error;
     }
@@ -1510,14 +1051,7 @@ state actions::reconfigure_create_digitizer(status &global_status)
 
 state actions::publish_status(status &global_status)
 {
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Publishing status; ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Publishing status;");
 
     json_t *status_message = json_object();
 
@@ -1541,7 +1075,7 @@ state actions::publish_status(status &global_status)
     json_object_set_new_nocheck(digitizer, "active", json_true());
 
     json_object_set_new_nocheck(status_message, "digitizer", digitizer);
-    json_object_set_new_nocheck(status_message, "config_file", json_string(global_status.config_file.c_str()));
+    json_object_set_new_nocheck(status_message, "config_file", json_string(global_status.config_filename.c_str()));
 
     actions::generic::publish_message(global_status, defaults_abcd_status_topic, status_message);
 
@@ -1554,13 +1088,7 @@ state actions::receive_commands(status &global_status)
 {
     void *commands_socket = global_status.commands_socket;
 
-    if (global_status.verbosity > 1) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Receiving command... ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->debug("Receiving command... ");
 
     json_t *json_message = NULL;
 
@@ -1568,24 +1096,13 @@ state actions::receive_commands(status &global_status)
 
     if (!json_message || result == EXIT_FAILURE)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: Error on receiving JSON commands message";
-        std::cout << std::endl;
+        absp_logger_error->error("Error on receiving JSON commands message");
     }
     else
     {
         const size_t command_ID = json_integer_value(json_object_get(json_message, "msg_ID"));
 
-        if (global_status.verbosity > 1) {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Received command; ";
-            std::cout << "Command ID: " << command_ID << "; ";
-            std::cout << std::endl;
-        }
+            absp_logger_console->debug("Received command; Command ID: {};", command_ID);
 
         json_t *json_command = json_object_get(json_message, "command");
         json_t *json_arguments = json_object_get(json_message, "arguments");
@@ -1594,21 +1111,10 @@ state actions::receive_commands(status &global_status)
         {
             const std::string command = json_string_value(json_command);
 
-            if (global_status.verbosity > 0)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Received command: " << command << "; ";
-                std::cout << std::endl;
-            }
+                absp_logger_console->info("Received command: {};", command);
 
             if (command == std::string("start")) {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "################################################################### Start!!! ###";
-                std::cout << std::endl;
+                absp_logger_console->info("################################################################### Start!!! ###");
 
                 return states::start_acquisition;
             } else if (command == std::string("reconfigure") && json_arguments) {
@@ -1640,17 +1146,8 @@ state actions::receive_commands(status &global_status)
                     auto digitizer = global_status.digitizers[digitizer_index];
 
                     if ((digitizer)->GetName() == serial) {
-                        if (global_status.verbosity > 0)
-                        {
-                            char time_buffer[BUFFER_SIZE];
-                            time_string(time_buffer, BUFFER_SIZE, NULL);
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Found matching card: " << serial << "; ";
-                            std::cout << std::endl;
-                            std::cout << '[' << time_buffer << "] ";
-                            std::cout << "Forwarding command; ";
-                            std::cout << std::endl;
-                        }
+                            absp_logger_console->info("Found matching card: {};", serial);
+                            absp_logger_console->info("Forwarding command;");
 
                         const char *cstr_specific_command = json_string_value(json_object_get(json_arguments, "command"));
                         const std::string specific_command = (cstr_serial) ? std::string(cstr_specific_command) : std::string();
@@ -1670,19 +1167,14 @@ state actions::receive_commands(status &global_status)
                     }
                 }
             } else if (command == std::string("store_configuration")) {
-                const std::string config_file_name = global_status.config_file;
+                const std::string config_file_name = global_status.config_filename;
 
                 const int r = json_dump_file(global_status.config, config_file_name.c_str(), JSON_INDENT(4));
 
                 if (r < 0)
                 {
                     std::string event_description = "Unable to store configuration file to: " + config_file_name;
-
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ";
-                    std::cout << "ERROR: " << event_description << "; ";
-                    std::cout << std::endl;
+                    absp_logger_error->error("{};", event_description);
 
                     json_t *json_event_message = json_object();
 
@@ -1737,14 +1229,7 @@ state actions::start_acquisition(status &global_status)
 
     std::chrono::time_point<std::chrono::system_clock> start_time = std::chrono::system_clock::now();
 
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Clearing counters; ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Clearing counters;");
 
     const int channels_number = global_status.channels_number;
 
@@ -1758,14 +1243,7 @@ state actions::start_acquisition(status &global_status)
     global_status.ICR_curr_counts.resize(global_status.channels_number, 0);
 
     // Start acquisition
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Starting acquisition; ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Starting acquisition;");
 
     for (auto value = global_status.digitizers_user_ids.begin(); value != global_status.digitizers_user_ids.end(); ++value)
     {
@@ -1793,39 +1271,21 @@ state actions::acquisition_receive_commands(status &global_status)
 {
     void *commands_socket = global_status.commands_socket;
 
-    if (global_status.verbosity > 1)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Receiving command... ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->debug("Receiving command... ");
 
     json_t *json_message = NULL;
 
-    const int result = receive_json_message(commands_socket, NULL, &json_message, false, global_status.verbosity);
+    const int result = receive_json_message(commands_socket, NULL, &json_message, false, 0);
 
     if (!json_message || result == EXIT_FAILURE)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ERROR: Error on receiving JSON commands message";
-        std::cout << std::endl;
+        absp_logger_error->error("Error on receiving JSON commands message");
     }
     else
     {
         const size_t command_ID = json_integer_value(json_object_get(json_message, "msg_ID"));
 
-        if (global_status.verbosity > 1) {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Received command; ";
-            std::cout << "Command ID: " << command_ID << "; ";
-            std::cout << std::endl;
-        }
+            absp_logger_console->debug("Received command; Command ID: {};", command_ID);
 
         json_t *json_command = json_object_get(json_message, "command");
 
@@ -1833,30 +1293,15 @@ state actions::acquisition_receive_commands(status &global_status)
         {
             const std::string command = json_string_value(json_command);
 
-            if (global_status.verbosity > 0)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Received command: " << command << "; ";
-                std::cout << std::endl;
-            }
+                absp_logger_console->info("Received command: {};", command);
 
             if (command == std::string("stop")) {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "#################################################################### Stop!!! ###";
-                std::cout << std::endl;
+                absp_logger_console->info("#################################################################### Stop!!! ###");
 
                 return states::stop_publish_events;
 
             } else if (command == std::string("simulate_error")) {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "########################################################### SIMULATED ERROR! ###";
-                std::cout << std::endl;
+                absp_logger_error->error("########################################################### SIMULATED ERROR! ###");
 
                 json_t *json_event_message = json_object();
 
@@ -1910,8 +1355,6 @@ state actions::stop_acquisition(status &global_status)
 
 state actions::read_data(status &global_status)
 {
-    const unsigned int verbosity = global_status.verbosity;
-
     bool is_error = false;
 
     // Gather data from the available digitizers
@@ -1924,15 +1367,7 @@ state actions::read_data(status &global_status)
         const bool is_ready = digitizer->AcquisitionReady();
         const bool is_overflow = digitizer->DataOverflow();
 
-        if (verbosity > 0) {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Polling board: " << digitizer->GetName() << " (user_id: " << user_id << ", digitizer_index: " << digitizer_index << "); ";
-            std::cout << "Acquisition ready: " << (is_ready ? "yes" : "no") << "; ";
-            std::cout << "Overflow: " << (is_overflow ? "yes" : "no") << "; ";
-            std::cout << std::endl;
-        }
+            absp_logger_console->info("Polling board: {} (user_id: {}, digitizer_index: {}); Acquisition ready: {}; Overflow: {};", digitizer->GetName(), user_id, digitizer_index, (is_ready ? "yes" : "no"), (is_overflow ? "yes" : "no"));
 
         if (is_overflow) {
             // The DRAM is full and data was probably lost and corrupted, so we
@@ -1951,24 +1386,13 @@ state actions::read_data(status &global_status)
             actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
 
             json_decref(json_event_message);
-
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": " << error_string;
-            std::cout << std::endl;
+            absp_logger_error->error("{}", error_string);
 
             is_error = true;
         }
 
         if (is_ready) {
-            if (verbosity > 0) {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Getting waveforms from card; ";
-                std::cout << std::endl;
-            }
+                absp_logger_console->info("Getting waveforms from card;");
 
             const auto get_data_start = std::chrono::high_resolution_clock::now();
 
@@ -1988,15 +1412,7 @@ state actions::read_data(status &global_status)
 
             unsigned int waveforms_size = waveforms.size();
 
-            if (verbosity > 0) {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Waveforms download: " << (retval == DIGITIZER_SUCCESS ? "success" : "failure") << "; ";
-                std::cout << "waveforms number: " << waveforms_size << "; ";
-                std::cout << "Time required: " << delta_time.count() << " ms; ";
-                std::cout << std::endl;
-            }
+                absp_logger_console->info("Waveforms download: {}; waveforms number: {}; Time required: {} ms;", (retval == DIGITIZER_SUCCESS ? "success" : "failure"), waveforms_size, delta_time.count());
 
             if (retval == DIGITIZER_FAILURE) {
                 std::string error_string = "Data fetch failure in digitizer: ";
@@ -2010,12 +1426,7 @@ state actions::read_data(status &global_status)
                 actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
 
                 json_decref(json_event_message);
-
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": " << error_string;
-                std::cout << std::endl;
+                absp_logger_error->error("{}", error_string);
 
                 is_error = true;
             } else {
@@ -2033,19 +1444,7 @@ state actions::read_data(status &global_status)
                     const size_t current_waveform_buffer_size = global_status.waveforms_buffer.size();
                     const size_t this_waveform_size = waveform_size(&this_waveform);
 
-                    if (verbosity > 3) {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ";
-                        std::cout << WRITE_RED << "Storing waveform in buffer; " << WRITE_NC;
-                        std::cout << "Waveform index: " << waveform_index << "; ";
-                        std::cout << "channel: " << (unsigned int)this_waveform.channel << "; ";
-                        std::cout << "samples: " << (unsigned int)this_waveform.samples_number << "; ";
-                        std::cout << "buffer pointer: " << static_cast<void*>(this_waveform.buffer) << "; ";
-                        std::cout << "Waveforms buffer size: " << current_waveform_buffer_size << "; ";
-                        std::cout << "Waveform size: " << this_waveform_size << "; ";
-                        std::cout << std::endl;
-                    }
+                        absp_logger_console->trace("Storing waveform in buffer; Waveform index: {}; channel: {}; samples: {}; buffer pointer: {}; Waveforms buffer size: {}; Waveform size: {};", waveform_index, (unsigned int)this_waveform.channel, (unsigned int)this_waveform.samples_number, static_cast<void*>(this_waveform.buffer), current_waveform_buffer_size, this_waveform_size);
 
                     global_status.waveforms_buffer.resize(current_waveform_buffer_size + this_waveform_size);
 
@@ -2063,13 +1462,7 @@ state actions::read_data(status &global_status)
 
     const size_t waveforms_buffer_size_Bytes = global_status.waveforms_buffer.size();
 
-    if (verbosity > 0) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Waveforms buffer size: " << global_status.waveforms_buffer_size_Number << " (" << waveforms_buffer_size_Bytes << " B); ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Waveforms buffer size: {} ({} B);", global_status.waveforms_buffer_size_Number, waveforms_buffer_size_Bytes);
 
     if (is_error) {
         return states::acquisition_error;
@@ -2101,14 +1494,7 @@ state actions::publish_events(status &global_status)
 
 state actions::acquisition_publish_status(status &global_status)
 {
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Publishing status; ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Publishing status;");
 
     json_t *status_message = json_object();
 
@@ -2178,7 +1564,7 @@ state actions::acquisition_publish_status(status &global_status)
 
     json_object_set_new_nocheck(status_message, "acquisition", acquisition);
     json_object_set_new_nocheck(status_message, "digitizer", digitizer);
-    json_object_set_new_nocheck(status_message, "config_file", json_string(global_status.config_file.c_str()));
+    json_object_set_new_nocheck(status_message, "config_file", json_string(global_status.config_filename.c_str()));
 
     actions::generic::publish_message(global_status, defaults_abcd_status_topic, status_message);
 
@@ -2323,14 +1709,7 @@ state actions::clear_memory(status &global_status)
 {
     actions::generic::clear_memory(global_status);
 
-    if (global_status.verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "Clearing the json configuration; ";
-        std::cout << std::endl;
-    }
+        absp_logger_console->info("Clearing the json configuration;");
 
     // Remember to clean up the json configuration
     json_decref(global_status.config);
@@ -2362,40 +1741,25 @@ state actions::close_sockets(status &global_status)
     nanosleep(&zmq_delay, NULL);
 
     void *status_socket = global_status.status_socket;
-    void *data_socket = global_status.data_socket;
+    void *data_socket = global_status.data_output_socket;
     void *commands_socket = global_status.commands_socket;
 
     const int s = zmq_close(status_socket);
     if (s != 0)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ZeroMQ Error on status socket close: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        absp_logger_error->error("ZeroMQ Error on status socket close: {}", zmq_strerror(errno));
     }
 
     const int d = zmq_close(data_socket);
     if (d != 0)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ZeroMQ Error on data socket close: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        absp_logger_error->error("ZeroMQ Error on data socket close: {}", zmq_strerror(errno));
     }
 
     const int c = zmq_close(commands_socket);
     if (c != 0)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ZeroMQ Error on commands socket close: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        absp_logger_error->error("ZeroMQ Error on commands socket close: {}", zmq_strerror(errno));
     }
 
     return states::destroy_context;
@@ -2414,12 +1778,7 @@ state actions::destroy_context(status &global_status)
     const int c = zmq_ctx_destroy(context);
     if (c != 0)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ";
-        std::cout << "ZeroMQ Error on context destroy: ";
-        std::cout << zmq_strerror(errno);
-        std::cout << std::endl;
+        absp_logger_error->error("ZeroMQ Error on context destroy: {}", zmq_strerror(errno));
     }
 
     return states::stop;
