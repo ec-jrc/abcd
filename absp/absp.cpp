@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2016, 2021, European Union, Cristiano Lino Fontana
+ * (C) Copyright 2016,2021,2026 European Union, Cristiano Lino Fontana
  *
  * This file is part of ABCD.
  *
@@ -33,6 +33,10 @@
 
 #include <lua.hpp>
 
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/basic_file_sink.h>
+
 extern "C" {
 #include "defaults.h"
 #include "utilities_functions.h"
@@ -43,10 +47,10 @@ extern "C" {
 
 #include "states.hpp"
 
-#define BUFFER_SIZE 32
-
-unsigned int verbosity = defaults_abcd_verbosity;
 bool terminate_flag = false;
+
+std::shared_ptr<spdlog::logger> absp_logger_console = nullptr;
+std::shared_ptr<spdlog::logger> absp_logger_error = nullptr;
 
 //! Handles standard signals.
 /*! SIGTERM (from kill): terminates kindly forcing the status to the closing branch of the state machine.
@@ -55,30 +59,13 @@ bool terminate_flag = false;
  */
 void signal_handler(int signum)
 {
-    if (verbosity > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-
-        std::cout << '[' << time_buffer << "] Signal: ";
-
-        if (signum == SIGINT)
-            std::cout << "SIGINT" << std::endl;
-        else if (signum == SIGTERM)
-            std::cout << "SIGTERM" << std::endl;
-        else if (signum == SIGHUP)
-            std::cout << "SIGHUP" << std::endl;
-        else
-            std::cout << signum << std::endl;
-    }
-
     if (signum == SIGINT || signum == SIGTERM || signum == SIGHUP)
     {
         terminate_flag = true;
     }
 }
 
-void print_usage(const std::string &name = std::string("abcdrp")) {
+void print_usage(const std::string &name = std::string("absp")) {
     std::cout << "Usage: " << name << " [options]" << std::endl;
     std::cout << std::endl;
     std::cout << "Data acquisition software that reads data from teledyne digitizers." << std::endl;
@@ -88,44 +75,39 @@ void print_usage(const std::string &name = std::string("abcdrp")) {
     std::cout << "\t-I: Digitizers identification only" << std::endl;
     std::cout << "\t-S <address>: Status socket address, default: ";
     std::cout << defaults_abcd_status_address << std::endl;
-    std::cout << "\t-D <address>: Data socket address, default: ";
-    std::cout << defaults_abcd_data_address << std::endl;
+    std::cout << "\t-D <address>: Data output socket address, default: ";
+    std::cout << defaults_abcd_data_output_address << std::endl;
     std::cout << "\t-C <address>: Commands socket address, default: ";
     std::cout << defaults_abcd_commands_address << std::endl;
     std::cout << "\t-f <file_name>: Digitizer configuration file, default: ";
-    std::cout << defaults_abcd_config_file << std::endl;
+    std::cout << defaults_abcd_config_filename << std::endl;
     std::cout << "\t-T <period>: Set base period in milliseconds, default: ";
     std::cout << defaults_abcd_base_period << std::endl;
-    std::cout << "\t-v: Set verbose execution, can be repeated to increase verbosity level" << std::endl;
+    std::cout << "\t-v: Set verbose execution, repeating the option increases the verbosity level" << std::endl;
+    std::cout << "\t-l <log_filename>: Log to file instead of to the console" << std::endl;
 
     return;
 }
 
 int main(int argc, char *argv[])
 {
-    // Show "splash screen"
-    std::cout << std::endl;
-    std::cout << "===================================================" << std::endl;
-    std::cout << " A.B.SP software - v. 0.1                          " << std::endl;
-    std::cout << " Acquisition and Broadcast for teledyne digitizers " << std::endl;
-    std::cout << "===================================================" << std::endl;
-    std::cout << std::endl;
-
     // Register the handler for SIGTERM (from kill), SIGINT (from ctrl-c)
     signal(SIGTERM, signal_handler);
     signal(SIGINT, signal_handler);
     signal(SIGHUP, signal_handler);
 
     std::string status_address = defaults_abcd_status_address;
-    std::string data_address = defaults_abcd_data_address;
+    std::string data_output_address = defaults_abcd_data_output_address;
     std::string commands_address = defaults_abcd_commands_address;
-    std::string config_file = defaults_abcd_config_file;
+    std::string config_filename = defaults_abcd_config_filename;
+    std::string log_filename;
     unsigned int base_period = defaults_abcd_base_period;
+    unsigned int verbosity = 0;
 
     bool identification_only = false;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hIS:D:C:f:T:v")) != -1) {
+    while ((c = getopt(argc, argv, "hIS:D:C:f:T:vl:")) != -1) {
         switch (c) {
             case 'h':
                 print_usage(argv[0]);
@@ -137,13 +119,13 @@ int main(int argc, char *argv[])
                 status_address = optarg;
                 break;
             case 'D':
-                data_address = optarg;
+                data_output_address = optarg;
                 break;
             case 'C':
                 commands_address = optarg;
                 break;
             case 'f':
-                config_file = optarg;
+                config_filename = optarg;
                 break;
             case 'T':
                 try
@@ -155,35 +137,72 @@ int main(int argc, char *argv[])
             case 'v':
                 verbosity += 1;
                 break;
+            case 'l':
+                log_filename = optarg;
+                break;
             default:
-                std::cout << "Unknown command: " << c << std::endl;
+                std::cerr << "Unknown command: " << static_cast<char>(c) << std::endl;
                 break;
         }
     }
 
     status global_status;
 
-    global_status.verbosity = verbosity;
-    global_status.base_period = base_period;
     global_status.config = NULL;
-    global_status.config_file = config_file;
+    global_status.config_filename = config_filename;
+    global_status.log_filename = log_filename;
     global_status.status_address = status_address;
-    global_status.data_address = data_address;
+    global_status.data_output_address = data_output_address;
     global_status.commands_address = commands_address;
     global_status.identification_only = identification_only;
     global_status.adq_cu_ptr = NULL;
-    global_status.lua_manager.set_verbosity(verbosity);
 
-    if (global_status.verbosity > 0) {
-        std::cout << "Status socket address: " << status_address << std::endl;
-        std::cout << "Data socket address: " << data_address << std::endl;
-        std::cout << "Commands socket address: " << commands_address << std::endl;
-        std::cout << "Digitizer configuration file: " << config_file << std::endl;
-        std::cout << "Verbosity: " << verbosity << std::endl;
-        std::cout << "Base period: " << base_period << std::endl;
-        if (identification_only) {
-            std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Identification only, the program will quit afterwards" << std::endl;
+
+    try
+    {
+        if (log_filename.length() == 0)
+        {
+            absp_logger_console = spdlog::stdout_color_mt("logger");
+            absp_logger_error = spdlog::stderr_color_mt("error");
         }
+        else
+        {
+            absp_logger_console = spdlog::basic_logger_mt("logger", log_filename);
+            absp_logger_error = absp_logger_console;
+        }
+    }
+    catch (const spdlog::spdlog_ex &ex)
+    {
+        std::cerr << "ERROR: Unable to initiate logger to file: " + log_filename << std::endl;
+
+        return EXIT_FAILURE;
+    }
+
+    if (verbosity == 0) {
+        absp_logger_console->set_level(spdlog::level::off);
+    } else if (verbosity == 1) {
+        absp_logger_console->set_level(spdlog::level::info);
+    } else if (verbosity == 2) {
+        absp_logger_console->set_level(spdlog::level::debug);
+    } else if (verbosity == 3) {
+        absp_logger_console->set_level(spdlog::level::trace);
+    }
+
+    // Overrule the verbosity for identification mode, otherwise nothing is shown
+    if (identification_only) {
+        absp_logger_console->set_level(spdlog::level::info);
+    }
+
+    absp_logger_console->info("Status socket address: {}", status_address);
+    absp_logger_console->info("Data output socket address: {}", data_output_address);
+    absp_logger_console->info("Commands socket address: {}", commands_address);
+    absp_logger_console->info("Configuration file: {}", config_filename);
+    absp_logger_console->info("Verbosity: {}", verbosity);
+    absp_logger_console->info("Log file: {}", log_filename);
+    absp_logger_console->info("Base period: {}", base_period);
+
+    if (identification_only) {
+        absp_logger_console->warn("Identification only, the program will quit afterwards");
     }
 
     state current_state = states::start;
@@ -193,15 +212,7 @@ int main(int argc, char *argv[])
 
     while (!stop_execution)
     {
-        if (global_status.verbosity > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ";
-            std::cout << "Current state (" << current_state.ID << "): ";
-            std::cout << current_state.description;
-            std::cout << std::endl;
-        }
+        absp_logger_console->info("Current state ({0}): {1}", current_state.ID, current_state.description);
 
         if (terminate_flag)
         {
@@ -222,14 +233,7 @@ int main(int argc, char *argv[])
             const std::pair<unsigned int, unsigned int> script_key_pre(current_state_ID, SCRIPT_WHEN_PRE);
             const std::string script_source_pre = global_status.user_scripts.at(script_key_pre);
 
-            if (global_status.verbosity > 0)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Running pre script; ";
-                std::cout << std::endl;
-            }
+            absp_logger_console->info("Running pre script");
 
             global_status.lua_manager.run_script(current_state_ID,
                                                  current_state_description,
@@ -244,14 +248,7 @@ int main(int argc, char *argv[])
             const std::pair<unsigned int, unsigned int> script_key_post(current_state_ID, SCRIPT_WHEN_POST);
             const std::string script_source_post = global_status.user_scripts.at(script_key_post);
 
-            if (global_status.verbosity > 0)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ";
-                std::cout << "Running post script; ";
-                std::cout << std::endl;
-            }
+            absp_logger_console->info("Running post script");
 
             global_status.lua_manager.run_script(current_state_ID,
                                                  current_state_description,
@@ -260,11 +257,7 @@ int main(int argc, char *argv[])
 
         } catch (...) {}
 
-        //std::this_thread::sleep_for(std::chrono::milliseconds(base_period));
-        struct timespec base_delay;
-        base_delay.tv_sec = base_period / 1000;
-        base_delay.tv_nsec = (base_period % 1000) * 1000000L;
-        nanosleep(&base_delay, NULL);
+        std::this_thread::sleep_for(std::chrono::milliseconds(base_period));
     }
 
     return 0;
