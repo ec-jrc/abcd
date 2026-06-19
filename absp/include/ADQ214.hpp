@@ -122,7 +122,7 @@ public:
     unsigned int timestamp_overflows;
 
 
-    ADQ214(void* adq_cu_ptr, int adq_num, int verbosity = 0);
+    ADQ214(void* adq_cu_ptr, int adq_num);
     virtual ~ADQ214();
 
     int Initialize();

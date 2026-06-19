@@ -20,7 +20,6 @@ namespace ABCD {
 
 class Digitizer {
     unsigned int channels_number;
-    int verbosity;
     bool enabled;
     std::string model;
     std::string name;
@@ -30,11 +29,10 @@ class Digitizer {
 
 public:
 
-    Digitizer(int Verbosity) : verbosity(Verbosity),
-                               enabled(false),
-                               model("Digitizer"),
-                               name("")
-                               { }
+    Digitizer() : enabled(false),
+                  model("Digitizer"),
+                  name("")
+                  { }
     virtual ~Digitizer() { }
 
     //--------------------------------------------------------------------------
@@ -57,9 +55,6 @@ public:
         channels_number = n;
     }
     virtual unsigned int GetChannelsNumber() const { return channels_number; }
-
-    virtual void SetVerbosity(int v) { verbosity = v; }
-    virtual int GetVerbosity() const { return verbosity; }
 
     //--------------------------------------------------------------------------
 

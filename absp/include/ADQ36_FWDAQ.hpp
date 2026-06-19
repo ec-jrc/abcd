@@ -70,7 +70,7 @@ public:
     // Counter of overflows, used only for debugging
     unsigned int timestamp_overflows;
 
-    ADQ36_FWDAQ(void* adq_cu_ptr, int adq14_num, int verbosity = 0);
+    ADQ36_FWDAQ(void* adq_cu_ptr, int adq14_num);
     ~ADQ36_FWDAQ();
 
     int Initialize();
