@@ -18,6 +18,12 @@ include(UseSWIG)
 find_path(ZMQ_INCLUDE_DIR NAMES zmq.h)
 find_library(ZMQ_LIBRARY NAMES zmq)
 
+find_path(FMT_INCLUDE_DIR NAMES fmt/format.h)
+find_library(FMT_LIBRARY NAMES fmt)
+
+find_path(SPDLOG_INCLUDE_DIR NAMES spdlog/spdlog.h)
+find_library(SPDLOG_LIBRARY NAMES spdlog)
+
 find_path(JANSSON_INCLUDE_DIR NAMES jansson.h)
 find_library(JANSSON_LIBRARY NAMES jansson)
 
@@ -122,8 +128,8 @@ set_target_properties(LuaManager
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${PROJECT_NAME}.cpp $<TARGET_OBJECTS:LuaDigitizers>)
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${ZMQ_INCLUDE_DIR} ${JANSSON_INCLUDE_DIR} ${ADQ_INCLUDE_DIR} ${LUA_INCLUDE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/include)
-target_link_libraries(${PROJECT_NAME} PUBLIC ${ZMQ_LIBRARY} ${JANSSON_LIBRARY} ${ADQ_LIBRARY} ${LUA_LIBRARY} LuaManager)
+target_include_directories(${PROJECT_NAME} PUBLIC ${ZMQ_INCLUDE_DIR} ${JANSSON_INCLUDE_DIR} ${ADQ_INCLUDE_DIR} ${LUA_INCLUDE_DIR} ${CMAKE_CURRENT_BINARY_DIR}/include ${FMT_INCLUDE_DIR} ${SPDLOG_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} PUBLIC ${ZMQ_LIBRARY} ${JANSSON_LIBRARY} ${ADQ_LIBRARY} ${LUA_LIBRARY} ${FMT_LIBRARY} ${SPDLOG_LIBRARY} LuaManager)
 
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
