@@ -2,13 +2,14 @@
 #define __ADQ_UTILITIES_HPP__
 
 #include <vector>
+#include <memory>
+#include <spdlog/spdlog.h>
 
 #define LINUX
 #include "ADQAPI.h"
 
-#define WRITE_RED "\033[0;31m"
-#define WRITE_YELLOW "\033[0;33m"
-#define WRITE_NC "\033[0m"
+extern std::shared_ptr<spdlog::logger> absp_logger_console;
+extern std::shared_ptr<spdlog::logger> absp_logger_error;
 
 #define CHECKZERO(f) \
 { \
@@ -16,13 +17,7 @@
     if (!(retval)) { \
         char error_string[512]; \
         ADQControlUnit_GetLastFailedDeviceErrorWithText(adq_cu_ptr, error_string); \
-        char time_buffer[BUFFER_SIZE]; \
-        time_string(time_buffer, BUFFER_SIZE, NULL); \
-        std::cout << '[' << time_buffer << "] ADQSDK "; \
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " in: " << (#f); \
-        std::cout << " (code: " << WRITE_YELLOW << retval << WRITE_NC << "); "; \
-        std::cout << "text: " << WRITE_YELLOW << error_string << WRITE_NC << "; "; \
-        std::cout << std::endl; \
+        absp_logger_error->error("ADQSDK ERROR in: {} (code: {}); text: {}", (#f), retval, error_string); \
     } \
 }
 
@@ -30,12 +25,7 @@
 { \
     const auto retval = (f); \
     if ((retval) < 0) { \
-        char time_buffer[BUFFER_SIZE]; \
-        time_string(time_buffer, BUFFER_SIZE, NULL); \
-        std::cout << '[' << time_buffer << "] ADQSDK "; \
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << " in: " << (#f); \
-        std::cout << " (code: " << WRITE_YELLOW << retval << WRITE_NC << "); "; \
-        std::cout << std::endl; \
+        absp_logger_error->error("ADQSDK ERROR in: {} (code: {})", (#f), retval); \
     } \
 }
 
