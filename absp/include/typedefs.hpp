@@ -1,5 +1,5 @@
 /*
- * (C) Copyright 2016 Cristiano Lino Fontana
+ * (C) Copyright 2016,2026 Cristiano Lino Fontana
  *
  * This file is part of ABCD.
  *
@@ -29,10 +29,14 @@
 // For std::pair
 #include <utility>
 
-#include <jansson.h>
-#include <zmq.h>
+#include <spdlog/spdlog.h>
 
 #include "defaults.h"
+
+extern "C" {
+#include <zmq.h>
+#include <jansson.h>
+}
 
 #include "Digitizer.hpp"
 
@@ -41,25 +45,29 @@
 #define SCRIPT_WHEN_PRE 0
 #define SCRIPT_WHEN_POST 1
 
+extern std::shared_ptr<spdlog::logger> logger_console;
+extern std::shared_ptr<spdlog::logger> logger_error;
+
 struct status
 {
-    unsigned int base_period;
     std::string status_address;
-    std::string data_address;
+    std::string data_output_address;
     std::string commands_address;
     
-    void *context;
-    void *status_socket;
-    void *data_socket;
-    void *commands_socket;
-    
-    unsigned int verbosity;
+    void *context = nullptr;
+    void *status_socket = nullptr;
+    void *data_output_socket = nullptr;
+    void *commands_socket = nullptr;
+
+    std::string config_filename;
+    std::string log_filename;
+
+    json_t *config;
+
     unsigned long int status_msg_ID;
     unsigned long int data_msg_ID;
 
     bool identification_only;
-    
-    json_t *config;
 
     std::map<std::pair<unsigned int, unsigned int>, std::string> user_scripts;
     
@@ -76,8 +84,6 @@ struct status
     // -------------------------------------------------------------------------
     //  DAQ specific variables
     // -------------------------------------------------------------------------
-    std::string config_file;
-    
     std::chrono::time_point<std::chrono::system_clock> start_time;
     std::chrono::time_point<std::chrono::system_clock> stop_time;
     std::chrono::time_point<std::chrono::system_clock> last_publication;
