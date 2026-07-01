@@ -30,7 +30,7 @@ endforeach()
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 if(NOT Python3_FOUND)
-    message(FATAL_ERROR "Python3 with is required but not found. Please install it.")
+    message(FATAL_ERROR "Python3 is required but not found. Please install it.")
 endif()
 
 set(REQUIRED_PYTHON_PACKAGES "numpy" "scipy" "zmq")
