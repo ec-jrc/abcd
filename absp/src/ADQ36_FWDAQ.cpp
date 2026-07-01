@@ -2,11 +2,11 @@
 #include <cinttypes>
 
 #include <fstream>
-#include <iostream>
 #include <stdexcept>
 
-#include <thread>
 #include <chrono>
+#include <thread>
+#include <unistd.h>
 
 extern "C" {
 #include <jansson.h>
@@ -26,138 +26,103 @@ extern "C" {
 #define MIN(a, b) ((a) > (b) ? (b) : (a))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-#define BUFFER_SIZE 32
 // The dump of the default configuration has 47130 characters
 #define ADQAPI_JSON_BUFFER_SIZE 65536
 
 const unsigned int ABCD::ADQ36_FWDAQ::default_data_reading_timeout = 3000;
 
-ABCD::ADQ36_FWDAQ::ADQ36_FWDAQ(void* adq, int num, int Verbosity) : ABCD::Digitizer(Verbosity),
-                                                                  adq_cu_ptr(adq),
-                                                                  adq_num(num)
+ABCD::ADQ36_FWDAQ::ADQ36_FWDAQ(void* adq, int num) : ABCD::Digitizer(),
+                                                     adq_cu_ptr(adq),
+                                                     adq_num(num)
 {
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ADQ36_FWDAQ() ";
-        std::cout << std::endl;
-    }
-
     SetModel("ADQ36_FWDAQ");
+
+    const std::string log_name = GetModel() + "::ADQ36_FWDAQ()";
+    absp_logger_console->info("{}", log_name);
 
     SetEnabled(false);
 
-    timestamp_bit_shift = 0;
 
     // This is reset only at the class creation because the timestamp seems to
     // be growing continuously even after starts or stops.
     timestamp_last = 0;
     timestamp_offset = 0;
     timestamp_overflows = 0;
+    timestamp_bit_shift = 0;
 }
 
 //==============================================================================
 
 ABCD::ADQ36_FWDAQ::~ADQ36_FWDAQ() {
+    const std::string log_name = GetName() + " " + GetModel() + "::~ADQ36_FWDAQ()";
+    absp_logger_console->info("{}", log_name);
 }
 
 //==============================================================================
 
 int ABCD::ADQ36_FWDAQ::Initialize()
 {
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << std::endl;
-    }
+    std::string log_name = GetModel() + "::Initialize()";
+    absp_logger_console->info("{}", log_name);
 
     // Initialize the variable holding the configuration parameters
     if (ADQ_InitializeParameters(adq_cu_ptr, adq_num,
                                  ADQ_PARAMETER_ID_TOP, &adq_parameters) != sizeof(adq_parameters))
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to initialize digitizer parameters; ";
-        std::cout << std::endl;
+        absp_logger_error->error("{} Failed to initialize digitizer parameters;", log_name);
 
         return DIGITIZER_FAILURE;
     }
 
     SetName(adq_parameters.constant.serial_number);
 
+    log_name = GetName() + std::string(" ") + log_name;
+
     SetChannelsNumber(adq_parameters.constant.nof_channels);
 
-    if (GetVerbosity() > 0)
+    absp_logger_console->info("{} Initialized board", log_name);
+    absp_logger_console->info("{} Card name (serial number): {}; Product name: {}; Card option: {}; Motherboard option: {}; DNA: {};", log_name, GetName(), adq_parameters.constant.product_name, ADQ_GetCardOption(adq_cu_ptr, adq_num), adq_parameters.constant.product_options, adq_parameters.constant.dna);
+    //absp_logger_console->info("{} USB address: {}; PCIe address: {};", log_name, ADQ_GetUSBAddress(adq_cu_ptr, adq_num), ADQ_GetPCIeAddress(adq_cu_ptr, adq_num));
+    absp_logger_console->info("{} ADQAPI revision: {}; ", log_name, ADQAPI_GetRevisionString());
+
+    absp_logger_console->info("{} Channels number: {};", log_name, GetChannelsNumber());
+    absp_logger_console->info("{} Firmware type: {}; name: {}; revision: {}; customization: {}; part number: {};", log_name, adq_parameters.constant.firmware.type, adq_parameters.constant.firmware.name, adq_parameters.constant.firmware.revision, adq_parameters.constant.firmware.customization, adq_parameters.constant.firmware.part_number);
+
+    std::string output_string(ADQAPI_JSON_BUFFER_SIZE, '\0');
+
+    CHECKNEGATIVE(ADQ_GetStatusString(adq_cu_ptr, adq_num,
+                                      ADQ_STATUS_ID_TEMPERATURE,
+                                      const_cast<char*>(output_string.c_str()),
+                                      ADQAPI_JSON_BUFFER_SIZE, 1));
+
+    absp_logger_console->info("{} Temperature JSON status: {};", log_name, output_string);
+
+    CHECKNEGATIVE(ADQ_GetStatusString(adq_cu_ptr, adq_num,
+                                      ADQ_STATUS_ID_ACQUISITION,
+                                      const_cast<char*>(output_string.c_str()),
+                                      ADQAPI_JSON_BUFFER_SIZE, 1));
+
+    absp_logger_console->info("{} Acquisition JSON status: {};", log_name, output_string);
+
+    if (absp_logger_console->should_log(spdlog::level::debug))
     {
-        std::string output_string(ADQAPI_JSON_BUFFER_SIZE, '\0');
+        char time_buffer[std::size("  yyyy-mm-ddThh:mm:ssZ+00:00  ")];
+        time_string(time_buffer, std::size(time_buffer), NULL);
 
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << "Initialized board; ";
-        std::cout << std::endl;
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << "Card name (serial number): " << GetName() << "; ";
-        std::cout << "Product name: " << adq_parameters.constant.product_name << "; ";
-        std::cout << "Card option: " << adq_parameters.constant.product_options << "; ";
-        std::cout << "DNA: " << adq_parameters.constant.dna << "; ";
-        std::cout << std::endl;
+        std::string file_name("ADQ36_");
+        file_name += GetName();
+        file_name += "_default-config_";
+        file_name += time_buffer;
+        file_name += ".json";
 
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << "ADQAPI Revision: " << ADQAPI_GetRevisionString() << "; ";
-        std::cout << std::endl;
-
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << "Channels number: " << GetChannelsNumber() << "; ";
-        std::cout << std::endl;
-
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << "Firmware type: " << adq_parameters.constant.firmware.type << "; ";
-        std::cout << "name: " << adq_parameters.constant.firmware.name << "; ";
-        std::cout << "revision: " << adq_parameters.constant.firmware.revision << "; ";
-        std::cout << "customization: " << adq_parameters.constant.firmware.customization << "; ";
-        std::cout << "part number: " << adq_parameters.constant.firmware.part_number << "; ";
-        std::cout << std::endl;
-
-        CHECKNEGATIVE(ADQ_GetStatusString(adq_cu_ptr, adq_num,
-                                          ADQ_STATUS_ID_TEMPERATURE,
-                                          const_cast<char*>(output_string.c_str()),
-                                          ADQAPI_JSON_BUFFER_SIZE, 1));
-
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << "Temperature JSON status: " << output_string << "; ";
-        std::cout << std::endl;
-
-        CHECKNEGATIVE(ADQ_GetStatusString(adq_cu_ptr, adq_num,
-                                          ADQ_STATUS_ID_ACQUISITION,
-                                          const_cast<char*>(output_string.c_str()),
-                                          ADQAPI_JSON_BUFFER_SIZE, 1));
-
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << "Acquisition JSON status: " << output_string << "; ";
-        std::cout << std::endl;
-
-        if (GetVerbosity() > 1) {
-            std::string file_name("ADQ36_");
-            file_name += GetName();
-            file_name += "_default-config_";
-            file_name += time_buffer;
-            file_name += ".json";
-
-            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-            std::cout << "Saving digitizer parameters to file: " << file_name << "; ";
-            std::cout << std::endl;
-            CHECKNEGATIVE(ADQ_InitializeParametersFilename(adq_cu_ptr, adq_num,
-                                                           ADQ_PARAMETER_ID_TOP,
-                                                           file_name.c_str(),
-                                                           1));
-        }
-
+        absp_logger_console->info("{} Saving digitizer parameters to file: {};", log_name, file_name);
+        CHECKNEGATIVE(ADQ_InitializeParametersFilename(adq_cu_ptr, adq_num,
+                                                       ADQ_PARAMETER_ID_TOP,
+                                                       file_name.c_str(),
+                                                       1));
     }
+
+    
 
     return DIGITIZER_SUCCESS;
 }
@@ -166,59 +131,31 @@ int ABCD::ADQ36_FWDAQ::Initialize()
 
 int ABCD::ADQ36_FWDAQ::Configure()
 {
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Configure() ";
-        std::cout << "Configuring board; ";
-        std::cout << std::endl;
-    }
+    const std::string log_name = GetName() + " " + GetModel() + "::Configure()";
+    absp_logger_console->info("{} Configuring board;", log_name);
 
     if (!IsEnabled()) {
         return DIGITIZER_SUCCESS; // if card is OFF return immediately
     }
 
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-        std::cout << "Validating parameters with ADQ_ValidateParameters(); ";
-        std::cout << std::endl;
-    }
+    absp_logger_console->info("{} Validating parameters with ADQ_ValidateParameters();", log_name);
 
     const int vp_result = ADQ_ValidateParameters(adq_cu_ptr, adq_num,
                                                  reinterpret_cast<void*>(&adq_parameters));
 
     if (vp_result < 0) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failure in parameters validation; ";
-        std::cout << std::endl;
+        absp_logger_error->error("{} Failure in parameters validation;", log_name);
 
         return ADQ_ADQ36_ERROR_PARAMETERS_VALIDATION;
     }
 
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Configure() ";
-        std::cout << "Setting parameters; ";
-        std::cout << std::endl;
-    }
+    absp_logger_console->info("{} Setting parameters with ADQ_SetParameters();", log_name);
 
     const int sp_result = ADQ_SetParameters(adq_cu_ptr, adq_num,
                                             reinterpret_cast<void*>(&adq_parameters));
 
     if (sp_result < 0) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Configure() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to set parameters; ";
-        std::cout << std::endl;
+        absp_logger_error->error("{} Failure in setting parameters;", log_name);
 
         return ADQ_ADQ36_ERROR_CONFIGURATION;
     }
@@ -238,10 +175,10 @@ int ABCD::ADQ36_FWDAQ::Configure()
     // -------------------------------------------------------------------------
     //  Managing the native JSON configuration of the digitizer
     // -------------------------------------------------------------------------
-    if (GetVerbosity() > 1)
+    if (absp_logger_console->should_log(spdlog::level::debug))
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
+        char time_buffer[std::size("  yyyy-mm-ddThh:mm:ssZ+00:00  ")];
+        time_string(time_buffer, std::size(time_buffer), NULL);
 
         std::string file_name("ADQ36_");
         file_name += GetName();
@@ -249,9 +186,7 @@ int ABCD::ADQ36_FWDAQ::Configure()
         file_name += time_buffer;
         file_name += ".json";
 
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << "Saving digitizer parameters after configuration to file: " << file_name << "; ";
-        std::cout << std::endl;
+        absp_logger_console->debug("{} Saving digitizer parameters after configuration to file: {};", log_name, file_name);
         CHECKNEGATIVE(ADQ_GetParametersFilename(adq_cu_ptr, adq_num,
                                                 ADQ_PARAMETER_ID_TOP,
                                                 file_name.c_str(),
@@ -259,13 +194,15 @@ int ABCD::ADQ36_FWDAQ::Configure()
     }
 
     if (!native_config.empty()) {
+        absp_logger_console->info("{} Setting parameters from native configuration in the user configuration with ADQ_SetParameters();", log_name);
+
         CHECKNEGATIVE(ADQ_SetParametersString(adq_cu_ptr, adq_num,
                                               native_config.c_str(), native_config.length()));
 
-        if (GetVerbosity() > 1)
+        if (absp_logger_console->should_log(spdlog::level::debug))
         {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
+            char time_buffer[std::size("  yyyy-mm-ddThh:mm:ssZ+00:00  ")];
+            time_string(time_buffer, std::size(time_buffer), NULL);
 
             std::string file_name("ADQ36_");
             file_name += GetName();
@@ -273,9 +210,7 @@ int ABCD::ADQ36_FWDAQ::Configure()
             file_name += time_buffer;
             file_name += ".json";
 
-            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-            std::cout << "Saving digitizer parameters after configuration to file: " << file_name << "; ";
-            std::cout << std::endl;
+            absp_logger_console->debug("{} Saving digitizer parameters after native configuration to file: {};", log_name, file_name);
             CHECKNEGATIVE(ADQ_GetParametersFilename(adq_cu_ptr, adq_num,
                                                     ADQ_PARAMETER_ID_TOP,
                                                     file_name.c_str(),
@@ -290,14 +225,8 @@ int ABCD::ADQ36_FWDAQ::Configure()
 
 void ABCD::ADQ36_FWDAQ::SetChannelsNumber(unsigned int n)
 {
-    if (GetVerbosity() > 1)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SetChannelsNumber() ";
-        std::cout << "Setting channels number to: " << n << "; ";
-        std::cout << std::endl;
-    }
+    const std::string log_name = GetName() + " " + GetModel() + "::SetChannelsNumber()";
+    absp_logger_console->debug("{} Setting channels number to: {};", log_name, n);
 
     Digitizer::SetChannelsNumber(n);
 }
@@ -306,14 +235,8 @@ void ABCD::ADQ36_FWDAQ::SetChannelsNumber(unsigned int n)
 
 int ABCD::ADQ36_FWDAQ::StartAcquisition()
 {
-    if (GetVerbosity() > 1)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::StartAcquisition() ";
-        std::cout << "Starting acquisition; ";
-        std::cout << std::endl;
-    }
+    const std::string log_name = GetName() + " " + GetModel() + "::StartAcquisition()";
+    absp_logger_console->trace("{} Starting acquisition;", log_name);
 
     //last_buffer_ready = std::chrono::system_clock::now();
 
@@ -321,15 +244,7 @@ int ABCD::ADQ36_FWDAQ::StartAcquisition()
     const int retval = ADQ_StartDataAcquisition(adq_cu_ptr, adq_num);
 
     if (retval != ADQ_EOK) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::StartAcquisition() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to start acquisition ";
-        std::cout << " (code: " << WRITE_YELLOW << retval << WRITE_NC << "); ";
-        std::cout << std::endl;
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::StartAcquisition() ";
-        std::cout << WRITE_RED << ADQ_descriptions::error.at(retval) << WRITE_NC << "; ";
-        std::cout << std::endl;
+        absp_logger_error->error("{} Unable to start acquisition (code: {}, {});", log_name, retval, ADQ_descriptions::error.at(retval));
 
         return DIGITIZER_FAILURE;
     }
@@ -356,24 +271,11 @@ int ABCD::ADQ36_FWDAQ::StartAcquisition()
 
 int ABCD::ADQ36_FWDAQ::RearmTrigger()
 {
-    if (GetVerbosity() > 1)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::RearmTrigger() ";
-        std::cout << "Rearming trigger; ";
-        std::cout << std::endl;
-    }
+    const std::string log_name = GetName() + " " + GetModel() + "::RearmTrigger()";
+    absp_logger_console->trace("{} Rearming trigger;", log_name);
 
     if (using_software_trigger) {
-        if (GetVerbosity() > 1)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::RearmTrigger() ";
-            std::cout << "Forcing software trigger; ";
-            std::cout << std::endl;
-        }
+        absp_logger_console->trace("{} Rearming trigger; Forcing software trigger;", log_name);
 
         ForceSoftwareTrigger();
     }
@@ -394,14 +296,7 @@ bool ABCD::ADQ36_FWDAQ::AcquisitionReady()
 
 int ABCD::ADQ36_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &waveforms)
 {
-    if (GetVerbosity() > 1)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetWaveformsFromCard() ";
-        std::cout << "Getting waveforms from card; ";
-        std::cout << std::endl;
-    }
+    const std::string log_name = GetName() + " " + GetModel() + "::DataOverflow()";
 
     const std::chrono::time_point<std::chrono::system_clock> waveforms_reading_start = std::chrono::system_clock::now();
     auto delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - waveforms_reading_start);
@@ -424,52 +319,35 @@ int ABCD::ADQ36_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
 
         if (available_records == 0) {
             // This is a status only record, I am not sure how to handle it
-            if (GetVerbosity() > 1)
+            if (absp_logger_console->should_log(spdlog::level::info))
             {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetWaveformsFromCard() ";
-                std::cout << "Status only record: flags: ";
-                printf("%08" PRIu32 "", ADQ_status.flags);
-                std::cout << "; ";
-                std::cout << "Available channel: " << available_channel << "; ";
-                std::cout << std::endl;
+                std::string status_flag;
+                if (ADQ_status.flags == ADQ_DATA_READOUT_STATUS_FLAGS_STARVING) {
+                    status_flag = "STARVING";
+                }
+                else if (ADQ_status.flags == ADQ_DATA_READOUT_STATUS_FLAGS_INCOMPLETE) {
+                    status_flag = "INCOMPLETE";
+                }
+                else if (ADQ_status.flags == ADQ_DATA_READOUT_STATUS_FLAGS_DISCARDED) {
+                    status_flag = "DISCARDED";
+                }
+                else {
+                    status_flag = "UNKNOWN";
+                }
+                absp_logger_console->info("{} Status only record; Available channel: {}; Flags: {:08x} \"{}\";", log_name, available_channel, static_cast<unsigned int>(ADQ_status.flags), status_flag);
             }
         } else if (available_records == ADQ_EAGAIN) {
             // This is a safe timeout, it means that data is not yet
             // available
-            if (GetVerbosity() > 1)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetWaveformsFromCard() ";
-                std::cout << "Timeout; ";
-                std::cout << std::endl;
-            }
         } else if (available_records < 0 && available_records != ADQ_EAGAIN) {
             // This is an error!
             // The record should not have been allocated and the docs
             // suggest to stop the acquisition to understand the error value
-            if (GetVerbosity() > 1)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetWaveformsFromCard() ";
-                std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Error code: " << (long)available_records << "; ";
-                std::cout << std::endl;
-            }
+            absp_logger_error->warn("{} Error code: {};", log_name, (long)available_records);
             return DIGITIZER_FAILURE;
 
         } else if (available_records > 0) {
-            if (GetVerbosity() > 1)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetWaveformsFromCard() ";
-                std::cout << "Available data; ";
-                std::cout << "Available records: " << (long)available_records << "; ";
-                std::cout << std::endl;
-            }
+            absp_logger_console->trace("{} Available for channel {}: records: {};", log_name, available_channel, (long)available_records);
 
             for (int64_t record_index = 0; record_index < available_records; record_index++) {
 
@@ -485,16 +363,7 @@ int ABCD::ADQ36_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
                 const int64_t record_start = ADQ_records_array->record[record_index]->header->record_start;
                 const uint64_t timestamp = timestamp_begin + record_start;
 
-                if (GetVerbosity() > 1)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetWaveformsFromCard() ";
-                    std::cout << "Available channel: " << available_channel << ", " << (unsigned int)channel << "; ";
-                    std::cout << "Collected record number: " << (unsigned long)record_number << "; ";
-                    std::cout << "Record length: " << (unsigned long)samples_per_record << "; ";
-                    std::cout << std::endl;
-                }
+                absp_logger_console->trace("{} Channel {}: Number of collected records: {}; Record length: {};", log_name, channel, (unsigned long)record_number, (unsigned long)samples_per_record);
 
                 // If we see a jump backward in timestamp bigger than half the timestamp
                 // range we assume that there was an overflow in the timestamp counter.
@@ -504,16 +373,7 @@ int ABCD::ADQ36_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
                 const int64_t timestamp_negative_difference = timestamp_last - timestamp;
 
                 if (timestamp_negative_difference > ADQ36_FWDAQ_TIMESTAMP_THRESHOLD) {
-                    if (GetVerbosity() > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetWaveformsFromCard() ";
-                        std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Detected timestamp overflow; ";
-                        std::cout << "Overflows: " << timestamp_overflows << "; ";
-                        std::cout << "Negative difference: " << (long long)timestamp_negative_difference << "; ";
-                        std::cout << std::endl;
-                    }
+                    absp_logger_error->warn("{} Detected timestamp overflow; Overflows: {}; Negative difference: {};", log_name, timestamp_overflows, (long long)timestamp_negative_difference);
 
                     timestamp_offset += ADQ36_FWDAQ_TIMESTAMP_MAX;
                     timestamp_overflows += 1;
@@ -547,11 +407,7 @@ int ABCD::ADQ36_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
                         samples[sample_index] = ((value) + (1 << 15));
                     }
                 } else if (ADQ_records_array->record[record_index]->header->data_format == ADQ_DATA_FORMAT_INT32) {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetWaveformsFromCard() ";
-                    std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Data format is set to 32 bits; ";
-                    std::cout << std::endl;
+                    absp_logger_error->warn("{} Data format is set to 32 bits;", log_name);
 
                     const int32_t *data_buffer_32bits = reinterpret_cast<int32_t*>(ADQ_records_array->record[record_index]->data);
 
@@ -562,11 +418,7 @@ int ABCD::ADQ36_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
                         samples[sample_index] = ((value) + (1 << 15));
                     }
                 } else {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetWaveformsFromCard() ";
-                    std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unexpected data format; ";
-                    std::cout << std::endl;
+                    absp_logger_error->error("{} Unexpected data format (got: {});", log_name, ADQ_records_array->record[record_index]->header->data_format);
                 }
 
                 waveforms.push_back(this_waveform);
@@ -581,35 +433,15 @@ int ABCD::ADQ36_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
 
         delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - waveforms_reading_start);
 
-        if (GetVerbosity() > 1)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::AcquisitionReady() ";
-            std::cout << "Time since the last buffer ready: " << delta_time.count() << " ms; ";
-            std::cout << std::endl;
-        }
-
+        absp_logger_console->debug("{} Time since the last buffer ready: {}", log_name, delta_time.count());
     } while ((available_records >= 0) && (delta_time < std::chrono::milliseconds(data_reading_timeout)));
 
     if ((available_records >= 0) && (delta_time > std::chrono::milliseconds(data_reading_timeout)))
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetWaveformsFromCard() ";
-        std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Timeout in the data reading";
-        std::cout << std::endl;
+        absp_logger_error->warn("{} Timeout in the data reading;", log_name);
     }
 
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetWaveformsFromCard() ";
-        std::cout << "Converted all samples; ";
-        std::cout << "Timestamp overflows: " << timestamp_overflows << "; ";
-        std::cout << std::endl;
-    }
+    absp_logger_console->info("{} Converted all samples; Timestamp overflows: {};", log_name, timestamp_overflows);
 
     return DIGITIZER_SUCCESS;
 }
@@ -618,22 +450,14 @@ int ABCD::ADQ36_FWDAQ::GetWaveformsFromCard(std::vector<struct event_waveform> &
 
 int ABCD::ADQ36_FWDAQ::StopAcquisition()
 {
-    {
-        const int retval = ADQ_StopDataAcquisition(adq_cu_ptr, adq_num);
+    const std::string log_name = GetName() + " " + GetModel() + "::StopAcquisition()";
 
-        if (retval != ADQ_EOK && retval != ADQ_EINTERRUPTED) {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::StopAcquisition() ";
-            std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Stop acquisition error ";
-            std::cout << " (code: " << WRITE_YELLOW << retval << WRITE_NC << "); ";
-            std::cout << std::endl;
-            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::StopAcquisition() ";
-            std::cout << WRITE_RED << ADQ_descriptions::error.at(retval) << WRITE_NC << "; ";
-            std::cout << std::endl;
+    const int retval = ADQ_StopDataAcquisition(adq_cu_ptr, adq_num);
 
-            return DIGITIZER_FAILURE;
-        }
+    if (retval != ADQ_EOK && retval != ADQ_EINTERRUPTED) {
+        absp_logger_error->error("{} FWPD functions; Stop acquisition error (code: {}, {});", log_name, retval, ADQ_descriptions::error.at(retval));
+
+        return DIGITIZER_FAILURE;
     }
 
     return DIGITIZER_SUCCESS;
@@ -643,14 +467,9 @@ int ABCD::ADQ36_FWDAQ::StopAcquisition()
 
 int ABCD::ADQ36_FWDAQ::ForceSoftwareTrigger()
 {
-    if (GetVerbosity() > 1)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ForceSoftwareTrigger() ";
-        std::cout << "Forcing a software trigger; ";
-        std::cout << std::endl;
-    }
+    const std::string log_name = GetName() + " " + GetModel() + "::ForceSoftwareTrigger()";
+
+    absp_logger_console->debug("{} Forcing a software trigger;", log_name);
 
     CHECKNEGATIVE(ADQ_SWTrig(adq_cu_ptr, adq_num));
 
@@ -661,14 +480,9 @@ int ABCD::ADQ36_FWDAQ::ForceSoftwareTrigger()
 
 int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
 {
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-        std::cout << "Reading configration JSON; ";
-        std::cout << std::endl;
-    }
+    const std::string log_name = GetName() + " " + GetModel() + "::ReadConfig()";
+
+    absp_logger_console->info("{} Reading configuration JSON;", log_name);
 
     const bool enable = json_is_true(json_object_get(config, "enable"));
     SetEnabled(enable);
@@ -677,14 +491,7 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
     // the configuration becomes correct
     json_object_set_nocheck(config, "enable", json_boolean(enable));
 
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-        std::cout << "Card is " << (enable ? "enabled" : "disabled") << "; ";
-        std::cout << std::endl;
-    }
+    absp_logger_console->info("{} Card is {};", log_name, (enable ? "enabled" : "disabled"));
 
     // -------------------------------------------------------------------------
     //  Reading the ABCD-style configuration
@@ -697,22 +504,10 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
     json_t *json_custom_firmware = json_object_get(config, "JRC_custom_firmware");
 
     if (json_custom_firmware != NULL && json_is_object(json_custom_firmware)) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-        std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": JRC-Geel custom firmware settings detected";
-        std::cout << std::endl;
+        absp_logger_error->warn("{} JRC-Geel custom firmware settings detected;", log_name);
 
         custom_firmware_enabled = json_is_true(json_object_get(json_custom_firmware, "enable"));
-
-        if (GetVerbosity() > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-            std::cout << "Custom firmware settings are " << (custom_firmware_enabled ? "enabled" : "disabled") << "; ";
-            std::cout << std::endl;
-        }
+        absp_logger_console->info("{} Custom firmware settings are {};", log_name, (custom_firmware_enabled ? "enabled" : "disabled"));
 
         if (custom_firmware_enabled) {
             custom_firmware_pulse_length = json_number_value(json_object_get(json_custom_firmware, "pulse_length"));
@@ -728,11 +523,7 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                                  ADQ_PARAMETER_ID_CLOCK_SYSTEM,
                                  &clock_system) != sizeof(clock_system))
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to initialize clock_system parameters; ";
-        std::cout << std::endl;
+        absp_logger_error->error("{} Failed to initialize clock_system parameters;", log_name);
 
         return DIGITIZER_FAILURE;
     }
@@ -740,11 +531,7 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
     json_t *json_clock = json_object_get(config, "clock");
 
     if (!json_clock) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-        std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Missing clock configuration";
-        std::cout << std::endl;
+        absp_logger_error->error("{} Missing \"clock\" entry in configuration;", log_name);
 
         json_clock = json_object();
 
@@ -764,11 +551,7 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
         } else {
             clock_system.reference_source = ADQ_REFERENCE_CLOCK_SOURCE_INTERNAL;
 
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-            std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Wrong clock source";
-            std::cout << std::endl;
+            absp_logger_error->error("{} Wrong clock source;", log_name);
         }
 
         // If the clock source is set to external, then the clock generator
@@ -779,20 +562,20 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
         //    clock_system.clock_generator = ADQ_CLOCK_GENERATOR_EXTERNAL_CLOCK;
         //}
 
+        absp_logger_console->info("{} Setting clock; clock_source: {};", log_name, ADQ_descriptions::ADQ36_clock_source.at(clock_system.reference_source));
         json_object_set_nocheck(json_clock, "source", json_string(ADQ_descriptions::ADQ36_clock_source.at(clock_system.reference_source).c_str()));
-
-        if (GetVerbosity() > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-            std::cout << "Clock source: got: " << ADQ_descriptions::ADQ36_clock_source.at(clock_system.reference_source) << " (index: " << clock_system.reference_source << "); ";
-            std::cout << std::endl;
-        }
 
         clock_system.reference_frequency = json_number_value(json_object_get(json_clock, "reference_frequency"));
 
         clock_system.low_jitter_mode_enabled = 1;
+    }
+
+    const int Scs_result = ADQ_SetParameters(adq_cu_ptr, adq_num, reinterpret_cast<void*>(&clock_system));
+    if (Scs_result < 0)
+    {
+        absp_logger_error->error("{} Failed to set clock_system parameters;", log_name);
+
+        return DIGITIZER_FAILURE;
     }
 
     data_reading_timeout = json_number_value(json_object_get(config, "data_reading_timeout"));
@@ -801,41 +584,12 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
         data_reading_timeout = default_data_reading_timeout;
     }
 
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-        std::cout << "Data reading timeout: " << data_reading_timeout << " ms; ";
-        std::cout << std::endl;
-    }
-
+    absp_logger_console->info("{} Data reading timeout: {} ms;", log_name, data_reading_timeout);
     json_object_set_nocheck(config, "data_reading_timeout", json_integer(data_reading_timeout));
 
     timestamp_bit_shift = json_number_value(json_object_get(config, "timestamp_bit_shift"));
-
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-        std::cout << "Timestamp bit shift: " << timestamp_bit_shift << " bits; ";
-        std::cout << std::endl;
-    }
-
+    absp_logger_console->info("{} Timestamp bit shift: {} bit;", log_name, timestamp_bit_shift);
     json_object_set_nocheck(config, "timestamp_bit_shift", json_integer(timestamp_bit_shift));
-
-    const int Scs_result = ADQ_SetParameters(adq_cu_ptr, adq_num, reinterpret_cast<void*>(&clock_system));
-    if (Scs_result < 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to initialize clock_system parameters; ";
-        std::cout << std::endl;
-
-        return DIGITIZER_FAILURE;
-    }
 
     // -------------------------------------------------------------------------
     //  Reading the ports configuration
@@ -855,14 +609,7 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                 const char *cstr_id = json_string_value(json_id);
                 const std::string str_id = cstr_id ? std::string(cstr_id) : std::string("");
 
-                if (GetVerbosity() > 0)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "Found port: " << str_id << "; ";
-                    std::cout << std::endl;
-                }
+                absp_logger_console->info("{} Found port: {};", log_name, str_id);
 
                 // Looking for the settings in the description map
                 const auto pi_result = map_utilities::find_item(ADQ_descriptions::ADQ36_port_ids, str_id);
@@ -871,23 +618,10 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
 
                 if (pi_result != ADQ_descriptions::ADQ36_port_ids.end() && str_id.length() > 0) {
                     id = pi_result->first;
-
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "Found matching port id; ";
-                    std::cout << "Got: " << str_id << "; ";
-                    std::cout << "index: " << static_cast<int>(id) << "; ";
-                    std::cout << std::endl;
                 } else {
                     id = ADQ_PARAMETER_ID_RESERVED;
 
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid port id; ";
-                    std::cout << "Got: " << str_id << "; ";
-                    std::cout << std::endl;
+                    absp_logger_error->error("{} Invalid port id (got: {});", log_name, str_id);
                 }
 
                 if (id != ADQ_PARAMETER_ID_RESERVED) {
@@ -904,24 +638,12 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                     } else {
                         impedance = ADQ_IMPEDANCE_HIGH;
 
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Wrong input impedance, got: " << str_impedance << "; ";
-                        std::cout << std::endl;
+                        absp_logger_error->error("{} Invalid port impedance (got: {});", log_name, str_impedance);
                     }
 
+                    absp_logger_console->info("{} Input impedance: {};", log_name, str_impedance);
                     json_object_set_nocheck(value, "input_impedance",
                                             json_string(ADQ_descriptions::input_impedance.at(impedance).c_str()));
-
-                    if (GetVerbosity() > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                        std::cout << "Input impedance: got: " << ADQ_descriptions::input_impedance.at(impedance) << " (index: " << impedance << "); ";
-                        std::cout << std::endl;
-                    }
 
                     const char *cstr_direction = json_string_value(json_object_get(value, "direction"));
                     const std::string str_direction = (cstr_direction) ? std::string(cstr_direction) : std::string();
@@ -936,24 +658,12 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                     } else {
                         direction = ADQ_DIRECTION_IN;
 
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Wrong pin direction, got: " << str_direction << "; ";
-                        std::cout << std::endl;
+                        absp_logger_error->error("{} Invalid pin direction (got: {});", log_name, str_direction);
                     }
 
+                    absp_logger_console->info("{} Pin direction: {};", log_name, str_direction);
                     json_object_set_nocheck(value, "direction",
                                             json_string(ADQ_descriptions::pin_direction.at(direction).c_str()));
-
-                    if (GetVerbosity() > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                        std::cout << "Pin direction: got: " << ADQ_descriptions::pin_direction.at(direction) << " (index: " << direction << "); ";
-                        std::cout << std::endl;
-                    }
 
                     const char *cstr_function = json_string_value(json_object_get(value, "function"));
                     const std::string str_function = (cstr_function) ? std::string(cstr_function) : std::string();
@@ -967,35 +677,19 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                     } else {
                         function = ADQ_FUNCTION_GPIO;
 
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Wrong pin function, got: " << str_function << "; ";
-                        std::cout << std::endl;
+                        absp_logger_error->error("{} Invalid pin function (got: {});", log_name, str_function);
                     }
 
+                    absp_logger_console->info("{} Pin function: {};", log_name, str_function);
                     json_object_set_nocheck(value, "function",
                                             json_string(ADQ_descriptions::pin_function.at(function).c_str()));
-
-                    if (GetVerbosity() > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                        std::cout << "Pin function: got: " << ADQ_descriptions::pin_function.at(function) << " (index: " << function << "); ";
-                        std::cout << std::endl;
-                    }
 
                     struct ADQPortParameters port_parameters;
 
                     int result = ADQ_InitializeParameters(adq_cu_ptr, adq_num, id, &port_parameters);
                     if (result != sizeof(port_parameters))
                     {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-                        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to initialize port parameters; ";
-                        std::cout << std::endl;
+                        absp_logger_error->error("{} Failed to initialize port parameters;", log_name);
 
                         return DIGITIZER_FAILURE;
                     }
@@ -1009,11 +703,7 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                     result = ADQ_SetParameters(adq_cu_ptr, adq_num, &port_parameters);
                     if (result != sizeof(port_parameters))
                     {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-                        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to set port parameters; ";
-                        std::cout << std::endl;
+                        absp_logger_error->error("{} Failed to set port parameters;", log_name);
 
                         return DIGITIZER_FAILURE;
                     }
@@ -1034,11 +724,7 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
     if (ADQ_GetParameters(adq_cu_ptr, adq_num,
                           ADQ_PARAMETER_ID_TOP, &adq_parameters) != sizeof(adq_parameters))
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::Initialize() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Failed to get digitizer parameters; ";
-        std::cout << std::endl;
+        absp_logger_error->error("{} Failed to initialize digitizer parameters;", log_name);
 
         return DIGITIZER_FAILURE;
     }
@@ -1057,102 +743,48 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
             if (json_id != NULL && json_is_integer(json_id)) {
                 const int id = json_integer_value(json_id);
 
-                if (GetVerbosity() > 0)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "Found channel: " << id << "; ";
-                    std::cout << std::endl;
-                }
+                absp_logger_console->info("{} Found channel: {};", log_name, id);
 
                 const bool enabled = json_is_true(json_object_get(value, "enable"));
 
-                if (GetVerbosity() > 0)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "Channel is " << (enabled ? "enabled" : "disabled") << "; ";
-                    std::cout << std::endl;
-                }
+                absp_logger_console->info("{} Channel is {};", log_name, (enabled ? "disabled" : "enabled"));
+
+                json_object_set_new_nocheck(value, "enable", json_boolean(enabled));
 
                 // -------------------------------------------------------------
                 //  Analog front end settings (AFE)
                 // -------------------------------------------------------------
-                const double DC_offset = json_number_value(json_object_get(value, "DC_offset"));
-
-                json_object_set_nocheck(value, "DC_offset", json_real(DC_offset));
-
-                if (GetVerbosity() > 0)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "DC offset: " << DC_offset << " mV; ";
-                    std::cout << std::endl;
-                }
 
                 // This is not available in the ADQ36 that we have
                 //double input_range = json_number_value(json_object_get(value, "input_range"));
-
-                //if (GetVerbosity() > 0)
-                //{
-                //    char time_buffer[BUFFER_SIZE];
-                //    time_string(time_buffer, BUFFER_SIZE, NULL);
-                //    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                //    std::cout << "Input range: " << input_range << " mVpp; ";
-                //    std::cout << std::endl;
-                //}
-
                 //if (input_range <= 0) {
                 //    input_range = default_input_range;
+                //    absp_logger_error->error("{} Input range must be greater than zero, got: {};", log_name, str_sync_impedance);
                 //}
 
+                //absp_logger_console->info("{} Input range {} mVpp;", log_name, input_range);
                 //json_object_set_nocheck(value, "input_range", json_real(input_range));
+
+                const int DC_offset = json_number_value(json_object_get(value, "DC_offset"));
+                absp_logger_console->info("{} DC offset {} samples;", log_name, DC_offset);
+                json_object_set_nocheck(value, "DC_offset", json_integer(DC_offset));
 
                 // -------------------------------------------------------------
                 //  Signal processing parameters
                 // -------------------------------------------------------------
                 const bool DBS_enable = json_is_true(json_object_get(value, "DBS_enable"));
-
+                absp_logger_console->info("{} DBS enable: {};", log_name, (DBS_enable ? "true" : "false"));
                 json_object_set_nocheck(value, "DBS_enable", DBS_enable ? json_true() : json_false());
 
-                if (GetVerbosity() > 0)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "DBS enable: " << (DBS_enable ? "true" : "false") << "; ";
-                    std::cout << std::endl;
-                }
-
                 const int64_t DBS_level = json_number_value(json_object_get(value, "DBS_level"));
-
+                absp_logger_console->info("{} DBS level: {};", log_name, DBS_level);
                 json_object_set_nocheck(value, "DBS_level", json_integer(DBS_level));
 
-                if (GetVerbosity() > 0)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "DBS level: " << (long long)DBS_level << "; ";
-                    std::cout << std::endl;
-                }
 
                 const int raw_skip_factor = json_number_value(json_object_get(value, "skip_factor"));
                 const int64_t skip_factor = (raw_skip_factor < 1) ? 1 : raw_skip_factor;
-
+                absp_logger_console->info("{} Skip factor: {};", log_name, skip_factor);
                 json_object_set_nocheck(value, "skip_factor", json_integer(skip_factor));
-
-                if (GetVerbosity() > 0)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "Skip factor: " << (long long)skip_factor << "; ";
-                    std::cout << std::endl;
-                }
 
                 // -------------------------------------------------------------
                 //  Event source parameters (triggering)
@@ -1170,27 +802,15 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                 } else {
                     trigger_source = ADQ_EVENT_SOURCE_LEVEL;
 
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Wrong trigger source, got: " << str_trigger_source << "; ";
-                    std::cout << std::endl;
+                    absp_logger_error->error("{} Invalid trigger source (got: {});", log_name, str_trigger_source);
                 }
 
+                absp_logger_console->info("{} Trigger source: {};", log_name, str_trigger_source);
                 json_object_set_nocheck(value, "trigger_source",
                                         json_string(ADQ_descriptions::event_source.at(trigger_source).c_str()));
 
-                if (GetVerbosity() > 0)
-                {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "Trigger source: got: " << ADQ_descriptions::event_source.at(trigger_source) << " (index: " << trigger_source << "); ";
-                    std::cout << std::endl;
-                }
-
                 const int64_t raw_trigger_level = json_number_value(json_object_get(value, "trigger_level"));
-
+                absp_logger_console->info("{} Trigger level: {};", log_name, raw_trigger_level);
                 json_object_set_nocheck(value, "trigger_level", json_integer(raw_trigger_level));
 
                 // This level should be the absolute trigger level.
@@ -1201,36 +821,12 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                 // that we convert to a int16_t.
                 const int64_t trigger_level = (raw_trigger_level - 0x7FFF);
 
-                if (GetVerbosity() > 0) {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "Trigger level: " << (long long)trigger_level << "; ";
-                    std::cout << std::endl;
-                }
-
                 const int64_t trigger_hysteresis = json_number_value(json_object_get(value, "trigger_hysteresis"));
-
+                absp_logger_console->info("{} Trigger hysteresis: {};", log_name, trigger_hysteresis);
                 json_object_set_nocheck(value, "trigger_hysteresis", json_integer(trigger_hysteresis));
-
-                if (GetVerbosity() > 0) {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "Trigger hysteresis: " << (long long)trigger_hysteresis << "; ";
-                    std::cout << std::endl;
-                }
 
                 const char *cstr_trigger_slope = json_string_value(json_object_get(value, "trigger_slope"));
                 const std::string str_trigger_slope = (cstr_trigger_slope) ? std::string(cstr_trigger_slope) : std::string();
-
-                if (GetVerbosity() > 0) {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "Trigger slope: " << str_trigger_slope<< "; ";
-                    std::cout << std::endl;
-                }
 
                 // Looking for the settings in the description map
                 const auto tsl_result = map_utilities::find_item(ADQ_descriptions::slope, str_trigger_slope);
@@ -1239,68 +835,35 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
 
                 if (tsl_result != ADQ_descriptions::slope.end() && str_trigger_slope.length() > 0) {
                     trigger_slope = tsl_result->first;
-
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "Found matching trigger slope; ";
-                    std::cout << "Got: " << str_trigger_slope << "; ";
-                    std::cout << "index: " << trigger_slope << "; ";
-                    std::cout << std::endl;
                 } else {
                     trigger_slope = ADQ_EDGE_FALLING;
 
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid trigger slope; ";
-                    std::cout << "Got: " << str_trigger_slope << "; ";
-                    std::cout << std::endl;
+                    absp_logger_error->error("{} Invalid trigger slope, got: {};", log_name, str_trigger_slope);
                 }
 
-                json_object_set_nocheck(value, "trigger_slope", json_string(ADQ_descriptions::slope.at(trigger_slope).c_str()));
+                absp_logger_console->info("{} Trigger slope: {};", log_name, ADQ_descriptions::trigger_slope.at(trigger_slope));
+                json_object_set_nocheck(value, "trigger_slope", json_string(ADQ_descriptions::trigger_slope.at(trigger_slope).c_str()));
 
                 const int raw_pretrigger = json_number_value(json_object_get(value, "pretrigger"));
 
                 const int64_t pretrigger = std::ceil(raw_pretrigger / ADQ_ADQ36_SAMPLES_RESOLUTION) * ADQ_ADQ36_SAMPLES_RESOLUTION;
 
+                absp_logger_console->info("{} Pretrigger: {};", log_name, pretrigger);
                 json_object_set_nocheck(value, "pretrigger", json_integer(pretrigger));
-
-                if (GetVerbosity() > 0) {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "Pretrigger: " << (long long)pretrigger << "; ";
-                    std::cout << std::endl;
-                }
 
                 unsigned int raw_scope_samples = json_number_value(json_object_get(value, "scope_samples"));
                 raw_scope_samples = (raw_scope_samples < ADQ_ADQ36_MINIMUM_SCOPE_SAMPLES) ? ADQ_ADQ36_MINIMUM_SCOPE_SAMPLES : raw_scope_samples;
                 const int64_t scope_samples = std::ceil(raw_scope_samples / ADQ_ADQ36_SAMPLES_RESOLUTION) * ADQ_ADQ36_SAMPLES_RESOLUTION;
 
+                absp_logger_console->info("{} Scope samples: {};", log_name, scope_samples);
                 json_object_set_nocheck(value, "scope_samples", json_integer(scope_samples));
-
-                if (GetVerbosity() > 0) {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "Scope samples: " << (long long)scope_samples << "; ";
-                    std::cout << std::endl;
-                }
 
                 const unsigned int raw_records_per_buffer = json_number_value(json_object_get(value, "records_per_buffer"));
 
                 const unsigned int records_per_buffer = (raw_records_per_buffer < 1) ? 1 : raw_records_per_buffer;
 
+                absp_logger_console->info("{} Records per buffer: {};", log_name, records_per_buffer);
                 json_object_set_nocheck(value, "records_per_buffer", json_integer(records_per_buffer));
-
-                if (GetVerbosity() > 0) {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << "Records per buffer: " << records_per_buffer << "; ";
-                    std::cout << std::endl;
-                }
 
                 // This would limit the number of records read in an acquisition.
                 // We hide this setting from the user because it can be confusing.
@@ -1308,13 +871,6 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                 //const int raw_records_number = json_number_value(json_object_get(value, "records_number"));
                 //const int records_number = (raw_records_number < 1) ? ADQ_INFINITE_NOF_RECORDS : raw_records_number;
                 //json_object_set_nocheck(value, "records_number", json_integer(records_number));
-                //if (GetVerbosity() > 0) {
-                //    char time_buffer[BUFFER_SIZE];
-                //    time_string(time_buffer, BUFFER_SIZE, NULL);
-                //    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                //    std::cout << "Records number: " << records_number << "; ";
-                //    std::cout << std::endl;
-                //}
 
                 // -------------------------------------------------------------------------
                 //  Setting the channel configuration
@@ -1365,12 +921,10 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                         using_software_trigger = true;
                     }
                 } else {
-                    char time_buffer[BUFFER_SIZE];
-                    time_string(time_buffer, BUFFER_SIZE, NULL);
-                    std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                    std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Channel out of range, ignoring it; ";
-                    std::cout << std::endl;
+                    absp_logger_error->error("{} Channel out of range, ignoring it (got: {});", log_name, id);
                 }
+            } else {
+                absp_logger_error->error("{} Invalid channel number in \"id\" entry, ignoring it;", log_name);
             }
         }
     }
@@ -1382,25 +936,11 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
 
     if (json_event_source != NULL && json_is_object(json_event_source)) {
         // We will not force the existance of the event_source member as it is probably not used by most users
-        if (GetVerbosity() > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-            std::cout << "Reading event_source configuration; ";
-            std::cout << std::endl;
-        }
+        absp_logger_console->info("{} Reading event_source configuration;", log_name);
 
         json_t *json_level_matrix = json_object_get(json_event_source, "level_matrix");
         if (json_level_matrix != NULL && json_is_object(json_level_matrix)) {
-            if (GetVerbosity() > 0)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                std::cout << "Reading event_source.level_matrix configuration; ";
-                std::cout << std::endl;
-            }
+            absp_logger_console->info("{} Reading event_source.level_matrix configuration;", log_name);
 
             json_t *json_channels = json_object_get(json_level_matrix, "channels");
             if (json_channels == NULL || !json_is_array(json_channels)) {
@@ -1408,14 +948,7 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                 json_object_set_nocheck(json_level_matrix, "channels", json_channels);
             }
 
-            if (GetVerbosity() > 0)
-            {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                std::cout << "Reading event_source.level_matrix.channels configuration; ";
-                std::cout << std::endl;
-            }
+            absp_logger_console->info("{} Reading event_source.level_matrix.channels configuration;", log_name);
 
             size_t index;
             json_t *value;
@@ -1426,38 +959,16 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                 if (json_id != NULL && json_is_integer(json_id)) {
                     const int id = json_integer_value(json_id);
 
-                    if (GetVerbosity() > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                        std::cout << "Found channel: " << id << "; ";
-                        std::cout << std::endl;
-                    }
+                    absp_logger_console->info("{} Found channel: {};", log_name, id);
 
                     const bool enabled = json_is_true(json_object_get(value, "enable"));
 
-                    if (GetVerbosity() > 0)
-                    {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                        std::cout << "Channel is " << (enabled ? "enabled" : "disabled") << "; ";
-                        std::cout << std::endl;
-                    }
+                    absp_logger_console->info("{} Channel is {};", log_name, (enabled ? "disabled" : "enabled"));
 
                     json_object_set_nocheck(value, "enable", json_boolean(enabled));
 
                     const char *cstr_slope = json_string_value(json_object_get(value, "slope"));
                     const std::string str_slope = (cstr_slope) ? std::string(cstr_slope) : std::string();
-
-                    if (GetVerbosity() > 0) {
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                        std::cout << "Trigger slope: " << str_slope<< "; ";
-                        std::cout << std::endl;
-                    }
 
                     // Looking for the settings in the description map
                     const auto tsl_result = map_utilities::find_item(ADQ_descriptions::slope, str_slope);
@@ -1466,25 +977,13 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
 
                     if (tsl_result != ADQ_descriptions::slope.end() && str_slope.length() > 0) {
                         slope = tsl_result->first;
-
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                        std::cout << "Found matching slope; ";
-                        std::cout << "Got: " << str_slope << "; ";
-                        std::cout << "index: " << slope << "; ";
-                        std::cout << std::endl;
                     } else {
                         slope = ADQ_EDGE_RISING;
 
-                        char time_buffer[BUFFER_SIZE];
-                        time_string(time_buffer, BUFFER_SIZE, NULL);
-                        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Invalid slope; ";
-                        std::cout << "Got: " << str_slope << "; ";
-                        std::cout << std::endl;
+                        absp_logger_error->error("{} Invalid trigger slope, got: {};", log_name, str_slope);
                     }
 
+                    absp_logger_console->info("{} Trigger slope: {};", log_name, ADQ_descriptions::slope.at(slope));
                     json_object_set_nocheck(value, "slope", json_string(ADQ_descriptions::slope.at(slope).c_str()));
 
                     adq_parameters.event_source.level_matrix.channel[id].enabled = enabled ? 1 : 0;
@@ -1502,24 +1001,13 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
     json_t *json_native_config = json_object_get(config, "native");
 
     if (json_is_object(json_native_config)) {
-        if (GetVerbosity() > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-            std::cout << WRITE_YELLOW << "WARNING" << WRITE_NC << ": Using the \"native\" entry in the configuration; ";
-            std::cout << std::endl;
-        }
+        absp_logger_error->warn("{} Using the \"native\" entry in the configuration;", log_name);
 
         char *native_config_buffer = json_dumps(json_native_config, JSON_COMPACT);
 
         if (!native_config_buffer)
         {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-            std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to allocate native config buffer; ";
-            std::cout << std::endl;
+            absp_logger_error->error("{} Unable to allocate native config buffer;", log_name);
         }
         else
         {
@@ -1529,11 +1017,7 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
                                                           native_config_buffer, total_size);
 
             if (validation < 0) {
-                char time_buffer[BUFFER_SIZE];
-                time_string(time_buffer, BUFFER_SIZE, NULL);
-                std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::ReadConfig() ";
-                std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": The native config is not valid; ";
-                std::cout << std::endl;
+                absp_logger_error->error("{} The native config is not valid;", log_name);
             } else {
                 native_config = native_config_buffer;
             }
@@ -1550,17 +1034,12 @@ int ABCD::ADQ36_FWDAQ::ReadConfig(json_t *config)
 
 int ABCD::ADQ36_FWDAQ::SpecificCommand(json_t *json_command)
 {
+    const std::string log_name = GetName() + " " + GetModel() + "::SpecificCommand()";
+
     const char *cstr_command = json_string_value(json_object_get(json_command, "command"));
     const std::string command = (cstr_command) ? std::string(cstr_command) : std::string();
 
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SpecificCommand() ";
-        std::cout << "Specific command: " << command << "; ";
-        std::cout << std::endl;
-    }
+    absp_logger_console->info("{} Specific command: {};", log_name, command);
 
     if (command == std::string("set_parameters")) {
         // ---------------------------------------------------------------------
@@ -1568,14 +1047,7 @@ int ABCD::ADQ36_FWDAQ::SpecificCommand(json_t *json_command)
         // ---------------------------------------------------------------------
         const json_t *parameters = json_object_get(json_command, "parameters");
 
-        if (GetVerbosity() > 0)
-        {
-            char time_buffer[BUFFER_SIZE];
-            time_string(time_buffer, BUFFER_SIZE, NULL);
-            std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SpecificCommand() ";
-            std::cout << "Setting parameters; ";
-            std::cout << std::endl;
-        }
+        absp_logger_console->info("{} Setting parameters", log_name);
 
         return SetParametersJSON(parameters);
     }
@@ -1587,14 +1059,9 @@ int ABCD::ADQ36_FWDAQ::SpecificCommand(json_t *json_command)
 
 std::string ABCD::ADQ36_FWDAQ::GetStatusString(enum ADQStatusId status_id)
 {
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetStatusString() ";
-        std::cout << "Reading status of id: " << (int)status_id << "; ";
-        std::cout << std::endl;
-    }
+    const std::string log_name = GetName() + " " + GetModel() + "::GetStatusString()";
+
+    absp_logger_console->info("{} Getting status of id: {};", log_name, (int)status_id);
 
     char status[ADQAPI_JSON_BUFFER_SIZE];
 
@@ -1613,24 +1080,15 @@ std::string ABCD::ADQ36_FWDAQ::GetStatusString(enum ADQStatusId status_id)
 
 int ABCD::ADQ36_FWDAQ::GetParameters(enum ADQParameterId parameter_id, void *const parameters)
 {
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetParameters() ";
-        std::cout << "Reading parameters of id: " << (int)parameter_id << "; ";
-        std::cout << std::endl;
-    }
+    const std::string log_name = GetName() + " " + GetModel() + "::GetParameters()";
+
+    absp_logger_console->info("{} Reading parameters of id: {};", log_name, (int)parameter_id);
 
     const int result = ADQ_GetParameters(adq_cu_ptr, adq_num,
                                          parameter_id, parameters);
 
     if (result < 0) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetParameters() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to get parameters with id: " << (int)parameter_id;
-        std::cout << std::endl;
+        absp_logger_error->error("{} Unable to get parameters with id: {};", log_name, (int)parameter_id);
 
         return DIGITIZER_FAILURE;
     }
@@ -1642,14 +1100,9 @@ int ABCD::ADQ36_FWDAQ::GetParameters(enum ADQParameterId parameter_id, void *con
 
 int ABCD::ADQ36_FWDAQ::SetParameters(void *const parameters)
 {
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SetParameters() ";
-        std::cout << "Setting parameters; ";
-        std::cout << std::endl;
-    }
+    const std::string log_name = GetName() + " " + GetModel() + "::SetParameters()";
+
+    absp_logger_console->info("{} Setting parameters;", log_name);
 
     const int result = ADQ_SetParameters(adq_cu_ptr, adq_num,
                                          parameters);
@@ -1657,13 +1110,7 @@ int ABCD::ADQ36_FWDAQ::SetParameters(void *const parameters)
     if (result < 0) {
         char error_string[512];
         ADQControlUnit_GetLastFailedDeviceErrorWithText(adq_cu_ptr, error_string);
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SetParameters() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to set parameters";
-        std::cout << " (code: " << WRITE_YELLOW << result << WRITE_NC << "); "; 
-        std::cout << "text: " << WRITE_YELLOW << error_string << WRITE_NC << "; "; 
-        std::cout << std::endl;
+        absp_logger_error->error("{} Unable to set parameters (code: {}): {};", log_name, result, error_string);
 
         return DIGITIZER_FAILURE;
     } else {
@@ -1675,14 +1122,9 @@ int ABCD::ADQ36_FWDAQ::SetParameters(void *const parameters)
 
 std::string ABCD::ADQ36_FWDAQ::GetParametersString(enum ADQParameterId parameter_id)
 {
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetParametersString() ";
-        std::cout << "Reading parameters of id: " << (int)parameter_id << "; ";
-        std::cout << std::endl;
-    }
+    const std::string log_name = GetName() + " " + GetModel() + "::GetParametersString()";
+
+    absp_logger_console->info("{} Reading parameters of id: {};", log_name, (int)parameter_id);
 
     char parameters[ADQAPI_JSON_BUFFER_SIZE];
 
@@ -1701,14 +1143,9 @@ std::string ABCD::ADQ36_FWDAQ::GetParametersString(enum ADQParameterId parameter
 
 int ABCD::ADQ36_FWDAQ::SetParametersString(const std::string parameters)
 {
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SetParametersString() ";
-        std::cout << "Setting parameters; ";
-        std::cout << std::endl;
-    }
+    const std::string log_name = GetName() + " " + GetModel() + "::SetParametersString()";
+
+    absp_logger_console->info("{} Setting parameters: {};", log_name, parameters);
 
     const int result = ADQ_SetParametersString(adq_cu_ptr, adq_num,
                                                parameters.c_str(), parameters.length());
@@ -1716,13 +1153,7 @@ int ABCD::ADQ36_FWDAQ::SetParametersString(const std::string parameters)
     if (result < 0) {
         char error_string[512];
         ADQControlUnit_GetLastFailedDeviceErrorWithText(adq_cu_ptr, error_string);
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SetParametersString() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to set parameters";
-        std::cout << " (code: " << WRITE_YELLOW << result << WRITE_NC << "); "; 
-        std::cout << "text: " << WRITE_YELLOW << error_string << WRITE_NC << "; "; 
-        std::cout << std::endl;
+        absp_logger_error->error("{} Unable to set parameters (code: {}): {};", log_name, result, error_string);
 
         return DIGITIZER_FAILURE;
     } else {
@@ -1734,14 +1165,9 @@ int ABCD::ADQ36_FWDAQ::SetParametersString(const std::string parameters)
 
 json_t *ABCD::ADQ36_FWDAQ::GetParametersJSON(enum ADQParameterId parameter_id)
 {
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetParametersJSON() ";
-        std::cout << "Reading parameters of id: " << (int)parameter_id << "; ";
-        std::cout << std::endl;
-    }
+    const std::string log_name = GetName() + " " + GetModel() + "::GetParametersJSON()";
+
+    absp_logger_console->info("{} Reading parameters of id: {};", log_name, (int)parameter_id);
 
     char parameters[ADQAPI_JSON_BUFFER_SIZE];
 
@@ -1758,13 +1184,7 @@ json_t *ABCD::ADQ36_FWDAQ::GetParametersJSON(enum ADQParameterId parameter_id)
 
     if (!parameters_json)
     {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::GetParametersJSON() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Parse error while reading parameters string: ";
-        std::cout << error.text;
-        std::cout << " (source: " << error.source << ", line: " << error.line << ", column: " << error.column << ", position: " << error.position << ")";
-        std::cout << std::endl;
+        absp_logger_error->error("{} Parse error while reading parameters string: {} (source: {}, line: {}, column: {}, position: {});", log_name, error.text, error.source, error.line, error.column, error.position);
 
         return NULL;
     }
@@ -1778,23 +1198,14 @@ json_t *ABCD::ADQ36_FWDAQ::GetParametersJSON(enum ADQParameterId parameter_id)
 
 int ABCD::ADQ36_FWDAQ::SetParametersJSON(const json_t *parameters)
 {
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SetParametersJSON() ";
-        std::cout << "Setting parameters; ";
-        std::cout << std::endl;
-    }
+    const std::string log_name = GetName() + " " + GetModel() + "::SetParametersJSON()";
+
+    absp_logger_console->info("{} Setting parameters;", log_name);
 
     char *parameters_buffer = json_dumps(parameters, JSON_COMPACT);
 
     if (!parameters_buffer) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SetParametersJSON() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to create the JSON parameters buffer; ";
-        std::cout << std::endl;
+        absp_logger_error->error("{} Unable to create the JSON parameters buffer;", log_name);
 
         return DIGITIZER_FAILURE;
     }
@@ -1807,13 +1218,7 @@ int ABCD::ADQ36_FWDAQ::SetParametersJSON(const json_t *parameters)
     if (result < 0) {
         char error_string[512];
         ADQControlUnit_GetLastFailedDeviceErrorWithText(adq_cu_ptr, error_string);
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::SetParametersJSON() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Unable to set parameters";
-        std::cout << " (code: " << WRITE_YELLOW << result << WRITE_NC << "); "; 
-        std::cout << "text: " << WRITE_YELLOW << error_string << WRITE_NC << "; "; 
-        std::cout << std::endl;
+        absp_logger_error->error("{} Unable to set parameters (code: {}): {};", log_name, result, error_string);
 
         return DIGITIZER_FAILURE;
     } else {
@@ -1825,24 +1230,15 @@ int ABCD::ADQ36_FWDAQ::SetParametersJSON(const json_t *parameters)
 
 int ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode(unsigned int mode)
 {
+    const std::string log_name = GetName() + " " + GetModel() + "::CustomFirmwareSetMode()";
+
     if (mode > 1) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Custom firmware: Mode can only be 0 or 1, got: " << mode << " ; ";
-        std::cout << std::endl;
+        absp_logger_error->error("{} Custom firmware: Mode can only be 0 or 1  (got: {});", log_name, mode);
 
         return DIGITIZER_FAILURE;
     }
 
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode() ";
-        std::cout << "Setting mode to: " << (mode == 1 ? "forward to sync" : "daisy chain only") << "; ";
-        std::cout << std::endl;
-    }
+    absp_logger_console->info("{} Setting mode to: {};", log_name, (mode == 1 ? "forward to sync" : "daisy chain only"));
 
     // Identifies which user-logic core we want to write to
     const int USER_LOGIC_BLOCK_TARGET = 2;
@@ -1864,11 +1260,7 @@ int ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode(unsigned int mode)
                                         &return_value));
 
     if (return_value != mode) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Custom firmware: Unable to set the mode; ";
-        std::cout << std::endl;
+        absp_logger_error->error("{} Custom firmware: Unable to set the mode {};", log_name, mode);
 
         return DIGITIZER_FAILURE;
     }
@@ -1880,14 +1272,9 @@ int ABCD::ADQ36_FWDAQ::CustomFirmwareSetMode(unsigned int mode)
 
 int ABCD::ADQ36_FWDAQ::CustomFirmwareSetPulseLength(unsigned int pulse_length)
 {
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareSetPulseLength() ";
-        std::cout << "Pulse length to: " << pulse_length << "; ";
-        std::cout << std::endl;
-    }
+    const std::string log_name = GetName() + " " + GetModel() + "::CustomFirmwareSetPulseLength()";
+
+    absp_logger_console->info("{} Pulse length: {};", log_name, pulse_length);
 
     // Identifies which user-logic core we want to write to
     const int USER_LOGIC_BLOCK_TARGET = 2;
@@ -1909,11 +1296,7 @@ int ABCD::ADQ36_FWDAQ::CustomFirmwareSetPulseLength(unsigned int pulse_length)
                                         &return_value));
 
     if (return_value != pulse_length) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareSetPulseLength() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Custom firmware: Unable to set the pulse length; ";
-        std::cout << std::endl;
+        absp_logger_error->error("{} Custom firmware: Unable to set the pulse length {};", log_name, pulse_length);
 
         return DIGITIZER_FAILURE;
     }
@@ -1925,14 +1308,9 @@ int ABCD::ADQ36_FWDAQ::CustomFirmwareSetPulseLength(unsigned int pulse_length)
 
 int ABCD::ADQ36_FWDAQ::CustomFirmwareEnable(bool enable)
 {
-    if (GetVerbosity() > 0)
-    {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareEnable() ";
-        std::cout << "Enabling custom firmware functionality: " << (enable ? "true" : "false") << "; ";
-        std::cout << std::endl;
-    }
+    const std::string log_name = GetName() + " " + GetModel() + "::CustomFirmwareEnable()";
+
+    absp_logger_console->info("{} Enabling custom firmware functionality: {};", log_name, (enable ? "true" : "false"));
 
     // Identifies which user-logic core we want to write to
     const int USER_LOGIC_BLOCK_TARGET = 2;
@@ -1954,11 +1332,7 @@ int ABCD::ADQ36_FWDAQ::CustomFirmwareEnable(bool enable)
                                         &return_value));
 
     if (return_value != (enable ? 1 : 0)) {
-        char time_buffer[BUFFER_SIZE];
-        time_string(time_buffer, BUFFER_SIZE, NULL);
-        std::cout << '[' << time_buffer << "] ABCD::ADQ36_FWDAQ::CustomFirmwareEnable() ";
-        std::cout << WRITE_RED << "ERROR" << WRITE_NC << ": Custom firmware: Unable to enable the custom firmware functioning; ";
-        std::cout << std::endl;
+        absp_logger_error->error("{} Custom firmware: Unable to enable the custom firmware functioning;", log_name);
 
         return DIGITIZER_FAILURE;
     }
