@@ -4,6 +4,8 @@
 #include <map>
 #include <chrono>
 
+#include "ADQAPI.h"
+
 extern "C" {
 #include <jansson.h>
 #include "streaming_header.h"
@@ -63,7 +65,7 @@ public:
     int trig_external_delay;
 
     std::vector<int16_t> trigger_levels;
-    std::vector<int16_t> trig_hysteresises;
+    std::vector<int16_t> trigger_hysteresises;
     std::vector<int> trigger_slopes;
 
     static const double default_trig_ext_threshold;
