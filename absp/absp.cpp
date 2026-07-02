@@ -37,7 +37,8 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
-extern "C" {
+extern "C"
+{
 #include "defaults.h"
 #include "utilities_functions.h"
 }
@@ -65,7 +66,8 @@ void signal_handler(int signum)
     }
 }
 
-void print_usage(const std::string &name = std::string("absp")) {
+void print_usage(const std::string &name = std::string("absp"))
+{
     std::cout << "Usage: " << name << " [options]" << std::endl;
     std::cout << std::endl;
     std::cout << "Data acquisition software that reads data from teledyne digitizers." << std::endl;
@@ -107,42 +109,46 @@ int main(int argc, char *argv[])
     bool identification_only = false;
 
     int c = 0;
-    while ((c = getopt(argc, argv, "hIS:D:C:f:T:vl:")) != -1) {
-        switch (c) {
-            case 'h':
-                print_usage(argv[0]);
-                return EXIT_SUCCESS;
-            case 'I':
-                identification_only = true;
-                break;
-            case 'S':
-                status_address = optarg;
-                break;
-            case 'D':
-                data_output_address = optarg;
-                break;
-            case 'C':
-                commands_address = optarg;
-                break;
-            case 'f':
-                config_filename = optarg;
-                break;
-            case 'T':
-                try
-                {
-                    base_period = std::stoul(optarg);
-                } catch (std::logic_error& e) {
-                }
-                break;
-            case 'v':
-                verbosity += 1;
-                break;
-            case 'l':
-                log_filename = optarg;
-                break;
-            default:
-                std::cerr << "Unknown command: " << static_cast<char>(c) << std::endl;
-                break;
+    while ((c = getopt(argc, argv, "hIS:D:C:f:T:vl:")) != -1)
+    {
+        switch (c)
+        {
+        case 'h':
+            print_usage(argv[0]);
+            return EXIT_SUCCESS;
+        case 'I':
+            identification_only = true;
+            break;
+        case 'S':
+            status_address = optarg;
+            break;
+        case 'D':
+            data_output_address = optarg;
+            break;
+        case 'C':
+            commands_address = optarg;
+            break;
+        case 'f':
+            config_filename = optarg;
+            break;
+        case 'T':
+            try
+            {
+                base_period = std::stoul(optarg);
+            }
+            catch (std::logic_error &e)
+            {
+            }
+            break;
+        case 'v':
+            verbosity += 1;
+            break;
+        case 'l':
+            log_filename = optarg;
+            break;
+        default:
+            std::cerr << "Unknown command: " << static_cast<char>(c) << std::endl;
+            break;
         }
     }
 
@@ -156,7 +162,6 @@ int main(int argc, char *argv[])
     global_status.commands_address = commands_address;
     global_status.identification_only = identification_only;
     global_status.adq_cu_ptr = NULL;
-
 
     try
     {
@@ -178,18 +183,26 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    if (verbosity == 0) {
+    if (verbosity == 0)
+    {
         absp_logger_console->set_level(spdlog::level::off);
-    } else if (verbosity == 1) {
+    }
+    else if (verbosity == 1)
+    {
         absp_logger_console->set_level(spdlog::level::info);
-    } else if (verbosity == 2) {
+    }
+    else if (verbosity == 2)
+    {
         absp_logger_console->set_level(spdlog::level::debug);
-    } else if (verbosity == 3) {
+    }
+    else if (verbosity == 3)
+    {
         absp_logger_console->set_level(spdlog::level::trace);
     }
 
     // Overrule the verbosity for identification mode, otherwise nothing is shown
-    if (identification_only) {
+    if (identification_only)
+    {
         absp_logger_console->set_level(spdlog::level::info);
     }
 
@@ -201,7 +214,8 @@ int main(int argc, char *argv[])
     absp_logger_console->info("Log file: {}", log_filename);
     absp_logger_console->info("Base period: {}", base_period);
 
-    if (identification_only) {
+    if (identification_only)
+    {
         absp_logger_console->warn("Identification only, the program will quit afterwards");
     }
 
@@ -229,7 +243,8 @@ int main(int argc, char *argv[])
         const unsigned int current_state_ID = current_state.ID;
         const std::string current_state_description = current_state.description;
 
-        try {
+        try
+        {
             const std::pair<unsigned int, unsigned int> script_key_pre(current_state_ID, SCRIPT_WHEN_PRE);
             const std::string script_source_pre = global_status.user_scripts.at(script_key_pre);
 
@@ -239,12 +254,15 @@ int main(int argc, char *argv[])
                                                  current_state_description,
                                                  "pre",
                                                  script_source_pre);
-
-        } catch (...) {}
+        }
+        catch (...)
+        {
+        }
 
         current_state = current_state.act(global_status);
 
-        try {
+        try
+        {
             const std::pair<unsigned int, unsigned int> script_key_post(current_state_ID, SCRIPT_WHEN_POST);
             const std::string script_source_post = global_status.user_scripts.at(script_key_post);
 
@@ -254,8 +272,10 @@ int main(int argc, char *argv[])
                                                  current_state_description,
                                                  "post",
                                                  script_source_post);
-
-        } catch (...) {}
+        }
+        catch (...)
+        {
+        }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(base_period));
     }
