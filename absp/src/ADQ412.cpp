@@ -8,7 +8,8 @@
 #include <thread>
 #include <unistd.h>
 
-extern "C" {
+extern "C"
+{
 #include <jansson.h>
 
 #include "utilities_functions.h"
@@ -22,7 +23,7 @@ extern "C" {
 #include "ADQ_utilities.hpp"
 #include "ADQ412.hpp"
 
-ABCD::ADQ412::ADQ412(void* adq, int num) : ABCD::Digitizer(),
+ABCD::ADQ412::ADQ412(void *adq, int num) : ABCD::Digitizer(),
                                            adq_cu_ptr(adq),
                                            adq_num(num)
 {
@@ -53,7 +54,8 @@ ABCD::ADQ412::ADQ412(void* adq, int num) : ABCD::Digitizer(),
 
 //==============================================================================
 
-ABCD::ADQ412::~ADQ412() {
+ABCD::ADQ412::~ADQ412()
+{
     const std::string log_name = GetName() + " " + GetModel() + "::~ADQ412()";
     absp_logger_console->info("{}", log_name);
 }
@@ -66,16 +68,19 @@ int ABCD::ADQ412::Initialize()
     absp_logger_console->info("{}", log_name);
 
     // The vendor says that these should be used only for USB digitizers
-    //CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_POWER_ON));
-    //CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_COMMUNICATION));
+    // CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_POWER_ON));
+    // CHECKZERO(ADQ_ResetDevice(adq_cu_ptr, adq_num, RESET_COMMUNICATION));
 
     const char *board_name = ADQ_GetBoardSerialNumber(adq_cu_ptr, adq_num);
 
-    if (!board_name) {
+    if (!board_name)
+    {
         absp_logger_error->error("{} Error in getting the serial number", log_name);
 
         SetName("");
-    } else {
+    }
+    else
+    {
         SetName(board_name);
     }
 
@@ -93,14 +98,16 @@ int ABCD::ADQ412::Initialize()
     uint32_t *revision = ADQ_GetRevision(adq_cu_ptr, adq_num);
     std::string string_revision = "";
 
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 6; i++)
+    {
         string_revision += std::to_string((unsigned int)revision[i]) + ", ";
     }
     absp_logger_console->info("{} ADQ412 Revision: {}", log_name, string_revision);
     absp_logger_console->info("{} Channels number: {}; DBS instances: {}", log_name, GetChannelsNumber(), dbs_inst);
     absp_logger_console->info("{} Has adjustable input range: {}; Has adjustable offset: {}", log_name, (ADQ_HasAdjustableInputRange(adq_cu_ptr, adq_num) > 0 ? "true" : "false"), (ADQ_HasAdjustableBias(adq_cu_ptr, adq_num) > 0 ? "true" : "false"));
 
-    for (auto &pair : ADQ_descriptions::ADQ412_temperatures) {
+    for (auto &pair : ADQ_descriptions::ADQ412_temperatures)
+    {
         const double temperature = ADQ_GetTemperature(adq_cu_ptr, adq_num, pair.first) / 256.0;
         absp_logger_console->info("{} {} temperature: {};", log_name, pair.second, temperature);
     }
@@ -115,7 +122,8 @@ int ABCD::ADQ412::Configure()
     const std::string log_name = GetName() + " " + GetModel() + "::Configure()";
     absp_logger_console->info("{} Configuring board;", log_name);
 
-    if (!IsEnabled()) {
+    if (!IsEnabled())
+    {
         return DIGITIZER_SUCCESS; // if card is OFF return immediately
     }
 
@@ -127,21 +135,24 @@ int ABCD::ADQ412::Configure()
     CHECKZERO(ADQ_SetClockSource(adq_cu_ptr, adq_num, clock_source));
 
     absp_logger_console->info("{} Clock source from device: {};", log_name, ADQ_GetClockSource(adq_cu_ptr, adq_num));
-    try {
+    try
+    {
         absp_logger_console->info("{} Clock source from device: {};", log_name, ADQ_descriptions::clock_source.at(ADQ_GetClockSource(adq_cu_ptr, adq_num)));
-    } catch (...) {
+    }
+    catch (...)
+    {
     }
 
-    //pll_divider = (int)aSampling[iSampling];
-    //absp_logger_console->info("{} Setting PLL divider; PLL_divider: {};", log_name, PLL_divider);
-    // FIXME: I have no idea what this does
-    //CHECKZERO(ADQ_SetPllFreqDivider(adq_cu_ptr,adq_num, pll_divider));
-    // FIXME: This is not working
-    //CHECKZERO(ADQ_SetPll(adq_cu_ptr, adq_num, pll_divider, 2, 1, 1));
+    // pll_divider = (int)aSampling[iSampling];
+    // absp_logger_console->info("{} Setting PLL divider; PLL_divider: {};", log_name, PLL_divider);
+    //  FIXME: I have no idea what this does
+    // CHECKZERO(ADQ_SetPllFreqDivider(adq_cu_ptr,adq_num, pll_divider));
+    //  FIXME: This is not working
+    // CHECKZERO(ADQ_SetPll(adq_cu_ptr, adq_num, pll_divider, 2, 1, 1));
 
     const int interleaving_mode = 0;
     absp_logger_console->info("{} Setting interleaving mode: {};", log_name, interleaving_mode);
-    CHECKZERO(ADQ_SetInterleavingMode(adq_cu_ptr, adq_num, interleaving_mode)); //1 A/C 2 B/D
+    CHECKZERO(ADQ_SetInterleavingMode(adq_cu_ptr, adq_num, interleaving_mode)); // 1 A/C 2 B/D
 
     absp_logger_console->info("{} Disabling test data;", log_name);
 
@@ -156,7 +167,8 @@ int ABCD::ADQ412::Configure()
     channels_triggering_mask = 0;
     channels_acquisition_mask = 0;
 
-    for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
+    for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++)
+    {
         absp_logger_console->info("{} Channel: {}; Enabled: {}; Triggering: {}", log_name, channel, (IsChannelEnabled(channel) ? "true" : "false"), (IsChannelTriggering(channel) ? "true" : "false"));
 
         int gain;
@@ -166,17 +178,19 @@ int ABCD::ADQ412::Configure()
         CHECKZERO(ADQ_GetGainAndOffset(adq_cu_ptr, adq_num, channel + 1, &gain, &offset));
 
         // This is just a value added to the ADC conversion and not a physical offset
-        //CHECKZERO(ADQ_SetGainAndOffset(adq_cu_ptr, adq_num, channel + 1, gain, 0));
+        // CHECKZERO(ADQ_SetGainAndOffset(adq_cu_ptr, adq_num, channel + 1, gain, 0));
 
         // This might be supported in the ADQ412
-        //CHECKZERO(ADQ_SetAdjustableBias(adq_cu_ptr, adq_num, channel + 1, 30000));
+        // CHECKZERO(ADQ_SetAdjustableBias(adq_cu_ptr, adq_num, channel + 1, 30000));
 
         absp_logger_console->info("{} Channel: {}; Gain: {}; Offset: {};", log_name, channel, gain, offset);
 
-        if (IsChannelTriggering(channel)) {
+        if (IsChannelTriggering(channel))
+        {
             channels_triggering_mask += (1 << channel);
         }
-        if (IsChannelEnabled(channel)) {
+        if (IsChannelEnabled(channel))
+        {
             channels_acquisition_mask += (1 << channel);
         }
     }
@@ -187,12 +201,14 @@ int ABCD::ADQ412::Configure()
     // a conservative option. Only channel couples can be used to trigger,
     // because the channels are interleaved. If either one of the channel couple
     // is enabled, then the whole couple is enabled.
-    if ((channels_triggering_mask & 3) == 1 || (channels_triggering_mask & 3) == 2) {
+    if ((channels_triggering_mask & 3) == 1 || (channels_triggering_mask & 3) == 2)
+    {
         absp_logger_error->warn("{} Wrong triggering mask for the first couple (got: {}), enabling all channels of the couple;", log_name, channels_triggering_mask & 3);
 
         channels_triggering_mask = channels_triggering_mask | 3;
     }
-    if ((channels_triggering_mask & 12) == 4 || (channels_triggering_mask & 12) == 8) {
+    if ((channels_triggering_mask & 12) == 4 || (channels_triggering_mask & 12) == 8)
+    {
         absp_logger_error->warn("{} Wrong triggering mask (got: {}), enabling all channels;", log_name, channels_triggering_mask);
         channels_triggering_mask = channels_triggering_mask | 12;
     }
@@ -210,17 +226,20 @@ int ABCD::ADQ412::Configure()
     absp_logger_console->info("{} Setting trigger; mode: {};", log_name, ADQ_descriptions::trigger_mode.at(trigger_mode));
     CHECKZERO(ADQ_SetTriggerMode(adq_cu_ptr, adq_num, trigger_mode));
 
-    if (trigger_mode == ADQ_EXT_TRIGGER_MODE) {
+    if (trigger_mode == ADQ_EXT_TRIGGER_MODE)
+    {
         absp_logger_console->info("{} Setting external TTL trigger;", log_name);
 
         CHECKZERO(ADQ_SetExternTrigEdge(adq_cu_ptr, adq_num, trigger_slope));
-        //CHECKZERO(ADQ_SetExternalTriggerDelay(adq_cu_ptr, adq_num,  trigger_external_delay));
-    } else if (trigger_mode == ADQ_LEVEL_TRIGGER_MODE) {
+        // CHECKZERO(ADQ_SetExternalTriggerDelay(adq_cu_ptr, adq_num,  trigger_external_delay));
+    }
+    else if (trigger_mode == ADQ_LEVEL_TRIGGER_MODE)
+    {
         absp_logger_console->info("{} Setting channels trigger;", log_name);
 
-        CHECKZERO(ADQ_SetTriggerMode(adq_cu_ptr,  adq_num, trigger_mode));
+        CHECKZERO(ADQ_SetTriggerMode(adq_cu_ptr, adq_num, trigger_mode));
         CHECKZERO(ADQ_SetLvlTrigLevel(adq_cu_ptr, adq_num, trigger_level));
-        CHECKZERO(ADQ_SetLvlTrigEdge(adq_cu_ptr,  adq_num, trigger_slope));
+        CHECKZERO(ADQ_SetLvlTrigEdge(adq_cu_ptr, adq_num, trigger_slope));
         CHECKZERO(ADQ_SetLvlTrigChannel(adq_cu_ptr, adq_num, channels_triggering_mask));
     }
 
@@ -231,10 +250,10 @@ int ABCD::ADQ412::Configure()
     // -------------------------------------------------------------------------
 
     // Skip every other N samples, it seems like a decimation on the acquisiton frequency
-    //CHECKZERO(ADQ_SetSampleSkip(adq_cu_ptr, adq_num, 1));
+    // CHECKZERO(ADQ_SetSampleSkip(adq_cu_ptr, adq_num, 1));
 
     // Disable samples decimation, it seems like a downscale on the single samples
-    //CHECKZERO(ADQ_SetSampleDecimation(adq_cu_ptr, adq_num, 0));
+    // CHECKZERO(ADQ_SetSampleDecimation(adq_cu_ptr, adq_num, 0));
 
     // Set packed data format, it should make the communication faster and the
     // library should unpack automatically the data.
@@ -249,12 +268,14 @@ int ABCD::ADQ412::Configure()
 
     buffers_size = records_number * samples_per_record;
 
-    for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
+    for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++)
+    {
         buffers[channel].resize(buffers_size);
 
         target_buffers[channel] = buffers[channel].data();
     }
-    for (unsigned int channel = GetChannelsNumber(); channel < ADQ_GETDATA_MAX_NOF_CHANNELS; channel++) {
+    for (unsigned int channel = GetChannelsNumber(); channel < ADQ_GETDATA_MAX_NOF_CHANNELS; channel++)
+    {
         target_buffers[channel] = NULL;
     }
 
@@ -293,7 +314,8 @@ int ABCD::ADQ412::RearmTrigger()
     CHECKZERO(ADQ_DisarmTrigger(adq_cu_ptr, adq_num));
     CHECKZERO(ADQ_ArmTrigger(adq_cu_ptr, adq_num));
 
-    if (trigger_mode == ADQ_SW_TRIGGER_MODE) {
+    if (trigger_mode == ADQ_SW_TRIGGER_MODE)
+    {
         ForceSoftwareTrigger();
     }
 
@@ -336,7 +358,7 @@ int ABCD::ADQ412::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
     // about their structure, thus we will pass just NULL to the function.
     const int retval = ADQ_GetDataWHTS(adq_cu_ptr, adq_num,
                                        target_buffers,
-                                       //target_headers.data(),
+                                       // target_headers.data(),
                                        NULL,
                                        target_timestamps.data(),
                                        buffers_size, sizeof(int16_t),
@@ -345,14 +367,18 @@ int ABCD::ADQ412::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
                                        0, samples_per_record,
                                        ADQ_TRANSFER_MODE_NORMAL);
 
-    if (retval == 0) {
+    if (retval == 0)
+    {
         absp_logger_error->error("{} Error in fetching data;", log_name);
         return DIGITIZER_FAILURE;
-    } else {
+    }
+    else
+    {
         absp_logger_console->info("{} Collected all samples;", log_name);
     }
 
-    for (unsigned int record_index = 0; record_index < records_number; record_index++) {
+    for (unsigned int record_index = 0; record_index < records_number; record_index++)
+    {
         // If we see a jump backward in timestamp bigger than half the timestamp
         // range we assume that there was an overflow in the timestamp counter.
         // A smaller jump could mean that the records in the buffer are not
@@ -360,7 +386,8 @@ int ABCD::ADQ412::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
         // not verified it.
         const int64_t timestamp_negative_difference = timestamp_last - target_timestamps[record_index];
 
-        if (timestamp_negative_difference > ADQ412_TIMESTAMP_THRESHOLD) {
+        if (timestamp_negative_difference > ADQ412_TIMESTAMP_THRESHOLD)
+        {
             absp_logger_error->warn("{} Detected timestamp overflow; Overflows: {}; Negative difference: {};", log_name, timestamp_overflows, (long long)timestamp_negative_difference);
             timestamp_offset += ADQ412_TIMESTAMP_MAX;
             timestamp_overflows += 1;
@@ -372,16 +399,19 @@ int ABCD::ADQ412::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
 
         const uint64_t timestamp_waveform = target_timestamps[record_index] + timestamp_offset;
 
-        for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
-            if (IsChannelEnabled(channel)) {
+        for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++)
+        {
+            if (IsChannelEnabled(channel))
+            {
                 struct event_waveform this_waveform = waveform_create(timestamp_waveform,
                                                                       channel,
                                                                       samples_per_record,
                                                                       0);
 
-                uint16_t * const samples = waveform_samples_get(&this_waveform);
+                uint16_t *const samples = waveform_samples_get(&this_waveform);
 
-                for (unsigned int sample_index = 0; sample_index < samples_per_record; sample_index++) {
+                for (unsigned int sample_index = 0; sample_index < samples_per_record; sample_index++)
+                {
                     const int16_t value = buffers[channel][record_index * samples_per_record + sample_index];
 
                     // We convert the signed integers to unsigned adding an
@@ -395,7 +425,7 @@ int ABCD::ADQ412::GetWaveformsFromCard(std::vector<struct event_waveform> &wavef
     }
 
     absp_logger_console->info("{} Converted all samples; Timestamp overflows: {};", log_name, timestamp_overflows);
-    //ADQ_GetOverflow(adq_cu_ptr, adq_num);
+    // ADQ_GetOverflow(adq_cu_ptr, adq_num);
 
     return DIGITIZER_SUCCESS;
 }
@@ -464,9 +494,12 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
     // Looking for the settings in the description map
     const auto cs_result = map_utilities::find_item(ADQ_descriptions::clock_source, str_clock_source);
 
-    if (cs_result != ADQ_descriptions::clock_source.end() && str_clock_source.length() > 0) {
+    if (cs_result != ADQ_descriptions::clock_source.end() && str_clock_source.length() > 0)
+    {
         clock_source = cs_result->first;
-    } else {
+    }
+    else
+    {
         clock_source = ADQ_CLOCK_INT_INTREF;
         absp_logger_error->error("{} Wrong clock source;", log_name);
     }
@@ -475,27 +508,28 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
 
     absp_logger_console->info("{} Clock source: {} (index: {});", log_name, ADQ_descriptions::clock_source.at(clock_source), clock_source);
 
-    //const int sampling = json_integer_value(json_object_get(config, "sampling_frequency"));
-    //iSampling = IndexOfClosest(sampling, sSampling);
+    // const int sampling = json_integer_value(json_object_get(config, "sampling_frequency"));
+    // iSampling = IndexOfClosest(sampling, sSampling);
 
-    //if (GetVerbosity() > 0)
+    // if (GetVerbosity() > 0)
     //{
-    //    char time_buffer[BUFFER_SIZE];
-    //    time_string(time_buffer, BUFFER_SIZE, NULL);
-    //    std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
-    //    std::cout << "Sampling: got: " << sampling << "; ";
-    //    std::cout << "selected: " << sSampling[iSampling] << " (index: " << iSampling << "); ";
-    //    std::cout << std::endl;
-    //}
+    //     char time_buffer[BUFFER_SIZE];
+    //     time_string(time_buffer, BUFFER_SIZE, NULL);
+    //     std::cout << '[' << time_buffer << "] ABCD::ADQ412::ReadConfig() ";
+    //     std::cout << "Sampling: got: " << sampling << "; ";
+    //     std::cout << "selected: " << sSampling[iSampling] << " (index: " << iSampling << "); ";
+    //     std::cout << std::endl;
+    // }
 
-    //json_object_set_nocheck(config, "sampling_frequency", json_integer(sSampling[iSampling]));
+    // json_object_set_nocheck(config, "sampling_frequency", json_integer(sSampling[iSampling]));
 
     // -------------------------------------------------------------------------
     //  Reading the trigger configuration
     // -------------------------------------------------------------------------
     json_t *trigger_config = json_object_get(config, "trigger");
 
-    if (!json_is_object(trigger_config)) {
+    if (!json_is_object(trigger_config))
+    {
         absp_logger_error->error("{} Missing \"trigger\" entry in configuration;", log_name);
 
         trigger_config = json_object();
@@ -510,9 +544,12 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
     // Looking for the settings in the description map
     const auto tm_result = map_utilities::find_item(ADQ_descriptions::trigger_mode, str_trigger_source);
 
-    if (tm_result != ADQ_descriptions::trigger_mode.end() && str_trigger_source.length() > 0) {
+    if (tm_result != ADQ_descriptions::trigger_mode.end() && str_trigger_source.length() > 0)
+    {
         trigger_mode = tm_result->first;
-    } else {
+    }
+    else
+    {
         trigger_mode = ADQ_LEVEL_TRIGGER_MODE;
 
         absp_logger_error->error("{} Invalid trigger source, got: {};", log_name, str_trigger_source);
@@ -520,7 +557,8 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
 
     json_object_set_nocheck(trigger_config, "source", json_string(ADQ_descriptions::trigger_mode.at(trigger_mode).c_str()));
 
-    if (trigger_mode == ADQ_SW_TRIGGER_MODE) {
+    if (trigger_mode == ADQ_SW_TRIGGER_MODE)
+    {
         // If the trigger is set to software we need to set the records number
         // to 1 otherwise the buffer will never fill up, because we try to read
         // the buffer and we reset it continuously.
@@ -536,9 +574,12 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
     // Looking for the settings in the description map
     const auto ts_result = map_utilities::find_item(ADQ_descriptions::trigger_slope, str_trigger_slope);
 
-    if (ts_result != ADQ_descriptions::trigger_mode.end() && str_trigger_slope.length() > 0) {
+    if (ts_result != ADQ_descriptions::trigger_mode.end() && str_trigger_slope.length() > 0)
+    {
         trigger_slope = ts_result->first;
-    } else {
+    }
+    else
+    {
         trigger_slope = ADQ_TRIG_SLOPE_FALLING;
         absp_logger_error->error("{} Invalid trigger slope, got: {};", log_name, str_trigger_slope);
     }
@@ -563,7 +604,8 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
     //  Reading the single channels configuration
     // -------------------------------------------------------------------------
     // First resetting the channels statuses
-    for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++) {
+    for (unsigned int channel = 0; channel < GetChannelsNumber(); channel++)
+    {
         SetChannelEnabled(channel, false);
         SetChannelTriggering(channel, false);
     }
@@ -575,10 +617,12 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
         size_t index;
         json_t *value;
 
-        json_array_foreach(json_channels, index, value) {
+        json_array_foreach(json_channels, index, value)
+        {
             json_t *json_id = json_object_get(value, "id");
 
-            if (json_id != NULL && json_is_integer(json_id)) {
+            if (json_id != NULL && json_is_integer(json_id))
+            {
                 const int id = json_integer_value(json_id);
 
                 absp_logger_console->info("{} Found channel: {};", log_name, id);
@@ -593,14 +637,18 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
                 absp_logger_console->info("{} Channel is {}triggering;", log_name, (triggering ? "" : "not "));
                 json_object_set_new_nocheck(value, "triggering", json_boolean(triggering));
 
-
-                if (0 <= id && id < static_cast<int>(GetChannelsNumber())) {
+                if (0 <= id && id < static_cast<int>(GetChannelsNumber()))
+                {
                     SetChannelEnabled(id, enabled);
                     SetChannelTriggering(id, triggering);
-                } else {
+                }
+                else
+                {
                     absp_logger_error->error("{} Channel out of range, ignoring it (got: {});", log_name, id);
                 }
-            } else {
+            }
+            else
+            {
                 absp_logger_error->error("{} Invalid channel number in \"id\" entry, ignoring it;", log_name);
             }
         }
@@ -625,15 +673,21 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
     const uint64_t scope_samples = json_integer_value(json_object_get(config, "scope_samples"));
     absp_logger_console->info("{} Scope samples: {} samples;", log_name, scope_samples);
 
-    if (scope_samples < 1 || max_samples_per_record < scope_samples) {
+    if (scope_samples < 1 || max_samples_per_record < scope_samples)
+    {
         absp_logger_error->error("{} Scope samples number out of range (got: {});", log_name, scope_samples);
 
-        if (scope_samples < 1) {
+        if (scope_samples < 1)
+        {
             samples_per_record = 1;
-        } else if (max_samples_per_record < scope_samples) {
+        }
+        else if (max_samples_per_record < scope_samples)
+        {
             samples_per_record = max_samples_per_record;
         }
-    } else {
+    }
+    else
+    {
         samples_per_record = scope_samples;
     }
 
@@ -648,11 +702,15 @@ int ABCD::ADQ412::ReadConfig(json_t *config)
 
     records_number = json_integer_value(json_object_get(config, "records_number"));
     absp_logger_console->info("{} Number of records: {};", log_name, records_number);
-    if (records_number < 1 || max_records_number < records_number) {
+    if (records_number < 1 || max_records_number < records_number)
+    {
         absp_logger_error->error("{} Records number out of range (got: {});", log_name, records_number);
-        if (records_number < 1) {
+        if (records_number < 1)
+        {
             records_number = 1;
-        } else if (max_records_number < records_number) {
+        }
+        else if (max_records_number < records_number)
+        {
             records_number = max_records_number;
         }
     }
@@ -673,7 +731,8 @@ int ABCD::ADQ412::SpecificCommand(json_t *json_command)
 
     absp_logger_console->info("{} Specific command: {};", log_name, command);
 
-    if (command == std::string("GPIO_set_direction")) {
+    if (command == std::string("GPIO_set_direction"))
+    {
         const char *cstr_direction = json_string_value(json_object_get(json_command, "direction"));
         const std::string direction = (cstr_direction) ? std::string(cstr_direction) : std::string();
 
@@ -682,16 +741,21 @@ int ABCD::ADQ412::SpecificCommand(json_t *json_command)
         const uint16_t mask = 0xF;
         uint16_t pins_directions = 0;
 
-        if (direction == std::string("input")) {
+        if (direction == std::string("input"))
+        {
             pins_directions = 0;
-        } else if (direction == std::string("output")) {
+        }
+        else if (direction == std::string("output"))
+        {
             pins_directions = (1 << 4);
         }
 
         absp_logger_console->info("{} Setting GPIO direction: {}; mask: {}", log_name, direction, mask);
 
         CHECKZERO(ADQ_SetDirectionGPIO(adq_cu_ptr, adq_num, pins_directions, mask));
-    } else if (command == std::string("GPIO_write")) {
+    }
+    else if (command == std::string("GPIO_write"))
+    {
         const int value = json_integer_value(json_object_get(json_command, "value"));
 
         // Informing that all the pins should ignore the command, only pin 5 can
@@ -702,7 +766,9 @@ int ABCD::ADQ412::SpecificCommand(json_t *json_command)
         absp_logger_console->info("{} GPIO write: value: {};", log_name, pin_value);
 
         CHECKZERO(ADQ_WriteGPIO(adq_cu_ptr, adq_num, pin_value, mask));
-    } else if (command == std::string("GPIO_pulse")) {
+    }
+    else if (command == std::string("GPIO_pulse"))
+    {
         const int width = json_integer_value(json_object_get(json_command, "width"));
 
         absp_logger_console->info("{} Pulse of GPIO of width: {} us;", log_name, width);
@@ -718,7 +784,9 @@ int ABCD::ADQ412::SpecificCommand(json_t *json_command)
         std::this_thread::sleep_for(std::chrono::microseconds(width));
 
         CHECKZERO(ADQ_WriteGPIO(adq_cu_ptr, adq_num, pin_value_off, mask));
-    } else if (command == std::string("timestamp_reset")) {
+    }
+    else if (command == std::string("timestamp_reset"))
+    {
         const char *cstr_mode = json_string_value(json_object_get(json_command, "mode"));
         const std::string mode = (cstr_mode) ? std::string(cstr_mode) : std::string();
 
@@ -726,14 +794,19 @@ int ABCD::ADQ412::SpecificCommand(json_t *json_command)
 
         int restart_mode = 1;
 
-        if (mode == std::string("pulse")) {
+        if (mode == std::string("pulse"))
+        {
             restart_mode = 0;
-        } else if (mode == std::string("now")) {
+        }
+        else if (mode == std::string("now"))
+        {
             restart_mode = 1;
         }
 
         CHECKZERO(ADQ_ResetTrigTimer(adq_cu_ptr, adq_num, restart_mode));
-    } else if (command == std::string("GPIO_read")) {
+    }
+    else if (command == std::string("GPIO_read"))
+    {
         const int read_pins_values = ADQ_ReadGPIO(adq_cu_ptr, adq_num);
 
         absp_logger_console->info("{} GPIO read pins values: {:x};", log_name, read_pins_values);
