@@ -80,11 +80,11 @@ void print_usage(const std::string &name = std::string("abcd")) {
     std::cout << "\t-S <address>: Status socket address, default: ";
     std::cout << defaults_abcd_status_address << std::endl;
     std::cout << "\t-D <address>: Data socket address, default: ";
-    std::cout << defaults_abcd_data_address << std::endl;
+    std::cout << defaults_abcd_data_output_address << std::endl;
     std::cout << "\t-C <address>: Commands socket address, default: ";
     std::cout << defaults_abcd_commands_address << std::endl;
     std::cout << "\t-f <file_name>: Digitizer configuration file, default: ";
-    std::cout << defaults_abcd_config_file << std::endl;
+    std::cout << defaults_abcd_config_filename << std::endl;
     std::cout << "\t-T <period>: Set base period in milliseconds, default: ";
     std::cout << defaults_abcd_base_period << std::endl;
     std::cout << "\t-c <connection_type>: Connection type, default: ";
@@ -120,9 +120,9 @@ int main(int argc, char *argv[])
     signal(SIGHUP, signal_handler);  
 
     std::string status_address = defaults_abcd_status_address;
-    std::string data_address = defaults_abcd_data_address;
+    std::string data_address = defaults_abcd_data_output_address;
     std::string commands_address = defaults_abcd_commands_address;
-    std::string config_file = defaults_abcd_config_file;
+    std::string config_file = defaults_abcd_config_filename;
     unsigned int base_period = defaults_abcd_base_period;
     float publish_timeout = defaults_abcd_publish_timeout;
 

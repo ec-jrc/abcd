@@ -36,7 +36,7 @@ struct status
 {
     unsigned int base_period = defaults_abcd_base_period;
     std::string status_address = defaults_abcd_status_address;
-    std::string data_address = defaults_abcd_data_address;
+    std::string data_address = defaults_abcd_data_output_address;
     std::string commands_address = defaults_abcd_commands_address;
 
     void *context = nullptr;
@@ -57,7 +57,7 @@ struct status
     unsigned int CONET_node;
     unsigned int VME_address;
     unsigned int events_buffer_max_size;
-    std::string config_file = defaults_abcd_config_file;
+    std::string config_file = defaults_abcd_config_filename;
 
     std::chrono::time_point<std::chrono::system_clock> start_time;
     std::chrono::time_point<std::chrono::system_clock> stop_time;
