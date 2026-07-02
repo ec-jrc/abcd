@@ -21,21 +21,23 @@
 #include "ADQ14_FWPD.hpp"
 #include "ADQ36_FWDAQ.hpp"
 
-extern "C" {
+extern "C"
+{
 #include "swigluarun.h"
 
-// Declaring the init function of the lua wrapped module.
-// It needs to be in an extern block, so the compiler does not mess up its name
-extern int luaopen_ADQAPI(lua_State* L);
-extern int luaopen_digitizers(lua_State* L);
+    // Declaring the init function of the lua wrapped module.
+    // It needs to be in an extern block, so the compiler does not mess up its name
+    extern int luaopen_ADQAPI(lua_State *L);
+    extern int luaopen_digitizers(lua_State *L);
 }
 
 extern std::shared_ptr<spdlog::logger> absp_logger_console;
 extern std::shared_ptr<spdlog::logger> absp_logger_error;
 
-class LuaManager {
+class LuaManager
+{
 private:
-    lua_State* Lua; // the Lua state
+    lua_State *Lua; // the Lua state
 
     unsigned int counter_updates;
     unsigned int counter_runs;
@@ -49,13 +51,16 @@ private:
     swig_type_info *SWIG_ABCD_ADQ36_FWDAQ_t;
 
 public:
-    LuaManager() : counter_updates(0), counter_runs(0) {
-        if (absp_logger_console == nullptr) {
+    LuaManager() : counter_updates(0), counter_runs(0)
+    {
+        if (absp_logger_console == nullptr)
+        {
             absp_logger_console = spdlog::stdout_color_mt("lua");
 
             absp_logger_console->set_level(spdlog::level::info);
         }
-        if (absp_logger_error == nullptr) {
+        if (absp_logger_error == nullptr)
+        {
             absp_logger_error = spdlog::stderr_color_mt("lua_error");
         }
 
@@ -113,7 +118,8 @@ public:
         }
     }
 
-    ~LuaManager() {
+    ~LuaManager()
+    {
         if (absp_logger_console->should_log(spdlog::level::info))
         {
             run_string("abcd_log(\"LUA INTERPRETER DEBUG OUTPUT: LuaManager::~LuaManager()\");");
@@ -124,26 +130,29 @@ public:
     }
 
     // A helper function that prints the stack length and content
-    void dump_stack() {
+    void dump_stack()
+    {
         const int top = lua_gettop(Lua);
 
         std::string stack_content;
-        for (int i = 1; i <= top; i++) {
+        for (int i = 1; i <= top; i++)
+        {
             const int t = lua_type(Lua, i);
 
-            switch (t) {
-                case LUA_TSTRING:
-                    stack_content += lua_tostring(Lua, i);
-                    break;
-                case LUA_TBOOLEAN:
-                    stack_content += (lua_toboolean(Lua, i) ? "true" : "false");
-                    break;
-                case LUA_TNUMBER:
-                    stack_content += std::to_string(lua_tonumber(Lua, i));
-                    break;
-                default:
-                    stack_content += lua_typename(Lua, t);
-                    break;
+            switch (t)
+            {
+            case LUA_TSTRING:
+                stack_content += lua_tostring(Lua, i);
+                break;
+            case LUA_TBOOLEAN:
+                stack_content += (lua_toboolean(Lua, i) ? "true" : "false");
+                break;
+            case LUA_TNUMBER:
+                stack_content += std::to_string(lua_tonumber(Lua, i));
+                break;
+            default:
+                stack_content += lua_typename(Lua, t);
+                break;
             }
             stack_content += ", ";
         }
@@ -151,7 +160,8 @@ public:
         absp_logger_console->debug("Stack length: {}; Stack: [{}]", top, stack_content);
     }
 
-    void update_digitizers(std::vector<ABCD::Digitizer*> &digitizers) {
+    void update_digitizers(std::vector<ABCD::Digitizer *> &digitizers)
+    {
         counter_updates += 1;
 
         lua_pushinteger(Lua, counter_updates);
@@ -163,46 +173,54 @@ public:
 
         lua_getglobal(Lua, "digitizer_instances");
 
-        for (auto &digitizer: digitizers) {
+        for (auto &digitizer : digitizers)
+        {
             absp_logger_console->info("LuaManager::update_digitizers() Found digitizer: {}", digitizer->GetModel());
 
-            if (digitizer->GetModel() == "ADQ214") {
-                ABCD::ADQ214 *digitizer_adq = reinterpret_cast<ABCD::ADQ214*>(digitizer);
+            if (digitizer->GetModel() == "ADQ214")
+            {
+                ABCD::ADQ214 *digitizer_adq = reinterpret_cast<ABCD::ADQ214 *>(digitizer);
 
                 // Create a new userdata object that wraps the digitizer and
                 // push it onto the stack
                 SWIG_NewPointerObj(Lua, digitizer_adq, SWIG_ABCD_ADQ214_t, 0);
 
                 lua_setfield(Lua, -2, digitizer->GetName().c_str());
-
-            } else if (digitizer->GetModel() == "ADQ412") {
-                ABCD::ADQ412 *digitizer_adq = reinterpret_cast<ABCD::ADQ412*>(digitizer);
+            }
+            else if (digitizer->GetModel() == "ADQ412")
+            {
+                ABCD::ADQ412 *digitizer_adq = reinterpret_cast<ABCD::ADQ412 *>(digitizer);
 
                 SWIG_NewPointerObj(Lua, digitizer_adq, SWIG_ABCD_ADQ412_t, 0);
 
                 lua_setfield(Lua, -2, digitizer->GetName().c_str());
-
-            } else if (digitizer->GetModel() == "ADQ14_FWDAQ") {
-                ABCD::ADQ14_FWDAQ *digitizer_adq = reinterpret_cast<ABCD::ADQ14_FWDAQ*>(digitizer);
+            }
+            else if (digitizer->GetModel() == "ADQ14_FWDAQ")
+            {
+                ABCD::ADQ14_FWDAQ *digitizer_adq = reinterpret_cast<ABCD::ADQ14_FWDAQ *>(digitizer);
 
                 SWIG_NewPointerObj(Lua, digitizer_adq, SWIG_ABCD_ADQ14_FWDAQ_t, 0);
 
                 lua_setfield(Lua, -2, digitizer->GetName().c_str());
-
-            } else if (digitizer->GetModel() == "ADQ14_FWPD") {
-                ABCD::ADQ14_FWPD *digitizer_adq = reinterpret_cast<ABCD::ADQ14_FWPD*>(digitizer);
+            }
+            else if (digitizer->GetModel() == "ADQ14_FWPD")
+            {
+                ABCD::ADQ14_FWPD *digitizer_adq = reinterpret_cast<ABCD::ADQ14_FWPD *>(digitizer);
 
                 SWIG_NewPointerObj(Lua, digitizer_adq, SWIG_ABCD_ADQ14_FWPD_t, 0);
 
                 lua_setfield(Lua, -2, digitizer->GetName().c_str());
-            } else if (digitizer->GetModel() == "ADQ36_FWDAQ") {
-                ABCD::ADQ36_FWDAQ *digitizer_adq = reinterpret_cast<ABCD::ADQ36_FWDAQ*>(digitizer);
+            }
+            else if (digitizer->GetModel() == "ADQ36_FWDAQ")
+            {
+                ABCD::ADQ36_FWDAQ *digitizer_adq = reinterpret_cast<ABCD::ADQ36_FWDAQ *>(digitizer);
 
                 SWIG_NewPointerObj(Lua, digitizer_adq, SWIG_ABCD_ADQ36_FWDAQ_t, 0);
 
                 lua_setfield(Lua, -2, digitizer->GetName().c_str());
-
-            } else {
+            }
+            else
+            {
                 absp_logger_console->warn("LuaManager::update_digitizers() Using the generic Digitizer interface for the unexpected digitizer: {}; name: {}", digitizer->GetModel(), digitizer->GetName());
 
                 SWIG_NewPointerObj(Lua, digitizer, SWIG_ABCD_Digitizer_t, 0);
@@ -223,7 +241,8 @@ public:
         }
     }
 
-    void run_string(std::string source) {
+    void run_string(std::string source)
+    {
         counter_runs += 1;
 
         lua_pushinteger(Lua, counter_runs);
@@ -233,29 +252,31 @@ public:
 
         const int result = luaL_dostring(Lua, source.c_str());
 
-        if (result != LUA_OK) { // there was an error
+        if (result != LUA_OK)
+        { // there was an error
             // Get the error message from the Lua stack
             const std::string error_message = lua_tostring(Lua, -1);
 
-            switch (result) {
-                case LUA_ERRSYNTAX:
-                    absp_logger_error->error("LuaManager::run_string() Syntax error: {}", error_message);
-                    break;
-                case LUA_ERRMEM:
-                    absp_logger_error->error("LuaManager::run_string() Memory allocation error: {}", error_message);
-                    break;
-                case LUA_ERRFILE:
-                    absp_logger_error->error("LuaManager::run_string() File error: {}", error_message);
-                    break;
-                case LUA_ERRRUN:
-                    absp_logger_error->error("LuaManager::run_string() Runtime error: {}", error_message);
-                    break;
-                case LUA_ERRERR:
-                    absp_logger_error->error("LuaManager::run_string() Error handler error: {}", error_message);
-                    break;
-                default:
-                    absp_logger_error->error("LuaManager::run_string() Unknown error: {}", error_message);
-                    break;
+            switch (result)
+            {
+            case LUA_ERRSYNTAX:
+                absp_logger_error->error("LuaManager::run_string() Syntax error: {}", error_message);
+                break;
+            case LUA_ERRMEM:
+                absp_logger_error->error("LuaManager::run_string() Memory allocation error: {}", error_message);
+                break;
+            case LUA_ERRFILE:
+                absp_logger_error->error("LuaManager::run_string() File error: {}", error_message);
+                break;
+            case LUA_ERRRUN:
+                absp_logger_error->error("LuaManager::run_string() Runtime error: {}", error_message);
+                break;
+            case LUA_ERRERR:
+                absp_logger_error->error("LuaManager::run_string() Error handler error: {}", error_message);
+                break;
+            default:
+                absp_logger_error->error("LuaManager::run_string() Unknown error: {}", error_message);
+                break;
             }
 
             // Pop the error message from the Lua stack
@@ -293,25 +314,30 @@ public:
         }
     }
 
-    inline static int abcd_log(lua_State *L) {
+    inline static int abcd_log(lua_State *L)
+    {
         // Get the number of arguments
         const int n = lua_gettop(L);
         std::string output;
 
-        for (int index = 1; index <= n; index += 1) {
+        for (int index = 1; index <= n; index += 1)
+        {
             if (lua_isstring(L, index))
             {
-                const char* argument = lua_tostring(L, index);
+                const char *argument = lua_tostring(L, index);
 
                 output += argument;
                 output += " ";
-
-            } else if (lua_isnumber(L, index)) {
+            }
+            else if (lua_isnumber(L, index))
+            {
                 const lua_Number argument = lua_tonumber(L, index);
 
                 output += std::to_string(argument);
                 output += " ";
-            } else {
+            }
+            else
+            {
                 lua_pushliteral(L, "the argument of the abcd_log() function must be a string or a number");
                 lua_error(L);
 
@@ -324,11 +350,13 @@ public:
         return 0;
     }
 
-    inline static int sleep(lua_State *L) {
+    inline static int sleep(lua_State *L)
+    {
         // Get the number of arguments
         const int n = lua_gettop(L);
 
-        if (n != 1) {
+        if (n != 1)
+        {
             lua_pushliteral(L, "the sleep() function expects one argument");
             lua_error(L);
 
@@ -345,7 +373,8 @@ public:
 
         const lua_Number milliseconds = lua_tonumber(L, 1);
 
-        if (milliseconds < 0) {
+        if (milliseconds < 0)
+        {
             lua_pushliteral(L, "the argument of the sleep() function must be a non-negative");
             lua_error(L);
 
