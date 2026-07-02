@@ -8,9 +8,29 @@ The user interface is implemented as a web-service and can be accessed with a re
 
 The official documentation and tutorial reside at: https://abcd-docs.readthedocs.io/
 
-## Compilation and installation
+## Installation
 
-Use CMake to build and install ABCD:
+It is advisable to use the precompiled packages for Ubuntu 24.04 LTS.
+The most updated version can be found in the releases section of the repository.
+
+To install packages use `dpkg`, _e.g._:
+
+```
+sudo dpkg -i abcd-core-...
+sudo dpkg -i abcd-absp-...
+sudo dpkg -i abcd-abcd-...
+```
+
+The packages relative to the specific digitizers models depend on the vendor libraries, that need to be installed by the user.
+If there were some missing packages on which ABCD depends on, install them with:
+
+```
+sudo apt install --fix-broken
+```
+
+## Compilation
+
+Use CMake to build ABCD:
 
 ```
 cmake -S . -B build
@@ -30,7 +50,7 @@ cmake --build build --parallel 8
 sudo cmake --install build
 ```
 
-## Ubuntu package(s) generation and installation
+## Ubuntu package(s) generation
 
 An Ubuntu package may be generated with CMake and CPack.
 The default prefix for CMake on UNIX platforms is `/usr/local`, but it should be changed to `/usr` at the configuration phase to generate a proper `deb` package.
@@ -55,13 +75,4 @@ cmake -S . -B build -D BUILD_ABSP=ON -D BUILD_ABCD=ON --install-prefix /usr
 cmake --build build --parallel 8
 cd build/
 cpack
-sudo dpkg -i abcd-core-...
-sudo dpkg -i abcd-absp-...
-sudo dpkg -i abcd-abcd-...
-```
-
-If there were some missing packages on which ABCD depends on, install them with:
-
-```
-sudo apt install --fix-broken
 ```
