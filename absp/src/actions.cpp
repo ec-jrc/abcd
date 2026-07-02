@@ -41,7 +41,8 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/stopwatch.h>
 
-extern "C" {
+extern "C"
+{
 #include "defaults.h"
 #include "utilities_functions.h"
 #include "socket_functions.h"
@@ -83,7 +84,7 @@ void actions::generic::publish_events(status &global_status)
         topic += "_v0_s";
         topic += std::to_string((long long unsigned int)waveforms_buffer_size_Bytes);
 
-            absp_logger_console->info("Sending waveforms buffer; Topic: {}; waveforms: {};", topic, waveforms_buffer_size_Bytes);
+        absp_logger_console->info("Sending waveforms buffer; Topic: {}; waveforms: {};", topic, waveforms_buffer_size_Bytes);
 
         const bool result = send_byte_message(global_status.data_output_socket,
                                               topic.c_str(),
@@ -135,7 +136,7 @@ void actions::generic::publish_message(status &global_status,
         topic += "_v0_s";
         topic += std::to_string((long long unsigned int)total_size);
 
-            absp_logger_console->info("Sending status message; Topic: {}; buffer size: {}; message: {};", topic, total_size, output_buffer);
+        absp_logger_console->info("Sending status message; Topic: {}; buffer size: {}; message: {};", topic, total_size, output_buffer);
 
         send_byte_message(status_socket, topic.c_str(), output_buffer, total_size, 0);
 
@@ -158,13 +159,16 @@ bool actions::generic::create_control_unit(status &global_status)
 
     const int validation = ADQAPI_ValidateVersion(ADQAPI_VERSION_MAJOR, ADQAPI_VERSION_MINOR);
 
-        absp_logger_console->info("API validation: {};", validation);
+    absp_logger_console->info("API validation: {};", validation);
 
-    if (validation == -1) {
+    if (validation == -1)
+    {
         absp_logger_error->error("ERROR ADQAPI version is incompatible. The application needs to be recompiled and relinked against the installed ADQAPI;");
 
         return false;
-    } else if (validation == -2) {
+    }
+    else if (validation == -2)
+    {
         absp_logger_console->warn("WARNING ADQAPI version is backwards compatible. It's suggested to recompile and relink the application against the installed ADQAPI;");
     }
 
@@ -175,7 +179,7 @@ bool actions::generic::create_control_unit(status &global_status)
     absp_logger_console->info("Creating the ADQ control unit;");
 
     global_status.adq_cu_ptr = CreateADQControlUnit();
-    if(!global_status.adq_cu_ptr)
+    if (!global_status.adq_cu_ptr)
     {
         absp_logger_error->error("Failed to create adq_cu!");
 
@@ -212,7 +216,7 @@ bool actions::generic::destroy_control_unit(status &global_status)
 
     json_decref(json_event_message);
 
-        absp_logger_console->info("Deleting the ADQ control unit;");
+    absp_logger_console->info("Deleting the ADQ control unit;");
 
     DeleteADQControlUnit(global_status.adq_cu_ptr);
     global_status.adq_cu_ptr = NULL;
@@ -222,31 +226,31 @@ bool actions::generic::destroy_control_unit(status &global_status)
 
 int actions::generic::start_acquisition(status &global_status, unsigned int digitizer_index)
 {
-        absp_logger_console->info("#### Starting acquisition!!! ");
+    absp_logger_console->info("#### Starting acquisition!!! ");
 
     const unsigned int user_id = global_status.digitizers_user_ids.at(digitizer_index);
     auto digitizer = global_status.digitizers[digitizer_index];
 
-        absp_logger_console->info("Starting acquisition of card id: {}; name: {};", user_id, digitizer->GetName());
+    absp_logger_console->info("Starting acquisition of card id: {}; name: {};", user_id, digitizer->GetName());
 
     return digitizer->StartAcquisition();
 }
 
 void actions::generic::rearm_trigger(status &global_status, unsigned int digitizer_index)
 {
-        absp_logger_console->info("#### Rearming trigger!!! ");
+    absp_logger_console->info("#### Rearming trigger!!! ");
 
     const unsigned int user_id = global_status.digitizers_user_ids.at(digitizer_index);
     auto digitizer = global_status.digitizers[digitizer_index];
 
-        absp_logger_console->info("Arming trigger of card: id: {}; name: {};", user_id, digitizer->GetName());
+    absp_logger_console->info("Arming trigger of card: id: {}; name: {};", user_id, digitizer->GetName());
 
     digitizer->RearmTrigger();
 }
 
 void actions::generic::stop_acquisition(status &global_status)
 {
-        absp_logger_console->info("#### Stopping acquisition!!! ");
+    absp_logger_console->info("#### Stopping acquisition!!! ");
 
     for (auto value = global_status.digitizers_user_ids.begin(); value != global_status.digitizers_user_ids.end(); ++value)
     {
@@ -254,7 +258,7 @@ void actions::generic::stop_acquisition(status &global_status)
         const unsigned int user_id = value->second;
         auto digitizer = global_status.digitizers[digitizer_index];
 
-            absp_logger_console->info("Arming trigger of card: id: {}; name: {};", user_id, digitizer->GetName());
+        absp_logger_console->info("Arming trigger of card: id: {}; name: {};", user_id, digitizer->GetName());
 
         digitizer->StopAcquisition();
     }
@@ -264,7 +268,7 @@ void actions::generic::stop_acquisition(status &global_status)
 
     global_status.stop_time = stop_time;
 
-        absp_logger_console->info("Run time: {}", delta_time.count());
+    absp_logger_console->info("Run time: {}", delta_time.count());
 }
 
 void actions::generic::clear_memory(status &global_status)
@@ -278,7 +282,7 @@ void actions::generic::clear_memory(status &global_status)
 
 void actions::generic::destroy_digitizer(status &global_status)
 {
-        absp_logger_console->info("Destroying digitizers;");
+    absp_logger_console->info("Destroying digitizers;");
 
     json_t *json_event_message = json_object();
 
@@ -293,13 +297,12 @@ void actions::generic::destroy_digitizer(status &global_status)
     {
         ABCD::Digitizer *digitizer = global_status.digitizers[index];
 
-            absp_logger_console->info("Destroying card: {};", digitizer->GetName());
+        absp_logger_console->info("Destroying card: {};", digitizer->GetName());
 
         delete digitizer;
     }
 
     global_status.digitizers.clear();
-
 
     // TODO: Reset USB3 devices with ADQControlUnit_ResetDevice() and reset level 18
 }
@@ -308,19 +311,19 @@ bool actions::generic::create_digitizer(status &global_status)
 {
     const std::chrono::time_point<std::chrono::system_clock> initialization_global_start = std::chrono::system_clock::now();
 
-        absp_logger_console->info("Initializing digitizers;");
+    absp_logger_console->info("Initializing digitizers;");
 
-    //const int number_of_found_devices = ADQControlUnit_FindDevices(global_status.adq_cu_ptr);
+    // const int number_of_found_devices = ADQControlUnit_FindDevices(global_status.adq_cu_ptr);
 
-    //const int number_of_ADQs = ADQControlUnit_NofADQ(global_status.adq_cu_ptr);
-    //const int number_of_ADQ412 = ADQControlUnit_NofADQ412(global_status.adq_cu_ptr);
-    //const int number_of_ADQ214 = ADQControlUnit_NofADQ214(global_status.adq_cu_ptr);
-    //const int number_of_ADQ14 = ADQControlUnit_NofADQ14(global_status.adq_cu_ptr);
+    // const int number_of_ADQs = ADQControlUnit_NofADQ(global_status.adq_cu_ptr);
+    // const int number_of_ADQ412 = ADQControlUnit_NofADQ412(global_status.adq_cu_ptr);
+    // const int number_of_ADQ214 = ADQControlUnit_NofADQ214(global_status.adq_cu_ptr);
+    // const int number_of_ADQ14 = ADQControlUnit_NofADQ14(global_status.adq_cu_ptr);
 
-    struct ADQInfoListEntry* ADQlist;
+    struct ADQInfoListEntry *ADQlist;
     unsigned int number_of_devices = 256;
 
-    if(!ADQControlUnit_ListDevices(global_status.adq_cu_ptr, &ADQlist, &number_of_devices))
+    if (!ADQControlUnit_ListDevices(global_status.adq_cu_ptr, &ADQlist, &number_of_devices))
     {
         const unsigned int error_code = ADQControlUnit_GetLastFailedDeviceError(global_status.adq_cu_ptr);
         if (error_code == 0x00000001)
@@ -335,42 +338,48 @@ bool actions::generic::create_digitizer(status &global_status)
     unsigned int number_of_ADQ36 = 0;
     unsigned int number_of_other = 0;
 
-    for (unsigned int device_index = 0; device_index < number_of_devices; device_index++) {
-        switch (ADQlist[device_index].ProductID) {
-            case PID_ADQ214:
-                number_of_ADQ214 += 1;
-                break;
-            case PID_ADQ412:
-                number_of_ADQ412 += 1;
-                break;
-            case PID_ADQ14:
-                number_of_ADQ14 += 1;
-                break;
-            case PID_ADQ36:
-                number_of_ADQ36 += 1;
-                break;
-            default:
-                number_of_other += 1;
+    for (unsigned int device_index = 0; device_index < number_of_devices; device_index++)
+    {
+        switch (ADQlist[device_index].ProductID)
+        {
+        case PID_ADQ214:
+            number_of_ADQ214 += 1;
+            break;
+        case PID_ADQ412:
+            number_of_ADQ412 += 1;
+            break;
+        case PID_ADQ14:
+            number_of_ADQ14 += 1;
+            break;
+        case PID_ADQ36:
+            number_of_ADQ36 += 1;
+            break;
+        default:
+            number_of_other += 1;
         }
     }
 
     const unsigned int number_of_ADQs = number_of_ADQ214 + number_of_ADQ412 + number_of_ADQ14;
 
-        absp_logger_console->info("Number of devices: {}; Number of ADQs: {}; Number of ADQ214: {}; Number of ADQ412: {}; Number of ADQ14: {}; Number of ADQ36: {}; Number of other devices: {};", number_of_devices, number_of_ADQs, number_of_ADQ214, number_of_ADQ412, number_of_ADQ14, number_of_ADQ36, number_of_other);
+    absp_logger_console->info("Number of devices: {}; Number of ADQs: {}; Number of ADQ214: {}; Number of ADQ412: {}; Number of ADQ14: {}; Number of ADQ36: {}; Number of other devices: {};", number_of_devices, number_of_ADQs, number_of_ADQ214, number_of_ADQ412, number_of_ADQ14, number_of_ADQ36, number_of_other);
 
     std::string initialization_begin_string = "Digitizers initialization: ";
     initialization_begin_string += "Number of ADQs: " + std::to_string(number_of_ADQs) + "; ";
 
-    if (number_of_ADQ412 > 0) {
+    if (number_of_ADQ412 > 0)
+    {
         initialization_begin_string += "Number of ADQ412: " + std::to_string(number_of_ADQ412) + "; ";
     }
-    if (number_of_ADQ214 > 0) {
+    if (number_of_ADQ214 > 0)
+    {
         initialization_begin_string += "Number of ADQ214: " + std::to_string(number_of_ADQ214) + "; ";
     }
-    if (number_of_ADQ14 > 0) {
+    if (number_of_ADQ14 > 0)
+    {
         initialization_begin_string += "Number of ADQ14: " + std::to_string(number_of_ADQ14) + "; ";
     }
-    if (number_of_ADQ36 > 0) {
+    if (number_of_ADQ36 > 0)
+    {
         initialization_begin_string += "Number of ADQ36: " + std::to_string(number_of_ADQ36) + "; ";
     }
 
@@ -383,51 +392,57 @@ bool actions::generic::create_digitizer(status &global_status)
 
     json_decref(json_event_begin_message);
 
-    for (unsigned int device_index = 0; device_index < number_of_devices; device_index++) {
-            absp_logger_console->info("Device index: {};", device_index);
-            absp_logger_console->info("Product id: {};", ADQlist[device_index].ProductID);
-            absp_logger_console->info("Address: {} {};", ADQlist[device_index].AddressField1, ADQlist[device_index].AddressField2);
-            absp_logger_console->info("Device file: {};", ADQlist[device_index].DevFile);
-            absp_logger_console->info("Opened interface: {};", ADQlist[device_index].DeviceInterfaceOpened);
-            absp_logger_console->info("Set-up completed: {};", ADQlist[device_index].DeviceSetupCompleted);
+    for (unsigned int device_index = 0; device_index < number_of_devices; device_index++)
+    {
+        absp_logger_console->info("Device index: {};", device_index);
+        absp_logger_console->info("Product id: {};", ADQlist[device_index].ProductID);
+        absp_logger_console->info("Address: {} {};", ADQlist[device_index].AddressField1, ADQlist[device_index].AddressField2);
+        absp_logger_console->info("Device file: {};", ADQlist[device_index].DevFile);
+        absp_logger_console->info("Opened interface: {};", ADQlist[device_index].DeviceInterfaceOpened);
+        absp_logger_console->info("Set-up completed: {};", ADQlist[device_index].DeviceSetupCompleted);
 
-            absp_logger_console->info("Opening device interface establishing a communication channel for device: {};", device_index);
+        absp_logger_console->info("Opening device interface establishing a communication channel for device: {};", device_index);
 
         void *adq_cu_ptr = global_status.adq_cu_ptr;
 
         CHECKZERO(ADQControlUnit_OpenDeviceInterface(adq_cu_ptr, device_index));
 
-            absp_logger_console->info("Setting-up device: {};", device_index);
+        absp_logger_console->info("Setting-up device: {};", device_index);
 
         CHECKZERO(ADQControlUnit_SetupDevice(adq_cu_ptr, device_index));
 
-            absp_logger_console->info("Information about device: {};", device_index);
-            absp_logger_console->info("ADQ type: {}; Board product name: {};", ADQ_GetADQType(global_status.adq_cu_ptr, device_index + 1), ADQ_GetBoardProductName(global_status.adq_cu_ptr, device_index + 1));
-            // This is not supported for all cards, and it might generate a
-            // segfault since it returns a string that might not have been
-            // initialized.
-            //logger_console->info("Card option: {};", ADQ_GetCardOption(global_status.adq_cu_ptr, device_index + 1));
+        absp_logger_console->info("Information about device: {};", device_index);
+        absp_logger_console->info("ADQ type: {}; Board product name: {};", ADQ_GetADQType(global_status.adq_cu_ptr, device_index + 1), ADQ_GetBoardProductName(global_status.adq_cu_ptr, device_index + 1));
+        // This is not supported for all cards, and it might generate a
+        // segfault since it returns a string that might not have been
+        // initialized.
+        // logger_console->info("Card option: {};", ADQ_GetCardOption(global_status.adq_cu_ptr, device_index + 1));
 
-            unsigned int family = 0;
-            CHECKZERO(ADQ_GetProductFamily(global_status.adq_cu_ptr, device_index + 1, &family));
-            absp_logger_console->info("Product ID: {}; Product family: {};", ADQ_GetProductID(global_status.adq_cu_ptr, device_index + 1), family);
+        unsigned int family = 0;
+        CHECKZERO(ADQ_GetProductFamily(global_status.adq_cu_ptr, device_index + 1, &family));
+        absp_logger_console->info("Product ID: {}; Product family: {};", ADQ_GetProductID(global_status.adq_cu_ptr, device_index + 1), family);
 
-            uint32_t *revision = ADQ_GetRevision(global_status.adq_cu_ptr, device_index + 1);
-            std::string string_revision = "";
+        uint32_t *revision = ADQ_GetRevision(global_status.adq_cu_ptr, device_index + 1);
+        std::string string_revision = "";
 
-            for (int i = 0; i < 6; i++) {
-                string_revision += std::to_string((unsigned int)revision[i]) + ", ";
-            }
-            absp_logger_console->info("Revision: {}", string_revision);
-            try {
-                absp_logger_console->info("Firmware type: {}", ADQ_descriptions::ADQ_firmware_revisions.at(revision[0]));
-            } catch (const std::out_of_range& error) {
-                absp_logger_console->info("Firmware type: unknown");
-            }
+        for (int i = 0; i < 6; i++)
+        {
+            string_revision += std::to_string((unsigned int)revision[i]) + ", ";
+        }
+        absp_logger_console->info("Revision: {}", string_revision);
+        try
+        {
+            absp_logger_console->info("Firmware type: {}", ADQ_descriptions::ADQ_firmware_revisions.at(revision[0]));
+        }
+        catch (const std::out_of_range &error)
+        {
+            absp_logger_console->info("Firmware type: unknown");
+        }
 
-            absp_logger_console->info("Serial number: {};", ADQ_GetBoardSerialNumber(global_status.adq_cu_ptr, device_index + 1));
+        absp_logger_console->info("Serial number: {};", ADQ_GetBoardSerialNumber(global_status.adq_cu_ptr, device_index + 1));
 
-        if (ADQlist[device_index].ProductID == PID_ADQ214) {
+        if (ADQlist[device_index].ProductID == PID_ADQ214)
+        {
             // WARNING: boards numbering start from 1 in the next functions
             const int adq214_index = device_index + 1;
 
@@ -436,7 +451,9 @@ bool actions::generic::create_digitizer(status &global_status)
             adq214_ptr->Initialize();
 
             global_status.digitizers.push_back(adq214_ptr);
-        } else if (ADQlist[device_index].ProductID == PID_ADQ412) {
+        }
+        else if (ADQlist[device_index].ProductID == PID_ADQ412)
+        {
             // WARNING: boards numbering start from 1 in the next functions
             const int adq412_index = device_index + 1;
 
@@ -445,7 +462,9 @@ bool actions::generic::create_digitizer(status &global_status)
             adq412_ptr->Initialize();
 
             global_status.digitizers.push_back(adq412_ptr);
-        } else if (ADQlist[device_index].ProductID == PID_ADQ14) {
+        }
+        else if (ADQlist[device_index].ProductID == PID_ADQ14)
+        {
             // WARNING: boards numbering start from 1 in the next functions
             const int adq14_index = device_index + 1;
 
@@ -453,37 +472,47 @@ bool actions::generic::create_digitizer(status &global_status)
             const int has_FWPD = ADQ_HasFeature(global_status.adq_cu_ptr, adq14_index, "FWPD");
 
             // These are just for information
-            if (has_FWPD == 1) {
-                    absp_logger_console->info("ADQ14 (index {}) Has the Pulse detect firmware;", adq14_index);
-            } else if (has_FWPD == -1) {
+            if (has_FWPD == 1)
+            {
+                absp_logger_console->info("ADQ14 (index {}) Has the Pulse detect firmware;", adq14_index);
+            }
+            else if (has_FWPD == -1)
+            {
                 absp_logger_console->warn("ADQ14 (index {}) does not have the Pulse Detect firmware;", adq14_index);
-            } else if (has_FWPD == 0) {
+            }
+            else if (has_FWPD == 0)
+            {
                 absp_logger_console->warn("ADQ14 (index {}) did not respond to the firmware request;", adq14_index);
-            } else {
+            }
+            else
+            {
                 absp_logger_error->error("ADQ14 (index {}) unexpected value from the firmware request: {};", adq14_index, has_FWPD);
             }
 
             // FIXME: This might be more reliable with older cards, but we would
             //        need to know all the firmware versions
-            //int *revision = ADQ_GetRevision(global_status.adq_cu_ptr, device_index + 1);
-            //if (ADQ_descriptions::ADQ_firmware_revisions.at(revision[0]) == "ADQ14_FWPD")
+            // int *revision = ADQ_GetRevision(global_status.adq_cu_ptr, device_index + 1);
+            // if (ADQ_descriptions::ADQ_firmware_revisions.at(revision[0]) == "ADQ14_FWPD")
 
-            if (has_FWPD) {
+            if (has_FWPD)
+            {
                 ABCD::ADQ14_FWPD *adq14_ptr = new ABCD::ADQ14_FWPD(global_status.adq_cu_ptr, adq14_index);
 
                 adq14_ptr->Initialize();
 
                 global_status.digitizers.push_back(adq14_ptr);
-
-
-            } else {
+            }
+            else
+            {
                 ABCD::ADQ14_FWDAQ *adq14_ptr = new ABCD::ADQ14_FWDAQ(global_status.adq_cu_ptr, adq14_index);
 
                 adq14_ptr->Initialize();
 
                 global_status.digitizers.push_back(adq14_ptr);
             }
-        } else if (ADQlist[device_index].ProductID == PID_ADQ36) {
+        }
+        else if (ADQlist[device_index].ProductID == PID_ADQ36)
+        {
             // WARNING: boards numbering start from 1 in the next functions
             const int adq36_index = device_index + 1;
 
@@ -497,7 +526,8 @@ bool actions::generic::create_digitizer(status &global_status)
 
     const int number_of_failed_devices = ADQControlUnit_GetFailedDeviceCount(global_status.adq_cu_ptr);
 
-    if (number_of_failed_devices > 0) {
+    if (number_of_failed_devices > 0)
+    {
         char error_cstring[512];
         unsigned int error_code = ADQControlUnit_GetLastFailedDeviceErrorWithText(global_status.adq_cu_ptr, error_cstring);
 
@@ -508,7 +538,6 @@ bool actions::generic::create_digitizer(status &global_status)
         error_string += std::to_string(error_code);
         error_string += ", description: ";
         error_string += error_cstring;
-
 
         json_t *json_event_message = json_object();
 
@@ -537,13 +566,12 @@ bool actions::generic::create_digitizer(status &global_status)
 
     json_decref(json_event_done_message);
 
-
     return true;
 }
 
 bool actions::generic::configure_digitizer(status &global_status)
 {
-        absp_logger_console->info("Configuring digitizer;");
+    absp_logger_console->info("Configuring digitizer;");
 
     global_status.digitizers_user_ids.clear();
     global_status.user_scripts.clear();
@@ -562,9 +590,7 @@ bool actions::generic::configure_digitizer(status &global_status)
         json_object_set_new_nocheck(config, "global", json_object());
         json_global = json_object_get(config, "global");
 
-            absp_logger_error->warn("Missing \"global\" entry in configuration;");
-
-
+        absp_logger_error->warn("Missing \"global\" entry in configuration;");
     }
 
     if (json_global != NULL && json_is_object(json_global))
@@ -572,11 +598,12 @@ bool actions::generic::configure_digitizer(status &global_status)
         // WARNING: The key has a different spelling for the user convenience
         int waveforms_buffer_size_max_Number = json_number_value(json_object_get(json_global, "waveforms_buffer_max_size"));
 
-        if (waveforms_buffer_size_max_Number <= 0) {
+        if (waveforms_buffer_size_max_Number <= 0)
+        {
             waveforms_buffer_size_max_Number = defaults_absp_waveforms_buffer_size_max_Number;
         }
 
-            absp_logger_console->info("Waveforms buffer max size: {};", waveforms_buffer_size_max_Number);
+        absp_logger_console->info("Waveforms buffer max size: {};", waveforms_buffer_size_max_Number);
 
         global_status.waveforms_buffer_size_max_Number = waveforms_buffer_size_max_Number;
 
@@ -592,12 +619,13 @@ bool actions::generic::configure_digitizer(status &global_status)
         size_t index;
         json_t *card;
 
-        json_array_foreach(json_cards, index, card) {
+        json_array_foreach(json_cards, index, card)
+        {
             const unsigned int user_id = json_integer_value(json_object_get(card, "id"));
             const char *cstr_serial = json_string_value(json_object_get(card, "serial"));
             const std::string serial = (cstr_serial) ? std::string(cstr_serial) : std::string();
 
-                absp_logger_console->info("Found card: {}; user id: {};", serial, user_id);
+            absp_logger_console->info("Found card: {}; user id: {};", serial, user_id);
 
             const bool enabled = json_is_true(json_object_get(card, "enable"));
 
@@ -607,35 +635,38 @@ bool actions::generic::configure_digitizer(status &global_status)
             {
                 auto digitizer = global_status.digitizers[digitizer_index];
 
-                if ((digitizer)->GetName() == serial) {
-                        absp_logger_console->info("Found matching card: {};", serial);
-                        absp_logger_console->info("Parsing configuration;");
+                if ((digitizer)->GetName() == serial)
+                {
+                    absp_logger_console->info("Found matching card: {};", serial);
+                    absp_logger_console->info("Parsing configuration;");
 
                     (digitizer)->ReadConfig(card);
 
-                        absp_logger_console->info("Applying configuration;");
+                    absp_logger_console->info("Applying configuration;");
 
                     const std::chrono::time_point<std::chrono::system_clock> configuration_single_start = std::chrono::system_clock::now();
 
                     const int config_result = (digitizer)->Configure();
 
-                        absp_logger_console->info("Finished configuration;");
-                        absp_logger_console->info("digitizer_index: {}; user id: {}; config result: {};", digitizer_index, user_id, (config_result == DIGITIZER_SUCCESS ? "success" : "failure"));
+                    absp_logger_console->info("Finished configuration;");
+                    absp_logger_console->info("digitizer_index: {}; user id: {}; config result: {};", digitizer_index, user_id, (config_result == DIGITIZER_SUCCESS ? "success" : "failure"));
 
                     const unsigned int this_max_channel_number = (user_id + 1) * (digitizer)->GetChannelsNumber();
 
-                    if (max_channel_number < this_max_channel_number) {
+                    if (max_channel_number < this_max_channel_number)
+                    {
                         max_channel_number = this_max_channel_number;
                     }
 
-                        absp_logger_console->info("Channels number: {}; Max channel number: {};", digitizer->GetChannelsNumber(), this_max_channel_number);
+                    absp_logger_console->info("Channels number: {}; Max channel number: {};", digitizer->GetChannelsNumber(), this_max_channel_number);
 
                     global_status.digitizers_user_ids[digitizer_index] = user_id;
 
                     const std::chrono::time_point<std::chrono::system_clock> configuration_single_stop = std::chrono::system_clock::now();
                     const auto configuration_single_delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(configuration_single_stop - configuration_single_start);
 
-                    if (config_result == DIGITIZER_SUCCESS) {
+                    if (config_result == DIGITIZER_SUCCESS)
+                    {
                         std::string configure_string = "Digitizer configuration, model: ";
                         configure_string += digitizer->GetModel();
                         configure_string += ", serial: ";
@@ -654,33 +685,35 @@ bool actions::generic::configure_digitizer(status &global_status)
                         actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
 
                         json_decref(json_event_message);
-		    } else {
-                    	global_status.digitizers_user_ids[digitizer_index] = user_id;
+                    }
+                    else
+                    {
+                        global_status.digitizers_user_ids[digitizer_index] = user_id;
 
-                    	const std::chrono::time_point<std::chrono::system_clock> configuration_single_stop = std::chrono::system_clock::now();
-                    	const auto configuration_single_delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(configuration_single_stop - configuration_single_start);
+                        const std::chrono::time_point<std::chrono::system_clock> configuration_single_stop = std::chrono::system_clock::now();
+                        const auto configuration_single_delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(configuration_single_stop - configuration_single_start);
 
-                    	std::string configure_string = "Digitizer configuration, model: ";
-                    	configure_string += digitizer->GetModel();
-                    	configure_string += ", serial: ";
-                    	configure_string += digitizer->GetName();
-                    	configure_string += ", user id: ";
-                    	configure_string += std::to_string(user_id);
-                    	configure_string += ", error: ";
-                    	configure_string += ADQ_descriptions::ADQ36_errors.at(config_result);
-                    	configure_string += " (time: ";
-                    	configure_string += std::to_string(configuration_single_delta_time.count());
-                    	configure_string += " ms)";
+                        std::string configure_string = "Digitizer configuration, model: ";
+                        configure_string += digitizer->GetModel();
+                        configure_string += ", serial: ";
+                        configure_string += digitizer->GetName();
+                        configure_string += ", user id: ";
+                        configure_string += std::to_string(user_id);
+                        configure_string += ", error: ";
+                        configure_string += ADQ_descriptions::ADQ36_errors.at(config_result);
+                        configure_string += " (time: ";
+                        configure_string += std::to_string(configuration_single_delta_time.count());
+                        configure_string += " ms)";
 
-                    	json_t *json_event_message = json_object();
+                        json_t *json_event_message = json_object();
 
-                    	json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
-                    	json_object_set_new_nocheck(json_event_message, "error", json_string(configure_string.c_str()));
+                        json_object_set_new_nocheck(json_event_message, "type", json_string("error"));
+                        json_object_set_new_nocheck(json_event_message, "error", json_string(configure_string.c_str()));
 
-                    	actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
+                        actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
 
-                    	json_decref(json_event_message);
-		    }
+                        json_decref(json_event_message);
+                    }
 
                     break;
                 }
@@ -690,9 +723,9 @@ bool actions::generic::configure_digitizer(status &global_status)
 
     global_status.channels_number = max_channel_number;
 
-        absp_logger_console->info("Channels number: {};", max_channel_number);
+    absp_logger_console->info("Channels number: {};", max_channel_number);
 
-        absp_logger_console->info("Digitizers configuration completed successfully!");
+    absp_logger_console->info("Digitizers configuration completed successfully!");
 
     const std::chrono::time_point<std::chrono::system_clock> configuration_global_stop = std::chrono::system_clock::now();
     const auto configuration_global_delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(configuration_global_stop - configuration_global_start);
@@ -718,26 +751,33 @@ bool actions::generic::configure_digitizer(status &global_status)
         size_t index;
         json_t *json_script;
 
-        json_array_foreach(json_scripts, index, json_script) {
+        json_array_foreach(json_scripts, index, json_script)
+        {
             const bool enabled = json_is_true(json_object_get(json_script, "enable"));
 
             absp_logger_console->info("Script is {}", enabled ? "enabled" : "disabled");
 
-            if (enabled) {
+            if (enabled)
+            {
                 // The state may be a single integer or an array of integers
                 json_t *json_state = json_object_get(json_script, "state");
 
                 std::vector<unsigned int> script_states;
 
-                if (json_state != NULL && json_is_integer(json_state)) {
+                if (json_state != NULL && json_is_integer(json_state))
+                {
                     const unsigned int state = json_number_value(json_state);
                     script_states.push_back(state);
-                } else if (json_state != NULL && json_is_array(json_state)) {
+                }
+                else if (json_state != NULL && json_is_array(json_state))
+                {
                     size_t state_index;
                     json_t *state_value;
 
-                    json_array_foreach(json_state, state_index, state_value) {
-                        if (state_value != NULL && json_is_integer(state_value)) {
+                    json_array_foreach(json_state, state_index, state_value)
+                    {
+                        if (state_value != NULL && json_is_integer(state_value))
+                        {
                             const unsigned int state = json_number_value(state_value);
                             script_states.push_back(state);
                         }
@@ -748,11 +788,16 @@ bool actions::generic::configure_digitizer(status &global_status)
                 const std::string str_when = (cstr_when) ? std::string(cstr_when) : std::string();
                 int when = SCRIPT_WHEN_POST;
 
-                if (str_when == "pre") {
+                if (str_when == "pre")
+                {
                     when = SCRIPT_WHEN_PRE;
-                } else if (str_when == "post") {
+                }
+                else if (str_when == "post")
+                {
                     when = SCRIPT_WHEN_POST;
-                } else {
+                }
+                else
+                {
                     when = SCRIPT_WHEN_POST;
                 }
 
@@ -763,19 +808,23 @@ bool actions::generic::configure_digitizer(status &global_status)
 
                 // If the source entry contains the name of an existing file, then
                 // we read the content of the file in the string.
-                if (source_file.good()) {
-                        absp_logger_console->info("The source of this script is in the file: {};", str_source);
+                if (source_file.good())
+                {
+                    absp_logger_console->info("The source of this script is in the file: {};", str_source);
 
                     std::stringstream buffer;
                     buffer << source_file.rdbuf();
 
                     str_source = buffer.str();
-                } else {
-                        absp_logger_console->info("The source of this script is: {};", str_source);
+                }
+                else
+                {
+                    absp_logger_console->info("The source of this script is: {};", str_source);
                 }
 
-                for (const auto& script_state : script_states) {
-                        absp_logger_console->info("Found script for state: {}; When: {} (code: {});", script_state, str_when, when);
+                for (const auto &script_state : script_states)
+                {
+                    absp_logger_console->info("Found script for state: {}; When: {} (code: {});", script_state, str_when, when);
 
                     global_status.user_scripts[std::pair<unsigned int, unsigned int>(script_state, when)] = str_source;
                 }
@@ -783,11 +832,11 @@ bool actions::generic::configure_digitizer(status &global_status)
         }
     }
 
-        absp_logger_console->info("Adding the digitizer objects to the Lua runtime environment; Number of digitizers: {};", global_status.digitizers.size());
+    absp_logger_console->info("Adding the digitizer objects to the Lua runtime environment; Number of digitizers: {};", global_status.digitizers.size());
 
     global_status.lua_manager.update_digitizers(global_status.digitizers);
 
-        absp_logger_console->info("Finished configuration;");
+    absp_logger_console->info("Finished configuration;");
 
     return true;
 }
@@ -803,13 +852,12 @@ bool actions::generic::allocate_memory(status &global_status)
     global_status.ICR_curr_counts.clear();
     global_status.ICR_curr_counts.resize(global_status.channels_number, 0);
 
-        absp_logger_console->info("Memory allocation");
+    absp_logger_console->info("Memory allocation");
 
     global_status.waveforms_buffer_size_Number = 0;
 
     // Reserve the waveforms_buffer in order to have a good starting size of its buffer
-    global_status.waveforms_buffer.reserve(global_status.waveforms_buffer_size_max_Number
-                                           * (waveform_header_size() + sizeof(uint16_t) * defaults_absp_waveforms_expected_number_of_samples));
+    global_status.waveforms_buffer.reserve(global_status.waveforms_buffer_size_max_Number * (waveform_header_size() + sizeof(uint16_t) * defaults_absp_waveforms_expected_number_of_samples));
 
     return true;
 }
@@ -842,7 +890,7 @@ state actions::create_context(status &global_status)
 
     global_status.context = context;
 
-    //std::this_thread::sleep_for(std::chrono::milliseconds(defaults_abcd_zmq_delay));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(defaults_abcd_zmq_delay));
     struct timespec zmq_delay;
     zmq_delay.tv_sec = defaults_abcd_zmq_delay / 1000;
     zmq_delay.tv_nsec = (defaults_abcd_zmq_delay % 1000) * 1000000L;
@@ -886,7 +934,7 @@ state actions::create_sockets(status &global_status)
     global_status.data_output_socket = data_socket;
     global_status.commands_socket = commands_socket;
 
-    //std::this_thread::sleep_for(std::chrono::milliseconds(defaults_abcd_zmq_delay));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(defaults_abcd_zmq_delay));
     struct timespec zmq_delay;
     zmq_delay.tv_sec = defaults_abcd_zmq_delay / 1000;
     zmq_delay.tv_nsec = (defaults_abcd_zmq_delay % 1000) * 1000000L;
@@ -928,7 +976,7 @@ state actions::bind_sockets(status &global_status)
         return states::communication_error;
     }
 
-    //std::this_thread::sleep_for(std::chrono::milliseconds(defaults_abcd_zmq_delay));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(defaults_abcd_zmq_delay));
     struct timespec zmq_delay;
     zmq_delay.tv_sec = defaults_abcd_zmq_delay / 1000;
     zmq_delay.tv_nsec = (defaults_abcd_zmq_delay % 1000) * 1000000L;
@@ -955,7 +1003,8 @@ state actions::create_digitizer(status &global_status)
 {
     const bool success = actions::generic::create_digitizer(global_status);
 
-    if (global_status.identification_only) {
+    if (global_status.identification_only)
+    {
         return states::destroy_digitizer;
     }
 
@@ -973,7 +1022,7 @@ state actions::read_config(status &global_status)
 {
     const std::string config_file_name = global_status.config_filename;
 
-        absp_logger_console->info("Reading config file: {} ", config_file_name);
+    absp_logger_console->info("Reading config file: {} ", config_file_name);
 
     json_error_t error;
 
@@ -1051,7 +1100,7 @@ state actions::reconfigure_create_digitizer(status &global_status)
 
 state actions::publish_status(status &global_status)
 {
-        absp_logger_console->info("Publishing status;");
+    absp_logger_console->info("Publishing status;");
 
     json_t *status_message = json_object();
 
@@ -1064,7 +1113,7 @@ state actions::publish_status(status &global_status)
     json_t *digitizer = json_object();
 
     // TODO: Check status
-    //if () {
+    // if () {
     //    json_object_set_new_nocheck(digitizer, "valid_pointer", json_false());
     //    json_object_set_new_nocheck(digitizer, "active", json_false());
     //} else {
@@ -1088,7 +1137,7 @@ state actions::receive_commands(status &global_status)
 {
     void *commands_socket = global_status.commands_socket;
 
-        absp_logger_console->debug("Receiving command... ");
+    absp_logger_console->debug("Receiving command... ");
 
     json_t *json_message = NULL;
 
@@ -1102,7 +1151,7 @@ state actions::receive_commands(status &global_status)
     {
         const size_t command_ID = json_integer_value(json_object_get(json_message, "msg_ID"));
 
-            absp_logger_console->debug("Received command; Command ID: {};", command_ID);
+        absp_logger_console->debug("Received command; Command ID: {};", command_ID);
 
         json_t *json_command = json_object_get(json_message, "command");
         json_t *json_arguments = json_object_get(json_message, "arguments");
@@ -1111,13 +1160,16 @@ state actions::receive_commands(status &global_status)
         {
             const std::string command = json_string_value(json_command);
 
-                absp_logger_console->info("Received command: {};", command);
+            absp_logger_console->info("Received command: {};", command);
 
-            if (command == std::string("start")) {
+            if (command == std::string("start"))
+            {
                 absp_logger_console->info("################################################################### Start!!! ###");
 
                 return states::start_acquisition;
-            } else if (command == std::string("reconfigure") && json_arguments) {
+            }
+            else if (command == std::string("reconfigure") && json_arguments)
+            {
                 json_t *new_config = json_object_get(json_arguments, "config");
 
                 // Remember to clean up
@@ -1137,7 +1189,9 @@ state actions::receive_commands(status &global_status)
                 json_decref(json_event_message);
 
                 return states::configure_digitizer;
-            } else if (command == std::string("specific") && json_arguments) {
+            }
+            else if (command == std::string("specific") && json_arguments)
+            {
                 const char *cstr_serial = json_string_value(json_object_get(json_arguments, "serial"));
                 const std::string serial = (cstr_serial) ? std::string(cstr_serial) : std::string();
 
@@ -1145,9 +1199,10 @@ state actions::receive_commands(status &global_status)
                 {
                     auto digitizer = global_status.digitizers[digitizer_index];
 
-                    if ((digitizer)->GetName() == serial) {
-                            absp_logger_console->info("Found matching card: {};", serial);
-                            absp_logger_console->info("Forwarding command;");
+                    if ((digitizer)->GetName() == serial)
+                    {
+                        absp_logger_console->info("Found matching card: {};", serial);
+                        absp_logger_console->info("Forwarding command;");
 
                         const char *cstr_specific_command = json_string_value(json_object_get(json_arguments, "command"));
                         const std::string specific_command = (cstr_serial) ? std::string(cstr_specific_command) : std::string();
@@ -1166,7 +1221,9 @@ state actions::receive_commands(status &global_status)
                         (digitizer)->SpecificCommand(json_arguments);
                     }
                 }
-            } else if (command == std::string("store_configuration")) {
+            }
+            else if (command == std::string("store_configuration"))
+            {
                 const std::string config_file_name = global_status.config_filename;
 
                 const int r = json_dump_file(global_status.config, config_file_name.c_str(), JSON_INDENT(4));
@@ -1184,8 +1241,9 @@ state actions::receive_commands(status &global_status)
                     actions::generic::publish_message(global_status, defaults_abcd_events_topic, json_event_message);
 
                     json_decref(json_event_message);
-
-                } else {
+                }
+                else
+                {
                     const std::string event_description = "Stored configuration to " + config_file_name;
 
                     json_t *json_event_message = json_object();
@@ -1197,9 +1255,13 @@ state actions::receive_commands(status &global_status)
 
                     json_decref(json_event_message);
                 }
-            } else if (command == std::string("off")) {
+            }
+            else if (command == std::string("off"))
+            {
                 return states::clear_memory;
-            } else if (command == std::string("quit")) {
+            }
+            else if (command == std::string("quit"))
+            {
                 return states::clear_memory;
             }
         }
@@ -1229,7 +1291,7 @@ state actions::start_acquisition(status &global_status)
 
     std::chrono::time_point<std::chrono::system_clock> start_time = std::chrono::system_clock::now();
 
-        absp_logger_console->info("Clearing counters;");
+    absp_logger_console->info("Clearing counters;");
 
     const int channels_number = global_status.channels_number;
 
@@ -1243,12 +1305,12 @@ state actions::start_acquisition(status &global_status)
     global_status.ICR_curr_counts.resize(global_status.channels_number, 0);
 
     // Start acquisition
-        absp_logger_console->info("Starting acquisition;");
+    absp_logger_console->info("Starting acquisition;");
 
     for (auto value = global_status.digitizers_user_ids.begin(); value != global_status.digitizers_user_ids.end(); ++value)
     {
         const unsigned int digitizer_index = value->first;
-        //const unsigned int user_id = value->second;
+        // const unsigned int user_id = value->second;
 
         actions::generic::start_acquisition(global_status, digitizer_index);
         actions::generic::rearm_trigger(global_status, digitizer_index);
@@ -1271,7 +1333,7 @@ state actions::acquisition_receive_commands(status &global_status)
 {
     void *commands_socket = global_status.commands_socket;
 
-        absp_logger_console->debug("Receiving command... ");
+    absp_logger_console->debug("Receiving command... ");
 
     json_t *json_message = NULL;
 
@@ -1285,7 +1347,7 @@ state actions::acquisition_receive_commands(status &global_status)
     {
         const size_t command_ID = json_integer_value(json_object_get(json_message, "msg_ID"));
 
-            absp_logger_console->debug("Received command; Command ID: {};", command_ID);
+        absp_logger_console->debug("Received command; Command ID: {};", command_ID);
 
         json_t *json_command = json_object_get(json_message, "command");
 
@@ -1293,14 +1355,16 @@ state actions::acquisition_receive_commands(status &global_status)
         {
             const std::string command = json_string_value(json_command);
 
-                absp_logger_console->info("Received command: {};", command);
+            absp_logger_console->info("Received command: {};", command);
 
-            if (command == std::string("stop")) {
+            if (command == std::string("stop"))
+            {
                 absp_logger_console->info("#################################################################### Stop!!! ###");
 
                 return states::stop_publish_events;
-
-            } else if (command == std::string("simulate_error")) {
+            }
+            else if (command == std::string("simulate_error"))
+            {
                 absp_logger_error->error("########################################################### SIMULATED ERROR! ###");
 
                 json_t *json_event_message = json_object();
@@ -1312,13 +1376,11 @@ state actions::acquisition_receive_commands(status &global_status)
 
                 json_decref(json_event_message);
 
-
                 return states::acquisition_error;
             }
         }
 
         json_decref(json_message);
-
     }
 
     return states::read_data;
@@ -1367,9 +1429,10 @@ state actions::read_data(status &global_status)
         const bool is_ready = digitizer->AcquisitionReady();
         const bool is_overflow = digitizer->DataOverflow();
 
-            absp_logger_console->info("Polling board: {} (user_id: {}, digitizer_index: {}); Acquisition ready: {}; Overflow: {};", digitizer->GetName(), user_id, digitizer_index, (is_ready ? "yes" : "no"), (is_overflow ? "yes" : "no"));
+        absp_logger_console->info("Polling board: {} (user_id: {}, digitizer_index: {}); Acquisition ready: {}; Overflow: {};", digitizer->GetName(), user_id, digitizer_index, (is_ready ? "yes" : "no"), (is_overflow ? "yes" : "no"));
 
-        if (is_overflow) {
+        if (is_overflow)
+        {
             // The DRAM is full and data was probably lost and corrupted, so we
             // signal this as an error. A flush of the DMA would provide
             // corrupted data.
@@ -1391,14 +1454,16 @@ state actions::read_data(status &global_status)
             is_error = true;
         }
 
-        if (is_ready) {
-                absp_logger_console->info("Getting waveforms from card;");
+        if (is_ready)
+        {
+            absp_logger_console->info("Getting waveforms from card;");
 
             const auto get_data_start = std::chrono::high_resolution_clock::now();
 
             const std::vector<size_t> event_counters = digitizer->GetEventCounters();
 
-            for (uint8_t channel = 0; channel < (digitizer)->GetChannelsNumber(); channel += 1) {
+            for (uint8_t channel = 0; channel < (digitizer)->GetChannelsNumber(); channel += 1)
+            {
                 const uint8_t global_channel = channel + user_id * (digitizer)->GetChannelsNumber();
                 global_status.ICR_curr_counts[global_channel] = event_counters[channel];
             }
@@ -1412,9 +1477,10 @@ state actions::read_data(status &global_status)
 
             unsigned int waveforms_size = waveforms.size();
 
-                absp_logger_console->info("Waveforms download: {}; waveforms number: {}; Time required: {} ms;", (retval == DIGITIZER_SUCCESS ? "success" : "failure"), waveforms_size, delta_time.count());
+            absp_logger_console->info("Waveforms download: {}; waveforms number: {}; Time required: {} ms;", (retval == DIGITIZER_SUCCESS ? "success" : "failure"), waveforms_size, delta_time.count());
 
-            if (retval == DIGITIZER_FAILURE) {
+            if (retval == DIGITIZER_FAILURE)
+            {
                 std::string error_string = "Data fetch failure in digitizer: ";
                 error_string += digitizer->GetName();
 
@@ -1429,8 +1495,11 @@ state actions::read_data(status &global_status)
                 absp_logger_error->error("{}", error_string);
 
                 is_error = true;
-            } else {
-                for (unsigned int waveform_index = 0; waveform_index < waveforms_size; waveform_index++) {
+            }
+            else
+            {
+                for (unsigned int waveform_index = 0; waveform_index < waveforms_size; waveform_index++)
+                {
                     struct event_waveform this_waveform = waveforms[waveform_index];
 
                     const uint8_t global_channel = this_waveform.channel + user_id * (digitizer)->GetChannelsNumber();
@@ -1440,16 +1509,15 @@ state actions::read_data(status &global_status)
                     global_status.partial_counts[global_channel] += 1;
                     global_status.waveforms_buffer_size_Number += 1;
 
-
                     const size_t current_waveform_buffer_size = global_status.waveforms_buffer.size();
                     const size_t this_waveform_size = waveform_size(&this_waveform);
 
-                        absp_logger_console->trace("Storing waveform in buffer; Waveform index: {}; channel: {}; samples: {}; buffer pointer: {}; Waveforms buffer size: {}; Waveform size: {};", waveform_index, (unsigned int)this_waveform.channel, (unsigned int)this_waveform.samples_number, static_cast<void*>(this_waveform.buffer), current_waveform_buffer_size, this_waveform_size);
+                    absp_logger_console->trace("Storing waveform in buffer; Waveform index: {}; channel: {}; samples: {}; buffer pointer: {}; Waveforms buffer size: {}; Waveform size: {};", waveform_index, (unsigned int)this_waveform.channel, (unsigned int)this_waveform.samples_number, static_cast<void *>(this_waveform.buffer), current_waveform_buffer_size, this_waveform_size);
 
                     global_status.waveforms_buffer.resize(current_waveform_buffer_size + this_waveform_size);
 
                     memcpy(global_status.waveforms_buffer.data() + current_waveform_buffer_size,
-                           reinterpret_cast<void*>(waveform_serialize(&this_waveform)),
+                           reinterpret_cast<void *>(waveform_serialize(&this_waveform)),
                            this_waveform_size);
 
                     waveform_destroy_samples(&this_waveform);
@@ -1462,16 +1530,18 @@ state actions::read_data(status &global_status)
 
     const size_t waveforms_buffer_size_Bytes = global_status.waveforms_buffer.size();
 
-        absp_logger_console->info("Waveforms buffer size: {} ({} B);", global_status.waveforms_buffer_size_Number, waveforms_buffer_size_Bytes);
+    absp_logger_console->info("Waveforms buffer size: {} ({} B);", global_status.waveforms_buffer_size_Number, waveforms_buffer_size_Bytes);
 
-    if (is_error) {
+    if (is_error)
+    {
         return states::acquisition_error;
     }
 
     const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
 
     if (now - global_status.last_publication > std::chrono::seconds(defaults_abcd_publish_timeout) ||
-        global_status.waveforms_buffer_size_Number >= global_status.waveforms_buffer_size_max_Number) {
+        global_status.waveforms_buffer_size_Number >= global_status.waveforms_buffer_size_max_Number)
+    {
 
         return states::publish_events;
     }
@@ -1494,7 +1564,7 @@ state actions::publish_events(status &global_status)
 
 state actions::acquisition_publish_status(status &global_status)
 {
-        absp_logger_console->info("Publishing status;");
+    absp_logger_console->info("Publishing status;");
 
     json_t *status_message = json_object();
 
@@ -1504,7 +1574,8 @@ state actions::acquisition_publish_status(status &global_status)
     json_t *digitizer = json_object();
 
     // TODO: Check status
-    if (true) {
+    if (true)
+    {
         json_object_set_new_nocheck(digitizer, "valid_pointer", json_true());
         json_object_set_new_nocheck(digitizer, "active", json_true());
 
@@ -1611,9 +1682,12 @@ state actions::restart_stop_acquisition(status &global_status)
     // Sometimes this ends up in an infinite loop of restarts, we then try a
     // reset of the digitizers. If it is not enough we try a hard reset of the
     // control unit.
-    if (global_status.counter_restarts >= defaults_absp_counter_restarts_max) {
+    if (global_status.counter_restarts >= defaults_absp_counter_restarts_max)
+    {
         return states::restarts_error;
-    } else {
+    }
+    else
+    {
         return states::start_acquisition;
     }
 }
@@ -1633,9 +1707,12 @@ state actions::restart_destroy_digitizer(status &global_status)
 
     actions::generic::destroy_digitizer(global_status);
 
-    if (global_status.counter_resets >= defaults_absp_counter_resets_max) {
+    if (global_status.counter_resets >= defaults_absp_counter_resets_max)
+    {
         return states::resets_error;
-    } else {
+    }
+    else
+    {
         return states::restart_create_digitizer;
     }
 }
@@ -1709,7 +1786,7 @@ state actions::clear_memory(status &global_status)
 {
     actions::generic::clear_memory(global_status);
 
-        absp_logger_console->info("Clearing the json configuration;");
+    absp_logger_console->info("Clearing the json configuration;");
 
     // Remember to clean up the json configuration
     json_decref(global_status.config);
@@ -1734,7 +1811,7 @@ state actions::destroy_control_unit(status &global_status)
 
 state actions::close_sockets(status &global_status)
 {
-    //std::this_thread::sleep_for(std::chrono::milliseconds(defaults_abcd_zmq_delay));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(defaults_abcd_zmq_delay));
     struct timespec zmq_delay;
     zmq_delay.tv_sec = defaults_abcd_zmq_delay / 1000;
     zmq_delay.tv_nsec = (defaults_abcd_zmq_delay % 1000) * 1000000L;
@@ -1767,7 +1844,7 @@ state actions::close_sockets(status &global_status)
 
 state actions::destroy_context(status &global_status)
 {
-    //std::this_thread::sleep_for(std::chrono::milliseconds(defaults_abcd_zmq_delay));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(defaults_abcd_zmq_delay));
     struct timespec zmq_delay;
     zmq_delay.tv_sec = defaults_abcd_zmq_delay / 1000;
     zmq_delay.tv_nsec = (defaults_abcd_zmq_delay % 1000) * 1000000L;
@@ -1784,7 +1861,7 @@ state actions::destroy_context(status &global_status)
     return states::stop;
 }
 
-state actions::stop(status&)
+state actions::stop(status &)
 {
     return states::stop;
 }
@@ -1847,11 +1924,7 @@ state actions::digitizer_error(status &global_status)
 
 state actions::acquisition_error(status &global_status)
 {
-    const std::string event_message = "Acquistion error (restart: " \
-                                      + std::to_string(global_status.counter_restarts) \
-                                      + ", reset: " \
-                                      + std::to_string(global_status.counter_resets) \
-                                      + ")";
+    const std::string event_message = "Acquistion error (restart: " + std::to_string(global_status.counter_restarts) + ", reset: " + std::to_string(global_status.counter_resets) + ")";
 
     json_t *json_event_message = json_object();
 
