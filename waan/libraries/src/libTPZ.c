@@ -90,14 +90,18 @@ void energy_init(json_t *json_config, void **user_config)
 {
     (*user_config) = NULL;
 
-    if (!json_is_object(json_config)) {
+    if (!json_is_object(json_config))
+    {
         printf("ERROR: libTPZ energy_init(): json_config is not a json_t object\n");
 
         (*user_config) = NULL;
-    } else {
-	struct TPZ_config *config = malloc(1 * sizeof(struct TPZ_config));
+    }
+    else
+    {
+        struct TPZ_config *config = malloc(1 * sizeof(struct TPZ_config));
 
-        if (!config) {
+        if (!config)
+        {
             printf("ERROR: libTPZ energy_init(): Unable to allocate config memory\n");
 
             (*user_config) = NULL;
@@ -109,21 +113,28 @@ void energy_init(json_t *json_config, void **user_config)
         config->peaking_time = json_integer_value(json_object_get(json_config, "peaking_time"));
         config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
 
-        if (json_is_number(json_object_get(json_config, "height_scaling"))) {
+        if (json_is_number(json_object_get(json_config, "height_scaling")))
+        {
             config->height_scaling = json_number_value(json_object_get(json_config, "height_scaling"));
-        } else {
+        }
+        else
+        {
             config->height_scaling = 1;
         }
 
-        if (json_is_number(json_object_get(json_config, "energy_threshold"))) {
+        if (json_is_number(json_object_get(json_config, "energy_threshold")))
+        {
             config->energy_threshold = json_number_value(json_object_get(json_config, "energy_threshold"));
-        } else {
+        }
+        else
+        {
             config->energy_threshold = 0;
         }
 
         config->pulse_polarity = POLARITY_NEGATIVE;
 
-        if (json_is_string(json_object_get(json_config, "pulse_polarity"))) {
+        if (json_is_string(json_object_get(json_config, "pulse_polarity")))
+        {
             const char *pulse_polarity = json_string_value(json_object_get(json_config, "pulse_polarity"));
 
             if (strstr(pulse_polarity, "Negative") ||
@@ -140,7 +151,8 @@ void energy_init(json_t *json_config, void **user_config)
 
         config->peak_position = PEAK_POSITION_MAXIMUM;
 
-        if (json_is_string(json_object_get(json_config, "peak_position"))) {
+        if (json_is_string(json_object_get(json_config, "peak_position")))
+        {
             const char *pulse_polarity = json_string_value(json_object_get(json_config, "peak_position"));
 
             if (strstr(pulse_polarity, "maximum"))
@@ -161,7 +173,7 @@ void energy_init(json_t *json_config, void **user_config)
         config->curve_offset = NULL;
         config->curve_trapezoid = NULL;
 
-        (*user_config) = (void*)config;
+        (*user_config) = (void *)config;
     }
 }
 
@@ -169,22 +181,27 @@ void energy_init(json_t *json_config, void **user_config)
  */
 void energy_close(void *user_config)
 {
-    struct TPZ_config *config = (struct TPZ_config*)user_config;
+    struct TPZ_config *config = (struct TPZ_config *)user_config;
 
-    if (config->curve_samples) {
+    if (config->curve_samples)
+    {
         free(config->curve_samples);
     }
-    if (config->curve_compensated) {
+    if (config->curve_compensated)
+    {
         free(config->curve_compensated);
     }
-    if (config->curve_offset) {
+    if (config->curve_offset)
+    {
         free(config->curve_offset);
     }
-    if (config->curve_trapezoid) {
+    if (config->curve_trapezoid)
+    {
         free(config->curve_trapezoid);
     }
 
-    if (user_config) {
+    if (user_config)
+    {
         free(user_config);
     }
 }
@@ -199,24 +216,27 @@ void energy_analysis(const uint16_t *samples,
                      size_t *events_number,
                      void *user_config)
 {
-    struct TPZ_config *config = (struct TPZ_config*)user_config;
+    struct TPZ_config *config = (struct TPZ_config *)user_config;
 
     reallocate_curves(samples_number, &config);
 
     bool is_error = false;
 
-    if ((*events_number) != 1) {
-        //printf("WARNING: libTPZ energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
+    if ((*events_number) != 1)
+    {
+        // printf("WARNING: libTPZ energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
 
         // Assuring that there is one event_PSD and discarding others
         is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
 
-        if (is_error) {
+        if (is_error)
+        {
             printf("ERROR: libTPZ energy_analysis(): Unable to reallocate buffers\n");
         }
     }
 
-    if (is_error || config->is_error) {
+    if (is_error || config->is_error)
+    {
         printf("ERROR: libTPZ energy_analysis(): Error status detected\n");
 
         return;
@@ -228,14 +248,17 @@ void energy_analysis(const uint16_t *samples,
 
     calculate_average(config->curve_samples, 0, config->baseline_samples, &baseline);
 
-    if (config->pulse_polarity == POLARITY_POSITIVE) {
+    if (config->pulse_polarity == POLARITY_POSITIVE)
+    {
         add_and_multiply_constant(config->curve_samples, samples_number, -1 * baseline, 1.0, &config->curve_offset);
-    } else {
+    }
+    else
+    {
         add_and_multiply_constant(config->curve_samples, samples_number, -1 * baseline, -1.0, &config->curve_offset);
     }
 
-    decay_compensation(config->curve_offset, samples_number, \
-                       config->decay_time, \
+    decay_compensation(config->curve_offset, samples_number,
+                       config->decay_time,
                        &config->curve_compensated);
 
     trapezoidal_filter(config->curve_compensated, samples_number,
@@ -274,17 +297,23 @@ void energy_analysis(const uint16_t *samples,
 
     const uint8_t group_counter = 0;
 
-    if (energy_maximum < config->energy_threshold) {
+    if (energy_maximum < config->energy_threshold)
+    {
         // Discard the event
         reallocate_buffers(trigger_positions, events_buffer, events_number, 0);
-    } else {
+    }
+    else
+    {
         // Output
         // We have to assume that this was taken care earlier
         //(*events_buffer)[0].timestamp = waveform->timestamp;
-        if (config->peak_position == PEAK_POSITION_PEAKING_TIME) {
+        if (config->peak_position == PEAK_POSITION_PEAKING_TIME)
+        {
             (*events_buffer)[0].qshort = int_maximum;
             (*events_buffer)[0].qlong = int_at_peaking;
-        } else {
+        }
+        else
+        {
             (*events_buffer)[0].qshort = int_at_peaking;
             (*events_buffer)[0].qlong = int_maximum;
         }
@@ -316,15 +345,21 @@ void energy_analysis(const uint16_t *samples,
         const uint8_t ZERO = UINT8_MAX / 2;
         const uint8_t MAX = UINT8_MAX / 2;
 
-        for (uint32_t i = 0; i < samples_number; i++) {
+        for (uint32_t i = 0; i < samples_number; i++)
+        {
             additional_compensated[i] = (config->curve_compensated[i] / compensated_abs_max) * MAX + ZERO;
             additional_trapezoid[i] = (config->curve_trapezoid[i] / trapezoid_abs_max) * MAX + ZERO;
 
-            if (i == trapezoid_index_max) {
+            if (i == trapezoid_index_max)
+            {
                 additional_positions[i] = MAX + ZERO;
-            } else if (i == (config->peaking_time + (*trigger_positions)[0])) {
+            }
+            else if (i == (config->peaking_time + (*trigger_positions)[0]))
+            {
                 additional_positions[i] = MAX / 2 + ZERO;
-            } else {
+            }
+            else
+            {
                 additional_positions[i] = ZERO;
             }
         }
@@ -335,7 +370,8 @@ void reallocate_curves(uint32_t samples_number, struct TPZ_config **user_config)
 {
     struct TPZ_config *config = (*user_config);
 
-    if (samples_number != config->previous_samples_number) {
+    if (samples_number != config->previous_samples_number)
+    {
         config->previous_samples_number = samples_number;
 
         config->is_error = false;
@@ -349,32 +385,44 @@ void reallocate_curves(uint32_t samples_number, struct TPZ_config **user_config)
         double *new_curve_trapezoid = realloc(config->curve_trapezoid,
                                               samples_number * sizeof(double));
 
-        if (!new_curve_samples) {
+        if (!new_curve_samples)
+        {
             printf("ERROR: libTPZ reallocate_curves(): Unable to allocate curve_samples memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_samples = new_curve_samples;
         }
-        if (!new_curve_compensated) {
+        if (!new_curve_compensated)
+        {
             printf("ERROR: libTPZ reallocate_curves(): Unable to allocate curve_compensated memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_compensated = new_curve_compensated;
         }
-        if (!new_curve_offset) {
+        if (!new_curve_offset)
+        {
             printf("ERROR: libTPZ reallocate_curves(): Unable to allocate curve_offset memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_offset = new_curve_offset;
         }
-        if (!new_curve_trapezoid) {
+        if (!new_curve_trapezoid)
+        {
             printf("ERROR: libTPZ reallocate_curves(): Unable to allocate curve_trapezoid memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_trapezoid = new_curve_trapezoid;
         }
     }
