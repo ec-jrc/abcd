@@ -363,6 +363,47 @@ inline extern int CFD_signal(const double *samples, size_t samples_number, \
     return EXIT_SUCCESS;
 }
 
+/*! \brief Function that linearly interpolates a curve
+ *
+ * \param[in] samples an array with the input samples.
+ * \param[in] samples_number the number of samples in the array.
+ *
+ * \param[out] constant constant term of the line
+ * \param[out] slope slope of the line
+ *
+ * \return EXIT_SUCCESS if there were no errors, EXIT_FAILURE otherwise.
+ */
+inline extern int linear_interpolation(const double *samples, size_t samples_number, \
+                                       double *constant, double *slope)
+{
+    if (!samples)
+    {
+        return EXIT_FAILURE;
+    }
+
+    unsigned int sum_x = 0;
+    unsigned int sum_xx = 0;
+    double sum_y = 0;
+    double sum_xy = 0;
+
+    for (size_t i = 0; i < samples_number; ++i)
+    {
+        sum_x += i;
+        sum_xx += i * i;
+        sum_y += samples[i];
+        sum_xy += i * samples[i];
+    }
+
+    const double Delta = samples_number * sum_xx - sum_x * sum_x;
+    const double q = 1.0 / Delta * (sum_xx * sum_y - sum_x * sum_xy);
+    const double m = 1.0 / Delta * (samples_number * sum_xy - sum_x * sum_y);
+
+    *constant = q;
+    *slope = m;
+
+    return EXIT_SUCCESS;
+}
+
 /*! \brief Function that determines the zero crossing index using the bisection method, assuming that L < R.
  *
  * \param[in] samples an array with the input samples.
@@ -849,6 +890,44 @@ inline extern int RC4_filter(const double *samples, int samples_number, \
     }
 
     return EXIT_SUCCESS;
+}
+
+/*! \brief Function that clamps an index value within the given boundaries (typically for an array)
+ *
+ * \param[in] index the value to be forced to be in the boundaries
+ * \param[in] start_index the minimum value
+ * \param[in] end_index the maximum value
+ *
+ * \return The value modified to be within the boundaries
+ */
+inline extern int64_t clamp(int64_t index, size_t start_index, size_t end_index)
+{
+    if (index < start_index) {
+        return start_index;
+    } else if (index > end_index) {
+        return end_index;
+    } else {
+        return index;
+    }
+}
+
+/*! \brief Function that clamps a value within the boundaries of an uint64_t
+ *
+ * \param[in] value the value to be clamped
+ *
+ * \return The value modified to be within the boundaries
+ */
+inline extern uint16_t clamp_to_uint16(double value)
+{
+    int64_t rounded = (int64_t)round(value);
+
+    if (rounded < 0) {
+        return 0;
+    } else if (rounded > UINT16_MAX) {
+        return UINT16_MAX;
+    } else {
+        return rounded;
+    }
 }
 
 #endif
