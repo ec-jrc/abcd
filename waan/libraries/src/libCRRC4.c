@@ -76,9 +76,9 @@ struct CRRC4_config
     double height_scaling;
     double energy_threshold;
 
-    bool is_error;
-
     uint32_t previous_samples_number;
+
+    bool is_error;
 
     double *curve_samples;
     double *curve_compensated;
@@ -118,98 +118,101 @@ void energy_init(json_t *json_config, void **user_config)
 
             (*user_config) = NULL;
         }
-
-        config->decay_time = json_integer_value(json_object_get(json_config, "decay_time"));
-        config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
-
-        if (json_is_number(json_object_get(json_config, "smooth_samples")))
-        {
-            const unsigned int W = json_number_value(json_object_get(json_config, "smooth_samples"));
-            // Rounding it to the next greater odd number
-            config->smooth_samples = floor(W / 2) * 2 + 1;
-        }
         else
         {
-            config->smooth_samples = 1;
-        }
 
-        config->highpass_time = json_integer_value(json_object_get(json_config, "highpass_time"));
-        config->lowpass_time = json_integer_value(json_object_get(json_config, "lowpass_time"));
+            config->decay_time = json_integer_value(json_object_get(json_config, "decay_time"));
+            config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
 
-        if (json_is_number(json_object_get(json_config, "extension_samples")))
-        {
-            config->extension_samples = json_number_value(json_object_get(json_config, "extension_samples"));
-        }
-        else
-        {
-            config->extension_samples = 0;
-        }
-
-        if (json_is_number(json_object_get(json_config, "height_scaling")))
-        {
-            config->height_scaling = json_number_value(json_object_get(json_config, "height_scaling"));
-        }
-        else
-        {
-            config->height_scaling = 1;
-        }
-
-        if (json_is_number(json_object_get(json_config, "low_level")))
-        {
-            config->low_level = json_number_value(json_object_get(json_config, "low_level"));
-        }
-        else
-        {
-            config->low_level = 0.1;
-        }
-
-        if (json_is_number(json_object_get(json_config, "high_level")))
-        {
-            config->high_level = json_number_value(json_object_get(json_config, "high_level"));
-        }
-        else
-        {
-            config->high_level = 0.9;
-        }
-
-        if (json_is_number(json_object_get(json_config, "energy_threshold")))
-        {
-            config->energy_threshold = json_number_value(json_object_get(json_config, "energy_threshold"));
-        }
-        else
-        {
-            config->energy_threshold = 0;
-        }
-
-        config->pulse_polarity = POLARITY_NEGATIVE;
-
-        if (json_is_string(json_object_get(json_config, "pulse_polarity")))
-        {
-            const char *pulse_polarity = json_string_value(json_object_get(json_config, "pulse_polarity"));
-
-            if (strstr(pulse_polarity, "Negative") ||
-                strstr(pulse_polarity, "negative"))
+            if (json_is_number(json_object_get(json_config, "smooth_samples")))
             {
-                config->pulse_polarity = POLARITY_NEGATIVE;
+                const unsigned int W = json_number_value(json_object_get(json_config, "smooth_samples"));
+                // Rounding it to the next greater odd number
+                config->smooth_samples = floor(W / 2) * 2 + 1;
             }
-            else if (strstr(pulse_polarity, "Positive") ||
-                     strstr(pulse_polarity, "positive"))
+            else
             {
-                config->pulse_polarity = POLARITY_POSITIVE;
+                config->smooth_samples = 1;
             }
+
+            config->highpass_time = json_integer_value(json_object_get(json_config, "highpass_time"));
+            config->lowpass_time = json_integer_value(json_object_get(json_config, "lowpass_time"));
+
+            if (json_is_number(json_object_get(json_config, "extension_samples")))
+            {
+                config->extension_samples = json_number_value(json_object_get(json_config, "extension_samples"));
+            }
+            else
+            {
+                config->extension_samples = 0;
+            }
+
+            if (json_is_number(json_object_get(json_config, "height_scaling")))
+            {
+                config->height_scaling = json_number_value(json_object_get(json_config, "height_scaling"));
+            }
+            else
+            {
+                config->height_scaling = 1;
+            }
+
+            if (json_is_number(json_object_get(json_config, "low_level")))
+            {
+                config->low_level = json_number_value(json_object_get(json_config, "low_level"));
+            }
+            else
+            {
+                config->low_level = 0.1;
+            }
+
+            if (json_is_number(json_object_get(json_config, "high_level")))
+            {
+                config->high_level = json_number_value(json_object_get(json_config, "high_level"));
+            }
+            else
+            {
+                config->high_level = 0.9;
+            }
+
+            if (json_is_number(json_object_get(json_config, "energy_threshold")))
+            {
+                config->energy_threshold = json_number_value(json_object_get(json_config, "energy_threshold"));
+            }
+            else
+            {
+                config->energy_threshold = 0;
+            }
+
+            config->pulse_polarity = POLARITY_NEGATIVE;
+
+            if (json_is_string(json_object_get(json_config, "pulse_polarity")))
+            {
+                const char *pulse_polarity = json_string_value(json_object_get(json_config, "pulse_polarity"));
+
+                if (strstr(pulse_polarity, "Negative") ||
+                    strstr(pulse_polarity, "negative"))
+                {
+                    config->pulse_polarity = POLARITY_NEGATIVE;
+                }
+                else if (strstr(pulse_polarity, "Positive") ||
+                         strstr(pulse_polarity, "positive"))
+                {
+                    config->pulse_polarity = POLARITY_POSITIVE;
+                }
+            }
+
+            config->is_error = false;
+            config->previous_samples_number = 0;
+
+            config->curve_samples = NULL;
+            config->curve_compensated = NULL;
+            config->curve_offset = NULL;
+            config->curve_smoothed = NULL;
+            config->curve_CR = NULL;
+            config->curve_RC = NULL;
+
+            (*user_config) = (void *)config;
         }
-
-        config->is_error = false;
-        config->previous_samples_number = 0;
-
-        config->curve_samples = NULL;
-        config->curve_compensated = NULL;
-        config->curve_offset = NULL;
-        config->curve_smoothed = NULL;
-        config->curve_CR = NULL;
-        config->curve_RC = NULL;
-
-        (*user_config) = (void *)config;
     }
 }
 
@@ -217,6 +220,11 @@ void energy_init(json_t *json_config, void **user_config)
  */
 void energy_close(void *user_config)
 {
+    if (!user_config)
+    {
+        return;
+    }
+
     struct CRRC4_config *config = (struct CRRC4_config *)user_config;
 
     if (config->curve_samples)
@@ -243,7 +251,6 @@ void energy_close(void *user_config)
     {
         free(config->curve_RC);
     }
-
     if (user_config)
     {
         free(user_config);
@@ -261,6 +268,11 @@ void energy_analysis(const uint16_t *samples,
                      void *user_config)
 {
     UNUSED(trigger_positions);
+
+    if (!user_config)
+    {
+        return;
+    }
 
     struct CRRC4_config *config = (struct CRRC4_config *)user_config;
 
@@ -294,7 +306,7 @@ void energy_analysis(const uint16_t *samples,
 
     // Preventing segfaults by checking the boundaries
     const uint32_t baseline_start = 0;
-    const uint32_t baseline_end = (config->baseline_samples < samples_number) ? config->baseline_samples : samples_number;
+    const uint32_t baseline_end = clamp(config->baseline_samples, 0, samples_number);
 
     double baseline = 0;
     calculate_average(config->curve_samples, baseline_start, baseline_end, &baseline);
@@ -312,7 +324,7 @@ void energy_analysis(const uint16_t *samples,
                        config->decay_time,
                        &config->curve_compensated);
 
-    const uint32_t topline_start = (samples_number - config->baseline_samples) >= 0 ? (samples_number - config->baseline_samples) : 0;
+    const uint32_t topline_start = clamp(samples_number - config->baseline_samples, 0, samples_number);
     const uint32_t topline_end = samples_number;
 
     double topline = 0;
@@ -366,15 +378,6 @@ void energy_analysis(const uint16_t *samples,
                  &CR_min, &CR_max);
 
     const double CR_maximum = CR_max * config->height_scaling / config->highpass_time;
-    const uint64_t long_CR_maximum = (uint16_t)round(CR_maximum);
-
-    // We convert the 64 bit integers to 16 bit to simulate the digitizer data
-    uint16_t int_CR_maximum = long_CR_maximum & UINT16_MAX;
-
-    if (long_CR_maximum > UINT16_MAX)
-    {
-        int_CR_maximum = UINT16_MAX;
-    }
 
     double RC_min = 0;
     double RC_max = 0;
@@ -386,17 +389,6 @@ void energy_analysis(const uint16_t *samples,
                  &RC_min, &RC_max);
 
     const double energy = RC_max * config->height_scaling * config->lowpass_time / config->highpass_time;
-    const uint64_t long_energy = (uint64_t)round(energy);
-
-    // We convert the 64 bit integers to 16 bit to simulate the digitizer data
-    uint16_t int_energy = long_energy & UINT16_MAX;
-
-    if (long_energy > UINT16_MAX)
-    {
-        int_energy = UINT16_MAX;
-    }
-
-    // uint64_t int_baseline = ((uint64_t)round(baseline)) & UINT16_MAX;
 
     const uint8_t group_counter = 0;
 
@@ -410,9 +402,9 @@ void energy_analysis(const uint16_t *samples,
         // Output
         // We have to assume that this was taken care earlier
         //(*events_buffer)[0].timestamp = waveform->timestamp;
-        (*events_buffer)[0].qshort = int_CR_maximum;
-        (*events_buffer)[0].qlong = int_energy;
-        (*events_buffer)[0].baseline = risetime_samples;
+        (*events_buffer)[0].qshort = clamp_to_uint16(CR_maximum);
+        (*events_buffer)[0].qlong = clamp_to_uint16(energy);
+        (*events_buffer)[0].baseline = clamp_to_uintt16(risetime_samples);
         (*events_buffer)[0].channel = waveform->channel;
         (*events_buffer)[0].group_counter = group_counter;
 
