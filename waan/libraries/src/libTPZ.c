@@ -41,8 +41,10 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <math.h>
+#include <jansson.h>
 
 #include "events.h"
 #include "analysis_functions.h"
@@ -51,23 +53,24 @@
 #define PEAK_POSITION_MAXIMUM 0
 #define PEAK_POSITION_PEAKING_TIME 1
 
-/*! \brief Sctructure that holds the configuration for the `energy_analysis` function.
+/*! \brief Sctructure that holds the configuration for the `energy_analysis()` function.
  */
 struct TPZ_config
 {
+    uint32_t baseline_samples;
     double decay_time;
     uint32_t trapezoid_risetime;
     uint32_t trapezoid_flattop;
     int64_t peaking_time;
-    uint32_t baseline_samples;
     enum pulse_polarity_t pulse_polarity;
+
     int peak_position;
     double height_scaling;
     double energy_threshold;
 
-    bool is_error;
-
     uint32_t previous_samples_number;
+
+    bool is_error;
 
     double *curve_samples;
     double *curve_compensated;
@@ -106,74 +109,77 @@ void energy_init(json_t *json_config, void **user_config)
 
             (*user_config) = NULL;
         }
-
-        config->decay_time = json_integer_value(json_object_get(json_config, "decay_time"));
-        config->trapezoid_risetime = json_integer_value(json_object_get(json_config, "trapezoid_risetime"));
-        config->trapezoid_flattop = json_integer_value(json_object_get(json_config, "trapezoid_flattop"));
-        config->peaking_time = json_integer_value(json_object_get(json_config, "peaking_time"));
-        config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
-
-        if (json_is_number(json_object_get(json_config, "height_scaling")))
-        {
-            config->height_scaling = json_number_value(json_object_get(json_config, "height_scaling"));
-        }
         else
         {
-            config->height_scaling = 1;
-        }
 
-        if (json_is_number(json_object_get(json_config, "energy_threshold")))
-        {
-            config->energy_threshold = json_number_value(json_object_get(json_config, "energy_threshold"));
-        }
-        else
-        {
-            config->energy_threshold = 0;
-        }
+            config->decay_time = json_integer_value(json_object_get(json_config, "decay_time"));
+            config->trapezoid_risetime = json_integer_value(json_object_get(json_config, "trapezoid_risetime"));
+            config->trapezoid_flattop = json_integer_value(json_object_get(json_config, "trapezoid_flattop"));
+            config->peaking_time = json_integer_value(json_object_get(json_config, "peaking_time"));
+            config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
 
-        config->pulse_polarity = POLARITY_NEGATIVE;
-
-        if (json_is_string(json_object_get(json_config, "pulse_polarity")))
-        {
-            const char *pulse_polarity = json_string_value(json_object_get(json_config, "pulse_polarity"));
-
-            if (strstr(pulse_polarity, "Negative") ||
-                strstr(pulse_polarity, "negative"))
+            if (json_is_number(json_object_get(json_config, "height_scaling")))
             {
-                config->pulse_polarity = POLARITY_NEGATIVE;
+                config->height_scaling = json_number_value(json_object_get(json_config, "height_scaling"));
             }
-            else if (strstr(pulse_polarity, "Positive") ||
-                     strstr(pulse_polarity, "positive"))
+            else
             {
-                config->pulse_polarity = POLARITY_POSITIVE;
+                config->height_scaling = 1;
             }
+
+            if (json_is_number(json_object_get(json_config, "energy_threshold")))
+            {
+                config->energy_threshold = json_number_value(json_object_get(json_config, "energy_threshold"));
+            }
+            else
+            {
+                config->energy_threshold = 0;
+            }
+
+            config->pulse_polarity = POLARITY_NEGATIVE;
+
+            if (json_is_string(json_object_get(json_config, "pulse_polarity")))
+            {
+                const char *pulse_polarity = json_string_value(json_object_get(json_config, "pulse_polarity"));
+
+                if (strstr(pulse_polarity, "Negative") ||
+                    strstr(pulse_polarity, "negative"))
+                {
+                    config->pulse_polarity = POLARITY_NEGATIVE;
+                }
+                else if (strstr(pulse_polarity, "Positive") ||
+                         strstr(pulse_polarity, "positive"))
+                {
+                    config->pulse_polarity = POLARITY_POSITIVE;
+                }
+            }
+
+            config->peak_position = PEAK_POSITION_MAXIMUM;
+
+            if (json_is_string(json_object_get(json_config, "peak_position")))
+            {
+                const char *pulse_polarity = json_string_value(json_object_get(json_config, "peak_position"));
+
+                if (strstr(pulse_polarity, "maximum"))
+                {
+                    config->peak_position = PEAK_POSITION_MAXIMUM;
+                }
+                else if (strstr(pulse_polarity, "peaking_time"))
+                {
+                    config->peak_position = PEAK_POSITION_PEAKING_TIME;
+                }
+            }
+
+            config->is_error = false;
+            config->previous_samples_number = 0;
+
+            config->curve_samples = NULL;
+            config->curve_compensated = NULL;
+            config->curve_offset = NULL;
+            config->curve_trapezoid = NULL;
+
+            (*user_config) = (void *)config;
         }
-
-        config->peak_position = PEAK_POSITION_MAXIMUM;
-
-        if (json_is_string(json_object_get(json_config, "peak_position")))
-        {
-            const char *pulse_polarity = json_string_value(json_object_get(json_config, "peak_position"));
-
-            if (strstr(pulse_polarity, "maximum"))
-            {
-                config->peak_position = PEAK_POSITION_MAXIMUM;
-            }
-            else if (strstr(pulse_polarity, "peaking_time"))
-            {
-                config->peak_position = PEAK_POSITION_PEAKING_TIME;
-            }
-        }
-
-        config->is_error = false;
-        config->previous_samples_number = 0;
-
-        config->curve_samples = NULL;
-        config->curve_compensated = NULL;
-        config->curve_offset = NULL;
-        config->curve_trapezoid = NULL;
-
-        (*user_config) = (void *)config;
     }
 }
 
@@ -181,6 +187,11 @@ void energy_init(json_t *json_config, void **user_config)
  */
 void energy_close(void *user_config)
 {
+    if (!user_config)
+    {
+        return;
+    }
+
     struct TPZ_config *config = (struct TPZ_config *)user_config;
 
     if (config->curve_samples)
@@ -199,7 +210,6 @@ void energy_close(void *user_config)
     {
         free(config->curve_trapezoid);
     }
-
     if (user_config)
     {
         free(user_config);
@@ -216,6 +226,11 @@ void energy_analysis(const uint16_t *samples,
                      size_t *events_number,
                      void *user_config)
 {
+    if (!user_config)
+    {
+        return;
+    }
+
     struct TPZ_config *config = (struct TPZ_config *)user_config;
 
     reallocate_curves(samples_number, &config);
@@ -244,9 +259,12 @@ void energy_analysis(const uint16_t *samples,
 
     to_double(samples, samples_number, &config->curve_samples);
 
-    double baseline = 0;
+    // Preventing segfaults by checking the boundaries
+    const int64_t baseline_start = 0;
+    const uint32_t baseline_end = clamp(baseline_start + config->baseline_samples, 1, samples_number);
 
-    calculate_average(config->curve_samples, 0, config->baseline_samples, &baseline);
+    double baseline = 0;
+    calculate_average(config->curve_samples, baseline_start, baseline_end, &baseline);
 
     if (config->pulse_polarity == POLARITY_POSITIVE)
     {
@@ -277,24 +295,6 @@ void energy_analysis(const uint16_t *samples,
     const double energy_maximum = trapezoid_max * config->height_scaling / (config->trapezoid_risetime + config->trapezoid_flattop);
     const double energy_at_peaking = config->curve_trapezoid[config->peaking_time + (*trigger_positions)[0]] * config->height_scaling / (config->trapezoid_risetime + config->trapezoid_flattop);
 
-    const uint64_t long_maximum = (uint64_t)round(energy_maximum);
-    const uint64_t long_at_peaking = (uint64_t)round(energy_at_peaking);
-
-    // We convert the 64 bit integers to 16 bit to simulate the digitizer data
-    uint16_t int_maximum = long_maximum & UINT16_MAX;
-    uint16_t int_at_peaking = long_at_peaking & UINT16_MAX;
-
-    if (long_maximum > UINT16_MAX)
-    {
-        int_maximum = UINT16_MAX;
-    }
-    if (long_at_peaking > UINT16_MAX)
-    {
-        int_at_peaking = UINT16_MAX;
-    }
-
-    uint64_t int_baseline = ((uint64_t)round(baseline)) & UINT16_MAX;
-
     const uint8_t group_counter = 0;
 
     if (energy_maximum < config->energy_threshold)
@@ -309,15 +309,15 @@ void energy_analysis(const uint16_t *samples,
         //(*events_buffer)[0].timestamp = waveform->timestamp;
         if (config->peak_position == PEAK_POSITION_PEAKING_TIME)
         {
-            (*events_buffer)[0].qshort = int_maximum;
-            (*events_buffer)[0].qlong = int_at_peaking;
+            (*events_buffer)[0].qshort = clamp_to_uint16(energy_maximum);
+            (*events_buffer)[0].qlong = clamp_to_uint16(energy_at_peaking);
         }
         else
         {
-            (*events_buffer)[0].qshort = int_at_peaking;
-            (*events_buffer)[0].qlong = int_maximum;
+            (*events_buffer)[0].qshort = clamp_to_uint16(energy_at_peaking);
+            (*events_buffer)[0].qlong = clamp_to_uint16(energy_maximum);
         }
-        (*events_buffer)[0].baseline = int_baseline;
+        (*events_buffer)[0].baseline = clamp_to_uint16(baseline);
         (*events_buffer)[0].channel = waveform->channel;
         (*events_buffer)[0].group_counter = group_counter;
 
