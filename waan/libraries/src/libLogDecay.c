@@ -338,6 +338,7 @@ void energy_analysis(const uint16_t *samples,
 
     to_double(samples, samples_number, &config->curve_samples);
 
+    // Preventing segfaults by checking the boundaries
     const int64_t baseline_start = clamp((*trigger_positions)[0] - config->pregate - config->baseline_samples, 0, samples_number - 1);
     const uint32_t baseline_end = clamp(baseline_start + config->baseline_samples, 1, samples_number);
 
