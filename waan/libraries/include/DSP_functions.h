@@ -900,7 +900,7 @@ inline extern int RC4_filter(const double *samples, int samples_number, \
  *
  * \return The value modified to be within the boundaries
  */
-inline extern int64_t clamp(int64_t index, size_t start_index, size_t end_index)
+inline extern int64_t clamp(int64_t index, int64_t start_index, int64_t end_index)
 {
     if (index < start_index) {
         return start_index;
