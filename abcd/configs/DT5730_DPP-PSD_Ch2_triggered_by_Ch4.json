@@ -1,0 +1,179 @@
+{
+    "abcd": {
+        "registers": [
+            {
+                "address": "0x8004",
+                "note": "Enable extra word on x730, x725 and x751",
+                "value": 131072
+            },
+            {
+                "address": "0x8004",
+                "note": "Set trigger out bidirectional",
+                "value": 4
+            },
+            {
+                "address": "0x8004",
+                "note": "Enable auto-flush of data on x730, x725 and x751",
+                "value": 1
+            },
+            {
+                "address": "0x1284",
+                "n": 1,
+                "note": "Use smoothed signal on ch2",
+                "start": 11,
+                "value": 0
+            },
+            {
+                "address": "0x1284",
+                "n": 4,
+                "note": "Smoothing on ch2, 16 samples",
+                "start": 12,
+                "value": 0
+            },
+            {
+                "address": "0x1280",
+                "n": 1,
+                "note": "Disable self trigger on channel 2",
+                "start": 24,
+                "value": 1
+            },
+            {
+                "address": "0x1484",
+                "n": 1,
+                "note": "Enable trigger out from channel 4",
+                "start": 2,
+                "value": 1
+            },
+            {
+                "address": "0x1470",
+                "n": 1,
+                "note": "Trigger out width of channel 4, 8 ns steps",
+                "start": 2,
+                "value": 5
+            },
+            {
+                "address": "0x1284",
+                "n": 1,
+                "note": "Enable validation input from main board for channel 2",
+                "start": 6,
+                "value": 1
+            },
+            {
+                "address": "0x1284",
+                "n": 2,
+                "note": "Validation signal interpretation for channel 2 (0: normal, 1: coincidence, 3: anti-coincidence)",
+                "start": 18,
+                "value": 0
+            },
+            {
+                "address": "0x1284",
+                "n": 2,
+                "note": "Validation input calculation for channel 2 (0: cross validation, 1: from main board, 2: and of couple, 3: or of couple",
+                "start": 4,
+                "value": 1
+            },
+            {
+                "address": "0x1484",
+                "n": 2,
+                "note": "Trigger out calculation from couple 2 triggers (0: and, 1: ch0, 2: ch1, 3: or)",
+                "start": 0,
+                "value": 3
+            },
+            {
+                "address": "0x8184",
+                "note": "Trigger validation mask: Validation output calculation for couple 1, from channel 4 (value: 0x4)",
+                "value": 4
+            },
+            {}
+        ]
+    },
+    "dgtzs": {
+        "BoardName": "V1730",
+        "ChannelEnableMask": 20,
+        "DPPAcquisitionMode": 2,
+        "MaxNumAggregatesBLT": 1023,
+        "ShowGates": 0,
+        "WriteBuffer": 0,
+        "ch0": {
+            "BSLSamples": 64,
+            "ChannelName": "Photodiode",
+            "ChargeSensitivity": 0,
+            "DCOffsetPercent": 40,
+            "DynamicRange": 1,
+            "LongGate": 12,
+            "PreGate": 3,
+            "PreTrigger": 50,
+            "PulsePolarity": 0,
+            "ScopeSamples": 200,
+            "ShortGate": 5,
+            "Threshold": 20,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch2": {
+            "BSLSamples": 64,
+            "ChannelName": "PMT",
+            "ChargeSensitivity": 0,
+            "DCOffsetPercent": -30,
+            "DynamicRange": 1,
+            "LongGate": 130,
+            "PreGate": 5,
+            "PreTrigger": 0,
+            "PulsePolarity": 1,
+            "ScopeSamples": 50000,
+            "ShortGate": 38,
+            "Threshold": 70,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch4": {
+            "BSLSamples": 64,
+            "ChannelName": "Accelerator pulse",
+            "ChargeSensitivity": 0,
+            "DCOffsetPercent": 40,
+            "DynamicRange": 0,
+            "LongGate": 60,
+            "PreGate": 5,
+            "PreTrigger": 20,
+            "PulsePolarity": 0,
+            "ScopeSamples": 80,
+            "ShortGate": 10,
+            "Threshold": 250,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch6": {
+            "BSLSamples": 64,
+            "ChannelName": "Sample current",
+            "ChargeSensitivity": 0,
+            "DCOffsetPercent": 40,
+            "DynamicRange": 1,
+            "LongGate": 12,
+            "PreGate": 3,
+            "PreTrigger": 50,
+            "PulsePolarity": 0,
+            "ScopeSamples": 200,
+            "ShortGate": 5,
+            "Threshold": 50,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "ch7": {
+            "BSLSamples": 64,
+            "ChannelName": "Flange current",
+            "ChargeSensitivity": 0,
+            "DCOffsetPercent": 40,
+            "DynamicRange": 1,
+            "LongGate": 12,
+            "PreGate": 3,
+            "PreTrigger": 50,
+            "PulsePolarity": 0,
+            "ScopeSamples": 200,
+            "ShortGate": 5,
+            "Threshold": 50,
+            "TriggerMode": 0,
+            "zzz": false
+        },
+        "zzz": false
+    }
+}
