@@ -892,42 +892,4 @@ inline extern int RC4_filter(const double *samples, int samples_number, \
     return EXIT_SUCCESS;
 }
 
-/*! \brief Function that clamps an index value within the given boundaries (typically for an array)
- *
- * \param[in] index the value to be forced to be in the boundaries
- * \param[in] start_index the minimum value
- * \param[in] end_index the maximum value
- *
- * \return The value modified to be within the boundaries
- */
-inline extern int64_t clamp(int64_t index, int64_t start_index, int64_t end_index)
-{
-    if (index < start_index) {
-        return start_index;
-    } else if (index > end_index) {
-        return end_index;
-    } else {
-        return index;
-    }
-}
-
-/*! \brief Function that clamps a value within the boundaries of an uint64_t
- *
- * \param[in] value the value to be clamped
- *
- * \return The value modified to be within the boundaries
- */
-inline extern uint16_t clamp_to_uint16(double value)
-{
-    int64_t rounded = (int64_t)round(value);
-
-    if (rounded < 0) {
-        return 0;
-    } else if (rounded > UINT16_MAX) {
-        return UINT16_MAX;
-    } else {
-        return rounded;
-    }
-}
-
 #endif
