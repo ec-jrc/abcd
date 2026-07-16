@@ -46,12 +46,15 @@
 #include <stdbool.h>
 // For the JSON parsing and managing
 #include <jansson.h>
+// For round()
+#include <math.h>
 
 #include "events.h"
 
 /*! \brief `enum` used to define portable `true` and `false` between C and C++.
  */
-enum selection_boolean_t {
+enum selection_boolean_t
+{
     SELECT_TRUE = 1,
     SELECT_FALSE = 0
 };
@@ -83,10 +86,10 @@ typedef enum selection_boolean_t selection_boolean_t;
  *
  * \return Nothing
  */
-typedef void (*WA_init_fn)(json_t* json_config,
+typedef void (*WA_init_fn)(json_t *json_config,
                            void **user_config);
 
-inline void dummy_init(json_t* json_config,
+inline void dummy_init(json_t *json_config,
                        void **user_config)
 {
     UNUSED(json_config);
@@ -109,7 +112,8 @@ typedef void (*WA_close_fn)(void *user_config);
 
 inline void dummy_close(void *user_config)
 {
-    if (user_config) {
+    if (user_config)
+    {
         free(user_config);
     }
 }
@@ -273,37 +277,45 @@ inline bool reallocate_buffers(uint32_t **trigger_positions,
                                size_t *old_events_number,
                                size_t new_events_number)
 {
-    if ((*old_events_number) != new_events_number) {
-        uint32_t *new_positions = (uint32_t*)realloc((*trigger_positions),
-                                  new_events_number * sizeof(uint32_t));
+    if ((*old_events_number) != new_events_number)
+    {
+        uint32_t *new_positions = (uint32_t *)realloc((*trigger_positions),
+                                                      new_events_number * sizeof(uint32_t));
 
         // It is allowed to have a zero size, but the result is implementation specific.
         // It could be a NULL pointer or a non-NULL pointer.
-        if (!new_positions && (new_events_number > 0)) {
+        if (!new_positions && (new_events_number > 0))
+        {
             printf("ERROR: reallocate_buffers(): Unable to allocate trigger_positions memory\n");
 
             (*old_events_number) = 0;
 
             return false;
-        } else {
+        }
+        else
+        {
             (*trigger_positions) = new_positions;
         }
 
-        struct event_PSD *new_buffer = (struct event_PSD*)realloc((*events_buffer),
-                                       new_events_number * sizeof(struct event_PSD));
+        struct event_PSD *new_buffer = (struct event_PSD *)realloc((*events_buffer),
+                                                                   new_events_number * sizeof(struct event_PSD));
 
-        if (!new_buffer && (new_events_number > 0)) {
+        if (!new_buffer && (new_events_number > 0))
+        {
             printf("ERROR: reallocate_buffers(): Unable to allocate events_buffer memory\n");
 
             (*old_events_number) = 0;
 
             return false;
-        } else {
+        }
+        else
+        {
             (*events_buffer) = new_buffer;
         }
 
         // Initialize the new trigger_positions if there were none before
-        if ((*old_events_number) == 0 && new_events_number > 0) {
+        if ((*old_events_number) == 0 && new_events_number > 0)
+        {
             memset((*trigger_positions), 0, new_events_number * sizeof(uint32_t));
         }
 
@@ -312,5 +324,103 @@ inline bool reallocate_buffers(uint32_t **trigger_positions,
 
     return true;
 }
+
+/*! \brief Function that clamps an index value within the given boundaries (typically for an array)
+ *
+ * \param[in] index the value to be forced to be in the boundaries
+ * \param[in] start_index the minimum value
+ * \param[in] end_index the maximum value
+ *
+ * \return The value modified to be within the boundaries
+ */
+inline extern int64_t clamp(int64_t index, int64_t start_index, int64_t end_index)
+{
+    if (index < start_index) {
+        return start_index;
+    } else if (index > end_index) {
+        return end_index;
+    } else {
+        return index;
+    }
+}
+
+/*! \brief Function that clamps a value within the boundaries of an uint64_t
+ *
+ * \param[in] value the value to be clamped
+ *
+ * \return The value modified to be within the boundaries
+ */
+inline extern uint16_t clamp_to_uint16(double value)
+{
+    int64_t rounded = (int64_t)round(value);
+
+    if (rounded < 0) {
+        return 0;
+    } else if (rounded > UINT16_MAX) {
+        return UINT16_MAX;
+    } else {
+        return rounded;
+    }
+}
+
+/*! \brief Macro that reads a read value from the json_t config objects and stores it in the user config.
+ *  After reading the value it overwrites it so that it appears in the configuration for the user's convenience.
+ *
+ * \param[in] json_config the json_t* pointer to the configuration
+ * \param[in] name the name of the parameter, should match the member in the user configuration
+ * \param[in] default_value the default value to use if the parameter does not exist in the json_config
+ * \param[in] config the pointer to the user configuration
+ * \param[in] overwrite define whether the parameter should be overwritten in the json_config
+ */
+#define read_config_number_overwrite(json_config, name, default_value, config, overwrite)            \
+    {                                                                                                \
+        json_t *json_##name = json_object_get(json_config, #name);                                   \
+        config->name = json_is_number(json_##name) ? json_number_value(json_##name) : default_value; \
+        if (overwrite)                                                                               \
+        {                                                                                            \
+            json_object_set_nocheck(json_config, #name, json_real(config->name));                    \
+        }                                                                                            \
+    }
+
+/*! \brief Macro that reads boolean value from the json_t config objects and stores it in the user config.
+ *  After reading the value it overwrites it so that it appears in the configuration for the user's convenience.
+ *
+ * \param[in] json_config the json_t* pointer to the configuration
+ * \param[in] name the name of the parameter, should match the member in the user configuration
+ * \param[in] default_value the default value to use if the parameter does not exist in the json_config
+ * \param[in] config the pointer to the user configuration
+ * \param[in] overwrite define whether the parameter should be overwritten in the json_config
+ */
+#define read_config_boolean_overwrite(json_config, name, default_value, config, overwrite)       \
+    {                                                                                            \
+        json_t *json_##name = json_object_get(json_config, #name);                               \
+        config->name = json_is_boolean(json_##name) ? json_is_true(json_##name) : default_value; \
+        if (overwrite)                                                                           \
+        {                                                                                        \
+            json_object_set_nocheck(json_config, #name, json_boolean(config->name));             \
+        }                                                                                        \
+    }
+
+/*! \brief Macro that reads a read value from the json_t config objects and stores it in the user config.
+ *  After reading the value it overwrites it so that it appears in the configuration for the user's convenience.
+ *
+ * \param[in] json_config the json_t* pointer to the configuration
+ * \param[in] name the name of the parameter, should match the member in the user configuration
+ * \param[in] default_value the default value to use if the parameter does not exist in the json_config
+ * \param[in] config the pointer to the user configuration
+ */
+#define read_config_number(json_config, name, default_value, config) \
+    read_config_number_overwrite(json_config, name, default_value, config, false)
+
+/*! \brief Macro that reads boolean value from the json_t config objects and stores it in the user config.
+ *  After reading the value it overwrites it so that it appears in the configuration for the user's convenience.
+ *
+ * \param[in] json_config the json_t* pointer to the configuration
+ * \param[in] name the name of the parameter, should match the member in the user configuration
+ * \param[in] default_value the default value to use if the parameter does not exist in the json_config
+ * \param[in] config the pointer to the user configuration
+ */
+#define read_config_boolean(json_config, name, default_value, config) \
+    read_config_boolean_overwrite(json_config, name, default_value, config, false)
 
 #endif
