@@ -100,119 +100,91 @@ void energy_init(json_t *json_config, void **user_config)
 {
     (*user_config) = NULL;
 
-    if (!json_is_object(json_config)) {
-        printf("ERROR: libRC4 energy_init(): json_config is not a json_t object\n");
+    struct RC4_config *config = malloc(1 * sizeof(struct RC4_config));
 
-        (*user_config) = NULL;
-    } else {
-        struct RC4_config *config = malloc(1 * sizeof(struct RC4_config));
+    if (!config)
+    {
+        printf("ERROR: libRC4 energy_init(): Unable to allocate config memory\n");
 
-        if (!config) {
-            printf("ERROR: libRC4 energy_init(): Unable to allocate config memory\n");
-
-            (*user_config) = NULL;
-        }
-
-        config->lowpass_time = json_number_value(json_object_get(json_config, "lowpass_time"));
-
-        if (json_is_number(json_object_get(json_config, "highpass_time"))) {
-            config->highpass_time = json_number_value(json_object_get(json_config, "highpass_time"));
-        } else {
-            config->highpass_time = config->lowpass_time;
-        }
-
-        config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
-
-        if (json_is_number(json_object_get(json_config, "analysis_start"))) {
-            config->analysis_start = json_integer_value(json_object_get(json_config, "analysis_start"));
-        } else {
-            config->analysis_start = 0;
-        }
-        if (json_is_number(json_object_get(json_config, "analysis_end"))) {
-            config->analysis_end = json_integer_value(json_object_get(json_config, "analysis_end"));
-        } else {
-            config->analysis_end = UINT32_MAX;
-        }
-
-        if (json_is_number(json_object_get(json_config, "height_scaling"))) {
-            config->height_scaling = json_number_value(json_object_get(json_config, "height_scaling"));
-        } else {
-            config->height_scaling = 1;
-        }
-
-        if (json_is_number(json_object_get(json_config, "energy_threshold"))) {
-            config->energy_threshold = json_number_value(json_object_get(json_config, "energy_threshold"));
-        } else {
-            config->energy_threshold = 0;
-        }
-
-        if (json_is_number(json_object_get(json_config, "PSD_min"))) {
-            config->PSD_min = json_number_value(json_object_get(json_config, "PSD_min"));
-        } else {
-            config->PSD_min = -0.1;
-        }
-
-        if (json_is_number(json_object_get(json_config, "PSD_max"))) {
-            config->PSD_max = json_number_value(json_object_get(json_config, "PSD_max"));
-        } else {
-            config->PSD_max = 1.1;
-        }
-
-        config->pulse_polarity = POLARITY_NEGATIVE;
-
-        if (json_is_string(json_object_get(json_config, "pulse_polarity"))) {
-            const char *pulse_polarity = json_string_value(json_object_get(json_config, "pulse_polarity"));
-
-            if (strstr(pulse_polarity, "Negative") ||
-                strstr(pulse_polarity, "negative"))
-            {
-                config->pulse_polarity = POLARITY_NEGATIVE;
-            }
-            else if (strstr(pulse_polarity, "Positive") ||
-                     strstr(pulse_polarity, "positive"))
-            {
-                config->pulse_polarity = POLARITY_POSITIVE;
-            }
-        }
-
-        if (json_is_true(json_object_get(json_config, "enable_warnings"))) {
-            config->enable_warnings = true;
-        } else {
-            config->enable_warnings = false;
-        }
-
-        config->is_error = false;
-        config->previous_samples_number = 0;
-
-        config->curve_samples = NULL;
-        config->curve_offset = NULL;
-        config->curve_RC = NULL;
-        config->curve_CR = NULL;
-
-        (*user_config) = (void*)config;
+        return;
     }
+
+    read_config_number(json_config, analysis_start, 0, config);
+    read_config_number(json_config, analysis_end, UINT32_MAX, config);
+
+    read_config_number(json_config, baseline_samples, 1, config);
+    read_config_number(json_config, lowpass_time, 100, config);
+    read_config_number(json_config, highpass_time, config->lowpass_time, config);
+    read_config_number(json_config, height_scaling, 1.0, config);
+    read_config_number(json_config, energy_threshold, 0, config);
+    read_config_number(json_config, PSD_min, -0.1, config);
+    read_config_number(json_config, PSD_max, 1.1, config);
+
+    json_t *pulse_polarity = json_object_get(json_config, "pulse_polarity");
+
+    if (json_is_string(pulse_polarity))
+    {
+        const char *str_pulse_polarity = json_string_value(pulse_polarity);
+
+        if (strstr(str_pulse_polarity, "Negative") ||
+            strstr(str_pulse_polarity, "negative"))
+        {
+            config->pulse_polarity = POLARITY_NEGATIVE;
+        }
+        else if (strstr(str_pulse_polarity, "Positive") ||
+                 strstr(str_pulse_polarity, "positive"))
+        {
+            config->pulse_polarity = POLARITY_POSITIVE;
+        }
+    }
+    else
+    {
+        config->pulse_polarity = POLARITY_NEGATIVE;
+    }
+
+    json_object_set_nocheck(json_config, "pulse_polarity", json_string((config->pulse_polarity == POLARITY_NEGATIVE) ? "negative" : "positive"));
+
+    config->is_error = false;
+    config->previous_samples_number = 0;
+
+    config->curve_samples = NULL;
+    config->curve_offset = NULL;
+    config->curve_RC = NULL;
+    config->curve_CR = NULL;
+
+    (*user_config) = (void *)config;
 }
 
 /*! \brief Function that cleans the memory allocated by `energy_init()`
  */
 void energy_close(void *user_config)
 {
-    struct RC4_config *config = (struct RC4_config*)user_config;
+    if (!user_config)
+    {
+        return;
+    }
 
-    if (config->curve_samples) {
+    struct RC4_config *config = (struct RC4_config *)user_config;
+
+    if (config->curve_samples)
+    {
         free(config->curve_samples);
     }
-    if (config->curve_offset) {
+    if (config->curve_offset)
+    {
         free(config->curve_offset);
     }
-    if (config->curve_RC) {
+    if (config->curve_RC)
+    {
         free(config->curve_RC);
     }
-    if (config->curve_CR) {
+    if (config->curve_CR)
+    {
         free(config->curve_CR);
     }
 
-    if (user_config) {
+    if (user_config)
+    {
         free(user_config);
     }
 }
@@ -227,26 +199,33 @@ void energy_analysis(const uint16_t *samples,
                      size_t *events_number,
                      void *user_config)
 {
-    struct RC4_config *config = (struct RC4_config*)user_config;
+
+    if (!user_config)
+    {
+        printf("ERROR: libRC4 energy_analysis(): User config not defined, not performing analysis\n");
+
+        return;
+    }
+
+    struct RC4_config *config = (struct RC4_config *)user_config;
 
     reallocate_curves(samples_number, &config);
 
     bool is_error = false;
 
-    if ((*events_number) != 1) {
-        if (config->enable_warnings) {
-            printf("WARNING: libRC4 energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
-        }
-
+    if ((*events_number) != 1)
+    {
         // Assuring that there is one event_PSD and discarding others
         is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
 
-        if (is_error) {
+        if (is_error)
+        {
             printf("ERROR: libRC4 energy_analysis(): Unable to reallocate buffers\n");
         }
     }
 
-    if (is_error || config->is_error) {
+    if (is_error || config->is_error)
+    {
         printf("ERROR: libRC4 energy_analysis(): Error status detected\n");
 
         return;
@@ -255,31 +234,28 @@ void energy_analysis(const uint16_t *samples,
     to_double(samples, samples_number, &config->curve_samples);
 
     // Preventing segfaults by checking the boundaries
-    const int64_t raw_analysis_start = config->analysis_start + (*trigger_positions)[0];
-    const int64_t raw_analysis_end = config->analysis_end + (*trigger_positions)[0];
-    uint32_t analysis_start = raw_analysis_start;
-    if (raw_analysis_start < 0) {
-        analysis_start = 0;
-    } else if (raw_analysis_start > samples_number) {
-        analysis_start = samples_number;
-    }
-    const uint32_t analysis_end = (raw_analysis_end < samples_number) ? raw_analysis_end : samples_number;
+    const int64_t analysis_start = clamp(config->analysis_start + (*trigger_positions)[0], 0, samples_number);
+    const int64_t analysis_end = clamp(config->analysis_end + (*trigger_positions)[0], 0, samples_number);
+
     const uint32_t analysis_width = analysis_end - analysis_start;
 
     const uint32_t baseline_start = analysis_start;
-    const uint32_t baseline_end = ((baseline_start + config->baseline_samples) < samples_number) ? (baseline_start + config->baseline_samples) : samples_number;
+    const uint32_t baseline_end = clamp(baseline_start + config->baseline_samples, 0, samples_number);
 
     double baseline = 0;
     calculate_average(config->curve_samples, baseline_start, baseline_end, &baseline);
 
-    if (config->pulse_polarity == POLARITY_POSITIVE) {
+    if (config->pulse_polarity == POLARITY_POSITIVE)
+    {
         add_and_multiply_constant(config->curve_samples, samples_number, -1 * baseline, 1.0, &config->curve_offset);
-    } else {
+    }
+    else
+    {
         add_and_multiply_constant(config->curve_samples, samples_number, -1 * baseline, -1.0, &config->curve_offset);
     }
 
-    RC4_filter(config->curve_offset + analysis_start, analysis_width, \
-               config->lowpass_time, \
+    RC4_filter(config->curve_offset + analysis_start, analysis_width,
+               config->lowpass_time,
                &config->curve_RC);
 
     double RC_min = 0;
@@ -291,8 +267,8 @@ void energy_analysis(const uint16_t *samples,
                  &RC_index_min, &RC_index_max,
                  &RC_min, &RC_max);
 
-    CR_filter(config->curve_RC, analysis_width, \
-              config->highpass_time, \
+    CR_filter(config->curve_RC, analysis_width,
+              config->highpass_time,
               &config->curve_CR);
 
     double CR_min = 0;
@@ -305,40 +281,25 @@ void energy_analysis(const uint16_t *samples,
                  &CR_min, &CR_max);
 
     const double energy = RC_max * config->height_scaling * config->lowpass_time;
-    const uint64_t long_energy = (uint64_t)round(energy);
-
-    // We convert the 64 bit integers to 16 bit to simulate the digitizer data
-    uint16_t int_energy = long_energy & UINT16_MAX;
-
-    if (long_energy > UINT16_MAX)
-    {
-        int_energy = UINT16_MAX;
-    }
-
     const double tail_maximum = fabs(CR_min) * config->height_scaling * config->lowpass_time;
-    const uint64_t long_tail_maximum = (uint64_t)round(tail_maximum);
-    uint16_t int_tail_maximum = long_tail_maximum & UINT16_MAX;
-    if (long_tail_maximum > UINT16_MAX)
-    {
-        int_tail_maximum = UINT16_MAX;
-    }
 
     const double PSD = (energy != 0) ? ((energy - tail_maximum) / energy) : (config->PSD_min - 1.);
 
-    uint64_t int_baseline = ((uint64_t)round(baseline)) & UINT16_MAX;
-
     const uint8_t group_counter = 0;
 
-    if (energy < config->energy_threshold || PSD < config->PSD_min || PSD > config->PSD_max) {
+    if (energy < config->energy_threshold || PSD < config->PSD_min || PSD > config->PSD_max)
+    {
         // Discard the event
         reallocate_buffers(trigger_positions, events_buffer, events_number, 0);
-    } else {
+    }
+    else
+    {
         // Output
         // We have to assume that this was taken care earlier
         //(*events_buffer)[0].timestamp = waveform->timestamp;
-        (*events_buffer)[0].qshort = int_tail_maximum;
-        (*events_buffer)[0].qlong = int_energy;
-        (*events_buffer)[0].baseline = int_baseline;
+        (*events_buffer)[0].qshort = clamp_to_uint16(tail_maximum);
+        (*events_buffer)[0].qlong = clamp_to_uint16(energy);
+        (*events_buffer)[0].baseline = clamp_to_uint16(baseline);
         (*events_buffer)[0].channel = waveform->channel;
         (*events_buffer)[0].group_counter = group_counter;
 
@@ -359,18 +320,25 @@ void energy_analysis(const uint16_t *samples,
         const uint8_t ZERO = UINT8_MAX / 2;
         const uint8_t MAX = UINT8_MAX / 2;
 
-        for (uint32_t i = 0; i < samples_number; i++) {
-            if (baseline_start <= i && i < baseline_end) {
+        for (uint32_t i = 0; i < samples_number; i++)
+        {
+            if (baseline_start <= i && i < baseline_end)
+            {
                 additional_gate_baseline[i] = ZERO + MAX / 2;
-            } else {
+            }
+            else
+            {
                 additional_gate_baseline[i] = ZERO;
             }
 
-            if (analysis_start <= i && i < analysis_end) {
+            if (analysis_start <= i && i < analysis_end)
+            {
                 additional_gate_analysis[i] = ZERO + MAX;
                 additional_RC[i] = (config->curve_RC[i - analysis_start] / abs_max) * MAX + ZERO;
                 additional_CR[i] = (config->curve_CR[i - analysis_start] / abs_max) * MAX + ZERO;
-            } else {
+            }
+            else
+            {
                 additional_gate_analysis[i] = ZERO;
                 additional_RC[i] = ZERO;
                 additional_CR[i] = ZERO;
@@ -383,7 +351,8 @@ void reallocate_curves(uint32_t samples_number, struct RC4_config **user_config)
 {
     struct RC4_config *config = (*user_config);
 
-    if (samples_number != config->previous_samples_number) {
+    if (samples_number != config->previous_samples_number)
+    {
         config->previous_samples_number = samples_number;
 
         config->is_error = false;
@@ -397,32 +366,44 @@ void reallocate_curves(uint32_t samples_number, struct RC4_config **user_config)
         double *new_curve_CR = realloc(config->curve_CR,
                                        samples_number * sizeof(double));
 
-        if (!new_curve_samples) {
+        if (!new_curve_samples)
+        {
             printf("ERROR: libRC4 reallocate_curves(): Unable to allocate curve_samples memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_samples = new_curve_samples;
         }
-        if (!new_curve_offset) {
+        if (!new_curve_offset)
+        {
             printf("ERROR: libRC4 reallocate_curves(): Unable to allocate curve_offset memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_offset = new_curve_offset;
         }
-        if (!new_curve_RC) {
+        if (!new_curve_RC)
+        {
             printf("ERROR: libRC4 reallocate_curves(): Unable to allocate curve_RC memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_RC = new_curve_RC;
         }
-        if (!new_curve_CR) {
+        if (!new_curve_CR)
+        {
             printf("ERROR: libRC4 reallocate_curves(): Unable to allocate curve_CR memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_CR = new_curve_CR;
         }
     }
