@@ -76,9 +76,9 @@ struct CRRC4_config
     double height_scaling;
     double energy_threshold;
 
-    uint32_t previous_samples_number;
-
     bool is_error;
+
+    uint32_t previous_samples_number;
 
     double *curve_samples;
     double *curve_compensated;
@@ -102,118 +102,61 @@ void energy_init(json_t *json_config, void **user_config)
 {
     (*user_config) = NULL;
 
-    if (!json_is_object(json_config))
-    {
-        printf("ERROR: libCRRC4 energy_init(): json_config is not a json_t object\n");
+    struct CRRC4_config *config = malloc(1 * sizeof(struct CRRC4_config));
 
-        (*user_config) = NULL;
+    if (!config)
+    {
+        printf("ERROR: libCRRC4 energy_init(): Unable to allocate config memory\n");
+
+        return;
+    }
+
+    read_config_number(json_config, decay_time, UINT32_MAX, config);
+    read_config_number(json_config, baseline_samples, 1, config);
+    read_config_number(json_config, smooth_samples, 1, config);
+    read_config_number(json_config, highpass_time, 100, config);
+    read_config_number(json_config, lowpass_time, 100, config);
+    read_config_number_overwrite(json_config, extension_samples, 0, config, false);
+    read_config_number(json_config, height_scaling, 1.0, config);
+    read_config_number(json_config, low_level, 0.1, config);
+    read_config_number(json_config, high_level, 0.9, config);
+    read_config_number(json_config, energy_threshold, 0, config);
+
+    json_t *pulse_polarity = json_object_get(json_config, "pulse_polarity");
+
+    if (json_is_string(pulse_polarity))
+    {
+        const char *str_pulse_polarity = json_string_value(pulse_polarity);
+
+        if (strstr(str_pulse_polarity, "Negative") ||
+            strstr(str_pulse_polarity, "negative"))
+        {
+            config->pulse_polarity = POLARITY_NEGATIVE;
+        }
+        else if (strstr(str_pulse_polarity, "Positive") ||
+                 strstr(str_pulse_polarity, "positive"))
+        {
+            config->pulse_polarity = POLARITY_POSITIVE;
+        }
     }
     else
     {
-        struct CRRC4_config *config = malloc(1 * sizeof(struct CRRC4_config));
-
-        if (!config)
-        {
-            printf("ERROR: libCRRC4 energy_init(): Unable to allocate config memory\n");
-
-            (*user_config) = NULL;
-        }
-        else
-        {
-
-            config->decay_time = json_integer_value(json_object_get(json_config, "decay_time"));
-            config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
-
-            if (json_is_number(json_object_get(json_config, "smooth_samples")))
-            {
-                const unsigned int W = json_number_value(json_object_get(json_config, "smooth_samples"));
-                // Rounding it to the next greater odd number
-                config->smooth_samples = floor(W / 2) * 2 + 1;
-            }
-            else
-            {
-                config->smooth_samples = 1;
-            }
-
-            config->highpass_time = json_integer_value(json_object_get(json_config, "highpass_time"));
-            config->lowpass_time = json_integer_value(json_object_get(json_config, "lowpass_time"));
-
-            if (json_is_number(json_object_get(json_config, "extension_samples")))
-            {
-                config->extension_samples = json_number_value(json_object_get(json_config, "extension_samples"));
-            }
-            else
-            {
-                config->extension_samples = 0;
-            }
-
-            if (json_is_number(json_object_get(json_config, "height_scaling")))
-            {
-                config->height_scaling = json_number_value(json_object_get(json_config, "height_scaling"));
-            }
-            else
-            {
-                config->height_scaling = 1;
-            }
-
-            if (json_is_number(json_object_get(json_config, "low_level")))
-            {
-                config->low_level = json_number_value(json_object_get(json_config, "low_level"));
-            }
-            else
-            {
-                config->low_level = 0.1;
-            }
-
-            if (json_is_number(json_object_get(json_config, "high_level")))
-            {
-                config->high_level = json_number_value(json_object_get(json_config, "high_level"));
-            }
-            else
-            {
-                config->high_level = 0.9;
-            }
-
-            if (json_is_number(json_object_get(json_config, "energy_threshold")))
-            {
-                config->energy_threshold = json_number_value(json_object_get(json_config, "energy_threshold"));
-            }
-            else
-            {
-                config->energy_threshold = 0;
-            }
-
-            config->pulse_polarity = POLARITY_NEGATIVE;
-
-            if (json_is_string(json_object_get(json_config, "pulse_polarity")))
-            {
-                const char *pulse_polarity = json_string_value(json_object_get(json_config, "pulse_polarity"));
-
-                if (strstr(pulse_polarity, "Negative") ||
-                    strstr(pulse_polarity, "negative"))
-                {
-                    config->pulse_polarity = POLARITY_NEGATIVE;
-                }
-                else if (strstr(pulse_polarity, "Positive") ||
-                         strstr(pulse_polarity, "positive"))
-                {
-                    config->pulse_polarity = POLARITY_POSITIVE;
-                }
-            }
-
-            config->is_error = false;
-            config->previous_samples_number = 0;
-
-            config->curve_samples = NULL;
-            config->curve_compensated = NULL;
-            config->curve_offset = NULL;
-            config->curve_smoothed = NULL;
-            config->curve_CR = NULL;
-            config->curve_RC = NULL;
-
-            (*user_config) = (void *)config;
-        }
+        config->pulse_polarity = POLARITY_NEGATIVE;
     }
+
+    json_object_set_nocheck(json_config, "pulse_polarity", json_string((config->pulse_polarity == POLARITY_NEGATIVE) ? "negative" : "positive"));
+
+    config->is_error = false;
+    config->previous_samples_number = 0;
+
+    config->curve_samples = NULL;
+    config->curve_compensated = NULL;
+    config->curve_offset = NULL;
+    config->curve_smoothed = NULL;
+    config->curve_CR = NULL;
+    config->curve_RC = NULL;
+
+    (*user_config) = (void *)config;
 }
 
 /*! \brief Function that cleans the memory allocated by `energy_init()`
@@ -251,6 +194,7 @@ void energy_close(void *user_config)
     {
         free(config->curve_RC);
     }
+
     if (user_config)
     {
         free(user_config);
@@ -271,6 +215,8 @@ void energy_analysis(const uint16_t *samples,
 
     if (!user_config)
     {
+        printf("ERROR: libPSD energy_analysis(): User config not defined, not performing analysis\n");
+
         return;
     }
 
@@ -284,8 +230,6 @@ void energy_analysis(const uint16_t *samples,
 
     if ((*events_number) != 1)
     {
-        // printf("WARNING: libCRRC4 energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
-
         // Assuring that there is one event_PSD and discarding others
         is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
 
@@ -297,7 +241,7 @@ void energy_analysis(const uint16_t *samples,
 
     if (is_error || config->is_error)
     {
-        printf("ERROR: libCRRC4 energy_analysis(): Error status detected\n");
+        printf("ERROR: libCRRC4 energy_analysis(): Error status detected, not performing analysis\n");
 
         return;
     }
@@ -306,7 +250,7 @@ void energy_analysis(const uint16_t *samples,
 
     // Preventing segfaults by checking the boundaries
     const uint32_t baseline_start = 0;
-    const uint32_t baseline_end = clamp(config->baseline_samples, 0, samples_number);
+    const uint32_t baseline_end = clamp(config->baseline_samples, 1, samples_number);
 
     double baseline = 0;
     calculate_average(config->curve_samples, baseline_start, baseline_end, &baseline);
@@ -324,7 +268,7 @@ void energy_analysis(const uint16_t *samples,
                        config->decay_time,
                        &config->curve_compensated);
 
-    const uint32_t topline_start = clamp(samples_number - config->baseline_samples, 0, samples_number);
+    const uint32_t topline_start = clamp(samples_number - config->baseline_samples, 0, samples_number - 1);
     const uint32_t topline_end = samples_number;
 
     double topline = 0;
@@ -404,7 +348,7 @@ void energy_analysis(const uint16_t *samples,
         //(*events_buffer)[0].timestamp = waveform->timestamp;
         (*events_buffer)[0].qshort = clamp_to_uint16(CR_maximum);
         (*events_buffer)[0].qlong = clamp_to_uint16(energy);
-        (*events_buffer)[0].baseline = clamp_to_uintt16(risetime_samples);
+        (*events_buffer)[0].baseline = clamp_to_uint16(risetime_samples);
         (*events_buffer)[0].channel = waveform->channel;
         (*events_buffer)[0].group_counter = group_counter;
 
