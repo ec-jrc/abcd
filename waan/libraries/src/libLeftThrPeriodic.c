@@ -59,8 +59,8 @@
  */
 struct LeftThr_config
 {
-    int64_t analysis_start;
-    int64_t analysis_end;
+    int64_t LT_analysis_start;
+    int64_t LT_analysis_end;
     int64_t baseline_premax;
     uint32_t baseline_samples;
     enum pulse_polarity_t pulse_polarity;
@@ -69,6 +69,7 @@ struct LeftThr_config
     double absolute_threshold;
     uint32_t zero_crossing_samples;
     uint8_t fractional_bits;
+    int64_t time_offset;
     bool disable_shift;
     bool disable_LeftThr_gates;
 
@@ -97,121 +98,93 @@ void timestamp_init(json_t *json_config, void **user_config)
 {
     (*user_config) = NULL;
 
-    if (!json_is_object(json_config)) {
-        printf("ERROR: libLeftThr timestamp_init(): json_config is not a json_t object\n");
+    struct LeftThr_config *config = malloc(1 * sizeof(struct LeftThr_config));
 
-        (*user_config) = NULL;
-    } else {
-        struct LeftThr_config *config = malloc(1 * sizeof(struct LeftThr_config));
+    if (!config)
+    {
+        printf("ERROR: libLeftThr timestamp_init(): Unable to allocate config memory\n");
 
-        if (!config) {
-            printf("ERROR: libLeftThr timestamp_init(): Unable to allocate config memory\n");
-
-            (*user_config) = NULL;
-        }
-
-        config->baseline_premax = json_integer_value(json_object_get(json_config, "baseline_premax"));
-        config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
-        config->fraction = json_number_value(json_object_get(json_config, "fraction"));
-        
-        if (json_is_number(json_object_get(json_config, "absolute_threshold"))) {
-            config->absolute_threshold = json_number_value(json_object_get(json_config, "absolute_threshold"));
-        } else {
-            config->absolute_threshold = 0;
-        }
-
-        if (json_is_number(json_object_get(json_config, "smooth_samples"))) {
-            const unsigned int W = json_number_value(json_object_get(json_config, "smooth_samples"));
-            // Rounding it to the next greater odd number
-            config->smooth_samples = floor(W / 2) * 2 + 1;
-        } else {
-            config->smooth_samples = 1;
-        }
-
-        config->pulse_polarity = POLARITY_NEGATIVE;
-
-        if (json_is_string(json_object_get(json_config, "pulse_polarity"))) {
-            const char *pulse_polarity = json_string_value(json_object_get(json_config, "pulse_polarity"));
-
-            if (strstr(pulse_polarity, "Negative") ||
-                strstr(pulse_polarity, "negative"))
-            {
-                config->pulse_polarity = POLARITY_NEGATIVE;
-            }
-            else if (strstr(pulse_polarity, "Positive") ||
-                     strstr(pulse_polarity, "positive"))
-            {
-                config->pulse_polarity = POLARITY_POSITIVE;
-            }
-        }
-
-        if (json_is_number(json_object_get(json_config, "zero_crossing_samples"))) {
-            config->zero_crossing_samples = json_number_value(json_object_get(json_config, "zero_crossing_samples"));
-        } else {
-            config->zero_crossing_samples = 2;
-        }
-
-        if (json_is_number(json_object_get(json_config, "fractional_bits"))) {
-            config->fractional_bits = json_number_value(json_object_get(json_config, "fractional_bits"));
-        } else {
-            config->fractional_bits = 10;
-        }
-
-        if (json_is_number(json_object_get(json_config, "LT_analysis_start"))) {
-            config->analysis_start = json_integer_value(json_object_get(json_config, "LT_analysis_start"));
-        } else {
-            config->analysis_start = 0;
-        }
-        if (json_is_number(json_object_get(json_config, "LT_analysis_end"))) {
-            config->analysis_end = json_integer_value(json_object_get(json_config, "LT_analysis_end"));
-        } else {
-            config->analysis_end = UINT32_MAX;
-        }
-
-        if (json_is_boolean(json_object_get(json_config, "disable_shift"))) {
-            config->disable_shift = json_is_true(json_object_get(json_config, "disable_shift"));
-        } else {
-            config->disable_shift = false;
-        }
-
-        if (json_is_boolean(json_object_get(json_config, "disable_LeftThr_gates"))) {
-            config->disable_LeftThr_gates = json_is_true(json_object_get(json_config, "disable_LeftThr_gates"));
-        } else {
-            config->disable_LeftThr_gates = false;
-        }
-
-        config->is_error = false;
-        config->previous_samples_number = 0;
-
-        config->curve_samples = NULL;
-        config->curve_smoothed = NULL;
-        config->curve_offset = NULL;
-        config->curve_LeftThr = NULL;
-
-        (*user_config) = (void*)config;
+        return;
     }
+
+    read_config_number(json_config, LT_analysis_start, 0, config);
+    read_config_number(json_config, LT_analysis_end, UINT32_MAX, config);
+    read_config_number(json_config, baseline_premax, 100, config);
+    read_config_number(json_config, baseline_samples, 1, config);
+    read_config_number(json_config, absolute_threshold, 1, config);
+    read_config_number(json_config, fraction, 0.4, config);
+    read_config_number(json_config, smooth_samples, 1, config);
+    read_config_number(json_config, zero_crossing_samples, 2, config);
+    read_config_number(json_config, fractional_bits, 10, config);
+    read_config_number(json_config, time_offset, 0, config);
+    read_config_boolean(json_config, disable_shift, false, config);
+    read_config_boolean(json_config, disable_LeftThr_gates, false, config);
+
+    json_t *pulse_polarity = json_object_get(json_config, "pulse_polarity");
+
+    if (json_is_string(pulse_polarity))
+    {
+        const char *str_pulse_polarity = json_string_value(pulse_polarity);
+
+        if (strstr(str_pulse_polarity, "Negative") ||
+            strstr(str_pulse_polarity, "negative"))
+        {
+            config->pulse_polarity = POLARITY_NEGATIVE;
+        }
+        else if (strstr(str_pulse_polarity, "Positive") ||
+                 strstr(str_pulse_polarity, "positive"))
+        {
+            config->pulse_polarity = POLARITY_POSITIVE;
+        }
+    }
+    else
+    {
+        config->pulse_polarity = POLARITY_NEGATIVE;
+    }
+
+    json_object_set_nocheck(json_config, "pulse_polarity", json_string((config->pulse_polarity == POLARITY_NEGATIVE) ? "negative" : "positive"));
+
+    config->is_error = false;
+    config->previous_samples_number = 0;
+
+    config->curve_samples = NULL;
+    config->curve_smoothed = NULL;
+    config->curve_offset = NULL;
+    config->curve_LeftThr = NULL;
+
+    (*user_config) = (void *)config;
 }
 
 /*! \brief Function that cleans the memory allocated by timestamp_init()
  */
 void timestamp_close(void *user_config)
 {
-    struct LeftThr_config *config = (struct LeftThr_config*)user_config;
+    if (!user_config)
+    {
+        return;
+    }
 
-    if (config->curve_samples) {
+    struct LeftThr_config *config = (struct LeftThr_config *)user_config;
+
+    if (config->curve_samples)
+    {
         free(config->curve_samples);
     }
-    if (config->curve_smoothed) {
+    if (config->curve_smoothed)
+    {
         free(config->curve_smoothed);
     }
-    if (config->curve_offset) {
+    if (config->curve_offset)
+    {
         free(config->curve_offset);
     }
-    if (config->curve_LeftThr) {
+    if (config->curve_LeftThr)
+    {
         free(config->curve_LeftThr);
     }
 
-    if (user_config) {
+    if (user_config)
+    {
         free(user_config);
     }
 }
@@ -226,21 +199,33 @@ void timestamp_analysis(const uint16_t *samples,
                         size_t *events_number,
                         void *user_config)
 {
-    struct LeftThr_config *config = (struct LeftThr_config*)user_config;
+    if (!user_config)
+    {
+        printf("ERROR: libLeftThrPeriodic timestamp_analysis(): User config not defined, not performing analysis\n");
+
+        return;
+    }
+
+    struct LeftThr_config *config = (struct LeftThr_config *)user_config;
 
     reallocate_curves(samples_number, &config);
 
     bool is_error = false;
 
-    if ((*events_number) != 1) {
-        printf("WARNING: libLeftThr timestamp_analysis(): Reallocating buffers\n");
-
+    if ((*events_number) != 1)
+    {
         // Assuring that there is one event_PSD and discarding others
         is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
+
+        if (is_error)
+        {
+            printf("ERROR: libLeftThrPeriodic energy_analysis(): Unable to reallocate buffers\n");
+        }
     }
 
-    if (is_error || config->is_error) {
-        printf("ERROR: libLeftThr timestamp_analysis(): Error status detected\n");
+    if (config->is_error || is_error)
+    {
+        printf("ERROR: libLeftThrPeriodic timestamp_analysis(): Error status detected, not performing analysis\n");
 
         return;
     }
@@ -251,38 +236,45 @@ void timestamp_analysis(const uint16_t *samples,
 
     to_double(samples, samples_number, &config->curve_samples);
 
-    running_mean(config->curve_samples, samples_number, config->smooth_samples, &config->curve_smoothed);
+    const int64_t smooth_samples = clamp(config->smooth_samples, 1, samples_number);
 
-    const uint32_t analysis_start = (0 < config->analysis_start && config->analysis_start < samples_number) ? config->analysis_start : 0;
-    const uint32_t analysis_end = (config->analysis_end < samples_number) ? config->analysis_end : samples_number;
+    running_mean(config->curve_samples, samples_number, smooth_samples, &config->curve_smoothed);
 
-    const uint32_t analysis_width = analysis_end - analysis_start;
+    const uint32_t LT_analysis_start = clamp(config->LT_analysis_start, 0, samples_number);
+    const uint32_t LT_analysis_end = clamp(config->LT_analysis_end, LT_analysis_start, samples_number);
+
+    const uint32_t analysis_width = LT_analysis_end - LT_analysis_start;
 
     double smoothed_min = 0;
     double smoothed_max = 0;
     size_t smoothed_index_min = 0;
     size_t smoothed_index_max = 0;
 
-    find_extrema(config->curve_smoothed, analysis_start, analysis_end,
+    find_extrema(config->curve_smoothed, LT_analysis_start, LT_analysis_end,
                  &smoothed_index_min, &smoothed_index_max,
                  &smoothed_min, &smoothed_max);
 
     // Switch the extrema position for convenience
-    if (config->pulse_polarity == POLARITY_NEGATIVE) {
-         const size_t temp = smoothed_index_max;
-         smoothed_index_max = smoothed_index_min;
-         smoothed_index_min = temp;
+    if (config->pulse_polarity == POLARITY_NEGATIVE)
+    {
+        const size_t temp = smoothed_index_max;
+        smoothed_index_max = smoothed_index_min;
+        smoothed_index_min = temp;
     }
 
-    uint32_t baseline_start = ((smoothed_index_max - config->baseline_premax) > 0) ? (smoothed_index_max - config->baseline_premax) : 0;
-    uint32_t baseline_end = ((baseline_start + config->baseline_samples) < samples_number) ? (baseline_start + config->baseline_samples) : samples_number;
+    const uint32_t baseline_start = clamp(smoothed_index_max - config->baseline_premax, 0, samples_number);
+    const uint32_t baseline_end = clamp(baseline_start + config->baseline_samples, 0, samples_number);
 
     double baseline = 0;
+
     calculate_average(config->curve_smoothed, baseline_start, baseline_end, &baseline);
 
-    if (config->pulse_polarity == POLARITY_POSITIVE) {
+    if (config->pulse_polarity == POLARITY_POSITIVE)
+    {
         add_and_multiply_constant(config->curve_smoothed, samples_number, -1 * baseline, 1.0, &config->curve_offset);
-    } else {
+    }
+    else
+    {
         add_and_multiply_constant(config->curve_smoothed, samples_number, -1 * baseline, -1.0, &config->curve_offset);
     }
 
@@ -291,18 +283,21 @@ void timestamp_analysis(const uint16_t *samples,
     size_t offset_index_min = 0;
     size_t offset_index_max = 0;
 
-    const uint32_t search_start = baseline_end;
-    const uint32_t search_end = ((baseline_end + analysis_width) < samples_number) ? (baseline_end + analysis_width) : samples_number;
+    const uint32_t search_start = clamp(baseline_end, 0, samples_number);
+    const uint32_t search_end = clamp(baseline_end + analysis_width, 0, samples_number);
 
     find_extrema(config->curve_offset, search_start, search_end,
                  &offset_index_min, &offset_index_max,
                  &offset_min, &offset_max);
 
     // Checking if there is a signal in the waveform
-    if (offset_max < config->absolute_threshold) {
+    if (offset_max < config->absolute_threshold)
+    {
         // There is no signal in the waveform so we clean up the trigger positions
         reallocate_buffers(trigger_positions, events_buffer, events_number, 0);
-    } else {
+    }
+    else
+    {
         // There is probably a signal and thus we can apply the relative threshold
         const double threshold_value = config->fraction * offset_max;
 
@@ -313,23 +308,25 @@ void timestamp_analysis(const uint16_t *samples,
 
         uint32_t zero_crossing_index = 0;
 
-        //printf("Starting search\n");
-        
+        // printf("Starting search\n");
+
         // Look for the threshold crossing starting from the maximum and going
         // toward left.
         // We use an in64_t for the index because we are going toward negative
         // values and if we reach zero then an uint32_t would fold over and it
         // would always be positive.
-        for (int64_t index = offset_index_max; index >= 0; index--) {
-            //printf("index: %" PRId64 "\n", index);
+        for (int64_t index = offset_index_max; index >= 0; index--)
+        {
+            // printf("index: %" PRId64 "\n", index);
 
-            if (config->curve_LeftThr[index] < 0) {
+            if (config->curve_LeftThr[index] < 0)
+            {
                 zero_crossing_index = index;
-                //printf("Zero crossing index: %" PRId64 "\n", index);
+                // printf("Zero crossing index: %" PRId64 "\n", index);
                 break;
             }
         }
-        //printf("Zero crossing index at the end: %" PRIu32 "\n", zero_crossing_index);
+        // printf("Zero crossing index at the end: %" PRIu32 "\n", zero_crossing_index);
 
         double fine_zero_crossing = 0;
 
@@ -339,7 +336,7 @@ void timestamp_analysis(const uint16_t *samples,
                                 config->zero_crossing_samples,
                                 &fine_zero_crossing);
 
-        //printf("Fine zero crossing: %f\n", fine_zero_crossing);
+        // printf("Fine zero crossing: %f\n", fine_zero_crossing);
 
         // Converting to fixed-point number
         const uint64_t fine_timestamp = floor(fine_zero_crossing * (1 << config->fractional_bits));
@@ -349,11 +346,16 @@ void timestamp_analysis(const uint16_t *samples,
         // Bitmask to delete the last fractional_bits in the uint64_t numbers
         const uint64_t bitmask = UINT64_MAX - ((1 << config->fractional_bits) - 1);
 
-        if (config->disable_shift) {
+        if (config->disable_shift)
+        {
             new_timestamp += (waveform->timestamp & bitmask);
-        } else {
+        }
+        else
+        {
             new_timestamp += ((waveform->timestamp << config->fractional_bits) & bitmask);
         }
+
+        new_timestamp += config->time_offset;
 
         // Output
 
@@ -366,8 +368,9 @@ void timestamp_analysis(const uint16_t *samples,
 
         (*this_position) = zero_crossing_index;
 
-        if (!config->disable_LeftThr_gates) {
-            //printf("Generating additionals\n");
+        if (!config->disable_LeftThr_gates)
+        {
+            // printf("Generating additionals\n");
 
             waveform_additional_set_number(waveform, 5);
 
@@ -390,33 +393,46 @@ void timestamp_analysis(const uint16_t *samples,
             const uint8_t ZERO = UINT8_MAX / 2;
             const uint8_t MAX = UINT8_MAX / 2;
 
-            for (uint32_t i = 0; i < samples_number; i++) {
+            for (uint32_t i = 0; i < samples_number; i++)
+            {
                 additional_LeftThr_signal[i] = (config->curve_LeftThr[i] / LeftThr_abs_max) * MAX + ZERO;
 
-                if (analysis_start <= i && i < analysis_end) {
+                if (LT_analysis_start <= i && i < LT_analysis_end)
+                {
                     additional_analysis[i] = ZERO + MAX;
-                } else {
+                }
+                else
+                {
                     additional_analysis[i] = ZERO;
                 }
-                if (search_start <= i && i < search_end) {
+                if (search_start <= i && i < search_end)
+                {
                     additional_search[i] = ZERO + MAX * 0.7;
-                } else {
+                }
+                else
+                {
                     additional_search[i] = ZERO;
                 }
-                if (baseline_start <= i && i < baseline_end) {
+                if (baseline_start <= i && i < baseline_end)
+                {
                     additional_baseline[i] = ZERO + MAX * 0.2;
-                } else {
+                }
+                else
+                {
                     additional_baseline[i] = ZERO;
                 }
 
-                if (i == zero_crossing_index) {
+                if (i == zero_crossing_index)
+                {
                     additional_trigger[i] = ZERO + MAX;
-                } else {
+                }
+                else
+                {
                     additional_trigger[i] = ZERO;
                 }
             }
 
-            //printf("Done generating additionals\n");
+            // printf("Done generating additionals\n");
         }
     }
 }
@@ -425,7 +441,8 @@ void reallocate_curves(uint32_t samples_number, struct LeftThr_config **user_con
 {
     struct LeftThr_config *config = (*user_config);
 
-    if (samples_number != config->previous_samples_number) {
+    if (samples_number != config->previous_samples_number)
+    {
         config->previous_samples_number = samples_number;
 
         config->is_error = false;
@@ -437,34 +454,46 @@ void reallocate_curves(uint32_t samples_number, struct LeftThr_config **user_con
         double *new_curve_offset = realloc(config->curve_offset,
                                            samples_number * sizeof(double));
         double *new_curve_LeftThr = realloc(config->curve_LeftThr,
-                                       samples_number * sizeof(double));
+                                            samples_number * sizeof(double));
 
-        if (!new_curve_samples) {
+        if (!new_curve_samples)
+        {
             printf("ERROR: libLeftThr reallocate_curves(): Unable to allocate curve_samples memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_samples = new_curve_samples;
         }
-        if (!new_curve_smoothed) {
+        if (!new_curve_smoothed)
+        {
             printf("ERROR: libLeftThr reallocate_curves(): Unable to allocate curve_smoothed memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_smoothed = new_curve_smoothed;
         }
-        if (!new_curve_offset) {
+        if (!new_curve_offset)
+        {
             printf("ERROR: libLeftThr reallocate_curves(): Unable to allocate curve_offset memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_offset = new_curve_offset;
         }
-        if (!new_curve_LeftThr) {
+        if (!new_curve_LeftThr)
+        {
             printf("ERROR: libLeftThr reallocate_curves(): Unable to allocate curve_LeftThr memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_LeftThr = new_curve_LeftThr;
         }
     }
