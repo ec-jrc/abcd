@@ -87,100 +87,83 @@ void reallocate_curves(uint32_t samples_number, struct TPZ_config **user_config)
  * This function parses a JSON object determining the configuration for the
  * `energy_analysis()` function. The configuration is returned as an
  * allocated `struct TPZ_config`.
- *
  */
 void energy_init(json_t *json_config, void **user_config)
 {
     (*user_config) = NULL;
 
-    if (!json_is_object(json_config))
-    {
-        printf("ERROR: libTPZ energy_init(): json_config is not a json_t object\n");
+    struct TPZ_config *config = malloc(1 * sizeof(struct TPZ_config));
 
-        (*user_config) = NULL;
+    if (!config)
+    {
+        printf("ERROR: libTPZ energy_init(): Unable to allocate config memory\n");
+
+        return;
+    }
+
+    read_config_number(json_config, decay_time, UINT32_MAX, config);
+    read_config_number(json_config, baseline_samples, 1, config);
+    read_config_number(json_config, trapezoid_risetime, 100, config);
+    read_config_number(json_config, trapezoid_flattop, 100, config);
+    read_config_number(json_config, peaking_time, 100, config);
+    read_config_number(json_config, height_scaling, 1.0, config);
+    read_config_number(json_config, energy_threshold, 0, config);
+
+    json_t *pulse_polarity = json_object_get(json_config, "pulse_polarity");
+
+    if (json_is_string(pulse_polarity))
+    {
+        const char *str_pulse_polarity = json_string_value(pulse_polarity);
+
+        if (strstr(str_pulse_polarity, "Negative") ||
+            strstr(str_pulse_polarity, "negative"))
+        {
+            config->pulse_polarity = POLARITY_NEGATIVE;
+        }
+        else if (strstr(str_pulse_polarity, "Positive") ||
+                 strstr(str_pulse_polarity, "positive"))
+        {
+            config->pulse_polarity = POLARITY_POSITIVE;
+        }
     }
     else
     {
-        struct TPZ_config *config = malloc(1 * sizeof(struct TPZ_config));
+        config->pulse_polarity = POLARITY_NEGATIVE;
+    }
 
-        if (!config)
+    json_object_set_nocheck(json_config, "pulse_polarity", json_string((config->pulse_polarity == POLARITY_NEGATIVE) ? "negative" : "positive"));
+
+    json_t *peak_position = json_object_get(json_config, "peak_position");
+
+    if (json_is_string(peak_position))
+    {
+        const char *str_peak_position = json_string_value(peak_position);
+
+        if (strstr(str_peak_position, "maximum"))
         {
-            printf("ERROR: libTPZ energy_init(): Unable to allocate config memory\n");
-
-            (*user_config) = NULL;
-        }
-        else
-        {
-
-            config->decay_time = json_integer_value(json_object_get(json_config, "decay_time"));
-            config->trapezoid_risetime = json_integer_value(json_object_get(json_config, "trapezoid_risetime"));
-            config->trapezoid_flattop = json_integer_value(json_object_get(json_config, "trapezoid_flattop"));
-            config->peaking_time = json_integer_value(json_object_get(json_config, "peaking_time"));
-            config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
-
-            if (json_is_number(json_object_get(json_config, "height_scaling")))
-            {
-                config->height_scaling = json_number_value(json_object_get(json_config, "height_scaling"));
-            }
-            else
-            {
-                config->height_scaling = 1;
-            }
-
-            if (json_is_number(json_object_get(json_config, "energy_threshold")))
-            {
-                config->energy_threshold = json_number_value(json_object_get(json_config, "energy_threshold"));
-            }
-            else
-            {
-                config->energy_threshold = 0;
-            }
-
-            config->pulse_polarity = POLARITY_NEGATIVE;
-
-            if (json_is_string(json_object_get(json_config, "pulse_polarity")))
-            {
-                const char *pulse_polarity = json_string_value(json_object_get(json_config, "pulse_polarity"));
-
-                if (strstr(pulse_polarity, "Negative") ||
-                    strstr(pulse_polarity, "negative"))
-                {
-                    config->pulse_polarity = POLARITY_NEGATIVE;
-                }
-                else if (strstr(pulse_polarity, "Positive") ||
-                         strstr(pulse_polarity, "positive"))
-                {
-                    config->pulse_polarity = POLARITY_POSITIVE;
-                }
-            }
-
             config->peak_position = PEAK_POSITION_MAXIMUM;
-
-            if (json_is_string(json_object_get(json_config, "peak_position")))
-            {
-                const char *pulse_polarity = json_string_value(json_object_get(json_config, "peak_position"));
-
-                if (strstr(pulse_polarity, "maximum"))
-                {
-                    config->peak_position = PEAK_POSITION_MAXIMUM;
-                }
-                else if (strstr(pulse_polarity, "peaking_time"))
-                {
-                    config->peak_position = PEAK_POSITION_PEAKING_TIME;
-                }
-            }
-
-            config->is_error = false;
-            config->previous_samples_number = 0;
-
-            config->curve_samples = NULL;
-            config->curve_compensated = NULL;
-            config->curve_offset = NULL;
-            config->curve_trapezoid = NULL;
-
-            (*user_config) = (void *)config;
+        }
+        else if (strstr(str_peak_position, "peaking_time"))
+        {
+            config->peak_position = PEAK_POSITION_PEAKING_TIME;
         }
     }
+    else
+    {
+        config->peak_position = PEAK_POSITION_MAXIMUM;
+    }
+
+    json_object_set_nocheck(json_config, "peak_position", json_string((config->peak_position == PEAK_POSITION_MAXIMUM) ? "maximum" : "peaking_time"));
+
+    config->is_error = false;
+    config->previous_samples_number = 0;
+
+    config->curve_samples = NULL;
+    config->curve_compensated = NULL;
+    config->curve_offset = NULL;
+    config->curve_trapezoid = NULL;
+
+    (*user_config) = (void *)config;
 }
 
 /*! \brief Function that cleans the memory allocated by `energy_init()`
@@ -228,6 +211,8 @@ void energy_analysis(const uint16_t *samples,
 {
     if (!user_config)
     {
+        printf("ERROR: libTPZ energy_analysis(): User config not defined, not performing analysis\n");
+
         return;
     }
 
@@ -239,8 +224,6 @@ void energy_analysis(const uint16_t *samples,
 
     if ((*events_number) != 1)
     {
-        // printf("WARNING: libTPZ energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
-
         // Assuring that there is one event_PSD and discarding others
         is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
 
@@ -260,7 +243,7 @@ void energy_analysis(const uint16_t *samples,
     to_double(samples, samples_number, &config->curve_samples);
 
     // Preventing segfaults by checking the boundaries
-    const int64_t baseline_start = 0;
+    const uint32_t baseline_start = 0;
     const uint32_t baseline_end = clamp(baseline_start + config->baseline_samples, 1, samples_number);
 
     double baseline = 0;
