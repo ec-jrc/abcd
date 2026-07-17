@@ -72,9 +72,6 @@
 #include "analysis_functions.h"
 #include "DSP_functions.h"
 
-#define min(x, y) ((x) < (y)) ? (x) : (y)
-#define max(x, y) ((x) > (y)) ? (x) : (y)
-
 /*! \brief Sctructure that holds the configuration for the `energy_analysis()` function.
  */
 struct PSD_config
@@ -128,7 +125,7 @@ void energy_init(json_t *json_config, void **user_config)
 
     if (!config)
     {
-        printf("ERROR: libPSD energy_init(): Unable to allocate config memory\n");
+        printf("ERROR: libPSD_averaging energy_init(): Unable to allocate config memory\n");
 
         return;
     }
@@ -236,7 +233,7 @@ void energy_analysis(const uint16_t *samples,
 {
     if (!user_config)
     {
-        printf("ERROR: libPSD energy_analysis(): User config not defined, not performing analysis\n");
+        printf("ERROR: libPSD_averaging energy_analysis(): User config not defined, not performing analysis\n");
 
         return;
     }
@@ -254,13 +251,13 @@ void energy_analysis(const uint16_t *samples,
 
         if (is_error)
         {
-            printf("ERROR: libPSD energy_analysis(): Unable to reallocate buffers\n");
+            printf("ERROR: libPSD_averaging energy_analysis(): Unable to reallocate buffers\n");
         }
     }
 
     if (config->is_error || is_error)
     {
-        printf("ERROR: libPSD energy_analysis(): Error status detected, not performing analysis\n");
+        printf("ERROR: libPSD_averaging energy_analysis(): Error status detected, not performing analysis\n");
 
         return;
     }
@@ -441,7 +438,7 @@ void reallocate_curves(uint32_t samples_number, struct PSD_config **user_config)
 
         if (!new_samples_cumulative)
         {
-            printf("ERROR: libPSD reallocate_curves(): Unable to allocate samples_cumulative memory\n");
+            printf("ERROR: libPSD_averaging reallocate_curves(): Unable to allocate samples_cumulative memory\n");
 
             config->is_error = true;
         }
@@ -451,7 +448,7 @@ void reallocate_curves(uint32_t samples_number, struct PSD_config **user_config)
         }
         if (!new_curve_integral)
         {
-            printf("ERROR: libPSD reallocate_curves(): Unable to allocate curve_integral memory\n");
+            printf("ERROR: libPSD_averaging reallocate_curves(): Unable to allocate curve_integral memory\n");
 
             config->is_error = true;
         }
@@ -461,7 +458,7 @@ void reallocate_curves(uint32_t samples_number, struct PSD_config **user_config)
         }
         if (!new_curve_cumulative)
         {
-            printf("ERROR: libPSD reallocate_curves(): Unable to allocate curve_cumulative memory\n");
+            printf("ERROR: libPSD_averaging reallocate_curves(): Unable to allocate curve_cumulative memory\n");
 
             config->is_error = true;
         }
