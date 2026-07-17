@@ -102,7 +102,7 @@ void energy_init(json_t *json_config, void **user_config)
 {
     (*user_config) = NULL;
 
-    struct CRRC4_config *config = malloc(1 * sizeof(struct CRRC4_config));
+    struct CRRC4_config *config = calloc(1, sizeof(struct CRRC4_config));
 
     if (!config)
     {
@@ -122,29 +122,9 @@ void energy_init(json_t *json_config, void **user_config)
     read_config_number(json_config, high_level, 0.9, config);
     read_config_number(json_config, energy_threshold, 0, config);
 
-    json_t *pulse_polarity = json_object_get(json_config, "pulse_polarity");
-
-    if (json_is_string(pulse_polarity))
-    {
-        const char *str_pulse_polarity = json_string_value(pulse_polarity);
-
-        if (strstr(str_pulse_polarity, "Negative") ||
-            strstr(str_pulse_polarity, "negative"))
-        {
-            config->pulse_polarity = POLARITY_NEGATIVE;
-        }
-        else if (strstr(str_pulse_polarity, "Positive") ||
-                 strstr(str_pulse_polarity, "positive"))
-        {
-            config->pulse_polarity = POLARITY_POSITIVE;
-        }
-    }
-    else
-    {
-        config->pulse_polarity = POLARITY_NEGATIVE;
-    }
-
-    json_object_set_nocheck(json_config, "pulse_polarity", json_string((config->pulse_polarity == POLARITY_NEGATIVE) ? "negative" : "positive"));
+    char *pulse_polarities_strs[] = {"negative", "positive"};
+    enum pulse_polarity_t pulse_polarities_vals[] = {POLARITY_NEGATIVE, POLARITY_POSITIVE};
+    read_config_options(json_config, pulse_polarity, pulse_polarities_strs, pulse_polarities_vals, config);
 
     config->is_error = false;
     config->previous_samples_number = 0;
@@ -211,8 +191,6 @@ void energy_analysis(const uint16_t *samples,
                      size_t *events_number,
                      void *user_config)
 {
-    UNUSED(trigger_positions);
-
     if (!user_config)
     {
         printf("ERROR: libPSD energy_analysis(): User config not defined, not performing analysis\n");
