@@ -176,29 +176,9 @@ void energy_init(json_t *json_config, void **user_config)
     read_config_number(json_config, PSD_min, -0.1, config);
     read_config_number(json_config, PSD_max, 1.1, config);
 
-    json_t *pulse_polarity = json_object_get(json_config, "pulse_polarity");
-
-    if (json_is_string(pulse_polarity))
-    {
-        const char *str_pulse_polarity = json_string_value(pulse_polarity);
-
-        if (strstr(str_pulse_polarity, "Negative") ||
-            strstr(str_pulse_polarity, "negative"))
-        {
-            config->pulse_polarity = POLARITY_NEGATIVE;
-        }
-        else if (strstr(str_pulse_polarity, "Positive") ||
-                 strstr(str_pulse_polarity, "positive"))
-        {
-            config->pulse_polarity = POLARITY_POSITIVE;
-        }
-    }
-    else
-    {
-        config->pulse_polarity = POLARITY_NEGATIVE;
-    }
-
-    json_object_set_nocheck(json_config, "pulse_polarity", json_string((config->pulse_polarity == POLARITY_NEGATIVE) ? "negative" : "positive"));
+    char *pulse_polarities_strs[] = {"negative", "positive"};
+    enum pulse_polarity_t pulse_polarities_vals[] = {POLARITY_NEGATIVE, POLARITY_POSITIVE};
+    read_config_options(json_config, pulse_polarity, pulse_polarities_strs, pulse_polarities_vals, config);
 
     read_config_number(json_config, accumulation_number, -1, config);
     read_config_boolean(json_config, discard_not_averaged, false, config);
