@@ -48,6 +48,10 @@
 #include <jansson.h>
 // For round()
 #include <math.h>
+// For tolower()
+#include <ctype.h>
+// For strstr()
+#include <string.h>
 
 #include "events.h"
 
@@ -335,11 +339,16 @@ inline bool reallocate_buffers(uint32_t **trigger_positions,
  */
 inline extern int64_t clamp(int64_t index, int64_t start_index, int64_t end_index)
 {
-    if (index < start_index) {
+    if (index < start_index)
+    {
         return start_index;
-    } else if (index > end_index) {
+    }
+    else if (index > end_index)
+    {
         return end_index;
-    } else {
+    }
+    else
+    {
         return index;
     }
 }
@@ -354,11 +363,16 @@ inline extern uint16_t clamp_to_uint16(double value)
 {
     int64_t rounded = (int64_t)round(value);
 
-    if (rounded < 0) {
+    if (rounded < 0)
+    {
         return 0;
-    } else if (rounded > UINT16_MAX) {
+    }
+    else if (rounded > UINT16_MAX)
+    {
         return UINT16_MAX;
-    } else {
+    }
+    else
+    {
         return rounded;
     }
 }
@@ -401,6 +415,53 @@ inline extern uint16_t clamp_to_uint16(double value)
         }                                                                                        \
     }
 
+/*! \brief Macro that reads a string value from the json_t config objects, compares it with a given set of options,
+ *  and stores the value of the corresponding option in the user config.
+ *  The default option is the first one of the array.
+ *
+ * \param[in] json_config the json_t* pointer to the configuration
+ * \param[in] name the name of the parameter, should match the member in the user configuration
+ * \param[in] string_array a statically defined array with the set of strings to compare the string to, it should have at least one element
+ * \param[in] values_array a statically defined array with the set of values corresponding to the strings
+ * \param[in] config the pointer to the user configuration
+ * \param[in] overwrite define whether the parameter should be overwritten in the json_config
+ */
+#define read_config_options_overwrite(json_config, name, string_array, values_array, config, overwrite)     \
+    {                                                                                                       \
+        const size_t number_of_options = sizeof(string_array) / sizeof(string_array[0]);                    \
+                                                                                                            \
+        size_t selected_index_options = 0;                                                                  \
+        config->name = values_array[0];                                                                     \
+                                                                                                            \
+        json_t *json_##name = json_object_get(json_config, #name);                                          \
+                                                                                                            \
+        if (json_is_string(json_##name))                                                                    \
+        {                                                                                                   \
+            const char *str_##name = json_string_value(json_##name);                                        \
+            const size_t length = strlen(str_##name);                                                       \
+                                                                                                            \
+            char *str_lowercase_##name = calloc(length, sizeof(char));                                      \
+                                                                                                            \
+            if (str_lowercase_##name)                                                                       \
+            {                                                                                               \
+                for (size_t index_options = 0; index_options < number_of_options; index_options += 1)       \
+                {                                                                                           \
+                    if (strstr(str_##name, string_array[index_options]))                                    \
+                    {                                                                                       \
+                        selected_index_options = index_options;                                             \
+                        config->name = values_array[index_options];                                         \
+                    }                                                                                       \
+                }                                                                                           \
+                                                                                                            \
+                free(str_lowercase_##name);                                                                 \
+            }                                                                                               \
+        }                                                                                                   \
+        if (overwrite)                                                                                      \
+        {                                                                                                   \
+            json_object_set_nocheck(json_config, #name, json_string(string_array[selected_index_options])); \
+        }                                                                                                   \
+    }
+
 /*! \brief Macro that reads a read value from the json_t config objects and stores it in the user config.
  *  After reading the value it overwrites it so that it appears in the configuration for the user's convenience.
  *
@@ -410,7 +471,7 @@ inline extern uint16_t clamp_to_uint16(double value)
  * \param[in] config the pointer to the user configuration
  */
 #define read_config_number(json_config, name, default_value, config) \
-    read_config_number_overwrite(json_config, name, default_value, config, false)
+    read_config_number_overwrite(json_config, name, default_value, config, true)
 
 /*! \brief Macro that reads boolean value from the json_t config objects and stores it in the user config.
  *  After reading the value it overwrites it so that it appears in the configuration for the user's convenience.
@@ -421,6 +482,20 @@ inline extern uint16_t clamp_to_uint16(double value)
  * \param[in] config the pointer to the user configuration
  */
 #define read_config_boolean(json_config, name, default_value, config) \
-    read_config_boolean_overwrite(json_config, name, default_value, config, false)
+    read_config_boolean_overwrite(json_config, name, default_value, config, true)
+
+/*! \brief Macro that reads a string value from the json_t config objects, compares it with a given set of options,
+ *  and stores the value of the corresponding option in the user config.
+ *  The default option is the first one of the array.
+ *  After reading the value it overwrites it so that it appears in the configuration for the user's convenience.
+ *
+ * \param[in] json_config the json_t* pointer to the configuration
+ * \param[in] name the name of the parameter, should match the member in the user configuration
+ * \param[in] string_array the set of strings to compare the string to, it should have at least one element
+ * \param[in] values_array the set of values corresponding to the strings
+ * \param[in] config the pointer to the user configuration
+ */
+#define read_config_options(json_config, name, string_array, values_array, config) \
+    read_config_options_overwrite(json_config, name, string_array, values_array, config, false)
 
 #endif
