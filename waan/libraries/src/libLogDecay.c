@@ -119,130 +119,94 @@ void energy_init(json_t *json_config, void **user_config)
 {
     (*user_config) = NULL;
 
-    if (!json_is_object(json_config))
+    struct LogDecay_config *config = calloc(1, sizeof(struct LogDecay_config));
+
+    if (!config)
     {
-        printf("ERROR: libLogDecay energy_init(): json_config is not a json_t object\n");
+        printf("ERROR: libLogDecay energy_init(): Unable to allocate config memory\n");
 
-        (*user_config) = NULL;
+        return;
     }
-    else
+
+    read_config_number_overwrite(json_config, verbosity, 0, config, false);
+    read_config_number(json_config, integrals_scaling, 1.0, config);
+    read_config_number(json_config, tau_scaling, 1.0, config);
+    read_config_number(json_config, max_channels, 8, config);
+    read_config_number(json_config, cutoff_value, 1.0e-1, config);
+    read_config_number(json_config, baseline_samples, 1, config);
+    read_config_number(json_config, pregate, 1, config);
+    read_config_number(json_config, long_gate, 1, config);
+    read_config_number(json_config, energy_threshold, 0, config);
+
+    json_t *prefits = json_object_get(json_config, "prefits");
+    json_t *fit_gates = json_object_get(json_config, "fit_gates");
+    json_t *pretails = json_object_get(json_config, "pretails");
+    json_t *tail_samples = json_object_get(json_config, "tail_samples");
+    json_t *smoothings = json_object_get(json_config, "smoothings");
+
+    config->number_of_fits = MIN(MIN(MIN(json_array_size(prefits), json_array_size(fit_gates)), MIN(json_array_size(tail_samples), json_array_size(smoothings))), json_array_size(pretails));
+
+    config->prefits = (int64_t *)calloc(config->number_of_fits, sizeof(int64_t));
+    config->fit_gates = (int64_t *)calloc(config->number_of_fits, sizeof(int64_t));
+    config->pretails = (int64_t *)calloc(config->number_of_fits, sizeof(int64_t));
+    config->tail_samples = (int64_t *)calloc(config->number_of_fits, sizeof(int64_t));
+    config->smoothings = (unsigned int *)calloc(config->number_of_fits, sizeof(unsigned int));
+
+    config->constants = (double *)calloc(config->number_of_fits, sizeof(double));
+    config->slopes = (double *)calloc(config->number_of_fits, sizeof(double));
+
+    if (!config->prefits)
     {
-        struct LogDecay_config *config = calloc(1, sizeof(struct LogDecay_config));
-
-        if (!config)
-        {
-            printf("ERROR: libLogDecay energy_init(): Unable to allocate config memory\n");
-
-            (*user_config) = NULL;
-        }
-        else
-        {
-            json_t *verbosity = json_object_get(json_config, "verbosity");
-            config->verbosity = (json_is_number(verbosity)) ? json_number_value(verbosity) : 0;
-
-            json_t *integrals_scaling = json_object_get(json_config, "integrals_scaling");
-            config->integrals_scaling = (json_is_number(integrals_scaling)) ? json_number_value(integrals_scaling) : 1.0;
-
-            json_t *tau_scaling = json_object_get(json_config, "tau_scaling");
-            config->tau_scaling = (json_is_number(tau_scaling)) ? json_number_value(tau_scaling) : 1.0;
-
-            json_t *max_channels = json_object_get(json_config, "max_channels");
-            config->max_channels = (json_is_number(max_channels)) ? json_number_value(max_channels) : 8;
-
-            json_t *cutoff_value = json_object_get(json_config, "cutoff_value");
-            config->cutoff_value = (json_is_number(cutoff_value)) ? json_number_value(cutoff_value) : 1e-1;
-
-            config->baseline_samples = json_number_value(json_object_get(json_config, "baseline_samples"));
-            config->pregate = json_number_value(json_object_get(json_config, "pregate"));
-            config->long_gate = json_number_value(json_object_get(json_config, "long_gate"));
-
-            json_t *prefits = json_object_get(json_config, "prefits");
-            json_t *fit_gates = json_object_get(json_config, "fit_gates");
-            json_t *pretails = json_object_get(json_config, "pretails");
-            json_t *tail_samples = json_object_get(json_config, "tail_samples");
-            json_t *smoothings = json_object_get(json_config, "smoothings");
-
-            config->number_of_fits = MIN(MIN(MIN(json_array_size(prefits), json_array_size(fit_gates)), MIN(json_array_size(tail_samples), json_array_size(smoothings))), json_array_size(pretails));
-
-            config->prefits = (int64_t *)calloc(config->number_of_fits, sizeof(int64_t));
-            config->fit_gates = (int64_t *)calloc(config->number_of_fits, sizeof(int64_t));
-            config->pretails = (int64_t *)calloc(config->number_of_fits, sizeof(int64_t));
-            config->tail_samples = (int64_t *)calloc(config->number_of_fits, sizeof(int64_t));
-            config->smoothings = (unsigned int *)calloc(config->number_of_fits, sizeof(unsigned int));
-
-            config->constants = (double *)calloc(config->number_of_fits, sizeof(double));
-            config->slopes = (double *)calloc(config->number_of_fits, sizeof(double));
-
-            if (!config->prefits)
-            {
-                printf("ERROR: libLogDecay energy_init(): Unable to allocate prefits memory\n");
-            }
-            if (!config->fit_gates)
-            {
-                printf("ERROR: libLogDecay energy_init(): Unable to allocate fit_gates memory\n");
-            }
-            if (!config->pretails)
-            {
-                printf("ERROR: libLogDecay energy_init(): Unable to allocate pretails memory\n");
-            }
-            if (!config->tail_samples)
-            {
-                printf("ERROR: libLogDecay energy_init(): Unable to allocate tail_samples memory\n");
-            }
-            if (!config->smoothings)
-            {
-                printf("ERROR: libLogDecay energy_init(): Unable to allocate smoothings memory\n");
-            }
-            if (!config->constants)
-            {
-                printf("ERROR: libLogDecay energy_init(): Unable to allocate constants memory\n");
-            }
-            if (!config->slopes)
-            {
-                printf("ERROR: libLogDecay energy_init(): Unable to allocate slopes memory\n");
-            }
-
-            for (size_t fit_index = 0; fit_index < config->number_of_fits; fit_index += 1)
-            {
-                config->prefits[fit_index] = json_number_value(json_array_get(prefits, fit_index));
-                config->fit_gates[fit_index] = json_number_value(json_array_get(fit_gates, fit_index));
-                config->pretails[fit_index] = json_number_value(json_array_get(pretails, fit_index));
-                config->tail_samples[fit_index] = json_number_value(json_array_get(tail_samples, fit_index));
-                config->smoothings[fit_index] = json_number_value(json_array_get(smoothings, fit_index));
-            }
-
-            config->pulse_polarity = POLARITY_NEGATIVE;
-
-            if (json_is_string(json_object_get(json_config, "pulse_polarity")))
-            {
-                const char *pulse_polarity = json_string_value(json_object_get(json_config, "pulse_polarity"));
-
-                if (strstr(pulse_polarity, "Negative") ||
-                    strstr(pulse_polarity, "negative"))
-                {
-                    config->pulse_polarity = POLARITY_NEGATIVE;
-                }
-                else if (strstr(pulse_polarity, "Positive") ||
-                         strstr(pulse_polarity, "positive"))
-                {
-                    config->pulse_polarity = POLARITY_POSITIVE;
-                }
-            }
-
-            json_t *energy_threshold = json_object_get(json_config, "energy_threshold");
-            config->energy_threshold = (json_is_number(energy_threshold)) ? json_number_value(energy_threshold) : 0;
-
-            config->previous_samples_number = 0;
-
-            config->curve_samples = NULL;
-            config->curve_offset = NULL;
-            config->curve_smooth = NULL;
-            config->curve_to_fit = NULL;
-            config->curve_log = NULL;
-
-            (*user_config) = (void *)config;
-        }
+        printf("ERROR: libLogDecay energy_init(): Unable to allocate prefits memory\n");
     }
+    if (!config->fit_gates)
+    {
+        printf("ERROR: libLogDecay energy_init(): Unable to allocate fit_gates memory\n");
+    }
+    if (!config->pretails)
+    {
+        printf("ERROR: libLogDecay energy_init(): Unable to allocate pretails memory\n");
+    }
+    if (!config->tail_samples)
+    {
+        printf("ERROR: libLogDecay energy_init(): Unable to allocate tail_samples memory\n");
+    }
+    if (!config->smoothings)
+    {
+        printf("ERROR: libLogDecay energy_init(): Unable to allocate smoothings memory\n");
+    }
+    if (!config->constants)
+    {
+        printf("ERROR: libLogDecay energy_init(): Unable to allocate constants memory\n");
+    }
+    if (!config->slopes)
+    {
+        printf("ERROR: libLogDecay energy_init(): Unable to allocate slopes memory\n");
+    }
+
+    for (size_t fit_index = 0; fit_index < config->number_of_fits; fit_index += 1)
+    {
+        config->prefits[fit_index] = json_number_value(json_array_get(prefits, fit_index));
+        config->fit_gates[fit_index] = json_number_value(json_array_get(fit_gates, fit_index));
+        config->pretails[fit_index] = json_number_value(json_array_get(pretails, fit_index));
+        config->tail_samples[fit_index] = json_number_value(json_array_get(tail_samples, fit_index));
+        config->smoothings[fit_index] = json_number_value(json_array_get(smoothings, fit_index));
+    }
+
+
+    char *pulse_polarities_strs[] = {"negative", "positive"};
+    enum pulse_polarity_t pulse_polarities_vals[] = {POLARITY_NEGATIVE, POLARITY_POSITIVE};
+    read_config_options(json_config, pulse_polarity, pulse_polarities_strs, pulse_polarities_vals, config);
+
+    config->previous_samples_number = 0;
+
+    config->curve_samples = NULL;
+    config->curve_offset = NULL;
+    config->curve_smooth = NULL;
+    config->curve_to_fit = NULL;
+    config->curve_log = NULL;
+
+    (*user_config) = (void *)config;
 }
 
 /*! \brief Function that cleans the memory allocated by `energy_init()`
@@ -322,6 +286,8 @@ void energy_analysis(const uint16_t *samples,
 {
     if (!user_config)
     {
+        printf("ERROR: libLogDecay energy_analysis(): User config not defined, not performing analysis\n");
+
         return;
     }
 
