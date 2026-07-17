@@ -39,6 +39,8 @@
  *   waveform after the waveform end. In the extended part the waveform is
  *   constituted by the average of the last `baseline_samples` of the compensated
  *   waveform. Optional, default value: 0
+ * - `smooth_samples`: the number of samples to be averaged in the running
+ *   mean, rounded to the next odd number. Optional, default value: 1
  * - `low_level`: the low level to calculate the risetime, relative to the pulse
  *   height. Optional, default value: 0.1
  * - `high_level`: the high level to calculate the risetime, relative to the
@@ -68,11 +70,11 @@ struct Grid_config
 {
     int64_t baseline_samples;
     uint32_t extension_samples;
-    uint32_t smooth_samples;
     double decay_time;
     double highpass_time;
     double lowpass_time;
     enum pulse_polarity_t pulse_polarity;
+    uint32_t smooth_samples;
     double low_level;
     double high_level;
     double height_scaling;
@@ -104,112 +106,81 @@ void energy_init(json_t *json_config, void **user_config)
 {
     (*user_config) = NULL;
 
-    if (!json_is_object(json_config)) {
-        printf("ERROR: libGrid energy_init(): json_config is not a json_t object\n");
+    struct Grid_config *config = calloc(1, sizeof(struct Grid_config));
 
-        (*user_config) = NULL;
-    } else {
-        struct Grid_config *config = malloc(1 * sizeof(struct Grid_config));
+    if (!config)
+    {
+        printf("ERROR: libGrid energy_init(): Unable to allocate config memory\n");
 
-        if (!config) {
-            printf("ERROR: libGrid energy_init(): Unable to allocate config memory\n");
-
-            (*user_config) = NULL;
-        }
-
-        config->decay_time = json_integer_value(json_object_get(json_config, "decay_time"));
-        config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
-        config->smooth_samples = json_integer_value(json_object_get(json_config, "smooth_samples"));
-        config->highpass_time = json_integer_value(json_object_get(json_config, "highpass_time"));
-        config->lowpass_time = json_integer_value(json_object_get(json_config, "lowpass_time"));
-
-        if (json_is_number(json_object_get(json_config, "extension_samples"))) {
-            config->extension_samples = json_number_value(json_object_get(json_config, "extension_samples"));
-        } else {
-            config->extension_samples = 0;
-        }
-
-        if (json_is_number(json_object_get(json_config, "height_scaling"))) {
-            config->height_scaling = json_number_value(json_object_get(json_config, "height_scaling"));
-        } else {
-            config->height_scaling = 1;
-        }
-
-        if (json_is_number(json_object_get(json_config, "low_level"))) {
-            config->low_level = json_number_value(json_object_get(json_config, "low_level"));
-        } else {
-            config->low_level = 0.1;
-        }
-
-        if (json_is_number(json_object_get(json_config, "high_level"))) {
-            config->high_level = json_number_value(json_object_get(json_config, "high_level"));
-        } else {
-            config->high_level = 0.9;
-        }
-
-        if (json_is_number(json_object_get(json_config, "energy_threshold"))) {
-            config->energy_threshold = json_number_value(json_object_get(json_config, "energy_threshold"));
-        } else {
-            config->energy_threshold = 0;
-        }
-
-        config->pulse_polarity = POLARITY_NEGATIVE;
-
-        if (json_is_string(json_object_get(json_config, "pulse_polarity_grid"))) {
-            const char *pulse_polarity = json_string_value(json_object_get(json_config, "pulse_polarity_grid"));
-
-            if (strstr(pulse_polarity, "Negative") ||
-                strstr(pulse_polarity, "negative"))
-            {
-                config->pulse_polarity = POLARITY_NEGATIVE;
-            }
-            else if (strstr(pulse_polarity, "Positive") ||
-                     strstr(pulse_polarity, "positive"))
-            {
-                config->pulse_polarity = POLARITY_POSITIVE;
-            }
-        }
-
-        config->is_error = false;
-        config->previous_samples_number = 0;
-
-        config->curve_samples = NULL;
-        config->curve_compensated = NULL;
-        config->curve_offset = NULL;
-        config->curve_smoothed = NULL;
-        config->curve_CR = NULL;
-        config->curve_RC = NULL;
-
-        (*user_config) = (void*)config;
+        return;
     }
+
+    read_config_number(json_config, decay_time, UINT32_MAX, config);
+    read_config_number(json_config, baseline_samples, 1, config);
+    read_config_number(json_config, smooth_samples, 1, config);
+    read_config_number(json_config, highpass_time, 100, config);
+    read_config_number(json_config, lowpass_time, 100, config);
+    read_config_number_overwrite(json_config, extension_samples, 0, config, false);
+    read_config_number(json_config, height_scaling, 1.0, config);
+    read_config_number(json_config, low_level, 0.1, config);
+    read_config_number(json_config, high_level, 0.9, config);
+    read_config_number(json_config, energy_threshold, 0, config);
+
+    char *pulse_polarities_strs[] = {"negative", "positive"};
+    enum pulse_polarity_t pulse_polarities_vals[] = {POLARITY_NEGATIVE, POLARITY_POSITIVE};
+    read_config_options(json_config, pulse_polarity, pulse_polarities_strs, pulse_polarities_vals, config);
+
+    config->is_error = false;
+    config->previous_samples_number = 0;
+
+    config->curve_samples = NULL;
+    config->curve_compensated = NULL;
+    config->curve_offset = NULL;
+    config->curve_smoothed = NULL;
+    config->curve_CR = NULL;
+    config->curve_RC = NULL;
+
+    (*user_config) = (void *)config;
 }
 
 /*! \brief Function that cleans the memory allocated by `energy_init()`
  */
 void energy_close(void *user_config)
 {
-    struct Grid_config *config = (struct Grid_config*)user_config;
+    if (!user_config)
+    {
+        return;
+    }
 
-    if (config->curve_samples) {
+    struct Grid_config *config = (struct Grid_config *)user_config;
+
+    if (config->curve_samples)
+    {
         free(config->curve_samples);
     }
-    if (config->curve_compensated) {
+    if (config->curve_compensated)
+    {
         free(config->curve_compensated);
     }
-    if (config->curve_offset) {
+    if (config->curve_offset)
+    {
         free(config->curve_offset);
     }
-    if (config->curve_smoothed) {
+    if (config->curve_smoothed)
+    {
         free(config->curve_smoothed);
     }
-    if (config->curve_CR) {
+    if (config->curve_CR)
+    {
         free(config->curve_CR);
     }
-    if (config->curve_RC) {
+    if (config->curve_RC)
+    {
         free(config->curve_RC);
     }
 
-    if (user_config) {
+    if (user_config)
+    {
         free(user_config);
     }
 }
@@ -224,7 +195,14 @@ void energy_analysis(const uint16_t *samples,
                      size_t *events_number,
                      void *user_config)
 {
-    struct Grid_config *config = (struct Grid_config*)user_config;
+    if (!user_config)
+    {
+        printf("ERROR: libPSD energy_analysis(): User config not defined, not performing analysis\n");
+
+        return;
+    }
+
+    struct Grid_config *config = (struct Grid_config *)user_config;
 
     const uint32_t extended_samples_number = samples_number + config->extension_samples;
 
@@ -232,18 +210,19 @@ void energy_analysis(const uint16_t *samples,
 
     bool is_error = false;
 
-    if ((*events_number) != 1) {
-        printf("WARNING: libGrid energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
-
+    if ((*events_number) != 1)
+    {
         // Assuring that there is one event_PSD and discarding others
         is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
 
-        if (is_error) {
+        if (is_error)
+        {
             printf("ERROR: libGrid energy_analysis(): Unable to reallocate buffers\n");
         }
     }
 
-    if (is_error || config->is_error) {
+    if (is_error || config->is_error)
+    {
         printf("ERROR: libGrid energy_analysis(): Error status detected\n");
 
         return;
@@ -258,17 +237,20 @@ void energy_analysis(const uint16_t *samples,
     double baseline = 0;
     calculate_average(config->curve_samples, baseline_start, baseline_end, &baseline);
 
-    if (config->pulse_polarity == POLARITY_POSITIVE) {
+    if (config->pulse_polarity == POLARITY_POSITIVE)
+    {
         add_and_multiply_constant(config->curve_samples, samples_number, -1 * baseline, 1.0, &config->curve_offset);
-    } else {
+    }
+    else
+    {
         add_and_multiply_constant(config->curve_samples, samples_number, -1 * baseline, -1.0, &config->curve_offset);
     }
 
     // We smooth the curve first hoping to reduce the noise around zero.
     // This should reduce the possibility of a residual positive offset from the
     // noise contribution.
-    running_mean(config->curve_offset, samples_number, \
-                 config->smooth_samples, \
+    running_mean(config->curve_offset, samples_number,
+                 config->smooth_samples,
                  &config->curve_smoothed);
 
     double smoothed_min = 0;
@@ -283,14 +265,16 @@ void energy_analysis(const uint16_t *samples,
     size_t risetime_samples = smoothed_index_min - (*trigger_positions)[0];
 
     // Eliminate the negative part of the signal
-    for (uint32_t i = 0; i < samples_number; i += 1) {
-        if (config->curve_smoothed[i] < 0) {
+    for (uint32_t i = 0; i < samples_number; i += 1)
+    {
+        if (config->curve_smoothed[i] < 0)
+        {
             config->curve_smoothed[i] = 0;
         }
     }
 
-    decay_compensation(config->curve_smoothed, samples_number, \
-                       config->decay_time, \
+    decay_compensation(config->curve_smoothed, samples_number,
+                       config->decay_time,
                        &config->curve_compensated);
 
     const uint32_t topline_start = (samples_number - config->baseline_samples) >= 0 ? (samples_number - config->baseline_samples) : 0;
@@ -300,16 +284,17 @@ void energy_analysis(const uint16_t *samples,
     calculate_average(config->curve_compensated, topline_start, topline_end, &topline);
 
     // Extending the waveform with the average of the end part
-    for (uint32_t i = samples_number; i < extended_samples_number; i += 1) {
+    for (uint32_t i = samples_number; i < extended_samples_number; i += 1)
+    {
         config->curve_compensated[i] = topline;
     }
 
-    CR_filter(config->curve_compensated, extended_samples_number, \
-              config->highpass_time, \
+    CR_filter(config->curve_compensated, extended_samples_number,
+              config->highpass_time,
               &config->curve_CR);
 
-    RC4_filter(config->curve_CR, extended_samples_number, \
-               config->lowpass_time, \
+    RC4_filter(config->curve_CR, extended_samples_number,
+               config->lowpass_time,
                &config->curve_RC);
 
     double compensated_min = 0;
@@ -331,15 +316,6 @@ void energy_analysis(const uint16_t *samples,
                  &CR_min, &CR_max);
 
     const double CR_maximum = CR_max * config->height_scaling / config->highpass_time;
-    const uint64_t long_CR_maximum = (uint16_t)round(CR_maximum);
-
-    // We convert the 64 bit integers to 16 bit to simulate the digitizer data
-    uint16_t int_CR_maximum = long_CR_maximum & UINT16_MAX;
-
-    if (long_CR_maximum > UINT16_MAX)
-    {
-        int_CR_maximum = UINT16_MAX;
-    }
 
     double RC_min = 0;
     double RC_max = 0;
@@ -351,30 +327,22 @@ void energy_analysis(const uint16_t *samples,
                  &RC_min, &RC_max);
 
     const double energy = RC_max * config->height_scaling * config->lowpass_time / config->highpass_time;
-    const uint64_t long_energy = (uint64_t)round(energy);
-
-    // We convert the 64 bit integers to 16 bit to simulate the digitizer data
-    uint16_t int_energy = long_energy & UINT16_MAX;
-
-    if (long_energy > UINT16_MAX)
-    {
-        int_energy = UINT16_MAX;
-    }
-
-    //uint64_t int_baseline = ((uint64_t)round(baseline)) & UINT16_MAX;
 
     const uint8_t group_counter = 0;
 
-    if (energy < config->energy_threshold) {
+    if (energy < config->energy_threshold)
+    {
         // Discard the event
         reallocate_buffers(trigger_positions, events_buffer, events_number, 0);
-    } else {
+    }
+    else
+    {
         // Output
         // We have to assume that this was taken care earlier
         //(*events_buffer)[0].timestamp = waveform->timestamp;
-        (*events_buffer)[0].qshort = int_CR_maximum;
-        (*events_buffer)[0].qlong = int_energy;
-        (*events_buffer)[0].baseline = risetime_samples;
+        (*events_buffer)[0].qshort = clamp_to_uint16(CR_maximum);
+        (*events_buffer)[0].qlong = clamp_to_uint16(energy);
+        (*events_buffer)[0].baseline = clamp_to_uint16(risetime_samples);
         (*events_buffer)[0].channel = waveform->channel;
         (*events_buffer)[0].group_counter = group_counter;
 
@@ -393,33 +361,44 @@ void energy_analysis(const uint16_t *samples,
         const uint8_t ZERO = UINT8_MAX / 2;
         const uint8_t MAX = UINT8_MAX / 2;
 
-        for (uint32_t i = 0; i < samples_number; i++) {
+        for (uint32_t i = 0; i < samples_number; i++)
+        {
             additional_compensated[i] = (config->curve_compensated[i] / compensated_abs_max) * MAX + ZERO;
 
-            if (i == (*trigger_positions)[0]) {
+            if (i == (*trigger_positions)[0])
+            {
                 additional_risetime[i] = MAX / 2 + ZERO;
-            } else if (i == smoothed_index_min) {
+            }
+            else if (i == smoothed_index_min)
+            {
                 additional_risetime[i] = MAX + ZERO;
-            } else {
+            }
+            else
+            {
                 additional_risetime[i] = ZERO;
             }
         }
 
         const double CR_abs_max = (fabs(CR_max) > fabs(CR_min)) ? fabs(CR_max) : fabs(CR_min);
         const double RC_abs_max = (fabs(RC_max) > fabs(RC_min)) ? fabs(RC_max) : fabs(RC_min);
-        //const double CRRC_abs_max = (RC_abs_max > CR_abs_max) ? RC_abs_max : CR_abs_max;
+        // const double CRRC_abs_max = (RC_abs_max > CR_abs_max) ? RC_abs_max : CR_abs_max;
 
-        for (uint8_t j = 0; j < extended_number; j++) {
+        for (uint8_t j = 0; j < extended_number; j++)
+        {
             uint8_t *additional_CR = waveform_additional_get(waveform, initial_additional_number + 2 + j);
             uint8_t *additional_RC = waveform_additional_get(waveform, initial_additional_number + 2 + extended_number + j);
 
-            for (uint32_t i = 0; i < samples_number; i++) {
+            for (uint32_t i = 0; i < samples_number; i++)
+            {
                 const uint32_t I = i + j * samples_number;
 
-                if (I < extended_samples_number) {
+                if (I < extended_samples_number)
+                {
                     additional_CR[i] = (config->curve_CR[I] / CR_abs_max) * MAX + ZERO;
                     additional_RC[i] = (config->curve_RC[I] / RC_abs_max) * MAX + ZERO;
-                } else {
+                }
+                else
+                {
                     additional_CR[i] = ZERO;
                     additional_RC[i] = ZERO;
                 }
@@ -432,7 +411,8 @@ void reallocate_curves(uint32_t samples_number, struct Grid_config **user_config
 {
     struct Grid_config *config = (*user_config);
 
-    if (samples_number > config->previous_samples_number) {
+    if (samples_number > config->previous_samples_number)
+    {
         config->previous_samples_number = samples_number;
 
         config->is_error = false;
@@ -450,46 +430,64 @@ void reallocate_curves(uint32_t samples_number, struct Grid_config **user_config
         double *new_curve_RC = realloc(config->curve_RC,
                                        samples_number * sizeof(double));
 
-        if (!new_curve_samples) {
+        if (!new_curve_samples)
+        {
             printf("ERROR: libGrid reallocate_curves(): Unable to allocate curve_samples memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_samples = new_curve_samples;
         }
-        if (!new_curve_compensated) {
+        if (!new_curve_compensated)
+        {
             printf("ERROR: libGrid reallocate_curves(): Unable to allocate curve_compensated memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_compensated = new_curve_compensated;
         }
-        if (!new_curve_offset) {
+        if (!new_curve_offset)
+        {
             printf("ERROR: libGrid reallocate_curves(): Unable to allocate curve_offset memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_offset = new_curve_offset;
         }
-        if (!new_curve_smoothed) {
+        if (!new_curve_smoothed)
+        {
             printf("ERROR: libGrid reallocate_curves(): Unable to allocate curve_smoothed memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_smoothed = new_curve_smoothed;
         }
-        if (!new_curve_CR) {
+        if (!new_curve_CR)
+        {
             printf("ERROR: libGrid reallocate_curves(): Unable to allocate curve_CR memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_CR = new_curve_CR;
         }
-        if (!new_curve_RC) {
+        if (!new_curve_RC)
+        {
             printf("ERROR: libGrid reallocate_curves(): Unable to allocate curve_RC memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_RC = new_curve_RC;
         }
     }
