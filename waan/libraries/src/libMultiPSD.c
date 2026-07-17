@@ -55,9 +55,6 @@
 #include "analysis_functions.h"
 #include "DSP_functions.h"
 
-#define min(x,y) ((x) < (y)) ? (x) : (y)
-#define max(x,y) ((x) > (y)) ? (x) : (y)
-
 /*! \brief Sctructure that holds the configuration for the `energy_analysis()` function.
  */
 struct PSD_config
@@ -98,107 +95,97 @@ void energy_init(json_t *json_config, void **user_config)
 {
     (*user_config) = NULL;
 
-    if (!json_is_object(json_config)) {
-        printf("ERROR: libPSD energy_init(): json_config is not a json_t object\n");
+    struct PSD_config *config = malloc(1 * sizeof(struct PSD_config));
 
-        (*user_config) = NULL;
-    } else {
-        struct PSD_config *config = malloc(1 * sizeof(struct PSD_config));
+    if (!config)
+    {
+        printf("ERROR: libPSD energy_init(): Unable to allocate config memory\n");
 
-        if (!config) {
-            printf("ERROR: libPSD energy_init(): Unable to allocate config memory\n");
-
-            (*user_config) = NULL;
-        }
-
-        config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
-
-        config->short_pregate = json_integer_value(json_object_get(json_config, "pregate"));
-        config->long_pregate = json_integer_value(json_object_get(json_config, "pregate"));
-
-        if (json_is_number(json_object_get(json_config, "short_pregate"))) {
-            config->short_pregate = json_integer_value(json_object_get(json_config, "short_pregate"));
-        }
-        if (json_is_number(json_object_get(json_config, "long_pregate"))) {
-            config->long_pregate = json_integer_value(json_object_get(json_config, "long_pregate"));
-        }
-
-        config->short_gate = json_integer_value(json_object_get(json_config, "short_gate"));
-        config->long_gate = json_integer_value(json_object_get(json_config, "long_gate"));
-
-        if (json_is_number(json_object_get(json_config, "integrals_scaling"))) {
-            config->integrals_scaling = json_number_value(json_object_get(json_config, "integrals_scaling"));
-        } else {
-            config->integrals_scaling = 1;
-        }
-
-        if (json_is_number(json_object_get(json_config, "energy_threshold"))) {
-            config->energy_threshold = json_number_value(json_object_get(json_config, "energy_threshold"));
-        } else {
-            config->energy_threshold = 0;
-        }
-
-        if (json_is_number(json_object_get(json_config, "PSD_min"))) {
-            config->PSD_min = json_number_value(json_object_get(json_config, "PSD_min"));
-        } else {
-            config->PSD_min = -0.1;
-        }
-
-        if (json_is_number(json_object_get(json_config, "PSD_max"))) {
-            config->PSD_max = json_number_value(json_object_get(json_config, "PSD_max"));
-        } else {
-            config->PSD_max = 1.1;
-        }
-
-        config->pulse_polarity = POLARITY_NEGATIVE;
-
-        if (json_is_string(json_object_get(json_config, "pulse_polarity"))) {
-            const char *pulse_polarity = json_string_value(json_object_get(json_config, "pulse_polarity"));
-
-            if (strstr(pulse_polarity, "Negative") ||
-                strstr(pulse_polarity, "negative"))
-            {
-                config->pulse_polarity = POLARITY_NEGATIVE;
-            }
-            else if (strstr(pulse_polarity, "Positive") ||
-                     strstr(pulse_polarity, "positive"))
-            {
-                config->pulse_polarity = POLARITY_POSITIVE;
-            }
-        }
-
-        config->is_error = false;
-        config->previous_samples_number = 0;
-
-        config->curve_doubles = NULL;
-        config->curve_samples = NULL;
-        config->curve_integrals = NULL;
-        config->events_buffer = NULL;
-
-        (*user_config) = (void*)config;
+        return;
     }
+
+    json_t *pregate = json_object_get(json_config, "pregate");
+
+    if (json_is_number(pregate))
+    {
+        config->short_pregate = json_number_value(pregate);
+        config->long_pregate = json_number_value(pregate);
+    }
+
+    json_t *short_pregate = json_object_get(json_config, "short_pregate");
+    json_t *long_pregate = json_object_get(json_config, "long_pregate");
+
+    if (json_is_number(short_pregate))
+    {
+        config->short_pregate = json_number_value(short_pregate);
+    }
+    if (json_is_number(long_pregate))
+    {
+        config->long_pregate = json_number_value(long_pregate);
+    }
+
+    if (json_is_number(short_pregate) || json_is_number(long_pregate))
+    {
+        json_object_set_nocheck(json_config, "short_pregate", json_integer(config->short_pregate));
+        json_object_set_nocheck(json_config, "long_pregate", json_integer(config->long_pregate));
+    }
+    else
+    {
+        json_object_set_nocheck(json_config, "pregate", json_integer(config->short_pregate));
+    }
+
+    read_config_number(json_config, short_gate, 1, config);
+    read_config_number(json_config, long_gate, 2, config);
+
+    read_config_number(json_config, baseline_samples, 1, config);
+
+    read_config_number(json_config, integrals_scaling, 1.0, config);
+
+    read_config_number(json_config, energy_threshold, 0.0, config);
+
+    read_config_number(json_config, PSD_min, -0.1, config);
+    read_config_number(json_config, PSD_max, 1.1, config);
+
+    char *pulse_polarities_strs[] = {"negative", "positive"};
+    enum pulse_polarity_t pulse_polarities_vals[] = {POLARITY_NEGATIVE, POLARITY_POSITIVE};
+    read_config_options(json_config, pulse_polarity, pulse_polarities_strs, pulse_polarities_vals, config);
+
+    config->is_error = false;
+    config->previous_samples_number = 0;
+
+    config->curve_doubles = NULL;
+    config->curve_samples = NULL;
+    config->curve_integrals = NULL;
+    config->events_buffer = NULL;
+
+    (*user_config) = (void *)config;
 }
 
 /*! \brief Function that cleans the memory allocated by `energy_init()`
  */
 void energy_close(void *user_config)
 {
-    struct PSD_config *config = (struct PSD_config*)user_config;
+    struct PSD_config *config = (struct PSD_config *)user_config;
 
-    if (config->curve_doubles) {
+    if (config->curve_doubles)
+    {
         free(config->curve_doubles);
     }
-    if (config->curve_samples) {
+    if (config->curve_samples)
+    {
         free(config->curve_samples);
     }
-    if (config->curve_integrals) {
+    if (config->curve_integrals)
+    {
         free(config->curve_integrals);
     }
-    if (config->events_buffer) {
+    if (config->events_buffer)
+    {
         free(config->events_buffer);
     }
 
-    if (user_config) {
+    if (user_config)
+    {
         free(user_config);
     }
 }
@@ -213,13 +200,21 @@ void energy_analysis(const uint16_t *samples,
                      size_t *events_number,
                      void *user_config)
 {
-    struct PSD_config *config = (struct PSD_config*)user_config;
+    if (!user_config)
+    {
+        printf("ERROR: libMultiPSD energy_analysis(): User config not defined, not performing analysis\n");
+
+        return;
+    }
+
+    struct PSD_config *config = (struct PSD_config *)user_config;
 
     reallocate_curves(samples_number, &config);
 
     // Reset the integrals to zero, as the integrals from each pulse will be
     // summed on top of each other
-    for (uint32_t index = 0; index < samples_number; index += 1) {
+    for (uint32_t index = 0; index < samples_number; index += 1)
+    {
         config->curve_integrals[index] = 0;
     }
 
@@ -227,13 +222,18 @@ void energy_analysis(const uint16_t *samples,
 
     // A quick baseline calculation to have the curve roughly around zero.
     // The baseline is calculated anyways for each pulse.
+    const int64_t baseline_samples = clamp(config->baseline_samples, 0, samples_number - 1);
+
     double rough_baseline = 0;
 
-    calculate_average(config->curve_doubles, 0, config->baseline_samples, &rough_baseline);
+    calculate_average(config->curve_doubles, 0, baseline_samples, &rough_baseline);
 
-    if (config->pulse_polarity == POLARITY_POSITIVE) {
+    if (config->pulse_polarity == POLARITY_POSITIVE)
+    {
         add_and_multiply_constant(config->curve_doubles, samples_number, -rough_baseline, 1.0, &config->curve_samples);
-    } else {
+    }
+    else
+    {
         add_and_multiply_constant(config->curve_doubles, samples_number, -rough_baseline, -1.0, &config->curve_samples);
     }
 
@@ -254,7 +254,8 @@ void energy_analysis(const uint16_t *samples,
     // This means that we expect no more than 4 overlapping gates
     const uint8_t STEP = MAX / 4;
 
-    for (uint32_t index = 0; index < samples_number; index++) {
+    for (uint32_t index = 0; index < samples_number; index++)
+    {
         additional_gate_short[index] = ZERO;
         additional_gate_long[index] = ZERO;
         additional_gate_baseline[index] = ZERO;
@@ -265,24 +266,22 @@ void energy_analysis(const uint16_t *samples,
 
     uint32_t counter_selected_pulses = 0;
 
-    for (size_t events_index = 0; events_index < (*events_number); events_index += 1) {
+    for (size_t events_index = 0; events_index < (*events_number); events_index += 1)
+    {
 
         // Preventing segfaults by checking the boundaries
-        const int64_t raw_baseline_start = (*trigger_positions)[events_index] - global_pregate - config->baseline_samples;
-        const uint32_t baseline_start = raw_baseline_start < 0 ? 0 : raw_baseline_start;
-
-        const uint32_t baseline_end = ((baseline_start + config->baseline_samples) < samples_number) ? (baseline_start + config->baseline_samples) : samples_number;
+        const uint32_t baseline_start = clamp((*trigger_positions)[events_index] - global_pregate - config->baseline_samples, 0, samples_number - 1);
+        const uint32_t baseline_end = clamp(baseline_start + config->baseline_samples, 0, samples_number);
 
         double baseline = 0;
         calculate_average(config->curve_samples, baseline_start, baseline_end, &baseline);
 
         const uint32_t local_trigger_position = (*trigger_positions)[events_index];
 
-        int64_t short_gate_start = (local_trigger_position - config->short_pregate) < 0 ? 0 : (local_trigger_position - config->short_pregate);
-        int64_t long_gate_start =  (local_trigger_position - config->long_pregate) < 0 ? 0 : (local_trigger_position - config->long_pregate);
-
-        int64_t short_gate_end = (short_gate_start + config->short_gate) < samples_number ? (short_gate_start + config->short_gate) : samples_number;
-        int64_t long_gate_end =  (long_gate_start + config->long_gate) < samples_number ? (long_gate_start + config->long_gate) : samples_number;
+        int64_t short_gate_start = clamp(local_trigger_position - config->short_pregate, 0, samples_number);
+        int64_t long_gate_start = clamp(local_trigger_position - config->long_pregate, 0, samples_number);
+        int64_t short_gate_end = clamp(short_gate_start + config->short_gate, 0, samples_number);
+        int64_t long_gate_end = clamp(long_gate_start + config->long_gate, 0, samples_number);
 
         uint64_t gates_end = (short_gate_end > long_gate_end) ? short_gate_end : long_gate_end;
 
@@ -291,68 +290,54 @@ void energy_analysis(const uint16_t *samples,
 
         double integral = 0;
 
-        for (uint32_t index = baseline_start; index < gates_end; index += 1) {
+        for (uint32_t index = baseline_start; index < gates_end; index += 1)
+        {
             integral += (config->curve_samples[index] - baseline);
 
             config->curve_integrals[index] += integral;
 
-            if (baseline_start <= index && index < baseline_end) {
+            if (baseline_start <= index && index < baseline_end)
+            {
                 additional_gate_baseline[index] += STEP / 2;
             }
-            if (short_gate_start <= index && index < short_gate_end) {
+            if (short_gate_start <= index && index < short_gate_end)
+            {
                 qshort += (config->curve_samples[index] - baseline);
 
                 additional_gate_short[index] += STEP;
             }
-            if (long_gate_start <= index && index < long_gate_end) {
+            if (long_gate_start <= index && index < long_gate_end)
+            {
                 qlong += (config->curve_samples[index] - baseline);
 
                 additional_gate_long[index] += STEP;
             }
-        
         }
 
         const double PSD = (qlong != 0) ? (qlong - qshort) / qlong : (config->PSD_min - 1);
 
         const double scaled_qshort = qshort * config->integrals_scaling;
-        const double scaled_qlong  = qlong * config->integrals_scaling;
-
-        const uint64_t long_qshort = (uint64_t)round(scaled_qshort);
-        const uint64_t long_qlong = (uint64_t)round(scaled_qlong);
-
-        // We convert the 64 bit integers to 16 bit to simulate the digitizer data
-        uint16_t int_qshort = long_qshort & UINT16_MAX;
-        uint16_t int_qlong = long_qlong & UINT16_MAX;
-
-        if (long_qshort > UINT16_MAX)
-        {
-            int_qshort = UINT16_MAX;
-        }
-        if (long_qlong > UINT16_MAX)
-        {
-            int_qlong = UINT16_MAX;
-        }
-
-        uint64_t int_baseline = ((uint64_t)round(baseline)) & UINT16_MAX;
+        const double scaled_qlong = qlong * config->integrals_scaling;
 
         const uint8_t group_counter = 0;
 
-        if (config->energy_threshold <= scaled_qlong && (config->PSD_min <= PSD && PSD < config->PSD_max)) {
+        if (config->energy_threshold <= scaled_qlong && (config->PSD_min <= PSD && PSD < config->PSD_max))
+        {
             // Output
             // We have to assume that this was taken care earlier
-            //config->events_buffer[counter_selected_pulses].timestamp = waveform->timestamp;
-            config->events_buffer[counter_selected_pulses].qshort = int_qshort;
-            config->events_buffer[counter_selected_pulses].qlong = int_qlong;
-            config->events_buffer[counter_selected_pulses].baseline = int_baseline;
+            // config->events_buffer[counter_selected_pulses].timestamp = waveform->timestamp;
+            config->events_buffer[counter_selected_pulses].qshort = clamp_to_uint16(scaled_qshort);
+            config->events_buffer[counter_selected_pulses].qlong = clamp_to_uint16(scaled_qlong);
+            config->events_buffer[counter_selected_pulses].baseline = clamp_to_uint16(baseline);
             config->events_buffer[counter_selected_pulses].channel = waveform->channel;
             config->events_buffer[counter_selected_pulses].group_counter = group_counter;
 
             counter_selected_pulses += 1;
         }
-
     }
 
-    if ((*events_number) != counter_selected_pulses) {
+    if ((*events_number) != counter_selected_pulses)
+    {
         reallocate_buffers(trigger_positions, events_buffer, events_number, counter_selected_pulses);
     }
 
@@ -369,7 +354,8 @@ void energy_analysis(const uint16_t *samples,
 
     const double integral_abs_max = (fabs(integral_max) > fabs(integral_min)) ? fabs(integral_max) : fabs(integral_min);
 
-    for (uint32_t index = 0; index < samples_number; index += 1) {
+    for (uint32_t index = 0; index < samples_number; index += 1)
+    {
         additional_integrals[index] = config->curve_integrals[index] / integral_abs_max * MAX + ZERO;
     }
 }
@@ -378,7 +364,8 @@ void reallocate_curves(uint32_t samples_number, struct PSD_config **user_config)
 {
     struct PSD_config *config = (*user_config);
 
-    if (samples_number != config->previous_samples_number) {
+    if (samples_number != config->previous_samples_number)
+    {
         config->previous_samples_number = samples_number;
 
         config->is_error = false;
@@ -388,36 +375,48 @@ void reallocate_curves(uint32_t samples_number, struct PSD_config **user_config)
         double *new_curve_samples = realloc(config->curve_samples,
                                             samples_number * sizeof(double));
         double *new_curve_integrals = realloc(config->curve_integrals,
-                                            samples_number * sizeof(double));
+                                              samples_number * sizeof(double));
         struct event_PSD *new_events_buffer = realloc(config->events_buffer,
                                                       samples_number * sizeof(struct event_PSD));
 
-        if (!new_curve_doubles) {
+        if (!new_curve_doubles)
+        {
             printf("ERROR: libMultiPSD reallocate_curves(): Unable to allocate curve_doubles memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_doubles = new_curve_doubles;
         }
-        if (!new_curve_samples) {
+        if (!new_curve_samples)
+        {
             printf("ERROR: libMultiPSD reallocate_curves(): Unable to allocate curve_samples memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_samples = new_curve_samples;
         }
-        if (!new_curve_integrals) {
+        if (!new_curve_integrals)
+        {
             printf("ERROR: libMultiPSD reallocate_curves(): Unable to allocate curve_integrals memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_integrals = new_curve_integrals;
         }
-        if (!new_events_buffer) {
+        if (!new_events_buffer)
+        {
             printf("ERROR: libMultiPSD reallocate_curves(): Unable to allocate events_buffer memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->events_buffer = new_events_buffer;
         }
     }
