@@ -25,10 +25,10 @@
  *   baseline. The average starts from the beginning of the waveform.
  * - `pulse_polarity`: a string describing the expected pulse polarity, it
  *   can be `positive` or `negative`.
- * - `threshold`: the absolute threshold value relative to the baseline used by
- *   the LE to detect pulses.
  * - `fraction`: the threshold value relative to the local maximum of each pulse
  *   of the smoothed signal.
+ * - `threshold`: the absolute threshold value relative to the baseline used by
+ *   the LE to detect pulses.
  * - `threshold_crossing_samples`: the number of samples to be used in the linear
  *   interpolation of the threshold-crossing region. Optional, default value: 2
  * - `smooth_samples`: the number of samples to be averaged in the running
@@ -102,131 +102,95 @@ void timestamp_init(json_t *json_config, void **user_config)
 {
     (*user_config) = NULL;
 
-    if (!json_is_object(json_config)) {
-        printf("ERROR: libMultiLeftThr timestamp_init(): json_config is not a json_t object\n");
+    struct MultiLeftThr_config *config = calloc(1, sizeof(struct MultiLeftThr_config));
 
-        (*user_config) = NULL;
-    } else {
-        struct MultiLeftThr_config *config = malloc(1 * sizeof(struct MultiLeftThr_config));
+    if (!config)
+    {
+        printf("ERROR: libMultiLeftThr timestamp_init(): Unable to allocate config memory\n");
 
-        if (!config) {
-            printf("ERROR: libMultiLeftThr timestamp_init(): Unable to allocate config memory\n");
-
-            (*user_config) = NULL;
-        }
-
-        config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
-        config->fraction = json_number_value(json_object_get(json_config, "fraction"));
-        config->threshold = json_number_value(json_object_get(json_config, "threshold"));
-
-
-        if (json_is_number(json_object_get(json_config, "smooth_samples"))) {
-            const unsigned int W = json_number_value(json_object_get(json_config, "smooth_samples"));
-            // Rounding it to the next greater odd number
-            config->smooth_samples = floor(W / 2) * 2 + 1;
-        } else {
-            config->smooth_samples = 1;
-        }
-
-        config->pulse_polarity = POLARITY_NEGATIVE;
-
-        if (json_is_string(json_object_get(json_config, "pulse_polarity"))) {
-            const char *pulse_polarity = json_string_value(json_object_get(json_config, "pulse_polarity"));
-
-            if (strstr(pulse_polarity, "Negative") ||
-                strstr(pulse_polarity, "negative"))
-            {
-                config->pulse_polarity = POLARITY_NEGATIVE;
-            }
-            else if (strstr(pulse_polarity, "Positive") ||
-                     strstr(pulse_polarity, "positive"))
-            {
-                config->pulse_polarity = POLARITY_POSITIVE;
-            }
-        }
-
-        if (json_is_number(json_object_get(json_config, "threshold_crossing_samples"))) {
-            config->threshold_crossing_samples = json_number_value(json_object_get(json_config, "threshold_crossing_samples"));
-        } else {
-            config->threshold_crossing_samples = 2;
-        }
-
-        if (json_is_number(json_object_get(json_config, "fractional_bits"))) {
-            config->fractional_bits = json_number_value(json_object_get(json_config, "fractional_bits"));
-        } else {
-            config->fractional_bits = 10;
-        }
-
-        if (json_is_number(json_object_get(json_config, "time_offset"))) {
-            config->time_offset = json_number_value(json_object_get(json_config, "time_offset"));
-        } else {
-            config->time_offset = 0;
-        }
-
-        if (json_is_boolean(json_object_get(json_config, "disable_shift"))) {
-            config->disable_shift = json_is_true(json_object_get(json_config, "disable_shift"));
-        } else {
-            config->disable_shift = false;
-        }
-
-        if (json_is_boolean(json_object_get(json_config, "disable_MultiLeftThr_gates"))) {
-            config->disable_MultiLeftThr_gates = json_is_true(json_object_get(json_config, "disable_MultiLeftThr_gates"));
-        } else {
-            config->disable_MultiLeftThr_gates = false;
-        }
-
-        config->is_error = false;
-        config->previous_samples_number = 0;
-
-        config->curve_samples = NULL;
-        config->curve_smoothed = NULL;
-        config->curve_offset = NULL;
-        config->curve_LE = NULL;
-        config->thresholds = NULL;
-        config->triggers_rising = NULL;
-        config->triggers_falling = NULL;
-        config->thresholds_crossings = NULL;
-        config->local_maxima = NULL;
-
-        (*user_config) = (void*)config;
+        return;
     }
+
+    read_config_number(json_config, baseline_samples, 1, config);
+    read_config_number(json_config, threshold, 1, config);
+    read_config_number(json_config, fraction, 0.4, config);
+    read_config_number(json_config, smooth_samples, 1, config);
+    read_config_number(json_config, threshold_crossing_samples, 2, config);
+    read_config_number(json_config, fractional_bits, 10, config);
+    read_config_number(json_config, time_offset, 0, config);
+    read_config_boolean(json_config, disable_shift, false, config);
+    read_config_boolean(json_config, disable_MultiLeftThr_gates, false, config);
+
+    char *pulse_polarities_strs[] = {"negative", "positive"};
+    enum pulse_polarity_t pulse_polarities_vals[] = {POLARITY_NEGATIVE, POLARITY_POSITIVE};
+    read_config_options(json_config, pulse_polarity, pulse_polarities_strs, pulse_polarities_vals, config);
+
+    config->is_error = false;
+    config->previous_samples_number = 0;
+
+    config->curve_samples = NULL;
+    config->curve_smoothed = NULL;
+    config->curve_offset = NULL;
+    config->curve_LE = NULL;
+    config->thresholds = NULL;
+    config->triggers_rising = NULL;
+    config->triggers_falling = NULL;
+    config->thresholds_crossings = NULL;
+    config->local_maxima = NULL;
+
+    (*user_config) = (void *)config;
 }
 
 /*! \brief Function that cleans the memory allocated by timestamp_init()
  */
 void timestamp_close(void *user_config)
 {
-    struct MultiLeftThr_config *config = (struct MultiLeftThr_config*)user_config;
+    if (!user_config)
+    {
+        return;
+    }
 
-    if (config->curve_samples) {
+    struct MultiLeftThr_config *config = (struct MultiLeftThr_config *)user_config;
+
+    if (config->curve_samples)
+    {
         free(config->curve_samples);
     }
-    if (config->curve_smoothed) {
+    if (config->curve_smoothed)
+    {
         free(config->curve_smoothed);
     }
-    if (config->curve_offset) {
+    if (config->curve_offset)
+    {
         free(config->curve_offset);
     }
-    if (config->curve_LE) {
+    if (config->curve_LE)
+    {
         free(config->curve_LE);
     }
-    if (config->thresholds) {
+    if (config->thresholds)
+    {
         free(config->thresholds);
     }
-    if (config->triggers_rising) {
+    if (config->triggers_rising)
+    {
         free(config->triggers_rising);
     }
-    if (config->triggers_falling) {
+    if (config->triggers_falling)
+    {
         free(config->triggers_falling);
     }
-    if (config->thresholds_crossings) {
+    if (config->thresholds_crossings)
+    {
         free(config->thresholds_crossings);
     }
-    if (config->local_maxima) {
+    if (config->local_maxima)
+    {
         free(config->local_maxima);
     }
 
-    if (user_config) {
+    if (user_config)
+    {
         free(user_config);
     }
 }
@@ -239,27 +203,43 @@ void timestamp_analysis(const uint16_t *samples,
                         size_t *events_number,
                         void *user_config)
 {
-    struct MultiLeftThr_config *config = (struct MultiLeftThr_config*)user_config;
+    if (!user_config)
+    {
+        printf("ERROR: libMultiLeftThr timestamp_analysis(): User config not defined, not performing analysis\n");
+
+        return;
+    }
+
+    struct MultiLeftThr_config *config = (struct MultiLeftThr_config *)user_config;
 
     reallocate_curves(samples_number, &config);
 
-    if (config->is_error) {
-        printf("ERROR: libMultiLeftThr timestamp_analysis(): Error status detected\n");
+    if (config->is_error)
+    {
+        printf("ERROR: libMultiLeftThr timestamp_analysis(): Error status detected, not performing analysis\n");
 
         return;
     }
 
     to_double(samples, samples_number, &config->curve_samples);
 
-    running_mean(config->curve_samples, samples_number, config->smooth_samples, &config->curve_smoothed);
+    const int64_t smooth_samples = clamp(config->smooth_samples, 1, samples_number);
+
+    running_mean(config->curve_samples, samples_number, smooth_samples, &config->curve_smoothed);
+
+    const int64_t baseline_start = 0;
+    const int64_t baseline_end = clamp(config->baseline_samples, 1, samples_number);
 
     double baseline = 0;
 
-    calculate_average(config->curve_smoothed, 0, config->baseline_samples, &baseline);
+    calculate_average(config->curve_smoothed, baseline_start, baseline_end, &baseline);
 
-    if (config->pulse_polarity == POLARITY_POSITIVE) {
+    if (config->pulse_polarity == POLARITY_POSITIVE)
+    {
         add_and_multiply_constant(config->curve_smoothed, samples_number, -1 * baseline, 1.0, &config->curve_offset);
-    } else {
+    }
+    else
+    {
         add_and_multiply_constant(config->curve_smoothed, samples_number, -1 * baseline, -1.0, &config->curve_offset);
     }
 
@@ -292,9 +272,12 @@ void timestamp_analysis(const uint16_t *samples,
     uint32_t triggers_falling_counter = 0;
     uint32_t thresholds_crossings_counter = 0;
 
-    for (uint32_t index = 1; index < samples_number; index++) {
-        if (state == STATE_BELOW_THRESHOLD) {
-            if (config->curve_LE[index] >= 0) {
+    for (uint32_t index = 1; index < samples_number; index++)
+    {
+        if (state == STATE_BELOW_THRESHOLD)
+        {
+            if (config->curve_LE[index] >= 0)
+            {
                 state = STATE_ABOVE_THRESHOLD;
                 config->triggers_rising[triggers_rising_counter] = index - 1;
                 triggers_rising_counter += 1;
@@ -303,14 +286,18 @@ void timestamp_analysis(const uint16_t *samples,
                 local_maximum_index = index;
                 local_threshold = local_maximum * config->fraction;
             }
-        } else if (state == STATE_ABOVE_THRESHOLD) {
-            if (config->curve_LE[index] > local_maximum) {
+        }
+        else if (state == STATE_ABOVE_THRESHOLD)
+        {
+            if (config->curve_LE[index] > local_maximum)
+            {
                 local_maximum = config->curve_LE[index];
                 local_maximum_index = index;
                 local_threshold = local_maximum * config->fraction;
             }
 
-            if (config->curve_LE[index] < 0) {
+            if (config->curve_LE[index] < 0)
+            {
                 state = STATE_BELOW_THRESHOLD;
                 config->triggers_falling[triggers_falling_counter] = index - 1;
                 triggers_falling_counter += 1;
@@ -323,8 +310,10 @@ void timestamp_analysis(const uint16_t *samples,
                 // We use an in64_t for the index because we are going toward negative
                 // values and if we reach zero then an uint32_t would fold over and it
                 // would always be positive.
-                for (int64_t local_index = local_maximum_index; local_index >= 0; local_index--) {
-                    if ((config->curve_LE[local_index] - local_threshold) < 0) {
+                for (int64_t local_index = local_maximum_index; local_index >= 0; local_index--)
+                {
+                    if ((config->curve_LE[local_index] - local_threshold) < 0)
+                    {
                         config->thresholds_crossings[thresholds_crossings_counter] = local_index;
                         thresholds_crossings_counter += 1;
                         break;
@@ -334,13 +323,15 @@ void timestamp_analysis(const uint16_t *samples,
         }
     }
 
-    if ((*events_number) != thresholds_crossings_counter) {
+    if ((*events_number) != thresholds_crossings_counter)
+    {
         reallocate_buffers(trigger_positions, events_buffer, events_number, thresholds_crossings_counter);
     }
 
     memcpy((*trigger_positions), config->thresholds_crossings, thresholds_crossings_counter * sizeof(uint32_t));
 
-    for (uint32_t index = 0; index < thresholds_crossings_counter; index++) {
+    for (uint32_t index = 0; index < thresholds_crossings_counter; index++)
+    {
         double fine_threshold_crossing = 0;
 
         // The fine_zero_crossing contains also the zero_crossing_index information
@@ -358,9 +349,12 @@ void timestamp_analysis(const uint16_t *samples,
         // Bitmask to delete the last fractional_bits in the uint64_t numbers
         const uint64_t bitmask = UINT64_MAX - ((1 << config->fractional_bits) - 1);
 
-        if (config->disable_shift) {
+        if (config->disable_shift)
+        {
             new_timestamp += (waveform->timestamp & bitmask);
-        } else {
+        }
+        else
+        {
             new_timestamp += ((waveform->timestamp << config->fractional_bits) & bitmask);
         }
 
@@ -376,7 +370,8 @@ void timestamp_analysis(const uint16_t *samples,
         (*events_buffer)[index].group_counter = 0;
     }
 
-    if (!config->disable_MultiLeftThr_gates) {
+    if (!config->disable_MultiLeftThr_gates)
+    {
         waveform_additional_set_number(waveform, 4);
 
         unsigned int index = 0;
@@ -395,24 +390,29 @@ void timestamp_analysis(const uint16_t *samples,
         const uint8_t ZERO = UINT8_MAX / 2;
         const uint8_t MAX = UINT8_MAX / 2;
 
-        for (uint32_t i = 0; i < samples_number; i++) {
+        for (uint32_t i = 0; i < samples_number; i++)
+        {
             additional_baseline_gate[i] = ZERO;
             additional_LE_signal[i] = (config->curve_LE[i] / LE_abs_max) * MAX + ZERO;
             additional_triggers[i] = ZERO;
             additional_relative_thresholds_crossings[i] = ZERO;
         }
 
-        for (uint32_t i = 0; i < config->baseline_samples; i++) {
+        for (uint32_t i = 0; i < config->baseline_samples; i++)
+        {
             additional_baseline_gate[i] = ZERO + MAX / 2;
         }
 
-        for (uint32_t i = 0; i < triggers_rising_counter; i++) {
+        for (uint32_t i = 0; i < triggers_rising_counter; i++)
+        {
             additional_triggers[config->triggers_rising[i]] = ZERO + MAX;
         }
-        for (uint32_t i = 0; i < triggers_falling_counter; i++) {
+        for (uint32_t i = 0; i < triggers_falling_counter; i++)
+        {
             additional_triggers[config->triggers_falling[i]] = ZERO - MAX;
         }
-        for (uint32_t i = 0; i < thresholds_crossings_counter; i++) {
+        for (uint32_t i = 0; i < thresholds_crossings_counter; i++)
+        {
             additional_relative_thresholds_crossings[config->thresholds_crossings[i]] = ZERO + MAX / 2;
             additional_relative_thresholds_crossings[config->local_maxima[i]] = ZERO + MAX;
         }
@@ -423,7 +423,8 @@ void reallocate_curves(uint32_t samples_number, struct MultiLeftThr_config **use
 {
     struct MultiLeftThr_config *config = (*user_config);
 
-    if (samples_number != config->previous_samples_number) {
+    if (samples_number != config->previous_samples_number)
+    {
         config->previous_samples_number = samples_number;
 
         config->is_error = false;
@@ -437,7 +438,7 @@ void reallocate_curves(uint32_t samples_number, struct MultiLeftThr_config **use
         double *new_curve_LE = realloc(config->curve_LE,
                                        samples_number * sizeof(double));
         double *new_thresholds = realloc(config->thresholds,
-                                       samples_number * sizeof(double));
+                                         samples_number * sizeof(double));
         uint32_t *new_triggers_rising = realloc(config->triggers_rising,
                                                 samples_number * sizeof(uint32_t));
         uint32_t *new_triggers_falling = realloc(config->triggers_falling,
@@ -447,67 +448,94 @@ void reallocate_curves(uint32_t samples_number, struct MultiLeftThr_config **use
         uint32_t *new_local_maxima = realloc(config->local_maxima,
                                              samples_number * sizeof(uint32_t));
 
-        if (!new_curve_samples) {
+        if (!new_curve_samples)
+        {
             printf("ERROR: libMultiLeftThr reallocate_curves(): Unable to allocate curve_samples memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_samples = new_curve_samples;
         }
-        if (!new_curve_smoothed) {
+        if (!new_curve_smoothed)
+        {
             printf("ERROR: libMultiLeftThr reallocate_curves(): Unable to allocate curve_smoothed memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_smoothed = new_curve_smoothed;
         }
-        if (!new_curve_offset) {
+        if (!new_curve_offset)
+        {
             printf("ERROR: libMultiLeftThr reallocate_curves(): Unable to allocate curve_offset memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_offset = new_curve_offset;
         }
-        if (!new_curve_LE) {
+        if (!new_curve_LE)
+        {
             printf("ERROR: libMultiLeftThr reallocate_curves(): Unable to allocate curve_LE memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_LE = new_curve_LE;
         }
-        if (!new_thresholds) {
+        if (!new_thresholds)
+        {
             printf("ERROR: libMultiLeftThr reallocate_curves(): Unable to allocate thresholds memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->thresholds = new_thresholds;
         }
-        if (!new_triggers_rising) {
+        if (!new_triggers_rising)
+        {
             printf("ERROR: libMultiLeftThr reallocate_curves(): Unable to allocate triggers_rising memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->triggers_rising = new_triggers_rising;
         }
-        if (!new_triggers_falling) {
+        if (!new_triggers_falling)
+        {
             printf("ERROR: libMultiLeftThr reallocate_curves(): Unable to allocate triggers_falling memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->triggers_falling = new_triggers_falling;
         }
-        if (!new_thresholds_crossings) {
+        if (!new_thresholds_crossings)
+        {
             printf("ERROR: libMultiLeftThr reallocate_curves(): Unable to allocate thresholds_crossings memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->thresholds_crossings = new_thresholds_crossings;
         }
-        if (!new_local_maxima) {
+        if (!new_local_maxima)
+        {
             printf("ERROR: libMultiLeftThr reallocate_curves(): Unable to allocate local_maxima memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->local_maxima = new_local_maxima;
         }
     }
