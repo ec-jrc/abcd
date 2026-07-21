@@ -29,7 +29,7 @@ configure_file(
 
 if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/node_modules" OR FORCE_NPM_INSTALL)
     add_custom_target(npm_install ALL
-        COMMAND npm install
+        COMMAND npm clean-install
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         COMMENT "Installing Node.js dependencies in ${CMAKE_CURRENT_SOURCE_DIR}"
     )
@@ -39,7 +39,7 @@ endif()
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
     DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/abcd/wit
-    COMPONENT core
+    COMPONENT wit
     PATTERN "CMakeLists.txt" EXCLUDE
     PATTERN "wit.sh.in" EXCLUDE
     PATTERN ".gitignore" EXCLUDE
@@ -49,10 +49,10 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
 install(PROGRAMS
     ${CMAKE_CURRENT_BINARY_DIR}/wit.sh
     DESTINATION ${CMAKE_INSTALL_BINDIR}
-    COMPONENT core
+    COMPONENT wit
 )
 
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/config_coincidences.json"
     DESTINATION ${ABCD_DATADIR}/wit
-    COMPONENT core
+    COMPONENT wit
 )
