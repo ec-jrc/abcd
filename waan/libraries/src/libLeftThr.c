@@ -22,7 +22,7 @@
  *   can be `positive` or `negative`.
  * - `fraction`: the threshold value relative to the maximum of the smoothed
  *   signal.
- * - `absolute_threshold`: a threshold applied to the signal before the relative
+ * - `threshold`: a threshold applied to the signal before the relative
  *   threshold is calculated, in order to discard signals that contain only
  *   noise. It is relative to the signal baseline.
  *   Optional, default value: 0
@@ -62,7 +62,7 @@ struct LeftThr_config
     enum pulse_polarity_t pulse_polarity;
     uint32_t smooth_samples;
     double fraction;
-    double absolute_threshold;
+    double threshold;
     uint32_t zero_crossing_samples;
     uint8_t fractional_bits;
     int64_t time_offset;
@@ -104,7 +104,7 @@ void timestamp_init(json_t *json_config, void **user_config)
     }
 
     read_config_number(json_config, baseline_samples, 1, config);
-    read_config_number(json_config, absolute_threshold, 1, config);
+    read_config_number(json_config, threshold, 1, config);
     read_config_number(json_config, fraction, 0.4, config);
     read_config_number(json_config, smooth_samples, 1, config);
     read_config_number(json_config, zero_crossing_samples, 2, config);
@@ -249,7 +249,7 @@ void timestamp_analysis(const uint16_t *samples,
                  &offset_min, &offset_max);
 
     // Checking if there is a signal in the waveform
-    if (offset_max < config->absolute_threshold)
+    if (offset_max < config->threshold)
     {
         // There is no signal in the waveform so we clean up the trigger positions
         reallocate_buffers(trigger_positions, events_buffer, events_number, 0);
