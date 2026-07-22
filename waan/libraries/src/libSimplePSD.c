@@ -56,7 +56,8 @@ void energy_analysis(const uint16_t *samples,
     // Calculating the baseline
     double baseline = 0;
 
-    for (uint32_t i = 0; (i < BASELINE_SAMPLES) && (i < samples_number); i++) {
+    for (uint32_t i = 0; (i < BASELINE_SAMPLES) && (i < samples_number); i++)
+    {
 
         baseline += samples[i];
     }
@@ -66,22 +67,30 @@ void energy_analysis(const uint16_t *samples,
     // Calculating the integrals
     double qshort = 0;
 
-    for (uint32_t i = INTEGRATION_START; (i < (INTEGRATION_START + GATE_SHORT)) && (i < samples_number); i++) {
+    for (uint32_t i = INTEGRATION_START; (i < (INTEGRATION_START + GATE_SHORT)) && (i < samples_number); i++)
+    {
 
-        if (POSITIVE_PULSE) {
+        if (POSITIVE_PULSE)
+        {
             qshort += (samples[i] - baseline);
-        } else {
+        }
+        else
+        {
             qshort += (baseline - samples[i]);
         }
     }
 
     double qlong = 0;
 
-    for (uint32_t i = INTEGRATION_START; (i < (INTEGRATION_START + GATE_LONG)) && (i < samples_number); i++) {
+    for (uint32_t i = INTEGRATION_START; (i < (INTEGRATION_START + GATE_LONG)) && (i < samples_number); i++)
+    {
 
-        if (POSITIVE_PULSE) {
+        if (POSITIVE_PULSE)
+        {
             qlong += (samples[i] - baseline);
-        } else {
+        }
+        else
+        {
             qlong += (baseline - samples[i]);
         }
     }
