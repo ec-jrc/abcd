@@ -5354,6 +5354,16 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                     }
                     continue;
                 }
+                if (keyword.compare("RecordLength") == 0) {
+                    // Channel 255 should mean all channels
+                    SetChannelScopeSamples(255, value);
+                    if (value - GetChannelScopeSamples(255) != 0) {
+                        std::cout << "(!)  ^--- problem here" << std::endl;
+                        error = -3;
+                        EmitError();
+                    }
+                    continue;
+                }
 
                 if (keyword.compare("IsMaster") == 0) {
                     isMaster = value;
@@ -5423,15 +5433,6 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                         SetChannelScopeSamples(channel, value);
                         if (value - GetChannelScopeSamples(channel) != 0) {
                             std::cout << "(!)  ^--- problem here [" << GetChannelScopeSamples(channel) << "]" << std::endl;
-                            error = -3;
-                            EmitError();
-                        }
-                        continue;
-                    }
-                    if (keyword.compare("RecordLength") == 0) {
-                        SetChannelScopeSamples(channel, value);
-                        if (value - GetChannelScopeSamples(channel) != 0) {
-                            std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
