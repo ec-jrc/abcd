@@ -17,6 +17,8 @@
 - Updated the `fmin` package to version 0.0.4, but this release has a known bug.
   The package is therefore automatically patched at the installation phase.
 
+- Fixed some settings for a DT5720 with the STD firmware.
+
 ### 1.2.2
 
 - The PSD filter `pufi` can now use different polygons on the PSD vs energy plot for the different channels.
