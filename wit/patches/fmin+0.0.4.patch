@@ -1,0 +1,13 @@
+diff --git a/node_modules/fmin/src/nelderMead.js b/node_modules/fmin/src/nelderMead.js
+index fe38e91..1cc99b6 100644
+--- a/node_modules/fmin/src/nelderMead.js
++++ b/node_modules/fmin/src/nelderMead.js
+@@ -129,7 +129,7 @@ export function nelderMead(f, x0, parameters) {
+                 if (sigma >= 1) break;
+ 
+                 // do a reduction
+-                for (i = 1; i < simplex.length; ++i) {
++                for (let i = 1; i < simplex.length; ++i) {
+                     weightedSum(simplex[i], 1 - sigma, simplex[0], sigma, simplex[i]);
+                     simplex[i].fx = f(simplex[i]);
+                 }
