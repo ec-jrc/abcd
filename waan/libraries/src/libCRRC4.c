@@ -193,7 +193,7 @@ void energy_analysis(const uint16_t *samples,
 {
     if (!user_config)
     {
-        printf("ERROR: libPSD energy_analysis(): User config not defined, not performing analysis\n");
+        printf("ERROR: libCRRC4 energy_analysis(): User config not defined, not performing analysis\n");
 
         return;
     }
