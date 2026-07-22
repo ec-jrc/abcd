@@ -1,0 +1,25 @@
+{
+    "dgtzs": {
+        "BoardName": "DT5720",
+        "ChannelEnableMask": 1,
+        "RecordLength": 10000,
+        "PostTriggerSamples": 5000,
+        "PostTriggerSamples_note": "must be a multiple of 4",
+        "SWTriggerMode": 1,
+        "TriggerEnableMask": 1,
+        "ch0": {
+            "DCOffsetPercent": -40,
+            "DCOffsetPercent_note": "should be negative for negative signals, positive for positive signals",
+            "TriggerPolarity": 1,
+            "TriggerPolarity_positive_signals": 0,
+            "TriggerPolarity_negative_signals": 1,
+            "TriggerThreshold": 1700,
+            "TriggerThreshold_note": "absolute ADC value, not relative to the baseline"
+        },
+        "ch1": {
+            "DCOffsetPercent": -40,
+            "TriggerPolarity": 0,
+            "TriggerThreshold": 4080
+        }
+    }
+}
