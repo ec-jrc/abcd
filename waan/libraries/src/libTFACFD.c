@@ -2,9 +2,11 @@
  *         Amplifier and then a Constant Fraction Discriminator algorithm.
  *
  * Calculation procedure:
- *  1. A recursive high-pass filter (CR filter) is applied.
- *  2. A recursive low-pass filter (RC filter) is applied.
- *  3. The CFD algorithm is applied to the resulting pulse.
+ *  1. The baseline is determined averaging the first N samples.
+ *  2. The pulse is offset by the baseline to center it around zero.
+ *  3. A recursive high-pass filter (CR filter) is applied.
+ *  4. A recursive low-pass filter (RC filter) is applied.
+ *  5. The CFD algorithm is applied to the resulting pulse.
  *
  * The trigger position is added to time timestamp provided by the digitizer
  * in order to determine the pulse absolute time. The trigger position is
@@ -14,6 +16,8 @@
  *
  * The configuration parameters that are searched in a `json_t` object are:
  *
+ * - `baseline_samples`: the number of samples to average to determine the
+ *   baseline. The average starts from the beginning of the waveform.
  * - `highpass_time`: the decay time of the high-pass filter, in terms of clock
  *   samples.
  * - `lowpass_time`: the decay time of the low-pass filter, in terms of clock
@@ -23,8 +27,6 @@
  * - `delay`: the delay of the signal in terms of clock samples.
  * - `zero_crossing_samples`: the number of samples to be used in the linear
  *   interpolation of the zero-crossing region. Optional, default value: 2
- * - `smooth_samples`: the number of samples to be averaged in the running
- *   mean, rounded to the next odd number. Optional, default value: 1
  * - `fractional_bits`: the number of fractional bits of the timestamp.
  *   Optional, default value: 10
  * - `disable_shift`: disable the bit shift of the timestamp, in order to
@@ -33,6 +35,9 @@
  * - `disable_CFD_gates`: disable the display of the additional waveforms of
  *   the CFD calculation.
  *   Optional, default value: false
+ * - `time_offset`: value added to the timestamp after the determination, to
+ *   center the signals on the ToF distribution.
+ *   Optional, default value: 0
  */
 
 #include <stdio.h>
@@ -50,12 +55,14 @@
  */
 struct TFACFD_config
 {
+    uint32_t baseline_samples;
     double highpass_time;
     double lowpass_time;
     double fraction;
     int32_t delay;
     uint32_t zero_crossing_samples;
     uint8_t fractional_bits;
+    int64_t time_offset;
     bool disable_shift;
     bool disable_CFD_gates;
 
@@ -64,6 +71,7 @@ struct TFACFD_config
     uint32_t previous_samples_number;
 
     double *curve_samples;
+    double *curve_offset;
     double *curve_CR;
     double *curve_RC;
     double *curve_CFD;
@@ -73,7 +81,7 @@ struct TFACFD_config
  */
 void reallocate_curves(uint32_t samples_number, struct TFACFD_config **user_config);
 
-/*! \brief Function that reads the json_t configuration for the timestamp_analysis function.
+/*! \brief Function that reads the json_t configuration for the `timestamp_analysis()` function.
  *
  * This function parses a JSON object determining the configuration for the
  * `timestamp_analysis()` function. The configuration is returned as an
@@ -84,80 +92,72 @@ void timestamp_init(json_t *json_config, void **user_config)
 {
     (*user_config) = NULL;
 
-    if (!json_is_object(json_config)) {
-        printf("ERROR: libTFACFD timestamp_init(): json_config is not a json_t object\n");
+    struct TFACFD_config *config = calloc(1, sizeof(struct TFACFD_config));
 
-        (*user_config) = NULL;
-    } else {
-	struct TFACFD_config *config = malloc(1 * sizeof(struct TFACFD_config));
+    if (!config)
+    {
+        printf("ERROR: libTFACFD timestamp_init(): Unable to allocate config memory\n");
 
-        if (!config) {
-            printf("ERROR: libTFACFD timestamp_init(): Unable to allocate config memory\n");
-
-            (*user_config) = NULL;
-        }
-
-        config->highpass_time = json_number_value(json_object_get(json_config, "highpass_time"));
-        config->lowpass_time = json_number_value(json_object_get(json_config, "lowpass_time"));
-        config->fraction = json_number_value(json_object_get(json_config, "fraction"));
-        config->delay = json_integer_value(json_object_get(json_config, "delay"));
-
-        if (json_is_number(json_object_get(json_config, "zero_crossing_samples"))) {
-            config->zero_crossing_samples = json_number_value(json_object_get(json_config, "zero_crossing_samples"));
-        } else {
-            config->zero_crossing_samples = 2;
-        }
-
-        if (json_is_number(json_object_get(json_config, "fractional_bits"))) {
-            config->fractional_bits = json_number_value(json_object_get(json_config, "fractional_bits"));
-        } else {
-            config->fractional_bits = 10;
-        }
-
-        if (json_is_boolean(json_object_get(json_config, "disable_shift"))) {
-            config->disable_shift = json_is_true(json_object_get(json_config, "disable_shift"));
-        } else {
-            config->disable_shift = false;
-        }
-
-        if (json_is_boolean(json_object_get(json_config, "disable_CFD_gates"))) {
-            config->disable_CFD_gates = json_is_true(json_object_get(json_config, "disable_CFD_gates"));
-        } else {
-            config->disable_CFD_gates = false;
-        }
-
-        config->is_error = false;
-        config->previous_samples_number = 0;
-
-        config->curve_samples = NULL;
-        config->curve_CR = NULL;
-        config->curve_RC = NULL;
-        config->curve_CFD = NULL;
-
-        (*user_config) = (void*)config;
+        return;
     }
+
+    read_config_number(json_config, baseline_samples, 1, config);
+    read_config_number(json_config, highpass_time, 1, config);
+    read_config_number(json_config, lowpass_time, 1, config);
+    read_config_number(json_config, fraction, 0.4, config);
+    read_config_number(json_config, delay, 2, config);
+    read_config_number(json_config, zero_crossing_samples, 2, config);
+    read_config_number(json_config, fractional_bits, 10, config);
+    read_config_number(json_config, time_offset, 0, config);
+    read_config_boolean(json_config, disable_shift, false, config);
+    read_config_boolean(json_config, disable_CFD_gates, false, config);
+
+    config->is_error = false;
+    config->previous_samples_number = 0;
+
+    config->curve_samples = NULL;
+    config->curve_offset = NULL;
+    config->curve_CR = NULL;
+    config->curve_RC = NULL;
+    config->curve_CFD = NULL;
+
+    (*user_config) = (void *)config;
 }
 
-/*! \brief Function that cleans the memory allocated by timestamp_init()
+/*! \brief Function that cleans the memory allocated by `timestamp_init()`
  */
 void timestamp_close(void *user_config)
 {
-    struct TFACFD_config *config = (struct TFACFD_config*)user_config;
+    if (!user_config)
+    {
+        return;
+    }
 
-    if (config->curve_samples) {
+    struct TFACFD_config *config = (struct TFACFD_config *)user_config;
+
+    if (config->curve_samples)
+    {
         free(config->curve_samples);
     }
-    if (config->curve_CR) {
+    if (config->curve_offset)
+    {
+        free(config->curve_offset);
+    }
+    if (config->curve_CR)
+    {
         free(config->curve_CR);
     }
-    if (config->curve_RC) {
+    if (config->curve_RC)
+    {
         free(config->curve_RC);
     }
-    if (config->curve_CFD) {
+    if (config->curve_CFD)
+    {
         free(config->curve_CFD);
     }
 
-    if (user_config) {
+    if (user_config)
+    {
         free(user_config);
     }
 }
@@ -172,37 +172,60 @@ void timestamp_analysis(const uint16_t *samples,
                         size_t *events_number,
                         void *user_config)
 {
-    struct TFACFD_config *config = (struct TFACFD_config*)user_config;
+    if (!user_config)
+    {
+        printf("ERROR: libTFACFD timestamp_analysis(): User config not defined, not performing analysis\n");
+
+        return;
+    }
+
+    struct TFACFD_config *config = (struct TFACFD_config *)user_config;
 
     reallocate_curves(samples_number, &config);
 
     bool is_error = false;
 
-    if ((*events_number) != 1) {
-        printf("WARNING: libTFACFD timestamp_analysis(): Reallocating buffers\n");
-
+    if ((*events_number) != 1)
+    {
         // Assuring that there is one event_PSD and discarding others
         is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
+
+        if (is_error)
+        {
+            printf("ERROR: libPSD timestamp_analysis(): Unable to reallocate buffers\n");
+        }
     }
 
-    if (is_error || config->is_error) {
-        printf("ERROR: libTFACFD timestamp_analysis(): Error status detected\n");
+    if (config->is_error || is_error)
+    {
+        printf("ERROR: libTFACFD timestamp_analysis(): Error status detected, not performing analysis\n");
 
         return;
     }
 
     to_double(samples, samples_number, &config->curve_samples);
 
-    CR_filter(config->curve_samples, samples_number, \
-              config->highpass_time, \
+    const int64_t baseline_start = 0;
+    const int64_t baseline_end = clamp(config->baseline_samples, 1, samples_number);
+
+    double baseline = 0;
+
+    calculate_average(config->curve_samples, baseline_start, baseline_end, &baseline);
+
+    add_and_multiply_constant(config->curve_samples, samples_number,
+                              -1 * baseline, 1.0,
+                              &config->curve_offset);
+
+    CR_filter(config->curve_offset, samples_number,
+              config->highpass_time,
               &config->curve_CR);
 
-    RC_filter(config->curve_CR, samples_number, \
-              config->lowpass_time, \
+    RC_filter(config->curve_CR, samples_number,
+              config->lowpass_time,
               &config->curve_RC);
 
-    CFD_signal(config->curve_RC, samples_number, \
-               config->delay, config->fraction, \
+    CFD_signal(config->curve_RC, samples_number,
+               config->delay, config->fraction,
                &config->curve_CFD);
 
     double CFD_min = 0;
@@ -233,16 +256,19 @@ void timestamp_analysis(const uint16_t *samples,
                             &fine_zero_crossing);
 
     // Converting to fixed-point number
-    const uint64_t fine_timestamp = floor(fine_zero_crossing * (1 << config->fractional_bits)); 
+    const uint64_t fine_timestamp = floor(fine_zero_crossing * (1 << config->fractional_bits));
 
-    uint64_t new_timestamp = fine_timestamp;
+    uint64_t new_timestamp = fine_timestamp + config->time_offset;
 
     // Bitmask to delete the last fractional_bits in the uint64_t numbers
     const uint64_t bitmask = UINT64_MAX - ((1 << config->fractional_bits) - 1);
 
-    if (config->disable_shift) {
+    if (config->disable_shift)
+    {
         new_timestamp += (waveform->timestamp & bitmask);
-    } else {
+    }
+    else
+    {
         new_timestamp += ((waveform->timestamp << config->fractional_bits) & bitmask);
     }
 
@@ -256,7 +282,8 @@ void timestamp_analysis(const uint16_t *samples,
 
     (*trigger_positions)[0] = zero_crossing_index;
 
-    if (!config->disable_CFD_gates) {
+    if (!config->disable_CFD_gates)
+    {
         double CR_min = 0;
         double CR_max = 0;
         size_t CR_index_min = 0;
@@ -289,20 +316,30 @@ void timestamp_analysis(const uint16_t *samples,
         const uint8_t ZERO = UINT8_MAX / 2;
         const uint8_t MAX = UINT8_MAX / 2;
 
-        for (uint32_t i = 0; i < samples_number; i++) {
+        for (uint32_t i = 0; i < samples_number; i++)
+        {
             additional_CR_signal[i] = (config->curve_CR[i] / CR_abs_max) * MAX + ZERO;
             additional_RC_signal[i] = (config->curve_RC[i] / RC_abs_max) * MAX + ZERO;
             additional_CFD_signal[i] = (config->curve_CFD[i] / CFD_abs_max) * MAX + ZERO;
 
-            if (i == zero_crossing_index) {
+            if (i == zero_crossing_index)
+            {
                 additional_trigger[i] = ZERO + (MAX / 2);
-            } else if (i == zero_crossing_index + 1) {
+            }
+            else if (i == zero_crossing_index + 1)
+            {
                 additional_trigger[i] = ZERO - (MAX / 2);
-            } else if (i == CFD_index_max) {
+            }
+            else if (i == CFD_index_max)
+            {
                 additional_trigger[i] = ZERO + MAX;
-            } else if (i == CFD_index_min) {
+            }
+            else if (i == CFD_index_min)
+            {
                 additional_trigger[i] = ZERO - MAX;
-            } else {
+            }
+            else
+            {
                 additional_trigger[i] = ZERO;
             }
         }
@@ -313,12 +350,15 @@ void reallocate_curves(uint32_t samples_number, struct TFACFD_config **user_conf
 {
     struct TFACFD_config *config = (*user_config);
 
-    if (samples_number != config->previous_samples_number) {
-	config->previous_samples_number = samples_number;
+    if (samples_number != config->previous_samples_number)
+    {
+        config->previous_samples_number = samples_number;
 
         config->is_error = false;
 
         double *new_curve_samples = realloc(config->curve_samples,
+                                            samples_number * sizeof(double));
+        double *new_curve_offset = realloc(config->curve_samples,
                                             samples_number * sizeof(double));
         double *new_curve_CR = realloc(config->curve_CR,
                                        samples_number * sizeof(double));
@@ -327,32 +367,54 @@ void reallocate_curves(uint32_t samples_number, struct TFACFD_config **user_conf
         double *new_curve_CFD = realloc(config->curve_CFD,
                                         samples_number * sizeof(double));
 
-        if (!new_curve_samples) {
+        if (!new_curve_samples)
+        {
             printf("ERROR: libTFACFD reallocate_curves(): Unable to allocate curve_samples memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_samples = new_curve_samples;
         }
-        if (!new_curve_CR) {
+        if (!new_curve_offset)
+        {
+            printf("ERROR: libTFACFD reallocate_curves(): Unable to allocate curve_offset memory\n");
+
+            config->is_error = true;
+        }
+        else
+        {
+            config->curve_offset = new_curve_offset;
+        }
+        if (!new_curve_CR)
+        {
             printf("ERROR: libTFACFD reallocate_curves(): Unable to allocate curve_CR memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_CR = new_curve_CR;
         }
-        if (!new_curve_RC) {
+        if (!new_curve_RC)
+        {
             printf("ERROR: libTFACFD reallocate_curves(): Unable to allocate curve_RC memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_RC = new_curve_RC;
         }
-        if (!new_curve_CFD) {
+        if (!new_curve_CFD)
+        {
             printf("ERROR: libTFACFD reallocate_curves(): Unable to allocate curve_CFD memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_CFD = new_curve_CFD;
         }
     }
