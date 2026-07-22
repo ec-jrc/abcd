@@ -11,6 +11,8 @@
  *  6. The qshort information is obtained by determining the absolute maximum
  *     of the derivative.
  *
+ * This function determines only one event_PSD and will discard the others.
+ *
  * In the event_PSD structure the energy information is stored in the qlong,
  * while the qshort stores the value of the absolute maximum of the derivative.
  * The algorithm may be run over a subset of the waveform.
@@ -80,101 +82,67 @@ void energy_init(json_t *json_config, void **user_config)
 {
     (*user_config) = NULL;
 
-    if (!json_is_object(json_config)) {
-        printf("ERROR: libRunningMean energy_init(): json_config is not a json_t object\n");
+    struct RunningMean_config *config = calloc(1, sizeof(struct RunningMean_config));
 
-        (*user_config) = NULL;
-    } else {
-        struct RunningMean_config *config = malloc(1 * sizeof(struct RunningMean_config));
+    if (!config)
+    {
+        printf("ERROR: libRunningMean energy_init(): Unable to allocate config memory\n");
 
-        if (!config) {
-            printf("ERROR: libRunningMean energy_init(): Unable to allocate config memory\n");
-
-            (*user_config) = NULL;
-        }
-
-        if (json_is_number(json_object_get(json_config, "smooth_samples"))) {
-            const unsigned int W = json_number_value(json_object_get(json_config, "smooth_samples"));
-            // Rounding it to the next greater odd number
-            config->smooth_samples = floor(W / 2) * 2 + 1;
-        } else {
-            config->smooth_samples = 1;
-        }
-
-        config->baseline_samples = json_integer_value(json_object_get(json_config, "baseline_samples"));
-
-        if (json_is_number(json_object_get(json_config, "analysis_start"))) {
-            config->analysis_start = json_integer_value(json_object_get(json_config, "analysis_start"));
-        } else {
-            config->analysis_start = 0;
-        }
-        if (json_is_number(json_object_get(json_config, "analysis_end"))) {
-            config->analysis_end = json_integer_value(json_object_get(json_config, "analysis_end"));
-        } else {
-            config->analysis_end = UINT32_MAX;
-        }
-
-        if (json_is_number(json_object_get(json_config, "height_scaling"))) {
-            config->height_scaling = json_number_value(json_object_get(json_config, "height_scaling"));
-        } else {
-            config->height_scaling = 1;
-        }
-
-        if (json_is_number(json_object_get(json_config, "energy_threshold"))) {
-            config->energy_threshold = json_number_value(json_object_get(json_config, "energy_threshold"));
-        } else {
-            config->energy_threshold = 0;
-        }
-
-        config->pulse_polarity = POLARITY_NEGATIVE;
-
-        if (json_is_string(json_object_get(json_config, "pulse_polarity"))) {
-            const char *pulse_polarity = json_string_value(json_object_get(json_config, "pulse_polarity"));
-
-            if (strstr(pulse_polarity, "Negative") ||
-                strstr(pulse_polarity, "negative"))
-            {
-                config->pulse_polarity = POLARITY_NEGATIVE;
-            }
-            else if (strstr(pulse_polarity, "Positive") ||
-                     strstr(pulse_polarity, "positive"))
-            {
-                config->pulse_polarity = POLARITY_POSITIVE;
-            }
-        }
-
-        config->is_error = false;
-        config->previous_samples_number = 0;
-
-        config->curve_samples = NULL;
-        config->curve_offset = NULL;
-        config->curve_smoothed = NULL;
-        config->curve_derivative = NULL;
-
-        (*user_config) = (void*)config;
+        return;
     }
+
+    read_config_number(json_config, baseline_samples, 1, config);
+    read_config_number(json_config, smooth_samples, 1, config);
+    read_config_number(json_config, height_scaling, 1.0, config);
+    read_config_number(json_config, analysis_start, 0, config);
+    read_config_number(json_config, analysis_end, UINT32_MAX, config);
+    read_config_number(json_config, energy_threshold, 0, config);
+
+    char *pulse_polarities_strs[] = {"negative", "positive"};
+    enum pulse_polarity_t pulse_polarities_vals[] = {POLARITY_NEGATIVE, POLARITY_POSITIVE};
+    read_config_options(json_config, pulse_polarity, pulse_polarities_strs, pulse_polarities_vals, config);
+
+    config->is_error = false;
+    config->previous_samples_number = 0;
+
+    config->curve_samples = NULL;
+    config->curve_offset = NULL;
+    config->curve_smoothed = NULL;
+    config->curve_derivative = NULL;
+
+    (*user_config) = (void *)config;
 }
 
 /*! \brief Function that cleans the memory allocated by `energy_init()`
  */
 void energy_close(void *user_config)
 {
-    struct RunningMean_config *config = (struct RunningMean_config*)user_config;
+    if (!user_config)
+    {
+        return;
+    }
 
-    if (config->curve_samples) {
+    struct RunningMean_config *config = (struct RunningMean_config *)user_config;
+
+    if (config->curve_samples)
+    {
         free(config->curve_samples);
     }
-    if (config->curve_offset) {
+    if (config->curve_offset)
+    {
         free(config->curve_offset);
     }
-    if (config->curve_smoothed) {
+    if (config->curve_smoothed)
+    {
         free(config->curve_smoothed);
     }
-    if (config->curve_derivative) {
+    if (config->curve_derivative)
+    {
         free(config->curve_derivative);
     }
 
-    if (user_config) {
+    if (user_config)
+    {
         free(user_config);
     }
 }
@@ -189,24 +157,32 @@ void energy_analysis(const uint16_t *samples,
                      size_t *events_number,
                      void *user_config)
 {
-    struct RunningMean_config *config = (struct RunningMean_config*)user_config;
+    if (!user_config)
+    {
+        printf("ERROR: libRunningMean energy_analysis(): User config not defined, not performing analysis\n");
+
+        return;
+    }
+
+    struct RunningMean_config *config = (struct RunningMean_config *)user_config;
 
     reallocate_curves(samples_number, &config);
 
     bool is_error = false;
 
-    if ((*events_number) != 1) {
-        //printf("WARNING: libRunningMean energy_analysis(): Reallocating buffers, from events number: %zu\n", (*events_number));
-
+    if ((*events_number) != 1)
+    {
         // Assuring that there is one event_PSD and discarding others
         is_error = !reallocate_buffers(trigger_positions, events_buffer, events_number, 1);
 
-        if (is_error) {
+        if (is_error)
+        {
             printf("ERROR: libRunningMean energy_analysis(): Unable to reallocate buffers\n");
         }
     }
 
-    if (is_error || config->is_error) {
+    if (is_error || config->is_error)
+    {
         printf("ERROR: libRunningMean energy_analysis(): Error status detected\n");
 
         return;
@@ -215,34 +191,30 @@ void energy_analysis(const uint16_t *samples,
     to_double(samples, samples_number, &config->curve_samples);
 
     // Preventing segfaults by checking the boundaries
-    const int64_t raw_analysis_start = config->analysis_start + (*trigger_positions)[0];
-    const int64_t raw_analysis_end = config->analysis_end + (*trigger_positions)[0];
-    uint32_t analysis_start = raw_analysis_start;
-    if (raw_analysis_start < 0) {
-        analysis_start = 0;
-    } else if (raw_analysis_start > samples_number) {
-        analysis_start = samples_number;
-    }
-    const uint32_t analysis_end = (raw_analysis_end < samples_number) ? raw_analysis_end : samples_number;
+    const int64_t analysis_start = clamp(config->analysis_start + (*trigger_positions)[0], 0, samples_number);
+    const int64_t analysis_end = clamp(config->analysis_end + (*trigger_positions)[0], analysis_start, samples_number);
     const uint32_t analysis_width = analysis_end - analysis_start;
 
     const uint32_t baseline_start = analysis_start;
-    const uint32_t baseline_end = ((baseline_start + config->baseline_samples) < samples_number) ? (baseline_start + config->baseline_samples) : samples_number;
+    const uint32_t baseline_end = clamp(baseline_start + config->baseline_samples, 0, samples_number);
 
     double baseline = 0;
     calculate_average(config->curve_samples, baseline_start, baseline_end, &baseline);
 
-    if (config->pulse_polarity == POLARITY_POSITIVE) {
+    if (config->pulse_polarity == POLARITY_POSITIVE)
+    {
         add_and_multiply_constant(config->curve_samples, samples_number, -1 * baseline, 1.0, &config->curve_offset);
-    } else {
+    }
+    else
+    {
         add_and_multiply_constant(config->curve_samples, samples_number, -1 * baseline, -1.0, &config->curve_offset);
     }
 
-    running_mean(config->curve_offset + analysis_start, analysis_width, 
-                 config->smooth_samples, \
+    running_mean(config->curve_offset + analysis_start, analysis_width,
+                 config->smooth_samples,
                  &config->curve_smoothed);
 
-    derivate(config->curve_smoothed + analysis_start, analysis_width, 
+    derivate(config->curve_smoothed + analysis_start, analysis_width,
              &config->curve_derivative);
 
     double smoothed_min = 0;
@@ -264,38 +236,24 @@ void energy_analysis(const uint16_t *samples,
                  &derivative_min, &derivative_max);
 
     const double energy = smoothed_max * config->height_scaling;
-    const uint64_t long_energy = (uint64_t)round(energy);
-
-    // We convert the 64 bit integers to 16 bit to simulate the digitizer data
-    uint16_t int_energy = long_energy & UINT16_MAX;
-
-    if (long_energy > UINT16_MAX)
-    {
-        int_energy = UINT16_MAX;
-    }
 
     const double pulse_shape = fabs(derivative_max) * config->height_scaling;
-    const uint64_t long_pulse_shape = (uint64_t)round(pulse_shape);
-    uint16_t int_pulse_shape = long_pulse_shape & UINT16_MAX;
-    if (long_pulse_shape > UINT16_MAX)
-    {
-        int_pulse_shape = UINT16_MAX;
-    }
-
-    uint64_t int_baseline = ((uint64_t)round(baseline)) & UINT16_MAX;
 
     const uint8_t group_counter = 0;
 
-    if (energy < config->energy_threshold) {
+    if (energy < config->energy_threshold)
+    {
         // Discard the event
         reallocate_buffers(trigger_positions, events_buffer, events_number, 0);
-    } else {
+    }
+    else
+    {
         // Output
         // We have to assume that this was taken care earlier
         //(*events_buffer)[0].timestamp = waveform->timestamp;
-        (*events_buffer)[0].qshort = int_pulse_shape;
-        (*events_buffer)[0].qlong = int_energy;
-        (*events_buffer)[0].baseline = int_baseline;
+        (*events_buffer)[0].qshort = clamp_to_uint16(pulse_shape);
+        (*events_buffer)[0].qlong = clamp_to_uint16(energy);
+        (*events_buffer)[0].baseline = clamp_to_uint16(baseline);
         (*events_buffer)[0].channel = waveform->channel;
         (*events_buffer)[0].group_counter = group_counter;
 
@@ -314,12 +272,16 @@ void energy_analysis(const uint16_t *samples,
         const uint8_t ZERO = UINT8_MAX / 2;
         const uint8_t MAX = UINT8_MAX / 2;
 
-        for (uint32_t i = 0; i < samples_number; i++) {
-            if (analysis_start <= i && i < analysis_end) {
+        for (uint32_t i = 0; i < samples_number; i++)
+        {
+            if (analysis_start <= i && i < analysis_end)
+            {
                 additional_analysis[i] = MAX + ZERO;
                 additional_smoothed[i] = (config->curve_smoothed[i - analysis_start] / smoothed_abs_max) * MAX + ZERO;
                 additional_derivative[i] = (config->curve_derivative[i - analysis_start] / derivative_abs_max) * MAX + ZERO;
-            } else {
+            }
+            else
+            {
                 additional_analysis[i] = ZERO;
                 additional_smoothed[i] = ZERO;
                 additional_derivative[i] = ZERO;
@@ -332,7 +294,8 @@ void reallocate_curves(uint32_t samples_number, struct RunningMean_config **user
 {
     struct RunningMean_config *config = (*user_config);
 
-    if (samples_number != config->previous_samples_number) {
+    if (samples_number > config->previous_samples_number)
+    {
         config->previous_samples_number = samples_number;
 
         config->is_error = false;
@@ -346,32 +309,44 @@ void reallocate_curves(uint32_t samples_number, struct RunningMean_config **user
         double *new_curve_derivative = realloc(config->curve_derivative,
                                                samples_number * sizeof(double));
 
-        if (!new_curve_samples) {
+        if (!new_curve_samples)
+        {
             printf("ERROR: libRunningMean reallocate_curves(): Unable to allocate curve_samples memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_samples = new_curve_samples;
         }
-        if (!new_curve_offset) {
+        if (!new_curve_offset)
+        {
             printf("ERROR: libRunningMean reallocate_curves(): Unable to allocate curve_offset memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_offset = new_curve_offset;
         }
-        if (!new_curve_smoothed) {
+        if (!new_curve_smoothed)
+        {
             printf("ERROR: libRunningMean reallocate_curves(): Unable to allocate curve_smoothed memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_smoothed = new_curve_smoothed;
         }
-        if (!new_curve_derivative) {
+        if (!new_curve_derivative)
+        {
             printf("ERROR: libRunningMean reallocate_curves(): Unable to allocate curve_derivative memory\n");
 
             config->is_error = true;
-        } else {
+        }
+        else
+        {
             config->curve_derivative = new_curve_derivative;
         }
     }
