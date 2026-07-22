@@ -17,20 +17,25 @@ To install packages use `dpkg`, _e.g._:
 
 ```
 sudo dpkg -i abcd-core-...
-sudo dpkg -i abcd-absp-...
-sudo dpkg -i abcd-abcd-...
+sudo dpkg -i abcd-wit-...
 ```
 
-The packages relative to the specific digitizers models depend on the vendor libraries, that need to be installed by the user.
+The package `abcd-core` contains the core of the framework, but it is missing the web interface.
+The package `abcd-wit` contains only the web interface.
+In order to follow the tutorial both `abcd-core` as well as `abcd-wit` should be installed.
+
 If there were some missing packages on which ABCD depends on, install them with:
 
 ```
 sudo apt install --fix-broken
 ```
 
+The packages relative to the specific digitizers models depend on the vendor libraries, that need to be installed by the user.
+At the moment only the following vendor-specific packages are provided: `abcd-abcd` (CAEN digitizers' interface) and `abcd-absp` (SP Devices digitizers' interface).
+
 ## Compilation
 
-Use CMake to build ABCD:
+Use CMake to build ABCD.
 
 ```
 cmake -S . -B build
