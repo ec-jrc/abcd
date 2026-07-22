@@ -15,6 +15,8 @@
  *  8. The energy information is obtained by determining the maximum of the
  *     resulting waveform.
  *
+ * This function determines only one event_PSD and will discard the others.
+ *
  * In the event_PSD structure the energy information is stored in the qlong,
  * while the qshort stores the value of the absolute maximum of the waveform
  * after the high-pass filter.
@@ -45,8 +47,6 @@
  *   Optional, default value: 1
  * - `energy_threshold`: pulses with an energy lower than the threshold are
  *   discared. Optional, default value: 0
- *
- * This function determines only one event_PSD and will discard the others.
  */
 
 #include <stdio.h>
