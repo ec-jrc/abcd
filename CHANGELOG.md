@@ -14,6 +14,9 @@
 - The building of the binary packages was also changed, it is now easier to maintain.
   The result is that the web interface module `wit` is in a separate `deb` package called `abcd-wit`.
 
+- Updated the `fmin` package to version 0.0.4, but this release has a known bug.
+  The package is therefore automatically patched at the installation phase.
+
 ### 1.2.2
 
 - The PSD filter `pufi` can now use different polygons on the PSD vs energy plot for the different channels.
