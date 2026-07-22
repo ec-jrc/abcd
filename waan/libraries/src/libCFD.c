@@ -181,7 +181,7 @@ void timestamp_analysis(const uint16_t *samples,
 
         if (is_error)
         {
-            printf("ERROR: libPSD energy_analysis(): Unable to reallocate buffers\n");
+            printf("ERROR: libPSD timestamp_analysis(): Unable to reallocate buffers\n");
         }
     }
 
