@@ -52,8 +52,9 @@
 #define ADD_INT_STID 0xEF14
 #define ADD_INT_EVNO 0xEF18
 
-namespace errors {
-const int CONFIG_FILE_NOT_FOUND = -60;
+namespace errors
+{
+    const int CONFIG_FILE_NOT_FOUND = -60;
 }
 
 // --------------------------------------------------------------------------------
@@ -61,21 +62,17 @@ const int CONFIG_FILE_NOT_FOUND = -60;
 // --------------------------------------------------------------------------------
 
 #ifdef LOGBOOK
-CAENDgtz::CAENDgtz(LogBook* _logbook)
-    : logbook(_logbook)
-    , handle(-1)
-    , isActive(0)
-    , error(0)
+CAENDgtz::CAENDgtz(LogBook *_logbook)
+    : logbook(_logbook), handle(-1), isActive(0), error(0)
 {
 #else
 CAENDgtz::CAENDgtz()
-    : handle(-1)
-    , isActive(0)
-    , error(0)
+    : handle(-1), isActive(0), error(0)
 {
 #endif
     boardName.assign("DGTZ");
-    for (int ch = 0; ch < MAXC_DG; ch++) {
+    for (int ch = 0; ch < MAXC_DG; ch++)
+    {
         specThr[ch] = 0;
         channelName[ch].assign("ch" + std::to_string(ch));
     }
@@ -86,12 +83,13 @@ CAENDgtz::CAENDgtz()
     ext_errcode = NULL;
     ext_errdesc = NULL;
 
-    memset(reinterpret_cast<void*>(&boardInfo), 0, sizeof(boardInfo));
+    memset(reinterpret_cast<void *>(&boardInfo), 0, sizeof(boardInfo));
 }
 
 CAENDgtz::~CAENDgtz()
 {
-    if (IsActive(1) == 1) {
+    if (IsActive(1) == 1)
+    {
         Deactivate();
     }
 }
@@ -100,23 +98,25 @@ CAENDgtz::~CAENDgtz()
 // general methods
 // -----------------------------------------------------------------------------
 //       1         2         3         4         5         6         7         8
-//345678901234567890123456789012345678901234567890123456789012345678901234567890
+// 345678901234567890123456789012345678901234567890123456789012345678901234567890
 
 void CAENDgtz::Activate(int connection_type,
-    int link_number,
-    int connection_node,
-    uint32_t address)
+                        int link_number,
+                        int connection_node,
+                        uint32_t address)
 {
     error = 0;
 
-    if (isActive == 0) {
-        //std::cout << "ACT: ";
+    if (isActive == 0)
+    {
+        // std::cout << "ACT: ";
         board_base_address = address;
         CAEN_DGTZ_ConnectionType conntype;
 
         std::cout << "Connection type:\t" << connection_type << std::endl;
 
-        switch (connection_type) {
+        switch (connection_type)
+        {
         case 0:
             conntype = CAEN_DGTZ_USB;
             std::cout << "Connection type:\tusing USB" << std::endl;
@@ -130,9 +130,9 @@ void CAENDgtz::Activate(int connection_type,
         // CAEN_DGTZ_OpticalLink
         //                                              -- Cristiano Fontana
 
-        //case 1:  {conntype = CAEN_DGTZ_PCI_OpticalLink;} break;
-        //case 2:  {conntype = CAEN_DGTZ_PCIE_OpticalLink;} break;
-        //case 3:  {conntype = CAEN_DGTZ_PCIE_EmbeddedDigitizer;} break;
+        // case 1:  {conntype = CAEN_DGTZ_PCI_OpticalLink;} break;
+        // case 2:  {conntype = CAEN_DGTZ_PCIE_OpticalLink;} break;
+        // case 3:  {conntype = CAEN_DGTZ_PCIE_EmbeddedDigitizer;} break;
         default:
             conntype = CAEN_DGTZ_OpticalLink;
             std::cout << "Connection type:\tusing OpticalLink" << std::endl;
@@ -140,47 +140,55 @@ void CAENDgtz::Activate(int connection_type,
 
         std::cout << "Link number:\t" << link_number << std::endl;
 
-//       1         2         3         4         5         6         7         8
-//345678901234567890123456789012345678901234567890123456789012345678901234567890
+        //       1         2         3         4         5         6         7         8
+        // 345678901234567890123456789012345678901234567890123456789012345678901234567890
         CAEN_DGTZ_ErrorCode retval = CAEN_DGTZ_OpenDigitizer2(conntype,
-                                                              (void*)&link_number,
+                                                              (void *)&link_number,
                                                               connection_node,
                                                               board_base_address,
                                                               &handle);
 
         error = (int)retval;
 
-        if (retval != 0) {
+        if (retval != 0)
+        {
             std::cout << "ERROR: Unable to activate digitizier, error: " << retval;
             std::cout << std::endl;
-        } else {
-            if (boardName.compare("DGTZ") == 0) {
+        }
+        else
+        {
+            if (boardName.compare("DGTZ") == 0)
+            {
                 boardName.append(" #" + std::to_string(handle));
             }
 
             // board info
             boardInfoFromLib = GetInfo();
 
-            for (i = 0; i < 12; i++) {
+            for (i = 0; i < 12; i++)
+            {
                 boardInfo.ModelName[i] = boardInfoFromLib.ModelName[i];
             }
             boardInfo.Model = boardInfoFromLib.Model;
             boardInfo.Channels = boardInfoFromLib.Channels;
             boardInfo.FormFactor = boardInfoFromLib.FormFactor;
             boardInfo.FamilyCode = boardInfoFromLib.FamilyCode;
-            for (i = 0; i < 20; i++) {
+            for (i = 0; i < 20; i++)
+            {
                 boardInfo.ROC_FirmwareRel[i] = boardInfoFromLib.ROC_FirmwareRel[i];
             }
-            for (i = 0; i < 40; i++) {
+            for (i = 0; i < 40; i++)
+            {
                 boardInfo.AMC_FirmwareRel[i] = boardInfoFromLib.AMC_FirmwareRel[i];
             }
             boardInfo.SerialNumber = boardInfoFromLib.SerialNumber;
             boardInfo.PCB_Revision = boardInfoFromLib.PCB_Revision;
             boardInfo.ADC_NBits = boardInfoFromLib.ADC_NBits;
 
-            if (verboseDebug) {
+            if (verboseDebug)
+            {
                 //       1         2         3         4         5         6         7         8
-                //345678901234567890123456789012345678901234567890123456789012345678901234567890
+                // 345678901234567890123456789012345678901234567890123456789012345678901234567890
                 std::cout << "ModelName:\t" << boardInfo.ModelName << std::endl;
                 std::cout << "Model:\t" << boardInfo.Model << std::endl;
                 std::cout << "Channels:\t" << boardInfo.Channels << std::endl;
@@ -202,56 +210,65 @@ void CAENDgtz::Activate(int connection_type,
             std::cout << std::endl;
 
             boardInfo.vers = 0;
-            if (vers >= 0x30 && vers <= 0x3a) {
+            if (vers >= 0x30 && vers <= 0x3a)
+            {
                 boardInfo.vers = 720;
                 boardInfo.nsPerSample = 4;
                 boardInfo.nsPerTimetag = 8;
             }
-	    else if (vers >= 0x60 && vers <= 0x62) {
+            else if (vers >= 0x60 && vers <= 0x62)
+            {
                 boardInfo.vers = 751;
                 boardInfo.nsPerSample = 1;
                 boardInfo.nsPerTimetag = 8;
             }
-	    else if (vers >= 0x90 && vers <= 0x90) {
+            else if (vers >= 0x90 && vers <= 0x90)
+            {
                 boardInfo.vers = 724;
                 boardInfo.nsPerSample = 10;
                 boardInfo.nsPerTimetag = 8;
             }
-	    else if (vers >= 0xc0 && vers <= 0xc1) {
+            else if (vers >= 0xc0 && vers <= 0xc1)
+            {
                 boardInfo.vers = 730;
                 boardInfo.nsPerSample = 2;
                 boardInfo.nsPerTimetag = 8;
-		// Issuing a channel ADC calibration
+                // Issuing a channel ADC calibration
                 WriteRegister(0x809C, 1);
             }
             // DT5730S (with new FPGA)
-	    else if (vers >= 0xc4 && vers <= 0xc5) {
+            else if (vers >= 0xc4 && vers <= 0xc5)
+            {
                 boardInfo.vers = 730;
                 boardInfo.nsPerSample = 2;
                 boardInfo.nsPerTimetag = 8;
-		// For the DT5730S this does nothing
-                //WriteRegister(0x809C, 1);
+                // For the DT5730S this does nothing
+                // WriteRegister(0x809C, 1);
             }
             // DT5790
-	    else if (vers >= 0xd0 && vers <= 0xd2) {
+            else if (vers >= 0xd0 && vers <= 0xd2)
+            {
                 boardInfo.vers = 720;
                 boardInfo.nsPerSample = 4;
                 boardInfo.nsPerTimetag = 8;
             }
             // DT5725
-	    else if (vers >= 0xf0 && vers <= 0xf1) {
+            else if (vers >= 0xf0 && vers <= 0xf1)
+            {
                 boardInfo.vers = 725;
                 boardInfo.nsPerSample = 4;
                 boardInfo.nsPerTimetag = 8;
             }
             // DT5725S (with new FPGA)
-	    else if (vers >= 0xf4 && vers <= 0xf5) {
+            else if (vers >= 0xf4 && vers <= 0xf5)
+            {
                 boardInfo.vers = 725;
                 boardInfo.nsPerSample = 4;
                 boardInfo.nsPerTimetag = 8;
             }
 
-            if (verboseDebug) {
+            if (verboseDebug)
+            {
                 std::cout << "vers: 0x" << std::hex << vers << std::dec << ";";
                 std::cout << " ";
                 std::cout << "ns: " << 0 + boardInfo.nsPerSample << ";";
@@ -260,17 +277,22 @@ void CAENDgtz::Activate(int connection_type,
 
             // firmware type
             uint32_t firmware;
-            if (boardInfo.Channels > 2) {
+            if (boardInfo.Channels > 2)
+            {
                 firmware = ReadRegister(ADD_1ST_FWRV + 0x200, "Init - Read FW");
-            } else {
+            }
+            else
+            {
                 firmware = ReadRegister(ADD_1ST_FWRV, "Init - Read FW");
             }
 
-            if (verboseDebug) {
+            if (verboseDebug)
+            {
                 std::cout << "FW: 0x" << std::hex << ((firmware & 0xFF00) >> 8) << std::dec << std::endl;
             }
 
-            switch ((firmware & 0xFF00) >> 8) {
+            switch ((firmware & 0xFF00) >> 8)
+            {
             case 136:
                 // 0x88 DPP_PSD x730
                 boardInfo.dppVersion = 3;
@@ -299,7 +321,8 @@ void CAENDgtz::Activate(int connection_type,
                 boardInfo.dppVersion = 0;
             }
 
-            if (boardInfo.dppVersion > 0) {
+            if (boardInfo.dppVersion > 0)
+            {
                 boardInfo.nsPerTimetag = boardInfo.nsPerSample;
             }
 
@@ -318,10 +341,11 @@ void CAENDgtz::Deactivate()
 {
     isActive = 0;
     error = (int)CAEN_DGTZ_CloseDigitizer(handle);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("Deactivate");
     }
-    //std::cout << "DEAC " << isActive << std::endl;
+    // std::cout << "DEAC " << isActive << std::endl;
 }
 
 void CAENDgtz::SetVerboseDebug(int mode)
@@ -332,7 +356,8 @@ void CAENDgtz::SetVerboseDebug(int mode)
 int CAENDgtz::IsActive(int silent)
 {
     // check if communication is possibile
-    if (isActive == 1 && silent == 0) {
+    if (isActive == 1 && silent == 0)
+    {
         ReadRegister(0xF000, "IsActive()");
     } // will EmitError in case of errors;
     return isActive; // EmitError will set isActive=0 in case of COM errors
@@ -377,60 +402,70 @@ void CAENDgtz::Reset()
 {
     error = (int)CAEN_DGTZ_Reset(handle);
 
-    if (boardInfo.dppVersion == 3) {
+    if (boardInfo.dppVersion == 3)
+    {
         ConfigSetPSDMandatoryBits();
     }
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         WriteRegister(0x8004, (1 << 2)); // GPIO setting
     }
     // channel calibration
-    if (boardInfo.vers == 730) {
+    if (boardInfo.vers == 730)
+    {
         //        CAEN_DGTZ_Calibrate(handle);
         WriteRegister(0x809c, 1, "Initial channel calibration");
         uint32_t timeout_ms = 0;
         uint32_t flag_cal_ok = 0;
-        while (timeout_ms < 1000 && flag_cal_ok == 0) {
+        while (timeout_ms < 1000 && flag_cal_ok == 0)
+        {
             Sleep(100);
             timeout_ms += 100;
             flag_cal_ok = GetRegisterSpecificBits(0x1088, 3, 3, "Initial channel calibration");
         }
-        if (verboseDebug) {
-            if (flag_cal_ok == 1) {
+        if (verboseDebug)
+        {
+            if (flag_cal_ok == 1)
+            {
                 std::cout << "Channels calibrated." << std::endl;
-            } else {
+            }
+            else
+            {
                 std::cout << "Channels did not calibrate before 1 s." << std::endl;
             }
         }
     }
 
-   // channel calibration
-    if (boardInfo.vers == 725) {
-      error = (int)CAEN_DGTZ_Calibrate(handle);
-      if (verboseDebug) printf("---> Reset: calling CAEN_DGTZ_Calibrate(handle)   :  %d\n",error);
+    // channel calibration
+    if (boardInfo.vers == 725)
+    {
+        error = (int)CAEN_DGTZ_Calibrate(handle);
+        if (verboseDebug)
+            printf("---> Reset: calling CAEN_DGTZ_Calibrate(handle)   :  %d\n", error);
     }
 
-
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("Reset");
     }
 }
 
-void CAENDgtz::SetBoardName(const char* name)
+void CAENDgtz::SetBoardName(const char *name)
 {
     boardName.assign(name);
 }
 
-const char* CAENDgtz::GetBoardName()
+const char *CAENDgtz::GetBoardName()
 {
     return boardName.data();
 }
 
-void CAENDgtz::SetChannelName(int channel, const char* name)
+void CAENDgtz::SetChannelName(int channel, const char *name)
 {
     channelName[channel].assign(name);
 }
 
-const char* CAENDgtz::GetChannelName(int channel)
+const char *CAENDgtz::GetChannelName(int channel)
 {
     return channelName[channel].data();
 }
@@ -440,143 +475,209 @@ int CAENDgtz::GetModel()
     return boardInfo.vers;
 }
 
-const char* CAENDgtz::GetModelName()
+const char *CAENDgtz::GetModelName()
 {
     return boardInfoFromLib.ModelName;
 }
 
 int CAENDgtz::GetError() { return error; }
 
-const char* CAENDgtz::GetErrorDesc()
+const char *CAENDgtz::GetErrorDesc()
 {
-    switch (error) {
-    case 0: {
+    switch (error)
+    {
+    case 0:
+    {
         return "Operation completed";
-    } break;
-    case -1: {
+    }
+    break;
+    case -1:
+    {
         return "Communication error";
-    } break;
-    case -2: {
+    }
+    break;
+    case -2:
+    {
         return "Unspecified error";
-    } break;
-    case -3: {
+    }
+    break;
+    case -3:
+    {
         return "Invalid parameter";
-    } break;
-    case -4: {
+    }
+    break;
+    case -4:
+    {
         return "Invalid link type";
-    } break;
-    case -5: {
+    }
+    break;
+    case -5:
+    {
         return "Invalid device handle";
-    } break;
-    case -6: {
+    }
+    break;
+    case -6:
+    {
         return "Maximum number of devices exceeded";
-    } break;
-    case -7: {
+    }
+    break;
+    case -7:
+    {
         return "The operation is not allowed on this type of board";
-    } break;
-    case -8: {
+    }
+    break;
+    case -8:
+    {
         return "The interrupt level is not allowed";
-    } break;
-    case -9: {
+    }
+    break;
+    case -9:
+    {
         return "The event number is bad";
-    } break;
-    case -10: {
+    }
+    break;
+    case -10:
+    {
         return "Unable to read the registry";
-    } break;
-    case -11: {
+    }
+    break;
+    case -11:
+    {
         return "Unable to write into the registry";
-    } break;
-    case -12: {
+    }
+    break;
+    case -12:
+    {
         return "This function is incompatible with current settings";
-    } break;
-    case -13: {
+    }
+    break;
+    case -13:
+    {
         return "The channel number is invalid";
-    } break;
-    case -14: {
+    }
+    break;
+    case -14:
+    {
         return "The channel is busy";
-    } break;
-    case -15: {
+    }
+    break;
+    case -15:
+    {
         return "Invalid FPIO Mode";
-    } break;
-    case -16: {
+    }
+    break;
+    case -16:
+    {
         return "Wrong acquisition mode";
-    } break;
-    case -17: {
+    }
+    break;
+    case -17:
+    {
         return "This function is not allowed for this module";
-    } break;
-    case -18: {
+    }
+    break;
+    case -18:
+    {
         return "Communication timeout";
-    } break;
-    case -19: {
+    }
+    break;
+    case -19:
+    {
         return "The buffer is invalid";
-    } break;
-    case -20: {
+    }
+    break;
+    case -20:
+    {
         return "The event is not found";
-    } break;
-    case -21: {
+    }
+    break;
+    case -21:
+    {
         return "The event is invalid";
-    } break;
-    case -22: {
+    }
+    break;
+    case -22:
+    {
         return "Out of memory";
-    } break;
-    case -23: {
+    }
+    break;
+    case -23:
+    {
         return "Unable to calibrate the board";
-    } break;
-    case -24: {
+    }
+    break;
+    case -24:
+    {
         return "Unable to open the digitizer";
-    } break;
-    case -25: {
+    }
+    break;
+    case -25:
+    {
         return "The digitizer is already open";
-    } break;
-    case -26: {
+    }
+    break;
+    case -26:
+    {
         return "The digitizer is not ready to operate";
-    } break;
-    case -27: {
+    }
+    break;
+    case -27:
+    {
         return "The digitizer has not the IRQ configured";
-    } break;
-    case errors::CONFIG_FILE_NOT_FOUND: {
+    }
+    break;
+    case errors::CONFIG_FILE_NOT_FOUND:
+    {
         return "Configuration file not found";
-    } break;
-    case -99: {
+    }
+    break;
+    case -99:
+    {
         return "The function is not yet implemented";
-    } break;
-    default: {
+    }
+    break;
+    default:
+    {
         return "Unclear error";
     }
     }
 }
 
-void CAENDgtz::EmitError(const char* reference)
+void CAENDgtz::EmitError(const char *reference)
 {
 #ifdef LOGBOOK
     logbook->AddEntry((error == 0 ? LogBook::LOG_INFO : LogBook::LOG_ERROR), boardName + ": " + GetErrorDesc() + " [" + reference + "()]", verboseDebug);
 #else
-    if (verboseDebug) {
+    if (verboseDebug)
+    {
         printf("%s: %s [%s]\n", boardName.data(), GetErrorDesc(), reference);
     }
 #endif
-    if (ext_errcode != NULL) {
+    if (ext_errcode != NULL)
+    {
         (*ext_errcode) = error;
     }
-    if (ext_errdesc != NULL) {
+    if (ext_errdesc != NULL)
+    {
         (*ext_errdesc) = GetErrorDesc();
         ext_errdesc->append(" [");
         ext_errdesc->append(reference);
         ext_errdesc->append("()]");
     }
-    if (error == -1 || error == -5 || error == -18 || error == -26) {
+    if (error == -1 || error == -5 || error == -18 || error == -26)
+    {
         isActive = 0;
     }
     return;
 }
 
-void CAENDgtz::SetExternalErrorCode(int* ext_errc)
+void CAENDgtz::SetExternalErrorCode(int *ext_errc)
 {
     ext_errcode = ext_errc;
     return;
 }
 
-void CAENDgtz::SetExternalErrorDesc(std::string* ext_errd)
+void CAENDgtz::SetExternalErrorDesc(std::string *ext_errd)
 {
     ext_errdesc = ext_errd;
     return;
@@ -590,25 +691,27 @@ int CAENDgtz::GetHandle()
 CAEN_DGTZ_BoardInfo_t CAENDgtz::GetInfo()
 {
     CAEN_DGTZ_BoardInfo_t this_boardInfo;
-    memset(reinterpret_cast<void*>(&this_boardInfo), 0, sizeof(CAEN_DGTZ_BoardInfo_t));
+    memset(reinterpret_cast<void *>(&this_boardInfo), 0, sizeof(CAEN_DGTZ_BoardInfo_t));
 
     error = (int)CAEN_DGTZ_GetInfo(handle, &this_boardInfo);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetInfo");
     }
 
     return this_boardInfo;
 }
 
-void CAENDgtz::WriteRegister(uint32_t address, uint32_t data, const char* reference)
+void CAENDgtz::WriteRegister(uint32_t address, uint32_t data, const char *reference)
 {
     error = (int)CAEN_DGTZ_WriteRegister(handle, address, data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError(reference);
     }
 }
 
-uint32_t CAENDgtz::ReadRegister(uint32_t address, const char* reference)
+uint32_t CAENDgtz::ReadRegister(uint32_t address, const char *reference)
 {
     uint32_t data = 0;
     error = (int)CAEN_DGTZ_ReadRegister(handle, address, &data);
@@ -618,7 +721,8 @@ uint32_t CAENDgtz::ReadRegister(uint32_t address, const char* reference)
     errorReference << std::hex << std::setfill('0') << std::setw(4) << address;
     errorReference << ") called by " << reference << std::dec;
 
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError(errorReference.str().c_str());
     }
 
@@ -634,18 +738,22 @@ std::string CAENDgtz::DumpRegister(uint32_t address, int print)
     ss << "[0x";
     ss << std::hex << std::setw(4) << address << std::dec;
     ss << "] = 0x" << std::hex << std::setfill('0') << std::setw(8) << data << std::dec << " = ";
-    for (int bit = 31; bit >= 0; bit--) {
+    for (int bit = 31; bit >= 0; bit--)
+    {
         ss << ((data & (1 << bit)) >> bit);
-        if (bit % 4 == 0) {
+        if (bit % 4 == 0)
+        {
             ss << " ";
         }
-        if (bit % 8 == 0) {
+        if (bit % 8 == 0)
+        {
             ss << " ";
         }
     }
     ss << "= " << data;
 
-    if (print == 1) {
+    if (print == 1)
+    {
         std::cout << ss.str().data() << std::endl;
     }
 
@@ -653,81 +761,107 @@ std::string CAENDgtz::DumpRegister(uint32_t address, int print)
 }
 
 uint32_t CAENDgtz::GetRegisterSpecificBits(uint32_t reg_add,
-    uint8_t bit_lower,
-    uint8_t bit_upper,
-    const char* reference)
+                                           uint8_t bit_lower,
+                                           uint8_t bit_upper,
+                                           const char *reference)
 {
     uint32_t reg_data = 0;
     uint32_t reg_mask = 0;
-    if (bit_upper < 32 && bit_lower <= bit_upper) {
-        for (int bit = 0; bit < 32; bit++) {
-            if (bit >= bit_lower && bit <= bit_upper) {
+    if (bit_upper < 32 && bit_lower <= bit_upper)
+    {
+        for (int bit = 0; bit < 32; bit++)
+        {
+            if (bit >= bit_lower && bit <= bit_upper)
+            {
                 reg_mask += (1 << bit);
             }
         }
         error = (int)CAEN_DGTZ_ReadRegister(handle, reg_add, &reg_data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError(reference);
     }
     return (reg_data & reg_mask) >> bit_lower;
 }
 
-void CAENDgtz::SetRegisterSpecificBits(uint32_t reg_add, uint8_t bit_lower, uint8_t bit_upper, uint32_t value, const char* reference)
+void CAENDgtz::SetRegisterSpecificBits(uint32_t reg_add, uint8_t bit_lower, uint8_t bit_upper, uint32_t value, const char *reference)
 {
     uint8_t bit_number = bit_upper - bit_lower + 1;
-    if ((value < ((uint32_t)1 << bit_number)) && bit_upper < 32 && bit_lower <= bit_upper) {
+    if ((value < ((uint32_t)1 << bit_number)) && bit_upper < 32 && bit_lower <= bit_upper)
+    {
         uint32_t reg_data = 0;
         uint32_t reg_mask = 0;
-        for (int bit = 0; bit < 32; bit++) {
-            if (bit < bit_lower || bit > bit_upper) {
+        for (int bit = 0; bit < 32; bit++)
+        {
+            if (bit < bit_lower || bit > bit_upper)
+            {
                 reg_mask += (1 << bit);
             }
         }
         error = (int)CAEN_DGTZ_ReadRegister(handle, reg_add, &reg_data);
-        if (error == 0) {
+        if (error == 0)
+        {
             reg_data = (reg_data & reg_mask) + (value << bit_lower);
             error = (int)CAEN_DGTZ_WriteRegister(handle, reg_add, reg_data);
         }
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError(reference);
     }
 }
 
 void CAENDgtz::SetFanSpeed(int value)
 {
-    if (boardInfo.vers == 730 || (boardInfo.vers == 724)) {
+    if (boardInfo.vers == 730 || (boardInfo.vers == 724))
+    {
         SetRegisterSpecificBits(0x8168, 3, 3, value);
-    } else {
+    }
+    else
+    {
         error = -17;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetFanSpeed");
     }
 }
 
 int CAENDgtz::GetFanSpeed()
 {
-    switch (boardInfo.vers) {
-    case 725: {
+    switch (boardInfo.vers)
+    {
+    case 725:
+    {
         return GetRegisterSpecificBits(0x8168, 3, 3);
-    } break;
-    case 730: {
+    }
+    break;
+    case 730:
+    {
         return GetRegisterSpecificBits(0x8168, 3, 3);
-    } break;
-    case 724: {
+    }
+    break;
+    case 724:
+    {
         return GetRegisterSpecificBits(0x8168, 3, 3);
-    } break;
-    default: {
+    }
+    break;
+    default:
+    {
         error = -17;
     }
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetFanSpeed");
     }
     return 1;
@@ -740,7 +874,7 @@ int CAENDgtz::GetFanSpeed()
 void CAENDgtz::SetChannelEnableMask(uint32_t mask)
 {
     // disable even channels - AUTOMATICALLY DONE
-    //if (boardInfo.vers==751 && boardInfo.dppVersion==0) {
+    // if (boardInfo.vers==751 && boardInfo.dppVersion==0) {
     //    if (GetDualEdgeMode()==1) {
     //        error = (int)CAEN_DGTZ_SetChannelEnableMask(handle,(mask & 0x5555));
     //        if (error!=0) { EmitError("SetChannelEnableMask/DualEdgeMode"); }
@@ -748,7 +882,8 @@ void CAENDgtz::SetChannelEnableMask(uint32_t mask)
     //    }
     //}
     error = (int)CAEN_DGTZ_SetChannelEnableMask(handle, mask);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetChannelEnableMask");
     }
     return;
@@ -758,7 +893,8 @@ uint32_t CAENDgtz::GetChannelEnableMask()
 {
     uint32_t mask;
     error = (int)CAEN_DGTZ_GetChannelEnableMask(handle, &mask);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetChannelEnableMask");
     }
     return mask;
@@ -787,22 +923,31 @@ uint32_t CAENDgtz::GetCoincidenceLevel()
 void CAENDgtz::SetSWTriggerMode(uint32_t mode)
 {
     CAEN_DGTZ_TriggerMode_t caen_enum_mode;
-    switch (mode) {
-    case 1: {
+    switch (mode)
+    {
+    case 1:
+    {
         caen_enum_mode = CAEN_DGTZ_TRGMODE_ACQ_ONLY;
-    } break;
-    case 2: {
+    }
+    break;
+    case 2:
+    {
         caen_enum_mode = CAEN_DGTZ_TRGMODE_EXTOUT_ONLY;
-    } break;
-    case 3: {
+    }
+    break;
+    case 3:
+    {
         caen_enum_mode = CAEN_DGTZ_TRGMODE_ACQ_AND_EXTOUT;
-    } break;
-    default: {
+    }
+    break;
+    default:
+    {
         caen_enum_mode = CAEN_DGTZ_TRGMODE_DISABLED;
     }
     }
     error = (int)CAEN_DGTZ_SetSWTriggerMode(handle, caen_enum_mode);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetSWTriggerMode");
     }
 }
@@ -811,7 +956,8 @@ uint32_t CAENDgtz::GetSWTriggerMode()
 {
     CAEN_DGTZ_TriggerMode_t mode;
     error = (int)CAEN_DGTZ_GetSWTriggerMode(handle, &mode);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetSWTriggerMode");
     }
     return (int)mode;
@@ -820,16 +966,21 @@ uint32_t CAENDgtz::GetSWTriggerMode()
 void CAENDgtz::SetAcquisitionMode(uint32_t mode)
 {
     CAEN_DGTZ_AcqMode_t caen_enum_acqmode;
-    switch (mode) {
-    case 1: {
+    switch (mode)
+    {
+    case 1:
+    {
         caen_enum_acqmode = CAEN_DGTZ_S_IN_CONTROLLED;
-    } break;
-    default: {
+    }
+    break;
+    default:
+    {
         caen_enum_acqmode = CAEN_DGTZ_SW_CONTROLLED;
     }
     }
     error = (int)CAEN_DGTZ_SetAcquisitionMode(handle, caen_enum_acqmode);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetAcquisitionMode");
     }
 }
@@ -838,7 +989,8 @@ uint32_t CAENDgtz::GetAcquisitionMode()
 {
     CAEN_DGTZ_AcqMode_t caen_enum_acqmode;
     error = (int)CAEN_DGTZ_GetAcquisitionMode(handle, &caen_enum_acqmode);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetAcquisitionMode");
     }
     return (int)caen_enum_acqmode;
@@ -847,22 +999,31 @@ uint32_t CAENDgtz::GetAcquisitionMode()
 void CAENDgtz::SetExtTriggerInputMode(uint32_t mode)
 {
     CAEN_DGTZ_TriggerMode_t caen_enum_mode;
-    switch (mode) {
-    case 1: {
+    switch (mode)
+    {
+    case 1:
+    {
         caen_enum_mode = CAEN_DGTZ_TRGMODE_ACQ_ONLY;
-    } break;
-    case 2: {
+    }
+    break;
+    case 2:
+    {
         caen_enum_mode = CAEN_DGTZ_TRGMODE_EXTOUT_ONLY;
-    } break;
-    case 3: {
+    }
+    break;
+    case 3:
+    {
         caen_enum_mode = CAEN_DGTZ_TRGMODE_ACQ_AND_EXTOUT;
-    } break;
-    default: {
+    }
+    break;
+    default:
+    {
         caen_enum_mode = CAEN_DGTZ_TRGMODE_DISABLED;
     }
     }
     error = (int)CAEN_DGTZ_SetExtTriggerInputMode(handle, caen_enum_mode);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetExtTriggerInputMode");
     }
 }
@@ -871,7 +1032,8 @@ uint32_t CAENDgtz::GetExtTriggerInputMode()
 {
     CAEN_DGTZ_TriggerMode_t caen_enum_mode;
     error = (int)CAEN_DGTZ_GetExtTriggerInputMode(handle, &caen_enum_mode);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetExtTriggerInputMode");
     }
     return (int)caen_enum_mode;
@@ -879,12 +1041,16 @@ uint32_t CAENDgtz::GetExtTriggerInputMode()
 
 void CAENDgtz::SetEventPackaging(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         WriteRegister(ADD_CHA_CNFG + 0x0004 * (2 - value), 1 << 11);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetEventPackaging");
     }
 }
@@ -892,7 +1058,8 @@ void CAENDgtz::SetEventPackaging(uint32_t value)
 uint32_t CAENDgtz::GetEventPackaging()
 {
     uint32_t packaging = 0;
-    if (boardInfo.vers == 720) {
+    if (boardInfo.vers == 720)
+    {
         packaging = GetRegisterSpecificBits(ADD_CHA_CNFG, 11, 11, "GetEventPackaging");
     }
     return packaging;
@@ -900,12 +1067,16 @@ uint32_t CAENDgtz::GetEventPackaging()
 
 void CAENDgtz::SetTriggerUnderThreshold(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         WriteRegister(ADD_CHA_CNFG + 0x0004 * (2 - value), 1 << 6);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetTriggerUnderThreshold");
     }
 }
@@ -917,12 +1088,16 @@ uint32_t CAENDgtz::GetTriggerUnderThreshold()
 
 void CAENDgtz::SetMemoryAccess(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         WriteRegister(ADD_CHA_CNFG + 0x0004 * (2 - value), 1 << 4);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetMemoryAccess");
     }
 }
@@ -934,12 +1109,16 @@ uint32_t CAENDgtz::GetMemoryAccess()
 
 void CAENDgtz::SetTestPatternGeneration(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         WriteRegister(ADD_CHA_CNFG + 0x0004 * (2 - value), 1 << 3);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -951,12 +1130,16 @@ uint32_t CAENDgtz::GetTestPatternGeneration()
 
 void CAENDgtz::SetTriggerOverlap(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         WriteRegister(ADD_CHA_CNFG + 0x0004 * (2 - value), 1 << 1);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -969,19 +1152,24 @@ uint32_t CAENDgtz::GetTriggerOverlap()
 void CAENDgtz::SetDPPEventAggregation(uint32_t value1, uint32_t value2)
 {
     error = (int)CAEN_DGTZ_SetDPPEventAggregation(handle, value1, value2);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetDPPEventAggregation");
     }
 }
 
 void CAENDgtz::SetBufferBlockNumber(uint32_t value)
 {
-    if (value < 11) {
+    if (value < 11)
+    {
         error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_NUM_BUFF, value);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetBufferBlockNumber");
     }
 }
@@ -997,15 +1185,19 @@ uint32_t CAENDgtz::GetBufferBlockNumber()
 
 void CAENDgtz::SetIOTrgOutProgram(uint32_t value)
 {
-    if (value < 4) {
+    if (value < 4)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
         data = (data & 0xFFF3FFFF) + (value << 18);
         error = CAEN_DGTZ_WriteRegister(handle, ADD_FIO_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1014,7 +1206,8 @@ uint32_t CAENDgtz::GetIOTrgOutProgram()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x000C0000) >> 18;
@@ -1022,15 +1215,19 @@ uint32_t CAENDgtz::GetIOTrgOutProgram()
 
 void CAENDgtz::SetIOTrgOutDisplay(uint32_t value)
 {
-    if (value < 4) {
+    if (value < 4)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
         data = (data & 0xFFFCFFFF) + (value << 16);
         error = CAEN_DGTZ_WriteRegister(handle, ADD_FIO_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1039,7 +1236,8 @@ uint32_t CAENDgtz::GetIOTrgOutDisplay()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x00030000) >> 16;
@@ -1047,15 +1245,19 @@ uint32_t CAENDgtz::GetIOTrgOutDisplay()
 
 void CAENDgtz::SetIOTrgOutMode(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
         data = (data & 0xFFFF7FFF) + (value << 15);
         error = CAEN_DGTZ_WriteRegister(handle, ADD_FIO_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1064,7 +1266,8 @@ uint32_t CAENDgtz::GetIOTrgOutMode()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x00008000) >> 15;
@@ -1072,15 +1275,19 @@ uint32_t CAENDgtz::GetIOTrgOutMode()
 
 void CAENDgtz::SetIOTrgOutTestMode(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
         data = (data & 0xFFFFBFFF) + (value << 14);
         error = CAEN_DGTZ_WriteRegister(handle, ADD_FIO_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1089,7 +1296,8 @@ uint32_t CAENDgtz::GetIOTrgOutTestMode()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x00004000) >> 14;
@@ -1107,15 +1315,19 @@ int CAENDgtz::GetIOExtTrgPropagation()
 
 void CAENDgtz::SetIOPatternLatchMode(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
         data = (data & 0xFFFFFEFF) + (value << 9);
         error = CAEN_DGTZ_WriteRegister(handle, ADD_FIO_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1124,7 +1336,8 @@ uint32_t CAENDgtz::GetIOPatternLatchMode()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x00000100) >> 9;
@@ -1132,15 +1345,19 @@ uint32_t CAENDgtz::GetIOPatternLatchMode()
 
 void CAENDgtz::SetIOMode(uint32_t value)
 {
-    if (value < 3) {
+    if (value < 3)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
         data = (data & 0xFFFFFF3F) + (value << 6);
         error = CAEN_DGTZ_WriteRegister(handle, ADD_FIO_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1149,7 +1366,8 @@ uint32_t CAENDgtz::GetIOMode()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x000000C0) >> 6;
@@ -1157,15 +1375,19 @@ uint32_t CAENDgtz::GetIOMode()
 
 void CAENDgtz::SetIOLVDSFourthBlkOutputs(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
         data = (data & 0xFFFFFFDF) + (value << 5);
         error = CAEN_DGTZ_WriteRegister(handle, ADD_FIO_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1174,7 +1396,8 @@ uint32_t CAENDgtz::GetIOLVDSFourthBlkOutputs()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x00000020) >> 5;
@@ -1182,15 +1405,19 @@ uint32_t CAENDgtz::GetIOLVDSFourthBlkOutputs()
 
 void CAENDgtz::SetIOLVDSThirdBlkOutputs(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
         data = (data & 0xFFFFFFEF) + (value << 4);
         error = CAEN_DGTZ_WriteRegister(handle, ADD_FIO_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1199,7 +1426,8 @@ uint32_t CAENDgtz::GetIOLVDSThirdBlkOutputs()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x00000010) >> 4;
@@ -1207,15 +1435,19 @@ uint32_t CAENDgtz::GetIOLVDSThirdBlkOutputs()
 
 void CAENDgtz::SetIOLVDSSecondBlkOutputs(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
         data = (data & 0xFFFFFFF7) + (value << 3);
         error = CAEN_DGTZ_WriteRegister(handle, ADD_FIO_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1224,7 +1456,8 @@ uint32_t CAENDgtz::GetIOLVDSSecondBlkOutputs()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x00000008) >> 3;
@@ -1232,15 +1465,19 @@ uint32_t CAENDgtz::GetIOLVDSSecondBlkOutputs()
 
 void CAENDgtz::SetIOLVDSFirstBlkOutputs(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
         data = (data & 0xFFFFFFFB) + (value << 2);
         error = CAEN_DGTZ_WriteRegister(handle, ADD_FIO_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1249,7 +1486,8 @@ uint32_t CAENDgtz::GetIOLVDSFirstBlkOutputs()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x00000004) >> 2;
@@ -1257,15 +1495,19 @@ uint32_t CAENDgtz::GetIOLVDSFirstBlkOutputs()
 
 void CAENDgtz::SetIOHighImpedence(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
         data = (data & 0xFFFFFFFD) + (value << 1);
         error = CAEN_DGTZ_WriteRegister(handle, ADD_FIO_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1274,7 +1516,8 @@ uint32_t CAENDgtz::GetIOHighImpedence()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x00000002) >> 1;
@@ -1282,15 +1525,19 @@ uint32_t CAENDgtz::GetIOHighImpedence()
 
 void CAENDgtz::SetIOLevel(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
         data = (data & 0xFFFFFFFE) + value;
         error = CAEN_DGTZ_WriteRegister(handle, ADD_FIO_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1299,7 +1546,8 @@ uint32_t CAENDgtz::GetIOLevel()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_FIO_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return data & 0x00000001;
@@ -1311,15 +1559,19 @@ uint32_t CAENDgtz::GetIOLevel()
 
 void CAENDgtz::SetInterruptMode(uint32_t mode)
 {
-    if (mode < 2) {
+    if (mode < 2)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_VME_CTRL, &data);
         data = (data & 0xBF) + (mode << 7);
         error = CAEN_DGTZ_WriteRegister(handle, ADD_VME_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1328,7 +1580,8 @@ uint32_t CAENDgtz::GetInterruptMode()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_VME_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data >> 7) & 0x1;
@@ -1336,15 +1589,19 @@ uint32_t CAENDgtz::GetInterruptMode()
 
 void CAENDgtz::SetEnabledRELOC(uint32_t mode)
 {
-    if (mode < 2) {
+    if (mode < 2)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_VME_CTRL, &data);
         data = (data & 0xCF) + (mode << 6);
         error = CAEN_DGTZ_WriteRegister(handle, ADD_VME_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1353,7 +1610,8 @@ uint32_t CAENDgtz::GetEnabledRELOC()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_VME_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data >> 6) & 0x1;
@@ -1361,15 +1619,19 @@ uint32_t CAENDgtz::GetEnabledRELOC()
 
 void CAENDgtz::SetEnabledALIGN64(uint32_t mode)
 {
-    if (mode < 2) {
+    if (mode < 2)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_VME_CTRL, &data);
         data = (data & 0xDF) + (mode << 5);
         error = CAEN_DGTZ_WriteRegister(handle, ADD_VME_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1378,7 +1640,8 @@ uint32_t CAENDgtz::GetEnabledALIGN64()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_VME_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data >> 5) & 0x1;
@@ -1386,15 +1649,19 @@ uint32_t CAENDgtz::GetEnabledALIGN64()
 
 void CAENDgtz::SetEnabledBERR(uint32_t mode)
 {
-    if (mode < 2) {
+    if (mode < 2)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_VME_CTRL, &data);
         data = (data & 0xEF) + (mode << 4);
         error = CAEN_DGTZ_WriteRegister(handle, ADD_VME_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1403,7 +1670,8 @@ uint32_t CAENDgtz::GetEnabledBERR()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_VME_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data >> 4) & 0x1;
@@ -1411,15 +1679,19 @@ uint32_t CAENDgtz::GetEnabledBERR()
 
 void CAENDgtz::SetEnabledOLIRQ(uint32_t mode)
 {
-    if (mode < 2) {
+    if (mode < 2)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_VME_CTRL, &data);
         data = (data & 0xF7) + (mode << 3);
         error = CAEN_DGTZ_WriteRegister(handle, ADD_VME_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1428,7 +1700,8 @@ uint32_t CAENDgtz::GetEnabledOLIRQ()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_VME_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data >> 3) & 0x1;
@@ -1436,15 +1709,19 @@ uint32_t CAENDgtz::GetEnabledOLIRQ()
 
 void CAENDgtz::SetInterruptLevel(uint32_t level)
 {
-    if (level < 8) {
+    if (level < 8)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, ADD_VME_CTRL, &data);
         data = (data & 0xF8) + level;
         error = CAEN_DGTZ_WriteRegister(handle, ADD_VME_CTRL, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1453,7 +1730,8 @@ uint32_t CAENDgtz::GetInterruptLevel()
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, ADD_VME_CTRL, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return data & 0x7;
@@ -1462,7 +1740,8 @@ uint32_t CAENDgtz::GetInterruptLevel()
 void CAENDgtz::SetInterruptStatusID(uint32_t value)
 {
     error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_INT_STID, value);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1471,7 +1750,8 @@ uint32_t CAENDgtz::GetInterruptStatusID()
 {
     uint32_t data = 0;
     error = (int)CAEN_DGTZ_ReadRegister(handle, ADD_INT_STID, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return data;
@@ -1479,12 +1759,16 @@ uint32_t CAENDgtz::GetInterruptStatusID()
 
 void CAENDgtz::SetInterruptEventNumber(uint32_t value)
 {
-    if (value < 1024) {
+    if (value < 1024)
+    {
         error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_INT_EVNO, value);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1493,7 +1777,8 @@ uint32_t CAENDgtz::GetInterruptEventNumber()
 {
     uint32_t data = 0;
     error = (int)CAEN_DGTZ_ReadRegister(handle, ADD_INT_EVNO, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return data;
@@ -1502,7 +1787,8 @@ uint32_t CAENDgtz::GetInterruptEventNumber()
 void CAENDgtz::IRQWait(uint32_t timeout)
 {
     error = (int)CAEN_DGTZ_IRQWait(handle, timeout);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1521,7 +1807,8 @@ CAENDgtz::acqStatus_t CAENDgtz::GetAcquisitionStatus()
     acqStatus_t acqStatus;
     uint32_t data = 0;
     error = (int)CAEN_DGTZ_ReadRegister(handle, ADD_ACQ_STAT, &data);
-    if (error == 0) {
+    if (error == 0)
+    {
         acqStatus.ready = (data >> 8) & 1;
         acqStatus.pllLock = (data >> 7) & 1;
         acqStatus.pllBypass = (data >> 6) & 1;
@@ -1529,7 +1816,9 @@ CAENDgtz::acqStatus_t CAENDgtz::GetAcquisitionStatus()
         acqStatus.eventFull = (data >> 4) & 1;
         acqStatus.eventReady = (data >> 3) & 1;
         acqStatus.run = (data >> 2) & 1;
-    } else {
+    }
+    else
+    {
         EmitError("GetAcquisitionStatus");
     }
     return acqStatus;
@@ -1540,11 +1829,14 @@ CAENDgtz::vmeStatus_t CAENDgtz::GetVMEStatus()
     vmeStatus_t vmeStatus;
     uint32_t data = 0;
     error = (int)CAEN_DGTZ_ReadRegister(handle, ADD_VME_STAT, &data);
-    if (error == 0) {
+    if (error == 0)
+    {
         vmeStatus.busErr = (data >> 2) & 1;
         vmeStatus.busFull = (data >> 1) & 1;
         vmeStatus.eventReady = data & 1;
-    } else {
+    }
+    else
+    {
         EmitError("GetVMEStatus");
     }
     return vmeStatus;
@@ -1556,12 +1848,15 @@ CAENDgtz::chnStatus_t CAENDgtz::GetChannelStatus(uint32_t channel)
     uint32_t data = 0;
     uint32_t address = ADD_1ST_CHST + 0x0100 * channel;
     error = (int)CAEN_DGTZ_ReadRegister(handle, address, &data);
-    if (error == 0) {
+    if (error == 0)
+    {
         chnStatus.bufErr = (data >> 5) & 1;
         chnStatus.dacBusy = (data >> 2) & 1;
         chnStatus.memEmpty = (data >> 1) & 1;
         chnStatus.memFull = data & 1;
-    } else {
+    }
+    else
+    {
         EmitError("GetChannelStatus");
     }
     return chnStatus;
@@ -1571,7 +1866,8 @@ uint32_t CAENDgtz::GetChannelBufferOccupancy(uint32_t channel)
     uint32_t data = 0;
     uint32_t address = ADD_1ST_CHBO + 0x0100 * channel;
     error = (int)CAEN_DGTZ_ReadRegister(handle, address, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetChannelBufferOccupancy");
     }
     return (data & 0x400);
@@ -1584,7 +1880,8 @@ uint32_t CAENDgtz::GetChannelBufferOccupancy(uint32_t channel)
 void CAENDgtz::ClearData()
 {
     error = CAEN_DGTZ_ClearData(handle);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("ClearData");
     }
 }
@@ -1592,7 +1889,8 @@ void CAENDgtz::ClearData()
 void CAENDgtz::SWStartAcquisition()
 {
     error = (int)CAEN_DGTZ_SWStartAcquisition(handle);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SWStartAcquisition");
     }
 }
@@ -1600,7 +1898,8 @@ void CAENDgtz::SWStartAcquisition()
 void CAENDgtz::SWStopAcquisition()
 {
     error = (int)CAEN_DGTZ_SWStopAcquisition(handle);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SWStopAcquisition");
     }
 }
@@ -1608,30 +1907,34 @@ void CAENDgtz::SWStopAcquisition()
 void CAENDgtz::SendSWTrigger()
 {
     error = (int)CAEN_DGTZ_SendSWtrigger(handle);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SendSWTrigger");
     }
 }
 
-void CAENDgtz::ReadData(CAEN_DGTZ_ReadMode_t mode, char* buffer, uint32_t* bufferSize)
+void CAENDgtz::ReadData(CAEN_DGTZ_ReadMode_t mode, char *buffer, uint32_t *bufferSize)
 {
     error = (int)CAEN_DGTZ_ReadData(handle, mode, buffer, bufferSize);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("ReadData");
     }
 }
 
-void CAENDgtz::MallocReadoutBuffer(char** buffer, uint32_t* size)
+void CAENDgtz::MallocReadoutBuffer(char **buffer, uint32_t *size)
 {
     error = (int)CAEN_DGTZ_MallocReadoutBuffer(handle, buffer, size);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("MallocReadoutBuffer");
     }
 }
-void CAENDgtz::FreeReadoutBuffer(char** buffer)
+void CAENDgtz::FreeReadoutBuffer(char **buffer)
 {
     error = (int)CAEN_DGTZ_FreeReadoutBuffer(buffer);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("FreeReadoutBuffer");
     }
 }
@@ -1643,26 +1946,38 @@ void CAENDgtz::FreeReadoutBuffer(char** buffer)
 void CAENDgtz::SetChannelSelfTrigger(uint32_t channel, uint32_t mode)
 {
     CAEN_DGTZ_TriggerMode_t caen_enum_mode;
-    switch (mode) {
-    case 1: {
+    switch (mode)
+    {
+    case 1:
+    {
         caen_enum_mode = CAEN_DGTZ_TRGMODE_ACQ_ONLY;
-    } break;
-    case 2: {
+    }
+    break;
+    case 2:
+    {
         caen_enum_mode = CAEN_DGTZ_TRGMODE_EXTOUT_ONLY;
-    } break;
-    case 3: {
+    }
+    break;
+    case 3:
+    {
         caen_enum_mode = CAEN_DGTZ_TRGMODE_ACQ_AND_EXTOUT;
-    } break;
-    default: {
+    }
+    break;
+    default:
+    {
         caen_enum_mode = CAEN_DGTZ_TRGMODE_DISABLED;
     }
     }
-    if (channel == 255) {
+    if (channel == 255)
+    {
         error = (int)CAEN_DGTZ_SetChannelSelfTrigger(handle, caen_enum_mode, 255);
-    } else {
+    }
+    else
+    {
         error = (int)CAEN_DGTZ_SetChannelSelfTrigger(handle, caen_enum_mode, (1 << channel));
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetChannelSelfTrigger");
     }
 }
@@ -1671,7 +1986,8 @@ uint32_t CAENDgtz::GetChannelSelfTrigger(uint32_t channel)
 {
     CAEN_DGTZ_TriggerMode_t caen_enum_mode;
     error = (int)CAEN_DGTZ_GetChannelSelfTrigger(handle, channel, &caen_enum_mode);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetChannelSelfTrigger");
     }
     return (int)caen_enum_mode;
@@ -1679,11 +1995,15 @@ uint32_t CAENDgtz::GetChannelSelfTrigger(uint32_t channel)
 
 void CAENDgtz::SetChannelTriggerThreshold(uint32_t channel, uint32_t threshold)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         SetRegisterSpecificBits(0x106C + 0x0100 * channel, 0, 14, threshold, "SetChannelTriggerThreshold");
-    } else {
+    }
+    else
+    {
         error = (int)CAEN_DGTZ_SetChannelTriggerThreshold(handle, channel, threshold);
-        if (error != 0) {
+        if (error != 0)
+        {
             EmitError("SetChannelTriggerThreshold");
         }
     }
@@ -1692,11 +2012,15 @@ void CAENDgtz::SetChannelTriggerThreshold(uint32_t channel, uint32_t threshold)
 uint32_t CAENDgtz::GetChannelTriggerThreshold(uint32_t channel)
 {
     uint32_t Tvalue = 0;
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         return GetRegisterSpecificBits(0x106C + 0x0100 * channel, 0, 14, "GetChannelTriggerThreshold");
-    } else {
+    }
+    else
+    {
         error = (int)CAEN_DGTZ_GetChannelTriggerThreshold(handle, channel, &Tvalue);
-        if (error != 0) {
+        if (error != 0)
+        {
             EmitError("GetChannelTriggerThreshold");
         }
     }
@@ -1706,16 +2030,21 @@ uint32_t CAENDgtz::GetChannelTriggerThreshold(uint32_t channel)
 void CAENDgtz::SetChannelTriggerPolarity(uint32_t channel, uint32_t polarity)
 {
     CAEN_DGTZ_TriggerPolarity_t caen_enum_polarity;
-    switch (polarity) {
-    case 1: {
+    switch (polarity)
+    {
+    case 1:
+    {
         caen_enum_polarity = CAEN_DGTZ_TriggerOnFallingEdge;
-    } break;
-    default: {
+    }
+    break;
+    default:
+    {
         caen_enum_polarity = CAEN_DGTZ_TriggerOnRisingEdge;
     }
     }
     error = (int)CAEN_DGTZ_SetTriggerPolarity(handle, channel, caen_enum_polarity);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1724,7 +2053,8 @@ uint32_t CAENDgtz::GetChannelTriggerPolarity(uint32_t channel)
 {
     CAEN_DGTZ_TriggerPolarity_t polarity;
     error = (int)CAEN_DGTZ_GetTriggerPolarity(handle, channel, &polarity);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (int)polarity;
@@ -1733,16 +2063,20 @@ uint32_t CAENDgtz::GetChannelTriggerPolarity(uint32_t channel)
 void CAENDgtz::SetChannelTriggerNSamples(uint32_t channel, uint32_t nsamples)
 {
     int packNsamples = 4 + GetEventPackaging();
-    if (nsamples % packNsamples == 0) {
+    if (nsamples % packNsamples == 0)
+    {
         uint32_t data = 0;
         uint32_t address = ADD_1ST_TRNS + (0x0100 * channel);
         error = (int)CAEN_DGTZ_ReadRegister(handle, address, &data);
         data = (data & 0xF000) + ((nsamples / packNsamples) & 0x0FFF);
         error = (int)CAEN_DGTZ_WriteRegister(handle, address, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1753,7 +2087,8 @@ uint32_t CAENDgtz::GetChannelTriggerNSamples(uint32_t channel)
     uint32_t data = 0;
     uint32_t address = ADD_1ST_TRNS + (0x0100 * channel);
     error = (int)CAEN_DGTZ_ReadRegister(handle, address, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x0FFF) * packNsamples;
@@ -1761,13 +2096,17 @@ uint32_t CAENDgtz::GetChannelTriggerNSamples(uint32_t channel)
 
 void CAENDgtz::SetChannelDCOffsetPercent(uint32_t channel, int value)
 {
-    if (value >= -50 && value <= 50) {
+    if (value >= -50 && value <= 50)
+    {
         const uint32_t offset = (int)((value + 50) * 65535 / 100);
         error = (int)CAEN_DGTZ_SetChannelDCOffset(handle, channel, offset);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1777,7 +2116,8 @@ int CAENDgtz::GetChannelDCOffsetPercent(uint32_t channel)
     uint32_t offset;
     error = (int)CAEN_DGTZ_GetChannelDCOffset(handle, channel, &offset);
     std::cout << "DCOffset: " << offset << std::endl;
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return round((offset / 655.35) - 50);
@@ -1785,12 +2125,16 @@ int CAENDgtz::GetChannelDCOffsetPercent(uint32_t channel)
 
 void CAENDgtz::SetChannelDCOffset10bit(uint32_t channel, uint32_t offset)
 {
-    if (offset < 1024) {
+    if (offset < 1024)
+    {
         error = (int)CAEN_DGTZ_SetChannelDCOffset(handle, channel, (offset << 6));
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1799,7 +2143,8 @@ uint32_t CAENDgtz::GetChannelDCOffset10bit(uint32_t channel)
 {
     uint32_t offset;
     error = (int)CAEN_DGTZ_GetChannelDCOffset(handle, channel, &offset);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (offset >> 6);
@@ -1807,12 +2152,16 @@ uint32_t CAENDgtz::GetChannelDCOffset10bit(uint32_t channel)
 
 void CAENDgtz::SetChannelDCOffset12bit(uint32_t channel, uint32_t offset)
 {
-    if (offset < 4096) {
+    if (offset < 4096)
+    {
         error = (int)CAEN_DGTZ_SetChannelDCOffset(handle, channel, (offset << 4));
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1821,7 +2170,8 @@ uint32_t CAENDgtz::GetChannelDCOffset12bit(uint32_t channel)
 {
     uint32_t offset;
     error = (int)CAEN_DGTZ_GetChannelDCOffset(handle, channel, &offset);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (offset >> 4);
@@ -1829,12 +2179,16 @@ uint32_t CAENDgtz::GetChannelDCOffset12bit(uint32_t channel)
 
 void CAENDgtz::SetChannelDCOffset14bit(uint32_t channel, uint32_t offset)
 {
-    if (offset < 16384) {
+    if (offset < 16384)
+    {
         error = (int)CAEN_DGTZ_SetChannelDCOffset(handle, channel, (offset << 2));
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1843,7 +2197,8 @@ uint32_t CAENDgtz::GetChannelDCOffset14bit(uint32_t channel)
 {
     uint32_t offset;
     error = (int)CAEN_DGTZ_GetChannelDCOffset(handle, channel, &offset);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (offset >> 2);
@@ -1851,12 +2206,16 @@ uint32_t CAENDgtz::GetChannelDCOffset14bit(uint32_t channel)
 
 void CAENDgtz::SetChannelDCOffset16bit(uint32_t channel, uint32_t offset)
 {
-    if (offset < 65536) {
+    if (offset < 65536)
+    {
         error = (int)CAEN_DGTZ_SetChannelDCOffset(handle, channel, offset);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -1866,7 +2225,8 @@ uint32_t CAENDgtz::GetChannelDCOffset16bit(uint32_t channel)
     uint32_t offset;
     error = (int)CAEN_DGTZ_GetChannelDCOffset(handle, channel, &offset);
     std::cout << "DCOffset16bit: " << offset << std::endl;
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return offset;
@@ -1880,7 +2240,8 @@ uint32_t CAENDgtz::GetChannelDCOffset(uint32_t channel)
 void CAENDgtz::SetMaxNumEventsBLT(uint32_t maxNumEvents)
 {
     error = (int)CAEN_DGTZ_SetMaxNumEventsBLT(handle, maxNumEvents);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetMaxNumEventsBLT");
     }
 }
@@ -1889,7 +2250,8 @@ uint32_t CAENDgtz::GetMaxNumEventsBLT()
 {
     uint32_t maxNumEvents;
     error = (int)CAEN_DGTZ_GetMaxNumEventsBLT(handle, &maxNumEvents);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetMaxNumEventsBLT");
     }
     return maxNumEvents;
@@ -1898,7 +2260,8 @@ uint32_t CAENDgtz::GetMaxNumEventsBLT()
 void CAENDgtz::SetPostTriggerSize(uint32_t percent)
 {
     error = (int)CAEN_DGTZ_SetPostTriggerSize(handle, percent);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetPostTriggerSize");
     }
 }
@@ -1907,7 +2270,8 @@ uint32_t CAENDgtz::GetPostTriggerSize()
 {
     uint32_t percent;
     error = (int)CAEN_DGTZ_GetPostTriggerSize(handle, &percent);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetPostTriggerSize");
     }
     return percent;
@@ -1915,41 +2279,66 @@ uint32_t CAENDgtz::GetPostTriggerSize()
 
 void CAENDgtz::SetPostTriggerSamples(uint32_t samples)
 {
-    switch (boardInfo.vers) {
-    case 720: {
-        if (samples % 4 == 0) {
-	  error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_TRG_PTNS, (samples / 4));
-	  if (verboseDebug) printf("---> SetPostTriggerSamples: calling CAEN_DGTZ_WriteRegister(handle, 0x%x , %d )  :  %d\n",ADD_TRG_PTNS, (samples / 4), error);
-       } else {
+    switch (boardInfo.vers)
+    {
+    case 720:
+    {
+        if (samples % 4 == 0)
+        {
+            error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_TRG_PTNS, (samples / 4));
+            if (verboseDebug)
+                printf("---> SetPostTriggerSamples: calling CAEN_DGTZ_WriteRegister(handle, 0x%x , %d )  :  %d\n", ADD_TRG_PTNS, (samples / 4), error);
+        }
+        else
+        {
             error = -3;
         }
-    } break;
-    case 725: {
-        if (samples % 4 == 0) {
-	  error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_TRG_PTNS, (samples / 4));
-	  if (verboseDebug) printf("---> SetPostTriggerSamples: calling CAEN_DGTZ_WriteRegister(handle, 0x%x , %d )  :  %d\n",ADD_TRG_PTNS, (samples / 4), error);
-        } else {
+    }
+    break;
+    case 725:
+    {
+        if (samples % 4 == 0)
+        {
+            error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_TRG_PTNS, (samples / 4));
+            if (verboseDebug)
+                printf("---> SetPostTriggerSamples: calling CAEN_DGTZ_WriteRegister(handle, 0x%x , %d )  :  %d\n", ADD_TRG_PTNS, (samples / 4), error);
+        }
+        else
+        {
             error = -3;
         }
-    } break;
-    case 730: {
-        if (samples % 8 == 0) {
+    }
+    break;
+    case 730:
+    {
+        if (samples % 8 == 0)
+        {
             error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_TRG_PTNS, (samples / 8));
-        } else {
+        }
+        else
+        {
             error = -3;
         }
-    } break;
-    case 751: {
-        if (samples % 16 == 0) {
+    }
+    break;
+    case 751:
+    {
+        if (samples % 16 == 0)
+        {
             error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_TRG_PTNS, (samples / 16));
-        } else {
+        }
+        else
+        {
             error = -3;
         }
-    } break;
-    default: {
+    }
+    break;
+    default:
+    {
     }
     } // end switch
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetPostTriggerSamples");
     }
 }
@@ -1958,23 +2347,34 @@ uint32_t CAENDgtz::GetPostTriggerSamples()
 {
     uint32_t data = 0;
     error = (int)CAEN_DGTZ_ReadRegister(handle, ADD_TRG_PTNS, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetPostTriggerSamples");
     }
-    switch (boardInfo.vers) {
-    case 720: {
+    switch (boardInfo.vers)
+    {
+    case 720:
+    {
         data *= 4;
-    } break;
-    case 725: {
+    }
+    break;
+    case 725:
+    {
         data *= 4;
-    } break;
-    case 730: {
+    }
+    break;
+    case 730:
+    {
         data *= 8;
-    } break;
-    case 751: {
+    }
+    break;
+    case 751:
+    {
         data *= 16;
-    } break;
-    default: {
+    }
+    break;
+    default:
+    {
     }
     } // end switch
     return data;
@@ -2007,7 +2407,8 @@ void CAENDgtz::SetChannelScopeSamples(uint32_t channel, uint32_t samples)
         } else { error = -3; }
     } else { error = -3; }
 */
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetChannelScopeSamples");
     }
 }
@@ -2015,12 +2416,14 @@ void CAENDgtz::SetChannelScopeSamples(uint32_t channel, uint32_t samples)
 uint32_t CAENDgtz::GetChannelScopeSamples(uint32_t channel)
 {
     uint32_t ch = channel;
-    if (ch == 255) {
+    if (ch == 255)
+    {
         ch = 0;
     }
     uint32_t data = 0;
     error = (int)CAEN_DGTZ_GetRecordLength(handle, &data, ch);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetChannelScopeSamples");
     }
     return data;
@@ -2028,12 +2431,16 @@ uint32_t CAENDgtz::GetChannelScopeSamples(uint32_t channel)
 
 void CAENDgtz::SetRunStartDelaySamples(uint32_t samples)
 {
-    if (samples % 2 == 0) {
+    if (samples % 2 == 0)
+    {
         error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_RUN_DLAY, (samples / 2));
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetRunStartDelaySamples");
     }
 }
@@ -2042,7 +2449,8 @@ uint32_t CAENDgtz::GetRunStartDelaySamples()
 {
     uint32_t data = 0;
     error = (int)CAEN_DGTZ_ReadRegister(handle, ADD_RUN_DLAY, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetRunStartDelaySamples");
     }
     return data * 2;
@@ -2050,12 +2458,16 @@ uint32_t CAENDgtz::GetRunStartDelaySamples()
 
 void CAENDgtz::SetRunStartDelayNanoseconds(uint32_t samples)
 {
-    if (samples % 8 == 0) {
+    if (samples % 8 == 0)
+    {
         error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_RUN_DLAY, (samples / 8));
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetRunStartDelayNanoseconds");
     }
 }
@@ -2064,7 +2476,8 @@ uint32_t CAENDgtz::GetRunStartDelayNanoseconds()
 {
     uint32_t data = 0;
     error = (int)CAEN_DGTZ_ReadRegister(handle, ADD_RUN_DLAY, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetRunStartDelayNanoseconds");
     }
     return data * 8;
@@ -2077,22 +2490,31 @@ uint32_t CAENDgtz::GetRunStartDelayNanoseconds()
 void CAENDgtz::SetZeroSuppressionMode(uint32_t mode)
 {
     CAEN_DGTZ_ZS_Mode_t caen_enum_mode;
-    switch (mode) {
-    case 1: {
+    switch (mode)
+    {
+    case 1:
+    {
         caen_enum_mode = CAEN_DGTZ_ZS_INT;
-    } break;
-    case 2: {
+    }
+    break;
+    case 2:
+    {
         caen_enum_mode = CAEN_DGTZ_ZS_ZLE;
-    } break;
-    case 3: {
+    }
+    break;
+    case 3:
+    {
         caen_enum_mode = CAEN_DGTZ_ZS_AMP;
-    } break;
-    default: {
+    }
+    break;
+    default:
+    {
         caen_enum_mode = CAEN_DGTZ_ZS_NO;
     }
     }
     error = (int)CAEN_DGTZ_SetZeroSuppressionMode(handle, caen_enum_mode);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -2101,7 +2523,8 @@ uint32_t CAENDgtz::GetZeroSuppressionMode()
 {
     CAEN_DGTZ_ZS_Mode_t mode;
     error = (int)CAEN_DGTZ_GetZeroSuppressionMode(handle, &mode);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (int)mode;
@@ -2112,16 +2535,21 @@ void CAENDgtz::SetChannelZSThresholdWeight(uint32_t channel, int weight)
     CAEN_DGTZ_ThresholdWeight_t caen_enum_weight;
     int32_t threshold, nsamp;
     error = (int)CAEN_DGTZ_GetChannelZSParams(handle, channel, &caen_enum_weight, &threshold, &nsamp);
-    switch (weight) {
-    case 1: {
+    switch (weight)
+    {
+    case 1:
+    {
         caen_enum_weight = CAEN_DGTZ_ZS_COARSE;
-    } break;
-    default: {
+    }
+    break;
+    default:
+    {
         caen_enum_weight = CAEN_DGTZ_ZS_FINE;
     }
     }
     error = (int)CAEN_DGTZ_SetChannelZSParams(handle, channel, caen_enum_weight, threshold, nsamp);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -2131,7 +2559,8 @@ int32_t CAENDgtz::GetChannelZSThresholdWeight(uint32_t channel)
     CAEN_DGTZ_ThresholdWeight_t weight;
     int32_t threshold, nsamp;
     error = (int)CAEN_DGTZ_GetChannelZSParams(handle, channel, &weight, &threshold, &nsamp);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (int)weight;
@@ -2139,15 +2568,19 @@ int32_t CAENDgtz::GetChannelZSThresholdWeight(uint32_t channel)
 
 void CAENDgtz::SetChannelZSLogic(uint32_t channel, uint32_t logic)
 {
-    if (logic < 2) {
+    if (logic < 2)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, (ADD_1ST_ZSTH + (0x0100 * channel)), &data);
         data = (data & 0x7FFFFFFF) + (logic << 31);
         error = CAEN_DGTZ_WriteRegister(handle, ADD_1ST_ZSTH, data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -2156,7 +2589,8 @@ uint32_t CAENDgtz::GetChannelZSLogic(uint32_t channel)
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, (ADD_1ST_ZSTH + (0x0100 * channel)), &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return ((data & 0x80000000) >> 31);
@@ -2164,15 +2598,19 @@ uint32_t CAENDgtz::GetChannelZSLogic(uint32_t channel)
 
 void CAENDgtz::SetChannelZSThreshold(uint32_t channel, uint32_t threshold)
 {
-    if (threshold < 4096) {
+    if (threshold < 4096)
+    {
         uint32_t data = 0;
         error = CAEN_DGTZ_ReadRegister(handle, (ADD_1ST_ZSTH + (0x0100 * channel)), &data);
         data = (data & 0xFFFFF000) + threshold;
         error = CAEN_DGTZ_WriteRegister(handle, (ADD_1ST_ZSTH + (0x0100 * channel)), data);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -2181,7 +2619,8 @@ uint32_t CAENDgtz::GetChannelZSThreshold(uint32_t channel)
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_ReadRegister(handle, (ADD_1ST_ZSTH + (0x0100 * channel)), &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x00000FFF);
@@ -2189,16 +2628,23 @@ uint32_t CAENDgtz::GetChannelZSThreshold(uint32_t channel)
 
 void CAENDgtz::SetChannelZSAMPNSamples(uint32_t channel, int32_t nsamples)
 {
-    if (GetZeroSuppressionMode() == 3) {
-        if (nsamples < 0x20000) { // only first 21 bits are valid, see documentation
+    if (GetZeroSuppressionMode() == 3)
+    {
+        if (nsamples < 0x20000)
+        { // only first 21 bits are valid, see documentation
             error = CAEN_DGTZ_WriteRegister(handle, (ADD_1ST_ZSNS + (0x0100 * channel)), nsamples);
-        } else {
+        }
+        else
+        {
             error = -3;
         }
-    } else {
+    }
+    else
+    {
         error = -12;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -2206,12 +2652,16 @@ void CAENDgtz::SetChannelZSAMPNSamples(uint32_t channel, int32_t nsamples)
 int32_t CAENDgtz::GetChannelZSAMPNSamples(uint32_t channel)
 {
     uint32_t data = 0;
-    if (GetZeroSuppressionMode() == 3) {
+    if (GetZeroSuppressionMode() == 3)
+    {
         error = CAEN_DGTZ_ReadRegister(handle, (ADD_1ST_ZSNS + (0x0100 * channel)), &data);
-    } else {
+    }
+    else
+    {
         error = -12;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x0001FFFF);
@@ -2219,19 +2669,26 @@ int32_t CAENDgtz::GetChannelZSAMPNSamples(uint32_t channel)
 
 void CAENDgtz::SetChannelZSZLENSamplesBeforeThr(uint32_t channel, int32_t nsamples)
 {
-    if (GetZeroSuppressionMode() == 2) {
-        if (nsamples < 0x10000) { // only 16 bits are valid, see documentation
+    if (GetZeroSuppressionMode() == 2)
+    {
+        if (nsamples < 0x10000)
+        { // only 16 bits are valid, see documentation
             uint32_t data = 0;
             error = CAEN_DGTZ_ReadRegister(handle, (ADD_1ST_ZSNS + (0x0100 * channel)), &data);
             data = (data & 0x0000FFFF) + (nsamples << 16);
             error = CAEN_DGTZ_WriteRegister(handle, (ADD_1ST_ZSNS + (0x0100 * channel)), data);
-        } else {
+        }
+        else
+        {
             error = -3;
         }
-    } else {
+    }
+    else
+    {
         error = -12;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -2239,12 +2696,16 @@ void CAENDgtz::SetChannelZSZLENSamplesBeforeThr(uint32_t channel, int32_t nsampl
 int32_t CAENDgtz::GetChannelZSZLENSamplesBeforeThr(uint32_t channel)
 {
     uint32_t data = 0;
-    if (GetZeroSuppressionMode() == 2) {
+    if (GetZeroSuppressionMode() == 2)
+    {
         error = CAEN_DGTZ_ReadRegister(handle, (ADD_1ST_ZSNS + (0x0100 * channel)), &data);
-    } else {
+    }
+    else
+    {
         error = -12;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data >> 16);
@@ -2252,19 +2713,26 @@ int32_t CAENDgtz::GetChannelZSZLENSamplesBeforeThr(uint32_t channel)
 
 void CAENDgtz::SetChannelZSZLENSamplesAfterThr(uint32_t channel, int32_t nsamples)
 {
-    if (GetZeroSuppressionMode() == 2) {
-        if (nsamples < 0x10000) { // only 16 bits are valid, see documentation
+    if (GetZeroSuppressionMode() == 2)
+    {
+        if (nsamples < 0x10000)
+        { // only 16 bits are valid, see documentation
             uint32_t data = 0;
             error = CAEN_DGTZ_ReadRegister(handle, (ADD_1ST_ZSNS + (0x0100 * channel)), &data);
             data = (data & 0xFFFF0000) + nsamples;
             error = CAEN_DGTZ_WriteRegister(handle, (ADD_1ST_ZSNS + (0x0100 * channel)), data);
-        } else {
+        }
+        else
+        {
             error = -3;
         }
-    } else {
+    }
+    else
+    {
         error = -12;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -2272,12 +2740,16 @@ void CAENDgtz::SetChannelZSZLENSamplesAfterThr(uint32_t channel, int32_t nsample
 int32_t CAENDgtz::GetChannelZSZLENSamplesAfterThr(uint32_t channel)
 {
     uint32_t data = 0;
-    if (GetZeroSuppressionMode() == 2) {
+    if (GetZeroSuppressionMode() == 2)
+    {
         error = CAEN_DGTZ_ReadRegister(handle, (ADD_1ST_ZSNS + (0x0100 * channel)), &data);
-    } else {
+    }
+    else
+    {
         error = -12;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x0000FFFF);
@@ -2287,44 +2759,49 @@ int32_t CAENDgtz::GetChannelZSZLENSamplesAfterThr(uint32_t channel)
 // acquisition
 // --------------------------------------------------------------------------------
 
-void CAENDgtz::AllocateEvent(void** Evt)
+void CAENDgtz::AllocateEvent(void **Evt)
 {
     error = CAEN_DGTZ_AllocateEvent(handle, Evt);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("AllocateEvent");
     }
 }
 
-void CAENDgtz::DecodeEvent(char* evtPtr, void** Evt)
+void CAENDgtz::DecodeEvent(char *evtPtr, void **Evt)
 {
     error = (int)CAEN_DGTZ_DecodeEvent(handle, evtPtr, Evt);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("DecodeEvent");
     }
 }
 
-void CAENDgtz::FreeEvent(void** Evt)
+void CAENDgtz::FreeEvent(void **Evt)
 {
     error = (int)CAEN_DGTZ_FreeEvent(handle, Evt);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("FreeEvent");
     }
 }
-CAEN_DGTZ_EventInfo_t CAENDgtz::GetEventInfo(char* buffer, uint32_t buffsize, int32_t numEvent, char** EventPtr)
+CAEN_DGTZ_EventInfo_t CAENDgtz::GetEventInfo(char *buffer, uint32_t buffsize, int32_t numEvent, char **EventPtr)
 {
     CAEN_DGTZ_EventInfo_t eventInfo;
-    error = (int)CAEN_DGTZ_GetEventInfo(handle, buffer, buffsize, numEvent, &eventInfo, (char**)EventPtr);
-    if (error != 0) {
+    error = (int)CAEN_DGTZ_GetEventInfo(handle, buffer, buffsize, numEvent, &eventInfo, (char **)EventPtr);
+    if (error != 0)
+    {
         EmitError("GetEventInfo");
     }
     return eventInfo;
 }
 
-uint32_t CAENDgtz::GetNumEvents(char* buffer, uint32_t buffsize)
+uint32_t CAENDgtz::GetNumEvents(char *buffer, uint32_t buffsize)
 {
     uint32_t numEvents;
     error = (int)CAEN_DGTZ_GetNumEvents(handle, buffer, buffsize, &numEvents);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetNumEvents");
     }
     return numEvents;
@@ -2342,7 +2819,8 @@ int CAENDgtz::isPowerOfTwo(unsigned int x)
 void CAENDgtz::SetDPPAcquisitionMode(int mode)
 {
     error = (int)CAEN_DGTZ_SetDPPAcquisitionMode(handle, (CAEN_DGTZ_DPP_AcqMode_t)mode, (CAEN_DGTZ_DPP_SaveParam_t)2);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetDPPAcquisitionMode");
     }
 }
@@ -2352,7 +2830,8 @@ uint32_t CAENDgtz::GetDPPAcquisitionMode()
     CAEN_DGTZ_DPP_AcqMode_t mode;
     CAEN_DGTZ_DPP_SaveParam_t param;
     error = CAEN_DGTZ_GetDPPAcquisitionMode(handle, &mode, &param);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetDPPAcquisitionMode");
     }
     return (int)mode;
@@ -2363,11 +2842,13 @@ void CAENDgtz::SetDPPSaveParameter(CAEN_DGTZ_DPP_SaveParam_t param)
     CAEN_DGTZ_DPP_AcqMode_t mode;
     CAEN_DGTZ_DPP_SaveParam_t futile;
     error = CAEN_DGTZ_GetDPPAcquisitionMode(handle, &mode, &futile);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetDPPSaveParameter");
     }
     error = (int)CAEN_DGTZ_SetDPPAcquisitionMode(handle, mode, param);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetDPPSaveParameter");
     }
 }
@@ -2377,7 +2858,8 @@ uint32_t CAENDgtz::GetDPPSaveParameter()
     CAEN_DGTZ_DPP_AcqMode_t mode;
     CAEN_DGTZ_DPP_SaveParam_t param;
     error = CAEN_DGTZ_GetDPPAcquisitionMode(handle, &mode, &param);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetDPPSaveParameter");
     }
     return (int)param;
@@ -2462,7 +2944,7 @@ void CAENDgtz::SetSingleDPPParameter(uint32_t channel, CAEN_DGTZ_DPP_PARAMETER_t
                     Data = (Data & 0xff00ffff) + (0x00010000*value);
                     error = (int)CAEN_DGTZ_WriteRegister(handle, Address, Data);
                 }
-            } else { error = -3; }            
+            } else { error = -3; }
         } break;
         case CAEN_DGTZ_DPP_Param_NoFlatTime: {
             if (value<2048) {
@@ -2575,17 +3057,24 @@ void CAENDgtz::ConfigSetPSDMandatoryBits()
 void CAENDgtz::SetChannelPSDRatioFiltering(uint32_t channel, uint32_t value)
 {
     uint32_t address = ADD_DPP_CTRL;
-    if (channel < 255) {
+    if (channel < 255)
+    {
         address += (channel << 8);
-    } else {
+    }
+    else
+    {
         address += 0x7000;
     }
-    if (value < 3) {
+    if (value < 3)
+    {
         SetRegisterSpecificBits(address, 27, 28, value);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetChannelPSDRatioFiltering");
     }
 }
@@ -2593,7 +3082,8 @@ void CAENDgtz::SetChannelPSDRatioFiltering(uint32_t channel, uint32_t value)
 uint32_t CAENDgtz::GetChannelPSDRatioFiltering(uint32_t channel)
 {
     uint32_t address = ADD_DPP_CTRL;
-    if (channel < 255) {
+    if (channel < 255)
+    {
         address += (channel << 8);
     }
     return GetRegisterSpecificBits(address, 27, 28);
@@ -2602,18 +3092,25 @@ uint32_t CAENDgtz::GetChannelPSDRatioFiltering(uint32_t channel)
 void CAENDgtz::SetChannelPSDRatioThresholdPercent(uint32_t channel, uint32_t value)
 {
     uint32_t address = ADD_1ST_PSDC;
-    if (channel < 255) {
+    if (channel < 255)
+    {
         address += (channel << 8);
-    } else {
+    }
+    else
+    {
         address += 0x7000;
     }
-    if (value < 100) {
+    if (value < 100)
+    {
         value = (int)(value * 10.24 + 0.5);
         error = (int)CAEN_DGTZ_WriteRegister(handle, address, value);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetChannelPSDRatioThresholdPercent");
     }
 }
@@ -2622,11 +3119,13 @@ uint32_t CAENDgtz::GetChannelPSDRatioThresholdPercent(uint32_t channel)
 {
     uint32_t data = 0;
     uint32_t address = ADD_1ST_PSDC;
-    if (channel < 255) {
+    if (channel < 255)
+    {
         address += (channel << 8);
     }
     error = (int)CAEN_DGTZ_ReadRegister(handle, address, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     data = (data / 10.24) + 0.5;
@@ -2656,13 +3155,17 @@ uint32_t CAENDgtz::GetChannelMaxNumEventsPerAggregate(uint32_t channel)
 
 void CAENDgtz::SetDualTrace(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         uint32_t address = ADD_DPP_CNFG + 0x0004 * (2 - value);
         error = (int)CAEN_DGTZ_WriteRegister(handle, address, 1 << 11);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetDualTrace");
     }
 }
@@ -2671,7 +3174,8 @@ uint32_t CAENDgtz::GetDualTrace()
 {
     uint32_t data = 0;
     error = (int)CAEN_DGTZ_ReadRegister(handle, ADD_DPP_CNFG, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetDualTrace");
     }
     return (data >> 11) & 0x1;
@@ -2679,14 +3183,18 @@ uint32_t CAENDgtz::GetDualTrace()
 
 void CAENDgtz::SetAnalogProbe(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         uint32_t address = ADD_DPP_CNFG + 0x0004 * (2 - value);
         error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_DPP_CNFG + 0x0008, 1 << 13);
         error = (int)CAEN_DGTZ_WriteRegister(handle, address, 1 << 12);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -2695,7 +3203,8 @@ uint32_t CAENDgtz::GetAnalogProbe()
 {
     uint32_t data = 0;
     error = (int)CAEN_DGTZ_ReadRegister(handle, ADD_DPP_CNFG, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data >> 12) & 0x1;
@@ -2703,26 +3212,36 @@ uint32_t CAENDgtz::GetAnalogProbe()
 
 void CAENDgtz::SetDigitalProbe(uint32_t value)
 {
-    if (value < 3) {
-        switch (value) {
-        case 2: {
+    if (value < 3)
+    {
+        switch (value)
+        {
+        case 2:
+        {
             error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_DPP_CNFG + 0x0008, 1 << 21);
             error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_DPP_CNFG + 0x0004, 1 << 22);
-        } break;
-        case 1: {
+        }
+        break;
+        case 1:
+        {
             error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_DPP_CNFG + 0x0004, 1 << 21);
             error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_DPP_CNFG + 0x0008, 1 << 22);
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_DPP_CNFG + 0x0008, 3 << 21);
         }
         }
         uint32_t address = ADD_DPP_CNFG + 0x0004 * (2 - value);
         error = (int)CAEN_DGTZ_WriteRegister(handle, address, 1 << 21);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -2731,7 +3250,8 @@ uint32_t CAENDgtz::GetDigitalProbe()
 {
     uint32_t data = 0;
     error = (int)CAEN_DGTZ_ReadRegister(handle, ADD_DPP_CNFG, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data >> 21) & 0x3;
@@ -2739,25 +3259,33 @@ uint32_t CAENDgtz::GetDigitalProbe()
 
 void CAENDgtz::SetEnabledScope(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         uint32_t address = ADD_DPP_CNFG + 0x0004 * (2 - value);
         error = (int)CAEN_DGTZ_WriteRegister(handle, address, 1 << 16);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
 
 uint32_t CAENDgtz::GetEnabledScope()
 {
-    if (boardInfo.dppVersion == 0) { // STD firmware
+    if (boardInfo.dppVersion == 0)
+    { // STD firmware
         return 1;
-    } else { // DPP firmware
+    }
+    else
+    { // DPP firmware
         uint32_t data = 0;
         error = (int)CAEN_DGTZ_ReadRegister(handle, ADD_DPP_CNFG, &data);
-        if (error != 0) {
+        if (error != 0)
+        {
             EmitError("GetEnabledScope");
         }
         return (data >> 16) & 0x1;
@@ -2766,13 +3294,17 @@ uint32_t CAENDgtz::GetEnabledScope()
 
 void CAENDgtz::SetEnabledBSL(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         uint32_t address = ADD_DPP_CNFG + 0x0004 * (2 - value);
         error = (int)CAEN_DGTZ_WriteRegister(handle, address, 1 << 17);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -2781,7 +3313,8 @@ uint32_t CAENDgtz::GetEnabledBSL()
 {
     uint32_t data = 0;
     error = (int)CAEN_DGTZ_ReadRegister(handle, ADD_DPP_CNFG, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data >> 17) & 0x1;
@@ -2789,13 +3322,17 @@ uint32_t CAENDgtz::GetEnabledBSL()
 
 void CAENDgtz::SetEnabledTime(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         uint32_t address = ADD_DPP_CNFG + 0x0004 * (2 - value);
         error = (int)CAEN_DGTZ_WriteRegister(handle, address, 1 << 18);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -2804,7 +3341,8 @@ uint32_t CAENDgtz::GetEnabledTime()
 {
     uint32_t data = 0;
     error = (int)CAEN_DGTZ_ReadRegister(handle, ADD_DPP_CNFG, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data >> 18) & 0x1;
@@ -2812,13 +3350,17 @@ uint32_t CAENDgtz::GetEnabledTime()
 
 void CAENDgtz::SetEnabledCharge(uint32_t value)
 {
-    if (value < 2) {
+    if (value < 2)
+    {
         uint32_t address = ADD_DPP_CNFG + 0x0004 * (2 - value);
         error = (int)CAEN_DGTZ_WriteRegister(handle, address, 1 << 19);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -2827,7 +3369,8 @@ uint32_t CAENDgtz::GetEnabledCharge()
 {
     uint32_t data = 0;
     error = (int)CAEN_DGTZ_ReadRegister(handle, ADD_DPP_CNFG, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data >> 19) & 0x1;
@@ -2835,12 +3378,16 @@ uint32_t CAENDgtz::GetEnabledCharge()
 
 void CAENDgtz::SetChannelPreTrigger(uint32_t channel, uint32_t value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         SetRegisterSpecificBits(0x1038 + 0x0100 * channel, 0, 9, value / 2, "SetChannelPreTrigger");
-    } else {
+    }
+    else
+    {
         error = (int)CAEN_DGTZ_SetDPPPreTriggerSize(handle, channel, value);
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -2848,12 +3395,16 @@ void CAENDgtz::SetChannelPreTrigger(uint32_t channel, uint32_t value)
 uint32_t CAENDgtz::GetChannelPreTrigger(uint32_t channel)
 {
     uint32_t data = 0;
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         data = 2 * GetRegisterSpecificBits(0x1038 + 0x0100 * channel, 0, 9, "GetChannelPreTrigger");
-    } else {
+    }
+    else
+    {
         error = (int)CAEN_DGTZ_GetDPPPreTriggerSize(handle, channel, &data);
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return data;
@@ -2861,9 +3412,12 @@ uint32_t CAENDgtz::GetChannelPreTrigger(uint32_t channel)
 
 void CAENDgtz::SetEnabledEventDataFormatWord(uint32_t value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         SetRegisterSpecificBits(0x8000, 24, 24, value, "SetEnabledEventDataFormatWord");
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError();
     }
@@ -2871,9 +3425,12 @@ void CAENDgtz::SetEnabledEventDataFormatWord(uint32_t value)
 
 uint32_t CAENDgtz::GetEnabledEventDataFormatWord()
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         return GetRegisterSpecificBits(0x8000, 24, 24, "GetEnabledEventDataFormatWord");
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError();
         return 0;
@@ -2882,17 +3439,22 @@ uint32_t CAENDgtz::GetEnabledEventDataFormatWord()
 
 void CAENDgtz::SetChannelThreshold(uint32_t channel, uint32_t value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         SetRegisterSpecificBits(0x106C + 0x0100 * channel, 0, 14, value, "SetChannelThreshold");
-    } else {
+    }
+    else
+    {
         uint32_t data = 0;
         uint32_t address = ADD_1ST_DTHR + (channel << 8);
         error = (int)CAEN_DGTZ_ReadRegister(handle, address, &data);
-        if (error == 0) {
+        if (error == 0)
+        {
             data = (data & 0xfffff000) + (value & 0xfff);
             error = (int)CAEN_DGTZ_WriteRegister(handle, address, data);
         }
-        if (error != 0) {
+        if (error != 0)
+        {
             EmitError();
         }
     }
@@ -2902,11 +3464,15 @@ uint32_t CAENDgtz::GetChannelThreshold(uint32_t channel)
 {
     uint32_t data = 0;
     uint32_t address = ADD_1ST_DTHR + (channel << 8);
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         return GetRegisterSpecificBits(0x106C + 0x0100 * channel, 0, 14, "GetChannelThreshold");
-    } else {
+    }
+    else
+    {
         error = (int)CAEN_DGTZ_ReadRegister(handle, address, &data);
-        if (error != 0) {
+        if (error != 0)
+        {
             EmitError();
         }
     }
@@ -2932,14 +3498,20 @@ uint32_t CAENDgtz::GetChannelThreshold(uint32_t channel)
 uint8_t CAENDgtz::GetGateShortBitSize()
 {
     uint8_t size = 0;
-    switch (boardInfo.vers) {
-    case 725: {
+    switch (boardInfo.vers)
+    {
+    case 725:
+    {
         size = 12;
-    } break;
-    case 730: {
+    }
+    break;
+    case 730:
+    {
         size = 12;
-    } break;
-    default: {
+    }
+    break;
+    default:
+    {
         size = 10;
     }
     }
@@ -2949,14 +3521,20 @@ uint8_t CAENDgtz::GetGateShortBitSize()
 uint8_t CAENDgtz::GetGateLongBitSize()
 {
     uint8_t size = 0;
-    switch (boardInfo.vers) {
-    case 725: {
+    switch (boardInfo.vers)
+    {
+    case 725:
+    {
         size = 16;
-    } break;
-    case 730: {
+    }
+    break;
+    case 730:
+    {
         size = 16;
-    } break;
-    default: {
+    }
+    break;
+    default:
+    {
         size = 14;
     }
     }
@@ -2984,7 +3562,7 @@ void CAENDgtz::SetChannelShortGate(uint32_t channel, uint32_t value)
             data = (data & 0xfffffc00) + (value & 0x3ff);
             error = (int)CAEN_DGTZ_WriteRegister(handle, address, data);
         }
-    if (error!=0) { EmitError(); }    
+    if (error!=0) { EmitError(); }
 */
 }
 
@@ -3000,8 +3578,8 @@ void CAENDgtz::SetChannelLongGate(uint32_t channel, uint32_t value)
     uint32_t address = ADD_1ST_LGTE + (channel<<8);
     if (value <= 0x3fff) {
         error = (int)CAEN_DGTZ_WriteRegister(handle, address, value);
-    } else { error = -3; }    
-    if (error!=0) { EmitError(); }    
+    } else { error = -3; }
+    if (error!=0) { EmitError(); }
 */
 }
 
@@ -3014,9 +3592,12 @@ uint32_t CAENDgtz::GetChannelLongGate(uint32_t channel)
 
 void CAENDgtz::SetChannelPreGateNs(uint32_t channel, uint32_t value)
 {
-    if (value % boardInfo.nsPerSample == 0) {
+    if (value % boardInfo.nsPerSample == 0)
+    {
         SetRegisterSpecificBits(ADD_1ST_PGTE + (channel << 8), 0, 8, value / boardInfo.nsPerSample);
-    } else {
+    }
+    else
+    {
         error = -3;
         EmitError("Must be a multiple of the sample width.");
     }
@@ -3035,9 +3616,12 @@ void CAENDgtz::SetChannelShortGateNs(uint32_t channel, uint32_t value)
     std::cout << "boardInfo.nsPerSample: '" << boardInfo.nsPerSample << "'; ";
     std::cout << std::endl;
 
-    if (value % boardInfo.nsPerSample == 0) {
+    if (value % boardInfo.nsPerSample == 0)
+    {
         SetRegisterSpecificBits(ADD_1ST_SGTE + (channel << 8), 0, GetGateShortBitSize(), value / boardInfo.nsPerSample);
-    } else {
+    }
+    else
+    {
         error = -3;
         EmitError("Must be a multiple of the sample width.");
     }
@@ -3050,9 +3634,12 @@ uint32_t CAENDgtz::GetChannelShortGateNs(uint32_t channel)
 
 void CAENDgtz::SetChannelLongGateNs(uint32_t channel, uint32_t value)
 {
-    if (value % boardInfo.nsPerSample == 0) {
+    if (value % boardInfo.nsPerSample == 0)
+    {
         SetRegisterSpecificBits(ADD_1ST_LGTE + (channel << 8), 0, GetGateLongBitSize(), value / boardInfo.nsPerSample);
-    } else {
+    }
+    else
+    {
         error = -3;
         EmitError("Must be a multiple of the sample width.");
     }
@@ -3069,16 +3656,21 @@ void CAENDgtz::SetChannelPulsePolarity(uint32_t channel, uint32_t value)
 {
     uint32_t data = 0;
     uint32_t address = ADD_DPP_CTRL + (0x0100 * channel);
-    if (value < 2) {
+    if (value < 2)
+    {
         error = (int)CAEN_DGTZ_ReadRegister(handle, address, &data);
-        if (error == 0) {
+        if (error == 0)
+        {
             data = (data & 0xfffeffff) + (value << 16);
             error = (int)CAEN_DGTZ_WriteRegister(handle, address, data);
         }
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -3088,7 +3680,8 @@ uint32_t CAENDgtz::GetChannelPulsePolarity(uint32_t channel)
     uint32_t data = 0;
     uint32_t address = ADD_DPP_CTRL + (0x0100 * channel);
     error = (int)CAEN_DGTZ_ReadRegister(handle, address, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x00010000) >> 16;
@@ -3098,16 +3691,21 @@ void CAENDgtz::SetChannelTriggerMode(uint32_t channel, uint32_t value)
 {
     uint32_t data = 0;
     uint32_t address = ADD_DPP_CTRL + (0x0100 * channel);
-    if (value < 2) {
+    if (value < 2)
+    {
         error = (int)CAEN_DGTZ_ReadRegister(handle, address, &data);
-        if (error == 0) {
+        if (error == 0)
+        {
             data = (data & 0xfffdffff) + (value << 17);
             error = (int)CAEN_DGTZ_WriteRegister(handle, address, data);
         }
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -3117,7 +3715,8 @@ uint32_t CAENDgtz::GetChannelTriggerMode(uint32_t channel)
     uint32_t data = 0;
     uint32_t address = ADD_DPP_CTRL + (0x0100 * channel);
     error = (int)CAEN_DGTZ_ReadRegister(handle, address, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x00020000) >> 17;
@@ -3135,142 +3734,225 @@ uint32_t CAENDgtz::GetChannelChargeSensitivity(uint32_t channel)
 
 void CAENDgtz::SetChannelBSLSamples(uint32_t channel, uint32_t value)
 {
-    //std::cout << value << std::endl;
-    switch (boardInfo.vers) {
-    case 724: { // *724
-        switch (value) {
-        case 0: {
+    // std::cout << value << std::endl;
+    switch (boardInfo.vers)
+    {
+    case 724:
+    { // *724
+        switch (value)
+        {
+        case 0:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 0);
-        } break;
-        case 16: {
+        }
+        break;
+        case 16:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 1);
-        } break;
-        case 64: {
+        }
+        break;
+        case 64:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 2);
-        } break;
-        case 256: {
+        }
+        break;
+        case 256:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 3);
-        } break;
-        case 1024: {
+        }
+        break;
+        case 1024:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 4);
-        } break;
-        case 4096: {
+        }
+        break;
+        case 4096:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 5);
-        } break;
-        case 16384: {
+        }
+        break;
+        case 16384:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 6);
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = -3;
         }
         } // end switch value
-    } break;
-    case 751: { // *751
-        switch (value) {
-        case 0: {
+    }
+    break;
+    case 751:
+    { // *751
+        switch (value)
+        {
+        case 0:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 0);
-        } break;
-        case 8: {
+        }
+        break;
+        case 8:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 1);
-        } break;
-        case 16: {
+        }
+        break;
+        case 16:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 2);
-        } break;
-        case 32: {
+        }
+        break;
+        case 32:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 3);
-        } break;
-        case 64: {
+        }
+        break;
+        case 64:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 4);
-        } break;
-        case 128: {
+        }
+        break;
+        case 128:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 5);
-        } break;
-        case 256: {
+        }
+        break;
+        case 256:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 6);
-        } break;
-        case 512: {
+        }
+        break;
+        case 512:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 7);
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = -3;
         }
         } // end switch value
-    } break;
-    case 725: { // *725 TO BE VERIFIED
-      printf("=====> sono qui a settare la BSLSamples\n");
-        switch (value) {
-        case 0: {
+    }
+    break;
+    case 725:
+    { // *725 TO BE VERIFIED
+        printf("=====> sono qui a settare la BSLSamples\n");
+        switch (value)
+        {
+        case 0:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 0);
-        } break;
-        case 16: {
+        }
+        break;
+        case 16:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 1);
-        } break;
-        case 64: {
+        }
+        break;
+        case 64:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 2);
-        } break;
-        case 256: {
+        }
+        break;
+        case 256:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 3);
-        } break;
-        case 1024: {
+        }
+        break;
+        case 1024:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 4);
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = -3;
         }
         } // end switch value
-    } break;
-    case 730: { // *730
-        switch (value) {
-        case 0: {
+    }
+    break;
+    case 730:
+    { // *730
+        switch (value)
+        {
+        case 0:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 0);
-        } break;
-        case 16: {
+        }
+        break;
+        case 16:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 1);
-        } break;
-        case 64: {
+        }
+        break;
+        case 64:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 2);
-        } break;
-        case 256: {
+        }
+        break;
+        case 256:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 3);
-        } break;
-        case 1024: {
+        }
+        break;
+        case 1024:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 4);
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = -3;
         }
         } // end switch value
-    } break;
-    case 720: { // *720
-        switch (value) {
-        case 0: {
+    }
+    break;
+    case 720:
+    { // *720
+        switch (value)
+        {
+        case 0:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 0);
-        } break;
-        case 8: {
+        }
+        break;
+        case 8:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 1);
-        } break;
-        case 32: {
+        }
+        break;
+        case 32:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 2);
-        } break;
-        case 128: {
+        }
+        break;
+        case 128:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 3);
-        } break;
-        case 512: {
+        }
+        break;
+        case 512:
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22, 4);
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = -3;
         }
         } // end switch value
-    } break;
-    default: {
+    }
+    break;
+    default:
+    {
         error = -7;
     }
     } // end switch
 
     std::cout << "Channel Baseline Samples: " << GetChannelBSLSamples(channel) << std::endl;
 
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetChannelBSLSamples");
     }
 }
@@ -3279,134 +3961,216 @@ uint32_t CAENDgtz::GetChannelBSLSamples(uint32_t channel)
 {
     uint32_t samples = 0;
     uint32_t value = GetRegisterSpecificBits(ADD_DPP_CTRL + (0x0100 * channel), 20, 22);
-    switch (boardInfo.vers) {
-    case 724: { // *724
-        switch (value) {
-        case 0: {
+    switch (boardInfo.vers)
+    {
+    case 724:
+    { // *724
+        switch (value)
+        {
+        case 0:
+        {
             samples = 0;
-        } break;
-        case 1: {
+        }
+        break;
+        case 1:
+        {
             samples = 16;
-        } break;
-        case 2: {
+        }
+        break;
+        case 2:
+        {
             samples = 64;
-        } break;
-        case 3: {
+        }
+        break;
+        case 3:
+        {
             samples = 256;
-        } break;
-        case 4: {
+        }
+        break;
+        case 4:
+        {
             samples = 1024;
-        } break;
-        case 5: {
+        }
+        break;
+        case 5:
+        {
             samples = 4096;
-        } break;
-        case 6: {
+        }
+        break;
+        case 6:
+        {
             samples = 16384;
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = -3;
         }
         } // end switch value
-    } break;
-    case 751: { // *751
-        switch (value) {
-        case 0: {
+    }
+    break;
+    case 751:
+    { // *751
+        switch (value)
+        {
+        case 0:
+        {
             samples = 0;
-        } break;
-        case 1: {
+        }
+        break;
+        case 1:
+        {
             samples = 8;
-        } break;
-        case 2: {
+        }
+        break;
+        case 2:
+        {
             samples = 16;
-        } break;
-        case 3: {
+        }
+        break;
+        case 3:
+        {
             samples = 32;
-        } break;
-        case 4: {
+        }
+        break;
+        case 4:
+        {
             samples = 64;
-        } break;
-        case 5: {
+        }
+        break;
+        case 5:
+        {
             samples = 128;
-        } break;
-        case 6: {
+        }
+        break;
+        case 6:
+        {
             samples = 256;
-        } break;
-        case 7: {
+        }
+        break;
+        case 7:
+        {
             samples = 512;
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = -3;
         }
         } // end switch value
-    } break;
-    case 725: { // *725 TO BE VERIFIED
-      printf("=====> sono qui a rileggere la BSLSamples\n");
-        switch (value) {
-        case 0: {
+    }
+    break;
+    case 725:
+    { // *725 TO BE VERIFIED
+        printf("=====> sono qui a rileggere la BSLSamples\n");
+        switch (value)
+        {
+        case 0:
+        {
             samples = 0;
-        } break;
-        case 1: {
+        }
+        break;
+        case 1:
+        {
             samples = 16;
-        } break;
-        case 2: {
+        }
+        break;
+        case 2:
+        {
             samples = 64;
-        } break;
-        case 3: {
+        }
+        break;
+        case 3:
+        {
             samples = 256;
-        } break;
-        case 4: {
+        }
+        break;
+        case 4:
+        {
             samples = 1024;
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = -3;
         }
         } // end switch value
-    } break;
-    case 730: { // *730
-        switch (value) {
-        case 0: {
+    }
+    break;
+    case 730:
+    { // *730
+        switch (value)
+        {
+        case 0:
+        {
             samples = 0;
-        } break;
-        case 1: {
+        }
+        break;
+        case 1:
+        {
             samples = 16;
-        } break;
-        case 2: {
+        }
+        break;
+        case 2:
+        {
             samples = 64;
-        } break;
-        case 3: {
+        }
+        break;
+        case 3:
+        {
             samples = 256;
-        } break;
-        case 4: {
+        }
+        break;
+        case 4:
+        {
             samples = 1024;
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = -3;
         }
         } // end switch value
-    } break;
-    case 720: { // *720
-        switch (value) {
-        case 0: {
+    }
+    break;
+    case 720:
+    { // *720
+        switch (value)
+        {
+        case 0:
+        {
             samples = 0;
-        } break;
-        case 1: {
+        }
+        break;
+        case 1:
+        {
             samples = 8;
-        } break;
-        case 2: {
+        }
+        break;
+        case 2:
+        {
             samples = 32;
-        } break;
-        case 3: {
+        }
+        break;
+        case 3:
+        {
             samples = 128;
-        } break;
-        case 4: {
+        }
+        break;
+        case 4:
+        {
             samples = 512;
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = -3;
         }
         } // end switch value
-    } break;
-    default: {
+    }
+    break;
+    default:
+    {
         samples = 0;
         error = -7;
         EmitError("GetChannelBSLSamples");
@@ -3419,16 +4183,21 @@ void CAENDgtz::SetChannelBSLThreshold(uint32_t channel, uint32_t value)
 {
     uint32_t data = 0;
     uint32_t address = ADD_1ST_BLTH + (0x0100 * channel);
-    if (value < 128) {
+    if (value < 128)
+    {
         error = (int)CAEN_DGTZ_ReadRegister(handle, address, &data);
-        if (error == 0) {
+        if (error == 0)
+        {
             data = (data & 0xffffff80) + value;
             error = (int)CAEN_DGTZ_WriteRegister(handle, address, data);
         }
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -3438,7 +4207,8 @@ uint32_t CAENDgtz::GetChannelBSLThreshold(uint32_t channel)
     uint32_t data = 0;
     uint32_t address = ADD_1ST_BLTH + (0x0100 * channel);
     error = (int)CAEN_DGTZ_ReadRegister(handle, address, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x0000007f);
@@ -3448,16 +4218,21 @@ void CAENDgtz::SetChannelBSLTimeout(uint32_t channel, uint32_t value)
 {
     uint32_t data = 0;
     uint32_t address = ADD_1ST_BLTO + (0x0100 * channel);
-    if (value < 256) {
+    if (value < 256)
+    {
         error = (int)CAEN_DGTZ_ReadRegister(handle, address, &data);
-        if (error == 0) {
+        if (error == 0)
+        {
             data = (data & 0xffffff00) + value;
             error = (int)CAEN_DGTZ_WriteRegister(handle, address, data);
         }
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -3467,7 +4242,8 @@ uint32_t CAENDgtz::GetChannelBSLTimeout(uint32_t channel)
     uint32_t data = 0;
     uint32_t address = ADD_1ST_BLTO + (0x0100 * channel);
     error = (int)CAEN_DGTZ_ReadRegister(handle, address, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (data & 0x000000ff);
@@ -3475,17 +4251,22 @@ uint32_t CAENDgtz::GetChannelBSLTimeout(uint32_t channel)
 
 void CAENDgtz::SetDPPPow2NumBuffers(uint32_t value)
 {
-    if (value > 1 && value < 11) {
+    if (value > 1 && value < 11)
+    {
         uint32_t data = 0;
         error = (int)CAEN_DGTZ_ReadRegister(handle, ADD_NUM_BUFF, &data);
-        if (error == 0) {
+        if (error == 0)
+        {
             data = (data & 0xfffffff8) + value;
             error = (int)CAEN_DGTZ_WriteRegister(handle, ADD_NUM_BUFF, data);
         }
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetDPPPow2NumBuffers");
     }
 }
@@ -3494,7 +4275,8 @@ uint32_t CAENDgtz::GetDPPPow2NumBuffers()
 {
     uint32_t data = 0;
     error = (int)CAEN_DGTZ_ReadRegister(handle, ADD_NUM_BUFF, &data);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetDPPPow2NumBuffers");
     }
     return data & 0x00000007;
@@ -3503,7 +4285,8 @@ uint32_t CAENDgtz::GetDPPPow2NumBuffers()
 void CAENDgtz::SetNumEventsPerAggregate(uint32_t channel, uint32_t nEvPerBuff)
 {
     error = CAEN_DGTZ_SetNumEventsPerAggregate(handle, nEvPerBuff, channel);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetNumEventsPerAggregate");
     }
 }
@@ -3512,56 +4295,63 @@ uint32_t CAENDgtz::GetNumEventsPerAggregate(uint32_t channel)
 {
     uint32_t data = 0;
     error = CAEN_DGTZ_GetNumEventsPerAggregate(handle, &data, channel);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetNumEventsPerAggregate");
     }
     return data;
 }
 
-void CAENDgtz::MallocDPPEvents(void** Events, uint32_t* AllocatedSize)
+void CAENDgtz::MallocDPPEvents(void **Events, uint32_t *AllocatedSize)
 {
     error = CAEN_DGTZ_MallocDPPEvents(handle, Events, AllocatedSize);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("MallocDPPEvents");
     }
 }
 
-void CAENDgtz::MallocDPPWaveforms(void** Waveforms, uint32_t* AllocatedSize)
+void CAENDgtz::MallocDPPWaveforms(void **Waveforms, uint32_t *AllocatedSize)
 {
     error = CAEN_DGTZ_MallocDPPWaveforms(handle, Waveforms, AllocatedSize);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("MallocDPPWaveforms");
     }
 }
 
-void CAENDgtz::DecodeDPPWaveforms(void* event, void* waveforms)
+void CAENDgtz::DecodeDPPWaveforms(void *event, void *waveforms)
 {
     error = CAEN_DGTZ_DecodeDPPWaveforms(handle, event, waveforms);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("DecodeDPPWaveforms");
     }
 }
 
-void CAENDgtz::GetDPPEvents(char* buffer, uint32_t BufferSize, void** Events, uint32_t* NumEvents)
+void CAENDgtz::GetDPPEvents(char *buffer, uint32_t BufferSize, void **Events, uint32_t *NumEvents)
 {
     error = CAEN_DGTZ_GetDPPEvents(handle, buffer, BufferSize, Events, NumEvents);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetDPPEvents");
     }
 }
 
-void CAENDgtz::FreeDPPWaveforms(void* Waveforms)
+void CAENDgtz::FreeDPPWaveforms(void *Waveforms)
 {
     error = CAEN_DGTZ_FreeDPPWaveforms(handle, Waveforms);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("FreeDPPWaveforms");
     }
 }
 
-void CAENDgtz::FreeDPPEvents(void** Events)
+void CAENDgtz::FreeDPPEvents(void **Events)
 {
     error = CAEN_DGTZ_FreeDPPEvents(handle, Events);
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("FreeDPPEvents");
     }
 }
@@ -3578,9 +4368,12 @@ uint32_t CAENDgtz::GetChannelEnabledPUR(int channel)
 
 void CAENDgtz::SetChannelPURGap(int channel, int value)
 {
-    if (boardInfo.vers == 720 && boardInfo.dppVersion == 3) {
+    if (boardInfo.vers == 720 && boardInfo.dppVersion == 3)
+    {
         SetRegisterSpecificBits(ADD_1ST_PGAP + (0x100 * channel), 0, 11, value, "SetChannelPURGap");
-    } else {
+    }
+    else
+    {
         error = -17;
         EmitError("SetPURGap");
     }
@@ -3588,9 +4381,12 @@ void CAENDgtz::SetChannelPURGap(int channel, int value)
 
 uint32_t CAENDgtz::GetChannelPURGap(int channel)
 {
-    if (boardInfo.vers == 720 && boardInfo.dppVersion == 3) {
+    if (boardInfo.vers == 720 && boardInfo.dppVersion == 3)
+    {
         return GetRegisterSpecificBits(ADD_1ST_PGAP + (0x100 * channel), 0, 11, "GetChannelPURGap");
-    } else {
+    }
+    else
+    {
         error = -17;
         EmitError("GetChannelPURGap");
         return 0;
@@ -3599,27 +4395,36 @@ uint32_t CAENDgtz::GetChannelPURGap(int channel)
 
 void CAENDgtz::SetChannelTriggerHoldOff(int channel, int value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         SetRegisterSpecificBits(0x1074 + 0x0100 * channel, 0, 5, value, "SetChannelTriggerHoldOff");
-    } else {
+    }
+    else
+    {
         SetRegisterSpecificBits(0x1074 + 0x0100 * channel, 0, 15, value, "SetChannelTriggerHoldOff");
     }
 }
 
 int CAENDgtz::GetChannelTriggerHoldOff(int channel)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         return (int)GetRegisterSpecificBits(0x1074 + 0x0100 * channel, 0, 5, "GetChannelTriggerHoldOff");
-    } else {
+    }
+    else
+    {
         return (int)GetRegisterSpecificBits(0x1074 + 0x0100 * channel, 0, 15, "GetChannelTriggerHoldOff");
     }
 }
 
 void CAENDgtz::SetChannelTriggerHoldOffNs(int channel, int value)
 {
-    if (value % 8 == 0) { // unit = 8 ns, always (*751, *730, *720)
+    if (value % 8 == 0)
+    { // unit = 8 ns, always (*751, *730, *720)
         SetChannelTriggerHoldOff(channel, value / 8);
-    } else {
+    }
+    else
+    {
         error = -3;
         EmitError("Must be a multiple of 8 ns");
     }
@@ -3636,26 +4441,34 @@ int CAENDgtz::GetChannelTriggerHoldOffNs(int channel)
 
 void CAENDgtz::SetDualEdgeMode(int value)
 {
-    if (boardInfo.vers == 751 && boardInfo.dppVersion == 0) {
-        if ((value & 1) == value) {
+    if (boardInfo.vers == 751 && boardInfo.dppVersion == 0)
+    {
+        if ((value & 1) == value)
+        {
             // disable even channels - AUTOMATICALLY DONE
-            //SetChannelEnableMask( (GetChannelEnableMask() & 0x5555) );
+            // SetChannelEnableMask( (GetChannelEnableMask() & 0x5555) );
             // select dual edge sampling mode
             WriteRegister(ADD_CHA_CNFG + 0x0004 * (2 - value), 1 << 12, "SetDualEdgeMode()");
             // channel calibration
             WriteRegister(ADD_ADC_CONF, 0);
             WriteRegister(ADD_ADC_CONF, 2);
             // pause while calibrating
-            while (GetRegisterSpecificBits(0x1088, 6, 6) == 0) {
+            while (GetRegisterSpecificBits(0x1088, 6, 6) == 0)
+            {
             }
             WriteRegister(ADD_ADC_CONF, 0);
-        } else {
+        }
+        else
+        {
             error = -13;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("SetDualEdgeMode");
     }
     return;
@@ -3663,12 +4476,16 @@ void CAENDgtz::SetDualEdgeMode(int value)
 
 int CAENDgtz::GetDualEdgeMode()
 {
-    if (boardInfo.vers == 751 && boardInfo.dppVersion == 0) {
+    if (boardInfo.vers == 751 && boardInfo.dppVersion == 0)
+    {
         return GetRegisterSpecificBits(ADD_CHA_CNFG, 12, 12);
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetDualEdgeMode");
     }
     return error;
@@ -3690,18 +4507,25 @@ int CAENDgtz::GetEnabledCoincidencesOnBoard()
 
 void CAENDgtz::SetChannelCoincidenceMode(int channel, int mode)
 {
-    if ((channel >= 0 && channel < (int)boardInfo.Channels) || (channel == 255)) {
+    if ((channel >= 0 && channel < (int)boardInfo.Channels) || (channel == 255))
+    {
         uint32_t address = 0x1080;
-        if (channel < 255) {
+        if (channel < 255)
+        {
             address += (channel << 8);
-        } else {
+        }
+        else
+        {
             address += 0x7000;
         }
         SetRegisterSpecificBits(address, 18, 19, mode);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -3709,18 +4533,25 @@ void CAENDgtz::SetChannelCoincidenceMode(int channel, int mode)
 int CAENDgtz::GetChannelCoincidenceMode(int channel)
 {
     int mode = 0;
-    if ((channel >= 0 && channel < (int)boardInfo.Channels) || (channel == 255)) {
+    if ((channel >= 0 && channel < (int)boardInfo.Channels) || (channel == 255))
+    {
         uint32_t address = 0x1080;
-        if (channel < 255) {
+        if (channel < 255)
+        {
             address += (channel << 8);
-        } else {
+        }
+        else
+        {
             address += 0x7000;
         }
         mode = GetRegisterSpecificBits(address, 18, 19);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return mode;
@@ -3728,16 +4559,20 @@ int CAENDgtz::GetChannelCoincidenceMode(int channel)
 
 void CAENDgtz::SetChannelCoincidenceWindowNs(int channel, int ns)
 {
-    if (channel >= 0 && channel < (int)boardInfo.Channels && ns % 8 == 0) {
+    if (channel >= 0 && channel < (int)boardInfo.Channels && ns % 8 == 0)
+    {
         // durata impulso trigger - trigger out width
         SetRegisterSpecificBits(ADD_1ST_CWIN + (channel << 8), 0, 7, ns / 8);
         // trigger validation acceptance window (default = 4)
         // attesa AGGIUNTIVA per validare il trigger originale
         SetRegisterSpecificBits(0x106C + (channel << 8), 0, 7, 8);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -3745,12 +4580,16 @@ void CAENDgtz::SetChannelCoincidenceWindowNs(int channel, int ns)
 int CAENDgtz::GetChannelCoincidenceWindowNs(int channel)
 {
     uint32_t ns = 0;
-    if (channel >= 0 && channel < (int)boardInfo.Channels) {
+    if (channel >= 0 && channel < (int)boardInfo.Channels)
+    {
         ns = 8 * GetRegisterSpecificBits(0x1070 + (channel << 8), 0, 7);
-    } else {
+    }
+    else
+    {
         error = -3;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (int)ns;
@@ -3758,10 +4597,13 @@ int CAENDgtz::GetChannelCoincidenceWindowNs(int channel)
 
 void CAENDgtz::SetChannelCoincMask(int channel, int mask)
 {
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
         error = -7;
         EmitError();
-    } else {
+    }
+    else
+    {
         SetRegisterSpecificBits(0x8180 + channel * 4, 0, 7, mask);
     }
     return;
@@ -3770,10 +4612,13 @@ void CAENDgtz::SetChannelCoincMask(int channel, int mask)
 int CAENDgtz::GetChannelCoincMask(int channel)
 {
     uint32_t mask = 0;
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
         error = -7;
         EmitError();
-    } else {
+    }
+    else
+    {
         mask = GetRegisterSpecificBits(0x8180 + channel * 4, 0, 7);
     }
     return (int)mask;
@@ -3781,10 +4626,13 @@ int CAENDgtz::GetChannelCoincMask(int channel)
 
 void CAENDgtz::SetChannelCoincLogic(int channel, int logic)
 {
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
         error = -7;
         EmitError();
-    } else {
+    }
+    else
+    {
         SetRegisterSpecificBits(0x8180 + channel * 4, 8, 9, logic);
     }
 }
@@ -3792,16 +4640,23 @@ void CAENDgtz::SetChannelCoincLogic(int channel, int logic)
 int CAENDgtz::GetChannelCoincLogic(int channel)
 {
     uint32_t logic = 0;
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
         error = -7;
-    } else {
-        if (channel >= 0 && channel < (int)boardInfo.Channels) {
+    }
+    else
+    {
+        if (channel >= 0 && channel < (int)boardInfo.Channels)
+        {
             logic = GetRegisterSpecificBits(0x8180 + channel * 4, 8, 9);
-        } else {
+        }
+        else
+        {
             error = -3;
         }
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (int)logic;
@@ -3809,10 +4664,13 @@ int CAENDgtz::GetChannelCoincLogic(int channel)
 
 void CAENDgtz::SetChannelCoincMajorityLevel(int channel, int level)
 {
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
         error = -7;
         EmitError();
-    } else {
+    }
+    else
+    {
         SetRegisterSpecificBits(0x8180 + channel * 4, 10, 12, level);
     }
 }
@@ -3820,16 +4678,23 @@ void CAENDgtz::SetChannelCoincMajorityLevel(int channel, int level)
 int CAENDgtz::GetChannelCoincMajorityLevel(int channel)
 {
     uint32_t level = 0;
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
         error = -7;
-    } else {
-        if (channel >= 0 && channel < (int)boardInfo.Channels) {
+    }
+    else
+    {
+        if (channel >= 0 && channel < (int)boardInfo.Channels)
+        {
             level = GetRegisterSpecificBits(0x8180 + channel * 4, 10, 12);
-        } else {
+        }
+        else
+        {
             error = -3;
         }
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (int)level;
@@ -3837,10 +4702,13 @@ int CAENDgtz::GetChannelCoincMajorityLevel(int channel)
 
 void CAENDgtz::SetChannelCoincExtTriggerMask(int channel, int mask)
 {
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
         error = -7;
         EmitError();
-    } else {
+    }
+    else
+    {
         SetRegisterSpecificBits(0x8180 + channel * 4, 29, 31, mask);
     }
 }
@@ -3848,16 +4716,23 @@ void CAENDgtz::SetChannelCoincExtTriggerMask(int channel, int mask)
 int CAENDgtz::GetChannelCoincExtTriggerMask(int channel)
 {
     uint32_t mask = 0;
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
         error = -7;
-    } else {
-        if (channel >= 0 && channel < (int)boardInfo.Channels) {
+    }
+    else
+    {
+        if (channel >= 0 && channel < (int)boardInfo.Channels)
+        {
             mask = GetRegisterSpecificBits(0x8180 + channel * 4, 29, 31);
-        } else {
+        }
+        else
+        {
             error = -3;
         }
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (int)mask;
@@ -3912,16 +4787,23 @@ int CAENDgtz::GetChannelCoincExtTriggerMask(int channel)
 
 void CAENDgtz::SetCoupleTriggerOutEnabled(int couple, int enabled)
 {
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
-        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2)) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
+        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2))
+        {
             SetRegisterSpecificBits(ADD_DPP_CTR2 + 0x0200 * couple, 2, 2, enabled);
-        } else {
+        }
+        else
+        {
             error = -13;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -3929,16 +4811,23 @@ void CAENDgtz::SetCoupleTriggerOutEnabled(int couple, int enabled)
 int CAENDgtz::GetCoupleTriggerOutEnabled(int couple)
 {
     int enabled = -1;
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
-        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2)) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
+        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2))
+        {
             enabled = (int)GetRegisterSpecificBits(ADD_DPP_CTR2 + 0x0200 * couple, 2, 2);
-        } else {
+        }
+        else
+        {
             error = -13;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return enabled;
@@ -3946,16 +4835,23 @@ int CAENDgtz::GetCoupleTriggerOutEnabled(int couple)
 
 void CAENDgtz::SetCoupleTriggerOutMode(int couple, int mode)
 {
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
-        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2)) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
+        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2))
+        {
             SetRegisterSpecificBits(ADD_DPP_CTR2 + 0x0200 * couple, 0, 1, mode);
-        } else {
+        }
+        else
+        {
             error = -13;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -3963,16 +4859,23 @@ void CAENDgtz::SetCoupleTriggerOutMode(int couple, int mode)
 int CAENDgtz::GetCoupleTriggerOutMode(int couple)
 {
     int mode = -1;
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
-        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2)) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
+        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2))
+        {
             mode = (int)GetRegisterSpecificBits(ADD_DPP_CTR2 + 0x0200 * couple, 0, 1);
-        } else {
+        }
+        else
+        {
             error = -13;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return mode;
@@ -3980,16 +4883,23 @@ int CAENDgtz::GetCoupleTriggerOutMode(int couple)
 
 void CAENDgtz::SetCoupleValidationEnabled(int couple, int enabled)
 {
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
-        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2)) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
+        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2))
+        {
             SetRegisterSpecificBits(ADD_DPP_CTR2 + 0x0200 * couple, 6, 6, enabled);
-        } else {
+        }
+        else
+        {
             error = -13;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -3997,16 +4907,23 @@ void CAENDgtz::SetCoupleValidationEnabled(int couple, int enabled)
 int CAENDgtz::GetCoupleValidationEnabled(int couple)
 {
     int enabled = -1;
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
-        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2)) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
+        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2))
+        {
             enabled = (int)GetRegisterSpecificBits(ADD_DPP_CTR2 + 0x0200 * couple, 6, 6);
-        } else {
+        }
+        else
+        {
             error = -13;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return enabled;
@@ -4014,16 +4931,23 @@ int CAENDgtz::GetCoupleValidationEnabled(int couple)
 
 void CAENDgtz::SetChannelValidationMode(int channel, int mode)
 {
-    if (boardInfo.dppVersion == 1 || boardInfo.dppVersion == 3) {
-        if (channel >= 0 && channel < ((int)boardInfo.Channels)) {
+    if (boardInfo.dppVersion == 1 || boardInfo.dppVersion == 3)
+    {
+        if (channel >= 0 && channel < ((int)boardInfo.Channels))
+        {
             SetRegisterSpecificBits(ADD_DPP_CTRL + 0x0100 * channel, 18, 19, mode);
-        } else {
+        }
+        else
+        {
             error = -13;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -4031,16 +4955,23 @@ void CAENDgtz::SetChannelValidationMode(int channel, int mode)
 int CAENDgtz::GetChannelValidationMode(int channel)
 {
     int mode = -1;
-    if (boardInfo.dppVersion == 1 || boardInfo.dppVersion == 3) {
-        if (channel >= 0 && channel < ((int)boardInfo.Channels)) {
+    if (boardInfo.dppVersion == 1 || boardInfo.dppVersion == 3)
+    {
+        if (channel >= 0 && channel < ((int)boardInfo.Channels))
+        {
             mode = (int)GetRegisterSpecificBits(ADD_DPP_CTRL + 0x0100 * channel, 18, 19);
-        } else {
+        }
+        else
+        {
             error = -13;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return mode;
@@ -4048,16 +4979,23 @@ int CAENDgtz::GetChannelValidationMode(int channel)
 
 void CAENDgtz::SetCoupleValidationSource(int couple, int source)
 {
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
-        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2)) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
+        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2))
+        {
             SetRegisterSpecificBits(ADD_DPP_CTR2 + 0x0200 * couple, 4, 5, source);
-        } else {
+        }
+        else
+        {
             error = -13;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -4065,16 +5003,23 @@ void CAENDgtz::SetCoupleValidationSource(int couple, int source)
 int CAENDgtz::GetCoupleValidationSource(int couple)
 {
     int source = -1;
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
-        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2)) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
+        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2))
+        {
             source = (int)GetRegisterSpecificBits(ADD_DPP_CTR2 + 0x0200 * couple, 4, 5);
-        } else {
+        }
+        else
+        {
             error = -13;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return source;
@@ -4082,16 +5027,23 @@ int CAENDgtz::GetCoupleValidationSource(int couple)
 
 void CAENDgtz::SetCoupleValidationMask(int couple, int mask)
 {
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
-        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2)) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
+        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2))
+        {
             SetRegisterSpecificBits(0x8180 + couple * 4, 0, 7, mask);
-        } else {
+        }
+        else
+        {
             error = -3;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -4099,16 +5051,23 @@ void CAENDgtz::SetCoupleValidationMask(int couple, int mask)
 int CAENDgtz::GetCoupleValidationMask(int couple)
 {
     uint32_t mask = 0;
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
-        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2)) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
+        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2))
+        {
             mask = GetRegisterSpecificBits(0x8180 + couple * 4, 0, 7);
-        } else {
+        }
+        else
+        {
             error = -3;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (int)mask;
@@ -4116,16 +5075,23 @@ int CAENDgtz::GetCoupleValidationMask(int couple)
 
 void CAENDgtz::SetCoupleValidationLogic(int couple, int logic)
 {
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
-        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2)) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
+        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2))
+        {
             SetRegisterSpecificBits(0x8180 + couple * 4, 8, 9, logic);
-        } else {
+        }
+        else
+        {
             error = -3;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -4133,16 +5099,23 @@ void CAENDgtz::SetCoupleValidationLogic(int couple, int logic)
 int CAENDgtz::GetCoupleValidationLogic(int couple)
 {
     uint32_t logic = 0;
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
-        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2)) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
+        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2))
+        {
             logic = GetRegisterSpecificBits(0x8180 + couple * 4, 8, 9);
-        } else {
+        }
+        else
+        {
             error = -3;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (int)logic;
@@ -4150,16 +5123,23 @@ int CAENDgtz::GetCoupleValidationLogic(int couple)
 
 void CAENDgtz::SetCoupleValidationMajorityLevel(int couple, int level)
 {
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
-        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2)) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
+        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2))
+        {
             SetRegisterSpecificBits(0x8180 + couple * 4, 10, 12, level);
-        } else {
+        }
+        else
+        {
             error = -3;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -4167,16 +5147,23 @@ void CAENDgtz::SetCoupleValidationMajorityLevel(int couple, int level)
 int CAENDgtz::GetCoupleValidationMajorityLevel(int couple)
 {
     uint32_t level = 0;
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
-        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2)) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
+        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2))
+        {
             level = GetRegisterSpecificBits(0x8180 + couple * 4, 10, 12);
-        } else {
+        }
+        else
+        {
             error = -3;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (int)level;
@@ -4184,16 +5171,23 @@ int CAENDgtz::GetCoupleValidationMajorityLevel(int couple)
 
 void CAENDgtz::SetCoupleValidationExtTriggerMask(int couple, int mask)
 {
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
-        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2)) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
+        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2))
+        {
             SetRegisterSpecificBits(0x8180 + couple * 4, 29, 31, mask);
-        } else {
+        }
+        else
+        {
             error = -3;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
 }
@@ -4201,16 +5195,23 @@ void CAENDgtz::SetCoupleValidationExtTriggerMask(int couple, int mask)
 int CAENDgtz::GetCoupleValidationExtTriggerMask(int couple)
 {
     uint32_t mask = 0;
-    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3) {
-        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2)) {
+    if (boardInfo.vers == 730 && boardInfo.dppVersion == 3)
+    {
+        if (couple >= 0 && couple < ((int)boardInfo.Channels / 2))
+        {
             mask = GetRegisterSpecificBits(0x8180 + couple * 4, 29, 31);
-        } else {
+        }
+        else
+        {
             error = -3;
         }
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError();
     }
     return (int)mask;
@@ -4222,32 +5223,50 @@ int CAENDgtz::GetCoupleValidationExtTriggerMask(int couple)
 
 void CAENDgtz::SetChannelDynamicRange(int channel, int value)
 {
-    if (boardInfo.vers == 730 || boardInfo.vers == 725) {
-        if (channel == 255 && value > -1 && value < 2) {
+    if (boardInfo.vers == 730 || boardInfo.vers == 725)
+    {
+        if (channel == 255 && value > -1 && value < 2)
+        {
             WriteRegister(ADD_1ST_3VPP + 0x7000, value, "SetChannelDynamicRange");
-        } else {
+        }
+        else
+        {
             SetRegisterSpecificBits(ADD_1ST_3VPP + 0x0100 * channel, 0, 0, value);
         }
-    } else if (boardInfo.vers == 724) {
-        switch (value) {
-        case 0: {
+    }
+    else if (boardInfo.vers == 724)
+    {
+        switch (value)
+        {
+        case 0:
+        {
             SetRegisterSpecificBits(0x10B4 + 0x0100 * channel, 0, 3, 5, "SetChannelDynamicRange");
-        } break;
-        case 1: {
+        }
+        break;
+        case 1:
+        {
             SetRegisterSpecificBits(0x10B4 + 0x0100 * channel, 0, 3, 6, "SetChannelDynamicRange");
-        } break;
-        case 2: {
+        }
+        break;
+        case 2:
+        {
             SetRegisterSpecificBits(0x10B4 + 0x0100 * channel, 0, 3, 9, "SetChannelDynamicRange");
-        } break;
-        case 3: {
+        }
+        break;
+        case 3:
+        {
             SetRegisterSpecificBits(0x10B4 + 0x0100 * channel, 0, 3, 10, "SetChannelDynamicRange");
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = -3;
             EmitError("SetChannelDynamicRange");
         }
         } // end switch
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("SetChannelDynamicRange");
     }
@@ -4255,24 +5274,38 @@ void CAENDgtz::SetChannelDynamicRange(int channel, int value)
 
 int CAENDgtz::GetChannelDynamicRange(int channel)
 {
-    if (boardInfo.vers == 730 || boardInfo.vers == 725) {
+    if (boardInfo.vers == 730 || boardInfo.vers == 725)
+    {
         return GetRegisterSpecificBits((channel == 255) ? (ADD_1ST_3VPP) : (ADD_1ST_3VPP + 0x0100 * channel), 0, 0, "GetChannelDynamicRange");
-    } else if (boardInfo.vers == 724) {
-        switch (GetRegisterSpecificBits(0x10B4 + 0x0100 * channel, 0, 3, "GetChannelDynamicRange")) {
-        case 0x5: {
+    }
+    else if (boardInfo.vers == 724)
+    {
+        switch (GetRegisterSpecificBits(0x10B4 + 0x0100 * channel, 0, 3, "GetChannelDynamicRange"))
+        {
+        case 0x5:
+        {
             return 0;
-        } break;
-        case 0x6: {
+        }
+        break;
+        case 0x6:
+        {
             return 1;
-        } break;
-        case 0x9: {
+        }
+        break;
+        case 0x9:
+        {
             return 2;
-        } break;
-        case 0xA: {
+        }
+        break;
+        case 0xA:
+        {
             return 3;
-        } break;
+        }
+        break;
         } // end switch
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("GetChannelDynamicRange");
     }
@@ -4281,9 +5314,12 @@ int CAENDgtz::GetChannelDynamicRange(int channel)
 
 int CAENDgtz::GetChannelTemperature(int channel)
 {
-    if (boardInfo.vers == 730) {
+    if (boardInfo.vers == 730)
+    {
         return ReadRegister(0x10A8 + 0x0100 * channel, "GetChannelTemperature");
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("GetChannelTemperature");
     }
@@ -4293,14 +5329,19 @@ int CAENDgtz::GetChannelTemperature(int channel)
 int CAENDgtz::GetMaximumTemperature()
 {
     int maximum = 0;
-    if (boardInfo.vers == 730 || boardInfo.vers == 725) {
-        for (unsigned int channel = 0; channel < boardInfo.Channels; ++channel) {
+    if (boardInfo.vers == 730 || boardInfo.vers == 725)
+    {
+        for (unsigned int channel = 0; channel < boardInfo.Channels; ++channel)
+        {
             const int current = ReadRegister(0x10A8 + 0x0100 * channel, "GetChannelTemperature");
-            if (current > maximum) {
+            if (current > maximum)
+            {
                 maximum = current;
             }
         }
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("GetMaximumTemperature");
     }
@@ -4344,9 +5385,12 @@ uint16_t CAENDgtz::GetChannelSpectrumThreshold(uint32_t channel)
 
 void CAENDgtz::SetChannelTriggerFilterSmoothing(uint32_t channel, uint32_t value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         SetRegisterSpecificBits(0x1054 + 0x0100 * channel, 0, 5, value);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("SetChannelTriggerFilterSmoothing");
     }
@@ -4355,9 +5399,12 @@ void CAENDgtz::SetChannelTriggerFilterSmoothing(uint32_t channel, uint32_t value
 
 uint32_t CAENDgtz::GetChannelTriggerFilterSmoothing(uint32_t channel)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         return GetRegisterSpecificBits(0x1054 + 0x0100 * channel, 0, 5);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("GetChannelTriggerFilterSmoothing");
         return 0;
@@ -4366,9 +5413,12 @@ uint32_t CAENDgtz::GetChannelTriggerFilterSmoothing(uint32_t channel)
 
 void CAENDgtz::SetChannelInputRiseTime(uint32_t channel, uint32_t value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         SetRegisterSpecificBits(0x1058 + 0x0100 * channel, 0, 7, value);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("SetChannelInputRiseTime");
     }
@@ -4377,9 +5427,12 @@ void CAENDgtz::SetChannelInputRiseTime(uint32_t channel, uint32_t value)
 
 uint32_t CAENDgtz::GetChannelInputRiseTime(uint32_t channel)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         return GetRegisterSpecificBits(0x1058 + 0x0100 * channel, 0, 7);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("GetChannelInputRiseTime");
         return 0;
@@ -4388,9 +5441,12 @@ uint32_t CAENDgtz::GetChannelInputRiseTime(uint32_t channel)
 
 void CAENDgtz::SetChannelTrapezoidRiseTime(uint32_t channel, uint32_t value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         SetRegisterSpecificBits(0x105C + 0x0100 * channel, 0, 9, value);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("SetChannelTrapezoidRiseTime");
     }
@@ -4399,9 +5455,12 @@ void CAENDgtz::SetChannelTrapezoidRiseTime(uint32_t channel, uint32_t value)
 
 uint32_t CAENDgtz::GetChannelTrapezoidRiseTime(uint32_t channel)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         return GetRegisterSpecificBits(0x105C + 0x0100 * channel, 0, 9);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("GetChannelTrapezoidRiseTime");
         return 0;
@@ -4410,9 +5469,12 @@ uint32_t CAENDgtz::GetChannelTrapezoidRiseTime(uint32_t channel)
 
 void CAENDgtz::SetChannelTrapezoidFlatTop(uint32_t channel, uint32_t value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         SetRegisterSpecificBits(0x1060 + 0x0100 * channel, 0, 9, value);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("SetChannelTrapezoidFlatTop");
     }
@@ -4421,9 +5483,12 @@ void CAENDgtz::SetChannelTrapezoidFlatTop(uint32_t channel, uint32_t value)
 
 uint32_t CAENDgtz::GetChannelTrapezoidFlatTop(uint32_t channel)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         return GetRegisterSpecificBits(0x1060 + 0x0100 * channel, 0, 9);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("GetChannelTrapezoidFlatTop");
         return 0;
@@ -4432,9 +5497,12 @@ uint32_t CAENDgtz::GetChannelTrapezoidFlatTop(uint32_t channel)
 
 void CAENDgtz::SetChannelPeakingTime(uint32_t channel, uint32_t value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         SetRegisterSpecificBits(0x1064 + 0x0100 * channel, 0, 10, value);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("SetChannelPeakingTime");
     }
@@ -4443,9 +5511,12 @@ void CAENDgtz::SetChannelPeakingTime(uint32_t channel, uint32_t value)
 
 uint32_t CAENDgtz::GetChannelPeakingTime(uint32_t channel)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         return GetRegisterSpecificBits(0x1064 + 0x0100 * channel, 0, 10);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("GetChannelPeakingTime");
         return 0;
@@ -4454,9 +5525,12 @@ uint32_t CAENDgtz::GetChannelPeakingTime(uint32_t channel)
 
 void CAENDgtz::SetChannelDecayTime(uint32_t channel, uint32_t value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         SetRegisterSpecificBits(0x1068 + 0x0100 * channel, 0, 15, value);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("SetChannelDecayTime");
     }
@@ -4465,9 +5539,12 @@ void CAENDgtz::SetChannelDecayTime(uint32_t channel, uint32_t value)
 
 uint32_t CAENDgtz::GetChannelDecayTime(uint32_t channel)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         return GetRegisterSpecificBits(0x1068 + 0x0100 * channel, 0, 15);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("GetChannelDecayTime");
         return 0;
@@ -4476,9 +5553,12 @@ uint32_t CAENDgtz::GetChannelDecayTime(uint32_t channel)
 
 void CAENDgtz::SetChannelRTDWindowWidth(uint32_t channel, uint32_t value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         SetRegisterSpecificBits(0x1070 + 0x0100 * channel, 0, 9, value);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("SetChannelRTDWindowWidth");
     }
@@ -4487,9 +5567,12 @@ void CAENDgtz::SetChannelRTDWindowWidth(uint32_t channel, uint32_t value)
 
 uint32_t CAENDgtz::GetChannelRTDWindowWidth(uint32_t channel)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         return GetRegisterSpecificBits(0x1070 + 0x0100 * channel, 0, 9);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("GetChannelRTDWindowWidth");
         return 0;
@@ -4498,9 +5581,12 @@ uint32_t CAENDgtz::GetChannelRTDWindowWidth(uint32_t channel)
 
 void CAENDgtz::SetChannelPeakHoldOffExtension(uint32_t channel, uint32_t value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         SetRegisterSpecificBits(0x1078 + 0x0100 * channel, 0, 7, value);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("SetChannelPeakHoldOffExtension");
     }
@@ -4509,9 +5595,12 @@ void CAENDgtz::SetChannelPeakHoldOffExtension(uint32_t channel, uint32_t value)
 
 uint32_t CAENDgtz::GetChannelPeakHoldOffExtension(uint32_t channel)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         return GetRegisterSpecificBits(0x1078 + 0x0100 * channel, 0, 7);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("GetChannelPeakHoldOffExtension");
         return 0;
@@ -4520,9 +5609,12 @@ uint32_t CAENDgtz::GetChannelPeakHoldOffExtension(uint32_t channel)
 
 void CAENDgtz::SetChannelBaselineHoldOffExtension(uint32_t channel, uint32_t value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         SetRegisterSpecificBits(0x107C + 0x0100 * channel, 0, 7, value);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("SetChannelBaselineHoldOffExtension");
     }
@@ -4531,9 +5623,12 @@ void CAENDgtz::SetChannelBaselineHoldOffExtension(uint32_t channel, uint32_t val
 
 uint32_t CAENDgtz::GetChannelBaselineHoldOffExtension(uint32_t channel)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         return GetRegisterSpecificBits(0x107C + 0x0100 * channel, 0, 7);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("GetChannelBaselineHoldOffExtension");
         return 0;
@@ -4542,9 +5637,12 @@ uint32_t CAENDgtz::GetChannelBaselineHoldOffExtension(uint32_t channel)
 
 void CAENDgtz::SetChannelTrapezoidRescaling(uint32_t channel, uint32_t value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         SetRegisterSpecificBits(0x1080 + (0x0100 * channel), 0, 5, value, "SetChannelTrapezoidRescaling");
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("SetChannelTrapezoidRescaling");
     }
@@ -4553,9 +5651,12 @@ void CAENDgtz::SetChannelTrapezoidRescaling(uint32_t channel, uint32_t value)
 
 uint32_t CAENDgtz::GetChannelTrapezoidRescaling(uint32_t channel)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         return GetRegisterSpecificBits(0x1080 + (0x0100 * channel), 0, 5, "GtChannelTrapezoidRescaling");
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("SetChannelTrapezoidRescaling");
     }
@@ -4564,25 +5665,38 @@ uint32_t CAENDgtz::GetChannelTrapezoidRescaling(uint32_t channel)
 
 void CAENDgtz::SetChannelDecimation(uint32_t channel, uint32_t value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
-        switch (value) {
-        case 0: {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
+        switch (value)
+        {
+        case 0:
+        {
             SetRegisterSpecificBits(0x1080 + (0x0100 * channel), 8, 9, 0, "SetChannelDigitalGain");
-        } break;
-        case 2: {
+        }
+        break;
+        case 2:
+        {
             SetRegisterSpecificBits(0x1080 + (0x0100 * channel), 8, 9, 1, "SetChannelDigitalGain");
-        } break;
-        case 4: {
+        }
+        break;
+        case 4:
+        {
             SetRegisterSpecificBits(0x1080 + (0x0100 * channel), 8, 9, 2, "SetChannelDigitalGain");
-        } break;
-        case 8: {
+        }
+        break;
+        case 8:
+        {
             SetRegisterSpecificBits(0x1080 + (0x0100 * channel), 8, 9, 3, "SetChannelDigitalGain");
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = -3;
         }
         } // end switch value
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("SetChannelDecimation");
     }
@@ -4593,28 +5707,42 @@ uint32_t CAENDgtz::GetChannelDecimation(uint32_t channel)
 {
     uint32_t decimation = 0;
     const uint32_t value = GetRegisterSpecificBits(0x1080 + (0x0100 * channel), 8, 9);
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
-        switch (value) {
-        case 0: {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
+        switch (value)
+        {
+        case 0:
+        {
             decimation = 0;
-        } break;
-        case 1: {
+        }
+        break;
+        case 1:
+        {
             decimation = 2;
-        } break;
-        case 2: {
+        }
+        break;
+        case 2:
+        {
             decimation = 4;
-        } break;
-        case 3: {
+        }
+        break;
+        case 3:
+        {
             decimation = 8;
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = -3;
         }
         } // end switch value
-    } else {
+    }
+    else
+    {
         error = -7;
     }
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetChannelDecimation");
     }
     return decimation;
@@ -4622,25 +5750,38 @@ uint32_t CAENDgtz::GetChannelDecimation(uint32_t channel)
 
 void CAENDgtz::SetChannelDigitalGain(uint32_t channel, uint32_t value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
-        switch (value) {
-        case 1: {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
+        switch (value)
+        {
+        case 1:
+        {
             SetRegisterSpecificBits(0x1080 + (0x0100 * channel), 10, 11, 0, "SetChannelDigitalGain");
-        } break;
-        case 2: {
+        }
+        break;
+        case 2:
+        {
             SetRegisterSpecificBits(0x1080 + (0x0100 * channel), 10, 11, 1, "SetChannelDigitalGain");
-        } break;
-        case 4: {
+        }
+        break;
+        case 4:
+        {
             SetRegisterSpecificBits(0x1080 + (0x0100 * channel), 10, 11, 2, "SetChannelDigitalGain");
-        } break;
-        case 8: {
+        }
+        break;
+        case 8:
+        {
             SetRegisterSpecificBits(0x1080 + (0x0100 * channel), 10, 11, 3, "SetChannelDigitalGain");
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = -3;
         }
         } // end switch value
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("SetChannelDigitalGain");
     }
@@ -4650,29 +5791,43 @@ void CAENDgtz::SetChannelDigitalGain(uint32_t channel, uint32_t value)
 uint32_t CAENDgtz::GetChannelDigitalGain(uint32_t channel)
 {
     uint32_t gain = 0;
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         const uint32_t value = GetRegisterSpecificBits(0x1080 + (0x0100 * channel), 10, 11);
-        switch (value) {
-        case 0: {
+        switch (value)
+        {
+        case 0:
+        {
             gain = 1;
-        } break;
-        case 1: {
+        }
+        break;
+        case 1:
+        {
             gain = 2;
-        } break;
-        case 2: {
+        }
+        break;
+        case 2:
+        {
             gain = 4;
-        } break;
-        case 3: {
+        }
+        break;
+        case 3:
+        {
             gain = 8;
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = -3;
         }
         } // end switch value
-    } else {
+    }
+    else
+    {
         error = -7;
     } // end switch
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetChannelDigitalGain");
     }
     return gain;
@@ -4680,25 +5835,38 @@ uint32_t CAENDgtz::GetChannelDigitalGain(uint32_t channel)
 
 void CAENDgtz::SetChannelPeakAveragingWindow(uint32_t channel, uint32_t value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
-        switch (value) {
-        case 0: {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
+        switch (value)
+        {
+        case 0:
+        {
             SetRegisterSpecificBits(0x1080 + (0x0100 * channel), 12, 13, 0, "SetChannelPeakAveragingWindow");
-        } break;
-        case 4: {
+        }
+        break;
+        case 4:
+        {
             SetRegisterSpecificBits(0x1080 + (0x0100 * channel), 12, 13, 1, "SetChannelPeakAveragingWindow");
-        } break;
-        case 16: {
+        }
+        break;
+        case 16:
+        {
             SetRegisterSpecificBits(0x1080 + (0x0100 * channel), 12, 13, 2, "SetChannelPeakAveragingWindow");
-        } break;
-        case 64: {
+        }
+        break;
+        case 64:
+        {
             SetRegisterSpecificBits(0x1080 + (0x0100 * channel), 12, 13, 3, "SetChannelPeakAveragingWindow");
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = -3;
         }
         } // end switch value
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("SetChannelPeakAveragingWindow");
     }
@@ -4708,29 +5876,43 @@ void CAENDgtz::SetChannelPeakAveragingWindow(uint32_t channel, uint32_t value)
 uint32_t CAENDgtz::GetChannelPeakAveragingWindow(uint32_t channel)
 {
     uint32_t samples = 0;
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         const uint32_t value = GetRegisterSpecificBits(0x1080 + (0x0100 * channel), 12, 13);
-        switch (value) {
-        case 0: {
+        switch (value)
+        {
+        case 0:
+        {
             samples = 0;
-        } break;
-        case 1: {
+        }
+        break;
+        case 1:
+        {
             samples = 4;
-        } break;
-        case 2: {
+        }
+        break;
+        case 2:
+        {
             samples = 16;
-        } break;
-        case 3: {
+        }
+        break;
+        case 3:
+        {
             samples = 64;
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
             error = -3;
         }
         } // end switch value
-    } else {
+    }
+    else
+    {
         error = -7;
     } // end switch
-    if (error != 0) {
+    if (error != 0)
+    {
         EmitError("GetChannelPeakAveragingWindow");
     }
     return samples;
@@ -4738,9 +5920,12 @@ uint32_t CAENDgtz::GetChannelPeakAveragingWindow(uint32_t channel)
 
 void CAENDgtz::SetChannelEnabledRollOverEvents(uint32_t channel, uint32_t value)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         SetRegisterSpecificBits(0x1080 + 0x0100 * channel, 26, 26, value);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("SetChannelEnabledRollOverEvents");
     }
@@ -4749,9 +5934,12 @@ void CAENDgtz::SetChannelEnabledRollOverEvents(uint32_t channel, uint32_t value)
 
 uint32_t CAENDgtz::GetChannelEnabledRollOverEvents(uint32_t channel)
 {
-    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1) {
+    if (boardInfo.vers == 724 && boardInfo.dppVersion == 1)
+    {
         return GetRegisterSpecificBits(0x1080 + 0x0100 * channel, 26, 26);
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("GetChannelEnabledRollOverEvents");
         return 0;
@@ -4760,9 +5948,12 @@ uint32_t CAENDgtz::GetChannelEnabledRollOverEvents(uint32_t channel)
 
 void CAENDgtz::SetChannelPileUpFlagging(int channel, int value)
 {
-    if (boardInfo.vers == 724) {
+    if (boardInfo.vers == 724)
+    {
         SetRegisterSpecificBits(0x1080 + (0x100 * channel), 27, 27, value, "SetChannelPileUpFlagging");
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("GetChannelPileUpFlagging");
     }
@@ -4770,9 +5961,12 @@ void CAENDgtz::SetChannelPileUpFlagging(int channel, int value)
 
 uint32_t CAENDgtz::GetChannelPileUpFlagging(int channel)
 {
-    if (boardInfo.vers == 724) {
+    if (boardInfo.vers == 724)
+    {
         return GetRegisterSpecificBits(0x1080 + (0x100 * channel), 27, 27, "GetChannelPileUpFlagging");
-    } else {
+    }
+    else
+    {
         error = -7;
         EmitError("GetChannelPileUpFlagging");
         return 0;
@@ -4783,21 +5977,22 @@ uint32_t CAENDgtz::GetChannelPileUpFlagging(int channel)
 // board configuration
 // --------------------------------------------------------------------------------
 
-void CAENDgtz::ConfigureFromFile(const char* config_file_name)
+void CAENDgtz::ConfigureFromFile(const char *config_file_name)
 {
 
     // reading configuration values
     std::ifstream config_file(config_file_name, std::ifstream::in);
 
-    if (!config_file.good()) {
+    if (!config_file.good())
+    {
         error = errors::CONFIG_FILE_NOT_FOUND;
         EmitError();
         return;
     }
 
     Json::Value config;
-    //Json::Reader reader;
-    //const bool parse_success = reader.parse(config_file, config, false);
+    // Json::Reader reader;
+    // const bool parse_success = reader.parse(config_file, config, false);
     Json::CharReaderBuilder json_reader;
     std::string json_parsing_error;
     const bool parse_success = Json::parseFromStream(json_reader,
@@ -4807,8 +6002,8 @@ void CAENDgtz::ConfigureFromFile(const char* config_file_name)
 
     config_file.close();
 
-
-    if (!parse_success) {
+    if (!parse_success)
+    {
         error = errors::CONFIG_FILE_NOT_FOUND;
         EmitError();
         return;
@@ -4823,213 +6018,258 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
     // TODO: separate different firmware's configuration parameters
     std::cout << "Configuring from JSON..." << std::endl;
 
-    if (boardInfo.dppVersion == 3) {
+    if (boardInfo.dppVersion == 3)
+    {
         std::cout << "Configuring mandatory bits for DPP..." << std::endl;
         ConfigSetPSDMandatoryBits();
     }
 
-
-    if (config.isMember("dgtzs")) {
+    if (config.isMember("dgtzs"))
+    {
         const Json::Value digitizer_config = config["dgtzs"];
 
         const Json::Value::Members members = digitizer_config.getMemberNames();
 
-        for (const std::string &member : members) {
+        for (const std::string &member : members)
+        {
             std::cout << "config[\"dgtzs\"] member: " << member << std::endl;
 
             const std::string::size_type n = member.find("ch");
 
-            if (n == std::string::npos) {
+            if (n == std::string::npos)
+            {
                 // We have a keyword with no channel associated,
                 // thus this is a global keyword.
 
                 const std::string keyword = member;
                 std::string s_value;
                 int value = 0;
-                
+
                 try
                 {
                     s_value = digitizer_config[keyword].asString();
                 }
-                catch (...) {}
+                catch (...)
+                {
+                }
                 // We cannot use Json::LogicError to keep retrocompatibility with Ubuntu 14
-                //catch (Json::LogicError &je) { std::cout << "JSON Logic error: " << je.what() << std::endl; }
+                // catch (Json::LogicError &je) { std::cout << "JSON Logic error: " << je.what() << std::endl; }
 
                 try
                 {
                     value = digitizer_config[keyword].asInt();
                 }
-                catch (...) {}
-                //catch (Json::LogicError &je) { std::cout << "JSON Logic error: " << je.what() << std::endl; }
+                catch (...)
+                {
+                }
+                // catch (Json::LogicError &je) { std::cout << "JSON Logic error: " << je.what() << std::endl; }
 
                 std::cout << "config[\"dgtzs\"][\"" << keyword << "\"]: '" << s_value << "', " << value << std::endl;
 
-                if (keyword.compare("BoardName") == 0) {
+                if (keyword.compare("BoardName") == 0)
+                {
                     SetBoardName(s_value.data());
                     continue;
                 }
 
                 // general keywords
-                if (keyword.compare("FanSpeed") == 0) {
+                if (keyword.compare("FanSpeed") == 0)
+                {
                     SetFanSpeed(value);
-                    if (value - GetFanSpeed() != 0) {
+                    if (value - GetFanSpeed() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("VerboseDebug") == 0) {
+                if (keyword.compare("VerboseDebug") == 0)
+                {
                     SetVerboseDebug(value);
                     continue;
                 }
-                if (keyword.compare("ExtTriggerInputMode") == 0) {
+                if (keyword.compare("ExtTriggerInputMode") == 0)
+                {
                     SetExtTriggerInputMode(value);
-                    if (value - GetExtTriggerInputMode() != 0) {
+                    if (value - GetExtTriggerInputMode() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("EventPackaging") == 0) {
+                if (keyword.compare("EventPackaging") == 0)
+                {
                     SetEventPackaging(value);
-                    if (value - GetEventPackaging() != 0) {
+                    if (value - GetEventPackaging() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("TriggerUnderThreshold") == 0) {
+                if (keyword.compare("TriggerUnderThreshold") == 0)
+                {
                     SetTriggerUnderThreshold(value);
-                    if (value - GetTriggerUnderThreshold() != 0) {
+                    if (value - GetTriggerUnderThreshold() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("MemoryAccess") == 0) {
+                if (keyword.compare("MemoryAccess") == 0)
+                {
                     SetMemoryAccess(value);
-                    if (value - GetMemoryAccess() != 0) {
+                    if (value - GetMemoryAccess() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("TestPatternGeneration") == 0) {
+                if (keyword.compare("TestPatternGeneration") == 0)
+                {
                     SetTestPatternGeneration(value);
-                    if (value - GetTestPatternGeneration() != 0) {
+                    if (value - GetTestPatternGeneration() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("TriggerOverlap") == 0) {
+                if (keyword.compare("TriggerOverlap") == 0)
+                {
                     SetTriggerOverlap(value);
-                    if (value - GetTriggerOverlap() != 0) {
+                    if (value - GetTriggerOverlap() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("RunStartDelaySamples") == 0) {
+                if (keyword.compare("RunStartDelaySamples") == 0)
+                {
                     SetRunStartDelaySamples(value);
-                    if (value - GetRunStartDelaySamples() != 0) {
+                    if (value - GetRunStartDelaySamples() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("RunStartDelayNanoseconds") == 0) {
+                if (keyword.compare("RunStartDelayNanoseconds") == 0)
+                {
                     SetRunStartDelayNanoseconds(value);
-                    if (value - GetRunStartDelayNanoseconds() != 0) {
+                    if (value - GetRunStartDelayNanoseconds() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("InterruptMode") == 0) {
+                if (keyword.compare("InterruptMode") == 0)
+                {
                     SetInterruptMode(value);
-                    if (value - GetInterruptMode() != 0) {
+                    if (value - GetInterruptMode() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("EnabledRELOC") == 0) {
+                if (keyword.compare("EnabledRELOC") == 0)
+                {
                     SetEnabledRELOC(value);
-                    if (value - GetEnabledRELOC() != 0) {
+                    if (value - GetEnabledRELOC() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("EnabledALIGN64") == 0) {
+                if (keyword.compare("EnabledALIGN64") == 0)
+                {
                     SetEnabledALIGN64(value);
-                    if (value - GetEnabledALIGN64() != 0) {
+                    if (value - GetEnabledALIGN64() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("EnabledBERR") == 0) {
+                if (keyword.compare("EnabledBERR") == 0)
+                {
                     SetEnabledBERR(value);
-                    if (value - GetEnabledBERR() != 0) {
+                    if (value - GetEnabledBERR() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("EnabledOLIRQ") == 0) {
+                if (keyword.compare("EnabledOLIRQ") == 0)
+                {
                     SetEnabledOLIRQ(value);
-                    if (value - GetEnabledOLIRQ() != 0) {
+                    if (value - GetEnabledOLIRQ() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("InterruptLevel") == 0) {
+                if (keyword.compare("InterruptLevel") == 0)
+                {
                     SetInterruptLevel(value);
-                    if (value - GetInterruptLevel() != 0) {
+                    if (value - GetInterruptLevel() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("InterruptStatusID") == 0) {
+                if (keyword.compare("InterruptStatusID") == 0)
+                {
                     SetInterruptStatusID(value);
-                    if (value - GetInterruptStatusID() != 0) {
+                    if (value - GetInterruptStatusID() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("InterruptEventNumber") == 0) {
+                if (keyword.compare("InterruptEventNumber") == 0)
+                {
                     SetInterruptEventNumber(value);
-                    if (value - GetInterruptEventNumber() != 0) {
+                    if (value - GetInterruptEventNumber() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("BufferBlockNumber") == 0) {
+                if (keyword.compare("BufferBlockNumber") == 0)
+                {
                     SetBufferBlockNumber(value);
-                    if (value - GetBufferBlockNumber() != 0) {
+                    if (value - GetBufferBlockNumber() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
@@ -5037,63 +6277,77 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                     continue;
                 }
 
-                if (keyword.compare("MaxNumEventsBLT") == 0) {
+                if (keyword.compare("MaxNumEventsBLT") == 0)
+                {
                     SetMaxNumEventsBLT(value);
-                    if (value - GetMaxNumEventsBLT() != 0) {
+                    if (value - GetMaxNumEventsBLT() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("ChannelEnableMask") == 0) {
+                if (keyword.compare("ChannelEnableMask") == 0)
+                {
                     SetChannelEnableMask(value);
-                    if (value - GetChannelEnableMask() != 0) {
+                    if (value - GetChannelEnableMask() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("CoincidenceLevel") == 0) {
+                if (keyword.compare("CoincidenceLevel") == 0)
+                {
                     SetCoincidenceLevel(value);
-                    if (value - GetCoincidenceLevel() != 0) {
+                    if (value - GetCoincidenceLevel() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("CoincidenceMask") == 0) {
+                if (keyword.compare("CoincidenceMask") == 0)
+                {
                     SetCoincidenceMask(value);
-                    if (value - GetCoincidenceMask() != 0) {
+                    if (value - GetCoincidenceMask() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("TriggerEnableMask") == 0) {
+                if (keyword.compare("TriggerEnableMask") == 0)
+                {
                     SetCoincidenceMask(value);
-                    if (value - GetCoincidenceMask() != 0) {
+                    if (value - GetCoincidenceMask() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("AcquisitionMode") == 0) {
+                if (keyword.compare("AcquisitionMode") == 0)
+                {
                     SetAcquisitionMode(value);
-                    if (value - GetAcquisitionMode() != 0) {
+                    if (value - GetAcquisitionMode() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("SWTriggerMode") == 0) {
+                if (keyword.compare("SWTriggerMode") == 0)
+                {
                     SetSWTriggerMode(value);
-                    if (value - GetSWTriggerMode() != 0) {
+                    if (value - GetSWTriggerMode() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
@@ -5101,9 +6355,11 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                     continue;
                 }
 
-                if (keyword.compare("PostTriggerSize") == 0) {
+                if (keyword.compare("PostTriggerSize") == 0)
+                {
                     SetPostTriggerSize(value);
-                    if (value - (int)GetPostTriggerSize() < 0) {
+                    if (value - (int)GetPostTriggerSize() < 0)
+                    {
                         std::cout << "(!)  Got: " << (int)GetPostTriggerSize() << std::endl;
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
@@ -5111,9 +6367,11 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                     }
                     continue;
                 }
-                if (keyword.compare("PostTriggerSamples") == 0) {
+                if (keyword.compare("PostTriggerSamples") == 0)
+                {
                     SetPostTriggerSamples(value);
-                    if (value - GetPostTriggerSamples() != 0) {
+                    if (value - GetPostTriggerSamples() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
@@ -5122,9 +6380,11 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                 }
 
                 // *751 Dual Edge Mode
-                if (keyword.compare("DualEdgeMode") == 0) {
+                if (keyword.compare("DualEdgeMode") == 0)
+                {
                     SetDualEdgeMode(value);
-                    if (value - GetDualEdgeMode()) {
+                    if (value - GetDualEdgeMode())
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
@@ -5132,9 +6392,11 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                     continue;
                 }
                 // zero suppression
-                if (keyword.compare("ZeroSuppressionMode") == 0) {
+                if (keyword.compare("ZeroSuppressionMode") == 0)
+                {
                     SetZeroSuppressionMode(value);
-                    if (value - GetZeroSuppressionMode() != 0) {
+                    if (value - GetZeroSuppressionMode() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
@@ -5143,117 +6405,143 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                 }
 
                 // front panel I/O control
-                if (keyword.compare("IOTrgOutProgram") == 0) {
+                if (keyword.compare("IOTrgOutProgram") == 0)
+                {
                     SetIOTrgOutProgram(value);
-                    if (value - GetIOTrgOutProgram() != 0) {
+                    if (value - GetIOTrgOutProgram() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("IOTrgOutDisplay") == 0) {
+                if (keyword.compare("IOTrgOutDisplay") == 0)
+                {
                     SetIOTrgOutDisplay(value);
-                    if (value - GetIOTrgOutDisplay() != 0) {
+                    if (value - GetIOTrgOutDisplay() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("IOTrgOutMode") == 0) {
+                if (keyword.compare("IOTrgOutMode") == 0)
+                {
                     SetIOTrgOutMode(value);
-                    if (value - GetIOTrgOutMode() != 0) {
+                    if (value - GetIOTrgOutMode() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("IOTrgOutTestMode") == 0) {
+                if (keyword.compare("IOTrgOutTestMode") == 0)
+                {
                     SetIOTrgOutTestMode(value);
-                    if (value - GetIOTrgOutTestMode() != 0) {
+                    if (value - GetIOTrgOutTestMode() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("IOExtTrgPropagation") == 0) {
+                if (keyword.compare("IOExtTrgPropagation") == 0)
+                {
                     SetIOExtTrgPropagation(value);
-                    if (value - GetIOExtTrgPropagation() != 0) {
+                    if (value - GetIOExtTrgPropagation() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("IOPatternLatchMode") == 0) {
+                if (keyword.compare("IOPatternLatchMode") == 0)
+                {
                     SetIOPatternLatchMode(value);
-                    if (value - GetIOPatternLatchMode() != 0) {
+                    if (value - GetIOPatternLatchMode() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("IOLVDSFourthBlkOutputs") == 0) {
+                if (keyword.compare("IOLVDSFourthBlkOutputs") == 0)
+                {
                     SetIOLVDSFourthBlkOutputs(value);
-                    if (value - GetIOLVDSFourthBlkOutputs() != 0) {
+                    if (value - GetIOLVDSFourthBlkOutputs() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("IOLVDSThirdBlkOutputs") == 0) {
+                if (keyword.compare("IOLVDSThirdBlkOutputs") == 0)
+                {
                     SetIOLVDSThirdBlkOutputs(value);
-                    if (value - GetIOLVDSThirdBlkOutputs() != 0) {
+                    if (value - GetIOLVDSThirdBlkOutputs() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("IOLVDSSecondBlkOutputs") == 0) {
+                if (keyword.compare("IOLVDSSecondBlkOutputs") == 0)
+                {
                     SetIOLVDSSecondBlkOutputs(value);
-                    if (value - GetIOLVDSSecondBlkOutputs() != 0) {
+                    if (value - GetIOLVDSSecondBlkOutputs() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("IOLVDSFirstBlkOutputs") == 0) {
+                if (keyword.compare("IOLVDSFirstBlkOutputs") == 0)
+                {
                     SetIOLVDSFirstBlkOutputs(value);
-                    if (value - GetIOLVDSFirstBlkOutputs() != 0) {
+                    if (value - GetIOLVDSFirstBlkOutputs() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("IOMode") == 0) {
+                if (keyword.compare("IOMode") == 0)
+                {
                     SetIOMode(value);
-                    if (value - GetIOMode() != 0) {
+                    if (value - GetIOMode() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("IOHighImpedence") == 0) {
+                if (keyword.compare("IOHighImpedence") == 0)
+                {
                     SetIOHighImpedence(value);
-                    if (value - GetIOHighImpedence() != 0) {
+                    if (value - GetIOHighImpedence() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("IOLevel") == 0) {
+                if (keyword.compare("IOLevel") == 0)
+                {
                     SetIOLevel(value);
-                    if (value - GetIOLevel() != 0) {
+                    if (value - GetIOLevel() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
@@ -5262,18 +6550,22 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                 }
 
                 // DPP-PSD specific keywords
-                if (keyword.compare("DPPAcquisitionMode") == 0) {
+                if (keyword.compare("DPPAcquisitionMode") == 0)
+                {
                     SetDPPAcquisitionMode(value);
-                    if (value - GetDPPAcquisitionMode() != 0) {
+                    if (value - GetDPPAcquisitionMode() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("MaxNumAggregatesBLT") == 0) {
+                if (keyword.compare("MaxNumAggregatesBLT") == 0)
+                {
                     SetMaxNumEventsBLT(value);
-                    if (value - GetMaxNumEventsBLT() != 0) {
+                    if (value - GetMaxNumEventsBLT() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
@@ -5281,45 +6573,55 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                     continue;
                 }
 
-                if (keyword.compare("EnabledScope") == 0) {
+                if (keyword.compare("EnabledScope") == 0)
+                {
                     SetEnabledScope(value);
-                    if (value - GetEnabledScope() != 0) {
+                    if (value - GetEnabledScope() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("EnabledBSL") == 0) {
+                if (keyword.compare("EnabledBSL") == 0)
+                {
                     SetEnabledBSL(value);
-                    if (value - GetEnabledBSL() != 0) {
+                    if (value - GetEnabledBSL() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("EnabledTime") == 0) {
+                if (keyword.compare("EnabledTime") == 0)
+                {
                     SetEnabledTime(value);
-                    if (value - GetEnabledTime() != 0) {
+                    if (value - GetEnabledTime() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("EnabledCharge") == 0) {
+                if (keyword.compare("EnabledCharge") == 0)
+                {
                     SetEnabledCharge(value);
-                    if (value - GetEnabledCharge() != 0) {
+                    if (value - GetEnabledCharge() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("EnabledEventDataFormatWord") == 0) {
+                if (keyword.compare("EnabledEventDataFormatWord") == 0)
+                {
                     SetEnabledEventDataFormatWord(value);
-                    if (value - GetEnabledEventDataFormatWord() != 0) {
+                    if (value - GetEnabledEventDataFormatWord() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
@@ -5327,37 +6629,45 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                     continue;
                 }
 
-                if (keyword.compare("DualTrace") == 0) {
+                if (keyword.compare("DualTrace") == 0)
+                {
                     SetDualTrace(value);
-                    if (value - GetDualTrace() != 0) {
+                    if (value - GetDualTrace() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("AnalogProbe") == 0) {
+                if (keyword.compare("AnalogProbe") == 0)
+                {
                     SetAnalogProbe(value);
-                    if (value - GetAnalogProbe() != 0) {
+                    if (value - GetAnalogProbe() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("DigitalProbe") == 0) {
+                if (keyword.compare("DigitalProbe") == 0)
+                {
                     SetDigitalProbe(value);
-                    if (value - GetDigitalProbe() != 0) {
+                    if (value - GetDigitalProbe() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
                     }
                     continue;
                 }
-                if (keyword.compare("RecordLength") == 0) {
+                if (keyword.compare("RecordLength") == 0)
+                {
                     // Channel 255 should mean all channels
                     SetChannelScopeSamples(255, value);
-                    if (value - GetChannelScopeSamples(255) != 0) {
+                    if (value - GetChannelScopeSamples(255) != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
@@ -5365,23 +6675,28 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                     continue;
                 }
 
-                if (keyword.compare("IsMaster") == 0) {
+                if (keyword.compare("IsMaster") == 0)
+                {
                     isMaster = value;
                     continue;
                 }
-                if (keyword.compare("ShowGates") == 0) {
+                if (keyword.compare("ShowGates") == 0)
+                {
                     showGates = value;
                     continue;
                 }
-                if (keyword.compare("WriteBuffer") == 0) {
+                if (keyword.compare("WriteBuffer") == 0)
+                {
                     writeBuffer = value;
                     continue;
                 }
 
                 // coincidences
-                if (keyword.compare("EnabledCoincidencesOnBoard") == 0) {
+                if (keyword.compare("EnabledCoincidencesOnBoard") == 0)
+                {
                     SetEnabledCoincidencesOnBoard(value);
-                    if (value - GetEnabledCoincidencesOnBoard() != 0) {
+                    if (value - GetEnabledCoincidencesOnBoard() != 0)
+                    {
                         std::cout << "(!)  ^--- problem here" << std::endl;
                         error = -3;
                         EmitError();
@@ -5390,7 +6705,9 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                 }
 
                 // End of global keywords
-            } else {
+            }
+            else
+            {
                 // This is a keyword describing a channel,
                 // thus we need to go down in the config tree.
 
@@ -5399,143 +6716,175 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
 
                 const Json::Value::Members channel_members = channel_config.getMemberNames();
 
-                for (const std::string &keyword : channel_members) {
+                for (const std::string &keyword : channel_members)
+                {
                     std::cout << "config[\"dgtzs\"][\"" << member << "\"]: " << keyword << std::endl;
 
                     std::string s_value;
                     int value = 0;
-                    
+
                     try
                     {
                         s_value = channel_config[keyword].asString();
                     }
-                    catch (...) {}
+                    catch (...)
+                    {
+                    }
                     // We cannot use Json::LogicError to keep retrocompatibility with Ubuntu 14
-                    //catch (Json::LogicError &je) { std::cout << "JSON Logic error: " << je.what() << std::endl; }
+                    // catch (Json::LogicError &je) { std::cout << "JSON Logic error: " << je.what() << std::endl; }
                     try
                     {
                         value = channel_config[keyword].asInt();
                     }
-                    catch (...) {}
-                    //catch (Json::LogicError &je) { std::cout << "JSON Logic error: " << je.what() << std::endl; }
+                    catch (...)
+                    {
+                    }
+                    // catch (Json::LogicError &je) { std::cout << "JSON Logic error: " << je.what() << std::endl; }
 
                     std::cout << "config[\"dgtzs\"][\"" << member << "\"][\"" << keyword << "\"]: '" << s_value << "', " << value << std::endl;
 
-                    if ((channel < 0 || channel > (MAXC_DG - 1)) && channel != 255) {
-                        if (verboseDebug) {
+                    if ((channel < 0 || channel > (MAXC_DG - 1)) && channel != 255)
+                    {
+                        if (verboseDebug)
+                        {
                             printf("%s: Invalid channel in config JSON keyword: %s\n", boardName.data(), keyword.data());
                         }
                         continue;
                     }
 
                     // channel 255 is valid (255 = all channels)
-                    if (keyword.compare("ScopeSamples") == 0) {
+                    if (keyword.compare("ScopeSamples") == 0)
+                    {
                         SetChannelScopeSamples(channel, value);
-                        if (value - GetChannelScopeSamples(channel) != 0) {
+                        if (value - GetChannelScopeSamples(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here [" << GetChannelScopeSamples(channel) << "]" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("PSDRatioFiltering") == 0) {
+                    if (keyword.compare("PSDRatioFiltering") == 0)
+                    {
                         SetChannelPSDRatioFiltering(channel, value);
-                        if (value - GetChannelPSDRatioFiltering(channel) != 0) {
+                        if (value - GetChannelPSDRatioFiltering(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("PSDRatioThresholdPercent") == 0) {
+                    if (keyword.compare("PSDRatioThresholdPercent") == 0)
+                    {
                         SetChannelPSDRatioThresholdPercent(channel, value);
-                        if (value - GetChannelPSDRatioThresholdPercent(channel) != 0) {
+                        if (value - GetChannelPSDRatioThresholdPercent(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("SelfTrigger") == 0) {
+                    if (keyword.compare("SelfTrigger") == 0)
+                    {
                         SetChannelSelfTrigger(channel, value);
-                        if (value - GetChannelSelfTrigger(0) != 0) {
+                        if (value - GetChannelSelfTrigger(0) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("DynamicRange") == 0) {
+                    if (keyword.compare("DynamicRange") == 0)
+                    {
                         SetChannelDynamicRange(channel, value);
-                        if (boardInfo.vers != 724 && value - GetChannelDynamicRange(channel) != 0) {
+                        if (boardInfo.vers != 724 && value - GetChannelDynamicRange(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (channel == 255) {
+                    if (channel == 255)
+                    {
                         continue;
                     } // channel 255 is not valid anymore
                     // names
 
-                    if (keyword.compare("ChannelName") == 0) {
+                    if (keyword.compare("ChannelName") == 0)
+                    {
                         SetChannelName(channel, s_value.data());
                         continue;
                     }
-                    if (keyword.compare("SpectrumThreshold") == 0) {
+                    if (keyword.compare("SpectrumThreshold") == 0)
+                    {
                         SetChannelSpectrumThreshold(channel, value);
                         continue;
                     }
 
-                    if (keyword.compare("TriggerThreshold") == 0) {
+                    if (keyword.compare("TriggerThreshold") == 0)
+                    {
                         SetChannelTriggerThreshold(channel, value);
-                        if (value - GetChannelTriggerThreshold(channel) != 0) {
+                        if (value - GetChannelTriggerThreshold(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("DCOffsetPercent") == 0) {
+                    if (keyword.compare("DCOffsetPercent") == 0)
+                    {
                         SetChannelDCOffsetPercent(channel, value);
-                        if (value - GetChannelDCOffsetPercent(channel) != 0) {
+                        if (value - GetChannelDCOffsetPercent(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("DCOffset10bit") == 0) {
+                    if (keyword.compare("DCOffset10bit") == 0)
+                    {
                         SetChannelDCOffset10bit(channel, value);
-                        if (value - GetChannelDCOffset10bit(channel) != 0) {
+                        if (value - GetChannelDCOffset10bit(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("DCOffset12bit") == 0) {
+                    if (keyword.compare("DCOffset12bit") == 0)
+                    {
                         SetChannelDCOffset12bit(channel, value);
-                        if (value - GetChannelDCOffset12bit(channel) != 0) {
+                        if (value - GetChannelDCOffset12bit(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("DCOffset14bit") == 0) {
+                    if (keyword.compare("DCOffset14bit") == 0)
+                    {
                         SetChannelDCOffset14bit(channel, value);
-                        if (value - GetChannelDCOffset14bit(channel) != 0) {
+                        if (value - GetChannelDCOffset14bit(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("DCOffset16bit") == 0) {
+                    if (keyword.compare("DCOffset16bit") == 0)
+                    {
                         SetChannelDCOffset16bit(channel, value);
-                        if (value - GetChannelDCOffset16bit(channel) != 0) {
+                        if (value - GetChannelDCOffset16bit(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
@@ -5543,9 +6892,11 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                         continue;
                     }
 
-                    if (keyword.compare("TriggerPolarity") == 0) {
+                    if (keyword.compare("TriggerPolarity") == 0)
+                    {
                         SetChannelTriggerPolarity(channel, value);
-                        if (value - GetChannelTriggerPolarity(channel)) {
+                        if (value - GetChannelTriggerPolarity(channel))
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
@@ -5553,9 +6904,11 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                         continue;
                     }
 
-                    if (keyword.compare("TriggerNSamples") == 0) {
+                    if (keyword.compare("TriggerNSamples") == 0)
+                    {
                         SetChannelTriggerNSamples(channel, value);
-                        if (value - GetChannelTriggerNSamples(channel)) {
+                        if (value - GetChannelTriggerNSamples(channel))
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
@@ -5563,45 +6916,55 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                         continue;
                     }
 
-                    if (keyword.compare("ZSThresholdWeight") == 0) {
+                    if (keyword.compare("ZSThresholdWeight") == 0)
+                    {
                         SetChannelZSThresholdWeight(channel, value);
-                        if (value - GetChannelZSThresholdWeight(channel) != 0) {
+                        if (value - GetChannelZSThresholdWeight(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("ZSLogic") == 0) {
+                    if (keyword.compare("ZSLogic") == 0)
+                    {
                         SetChannelZSLogic(channel, value);
-                        if (value - GetChannelZSLogic(channel) != 0) {
+                        if (value - GetChannelZSLogic(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("ZSThreshold") == 0) {
+                    if (keyword.compare("ZSThreshold") == 0)
+                    {
                         SetChannelZSThreshold(channel, value);
-                        if (value - GetChannelZSThreshold(channel) != 0) {
+                        if (value - GetChannelZSThreshold(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("ZSAMPNSamples") == 0) {
+                    if (keyword.compare("ZSAMPNSamples") == 0)
+                    {
                         SetChannelZSAMPNSamples(channel, value);
-                        if (value - GetChannelZSAMPNSamples(channel) != 0) {
+                        if (value - GetChannelZSAMPNSamples(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("ZSZLENSamplesBeforeThr") == 0) {
+                    if (keyword.compare("ZSZLENSamplesBeforeThr") == 0)
+                    {
                         SetChannelZSZLENSamplesBeforeThr(channel, value);
-                        if (value - GetChannelZSZLENSamplesBeforeThr(channel) != 0) {
+                        if (value - GetChannelZSZLENSamplesBeforeThr(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
@@ -5609,9 +6972,11 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                         continue;
                     }
 
-                    if (keyword.compare("ZSZLENSamplesAfterThr") == 0) {
+                    if (keyword.compare("ZSZLENSamplesAfterThr") == 0)
+                    {
                         SetChannelZSZLENSamplesAfterThr(channel, value);
-                        if (value - GetChannelZSZLENSamplesAfterThr(channel) != 0) {
+                        if (value - GetChannelZSZLENSamplesAfterThr(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
@@ -5619,36 +6984,44 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                         continue;
                     }
 
-                    if (keyword.compare("MaxNumEvPerBuff") == 0) {
+                    if (keyword.compare("MaxNumEvPerBuff") == 0)
+                    {
                         SetChannelMaxNumEventsPerAggregate(channel, value);
-                        if (value - GetChannelMaxNumEventsPerAggregate(channel) != 0) {
+                        if (value - GetChannelMaxNumEventsPerAggregate(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("MaxNumEventsPerAggregate") == 0) {
+                    if (keyword.compare("MaxNumEventsPerAggregate") == 0)
+                    {
                         SetChannelMaxNumEventsPerAggregate(channel, value);
-                        if (value - GetChannelMaxNumEventsPerAggregate(channel) != 0) {
+                        if (value - GetChannelMaxNumEventsPerAggregate(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("PulsePolarity") == 0) {
+                    if (keyword.compare("PulsePolarity") == 0)
+                    {
                         SetChannelPulsePolarity(channel, value);
-                        if (value - GetChannelPulsePolarity(channel) != 0) {
+                        if (value - GetChannelPulsePolarity(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("TriggerMode") == 0) {
+                    if (keyword.compare("TriggerMode") == 0)
+                    {
                         SetChannelTriggerMode(channel, value);
-                        if (value - GetChannelTriggerMode(channel) != 0) {
+                        if (value - GetChannelTriggerMode(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
@@ -5656,81 +7029,99 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                         continue;
                     }
 
-                    if (keyword.compare("ChargeSensitivity") == 0) {
+                    if (keyword.compare("ChargeSensitivity") == 0)
+                    {
                         SetChannelChargeSensitivity(channel, value);
-                        if (value - GetChannelChargeSensitivity(channel) != 0) {
+                        if (value - GetChannelChargeSensitivity(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("PreTrigger") == 0) {
+                    if (keyword.compare("PreTrigger") == 0)
+                    {
                         SetChannelPreTrigger(channel, value);
-                        if (value - GetChannelPreTrigger(channel) != 0) {
+                        if (value - GetChannelPreTrigger(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("Threshold") == 0) {
+                    if (keyword.compare("Threshold") == 0)
+                    {
                         SetChannelThreshold(channel, value);
-                        if (value - GetChannelThreshold(channel) != 0) {
+                        if (value - GetChannelThreshold(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("ShortGate") == 0) {
+                    if (keyword.compare("ShortGate") == 0)
+                    {
                         SetChannelShortGate(channel, value);
-                        if (value - GetChannelShortGate(channel) != 0) {
+                        if (value - GetChannelShortGate(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("LongGate") == 0) {
+                    if (keyword.compare("LongGate") == 0)
+                    {
                         SetChannelLongGate(channel, value);
-                        if (value - GetChannelLongGate(channel) != 0) {
+                        if (value - GetChannelLongGate(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("PreGate") == 0) {
+                    if (keyword.compare("PreGate") == 0)
+                    {
                         SetChannelPreGate(channel, value);
-                        if (value - GetChannelPreGate(channel) != 0) {
+                        if (value - GetChannelPreGate(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("ShortGateNs") == 0) {
+                    if (keyword.compare("ShortGateNs") == 0)
+                    {
                         SetChannelShortGateNs(channel, value);
-                        if (value - GetChannelShortGateNs(channel) != 0) {
+                        if (value - GetChannelShortGateNs(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("LongGateNs") == 0) {
+                    if (keyword.compare("LongGateNs") == 0)
+                    {
                         SetChannelLongGateNs(channel, value);
-                        if (value - GetChannelLongGateNs(channel) != 0) {
+                        if (value - GetChannelLongGateNs(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("PreGateNs") == 0) {
+                    if (keyword.compare("PreGateNs") == 0)
+                    {
                         SetChannelPreGateNs(channel, value);
-                        if (value - GetChannelPreGateNs(channel) != 0) {
+                        if (value - GetChannelPreGateNs(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
@@ -5738,63 +7129,77 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                         continue;
                     }
 
-                    if (keyword.compare("BSLSamples") == 0) {
+                    if (keyword.compare("BSLSamples") == 0)
+                    {
                         SetChannelBSLSamples(channel, value);
-                        if (value - GetChannelBSLSamples(channel) != 0) {
+                        if (value - GetChannelBSLSamples(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("BSLThreshold") == 0) {
+                    if (keyword.compare("BSLThreshold") == 0)
+                    {
                         SetChannelBSLThreshold(channel, value);
-                        if (value - GetChannelBSLThreshold(channel) != 0) {
+                        if (value - GetChannelBSLThreshold(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("BSLTimeout") == 0) {
+                    if (keyword.compare("BSLTimeout") == 0)
+                    {
                         SetChannelBSLTimeout(channel, value);
-                        if (value - GetChannelBSLTimeout(channel) != 0) {
+                        if (value - GetChannelBSLTimeout(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("EnabledPUR") == 0) {
+                    if (keyword.compare("EnabledPUR") == 0)
+                    {
                         SetChannelEnabledPUR(channel, value);
-                        if (value - GetChannelEnabledPUR(channel) != 0) {
+                        if (value - GetChannelEnabledPUR(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("PURGap") == 0) {
+                    if (keyword.compare("PURGap") == 0)
+                    {
                         SetChannelPURGap(channel, value);
-                        if (value - GetChannelPURGap(channel) != 0) {
+                        if (value - GetChannelPURGap(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("TriggerHoldOff") == 0) {
+                    if (keyword.compare("TriggerHoldOff") == 0)
+                    {
                         SetChannelTriggerHoldOff(channel, value);
-                        if (value - GetChannelTriggerHoldOff(channel) != 0) {
+                        if (value - GetChannelTriggerHoldOff(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("TriggerHoldOffNs") == 0) {
+                    if (keyword.compare("TriggerHoldOffNs") == 0)
+                    {
                         SetChannelTriggerHoldOffNs(channel, value);
-                        if (value - GetChannelTriggerHoldOffNs(channel) != 0) {
+                        if (value - GetChannelTriggerHoldOffNs(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
@@ -5802,54 +7207,66 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                         continue;
                     }
 
-                    if (keyword.compare("ChannelCoincidenceMode") == 0) {
+                    if (keyword.compare("ChannelCoincidenceMode") == 0)
+                    {
                         SetChannelCoincidenceMode(channel, value);
-                        if (value - GetChannelCoincidenceMode(channel) != 0) {
+                        if (value - GetChannelCoincidenceMode(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("CoincidenceWindowNs") == 0) {
+                    if (keyword.compare("CoincidenceWindowNs") == 0)
+                    {
                         SetChannelCoincidenceWindowNs(channel, value);
-                        if (value - GetChannelCoincidenceWindowNs(channel) != 0) {
+                        if (value - GetChannelCoincidenceWindowNs(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("CoincMask") == 0) {
+                    if (keyword.compare("CoincMask") == 0)
+                    {
                         SetChannelCoincMask(channel, value);
-                        if (value - GetChannelCoincMask(channel) != 0) {
+                        if (value - GetChannelCoincMask(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("CoincLogic") == 0) {
+                    if (keyword.compare("CoincLogic") == 0)
+                    {
                         SetChannelCoincLogic(channel, value);
-                        if (value - GetChannelCoincLogic(channel) != 0) {
+                        if (value - GetChannelCoincLogic(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("CoincMajorityLevel") == 0) {
+                    if (keyword.compare("CoincMajorityLevel") == 0)
+                    {
                         SetChannelCoincMajorityLevel(channel, value);
-                        if (value - GetChannelCoincMajorityLevel(channel) != 0) {
+                        if (value - GetChannelCoincMajorityLevel(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("CoincExtTriggerMask") == 0) {
+                    if (keyword.compare("CoincExtTriggerMask") == 0)
+                    {
                         SetChannelCoincExtTriggerMask(channel, value);
-                        if (value - GetChannelCoincExtTriggerMask(channel) != 0) {
+                        if (value - GetChannelCoincExtTriggerMask(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
@@ -5857,99 +7274,121 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                         continue;
                     }
                     // coincidences - *730 only
-                    if (keyword.compare("ChannelValidationMode") == 0) {
+                    if (keyword.compare("ChannelValidationMode") == 0)
+                    {
                         SetChannelValidationMode(channel, value);
-                        if (value - GetChannelValidationMode(channel) != 0) {
+                        if (value - GetChannelValidationMode(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("CoupleTriggerOutEnabled") == 0) {
+                    if (keyword.compare("CoupleTriggerOutEnabled") == 0)
+                    {
                         SetCoupleTriggerOutEnabled(channel, value);
-                        if (value - GetCoupleTriggerOutEnabled(channel) != 0) {
+                        if (value - GetCoupleTriggerOutEnabled(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("CoupleTriggerOutMode") == 0) {
+                    if (keyword.compare("CoupleTriggerOutMode") == 0)
+                    {
                         SetCoupleTriggerOutMode(channel, value);
-                        if (value - GetCoupleTriggerOutMode(channel) != 0) {
+                        if (value - GetCoupleTriggerOutMode(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("CoupleValidationEnabled") == 0) {
+                    if (keyword.compare("CoupleValidationEnabled") == 0)
+                    {
                         SetCoupleValidationEnabled(channel, value);
-                        if (value - GetCoupleValidationEnabled(channel) != 0) {
+                        if (value - GetCoupleValidationEnabled(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("CoupleValidationSource") == 0) {
+                    if (keyword.compare("CoupleValidationSource") == 0)
+                    {
                         SetCoupleValidationSource(channel, value);
-                        if (value - GetCoupleValidationSource(channel) != 0) {
+                        if (value - GetCoupleValidationSource(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("CoupleValidationMask") == 0) {
+                    if (keyword.compare("CoupleValidationMask") == 0)
+                    {
                         SetCoupleValidationMask(channel, value);
-                        if (value - GetCoupleValidationMask(channel) != 0) {
+                        if (value - GetCoupleValidationMask(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("CoupleValidationLogic") == 0) {
+                    if (keyword.compare("CoupleValidationLogic") == 0)
+                    {
                         SetCoupleValidationLogic(channel, value);
-                        if (value - GetCoupleValidationLogic(channel) != 0) {
+                        if (value - GetCoupleValidationLogic(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("CoupleValidationMajorityLevel") == 0) {
+                    if (keyword.compare("CoupleValidationMajorityLevel") == 0)
+                    {
                         SetCoupleValidationMajorityLevel(channel, value);
-                        if (value - GetCoupleValidationMajorityLevel(channel) != 0) {
+                        if (value - GetCoupleValidationMajorityLevel(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("CoupleValidationExtTriggerMask") == 0) {
+                    if (keyword.compare("CoupleValidationExtTriggerMask") == 0)
+                    {
                         SetCoupleValidationExtTriggerMask(channel, value);
-                        if (value - GetCoupleValidationExtTriggerMask(channel) != 0) {
+                        if (value - GetCoupleValidationExtTriggerMask(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("CoupleVetoMode") == 0) {
+                    if (keyword.compare("CoupleVetoMode") == 0)
+                    {
                         SetCoupleVetoMode(channel, value);
-                        if (value - GetCoupleVetoMode(channel) != 0) {
+                        if (value - GetCoupleVetoMode(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("ChannelVetoWindow") == 0) {
+                    if (keyword.compare("ChannelVetoWindow") == 0)
+                    {
                         SetChannelVetoWindow(channel, value);
-                        if (value - GetChannelVetoWindow(channel) != 0) {
+                        if (value - GetChannelVetoWindow(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
@@ -5957,144 +7396,176 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                         continue;
                     }
                     // DPP-PHA specific keywords
-                    if (keyword.compare("TriggerFilterSmoothing") == 0) {
+                    if (keyword.compare("TriggerFilterSmoothing") == 0)
+                    {
                         SetChannelTriggerFilterSmoothing(channel, value);
-                        if (value - GetChannelTriggerFilterSmoothing(channel) != 0) {
+                        if (value - GetChannelTriggerFilterSmoothing(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("InputRiseTime") == 0) {
+                    if (keyword.compare("InputRiseTime") == 0)
+                    {
                         SetChannelInputRiseTime(channel, value);
-                        if (value - GetChannelInputRiseTime(channel) != 0) {
+                        if (value - GetChannelInputRiseTime(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("TrapezoidRiseTime") == 0) {
+                    if (keyword.compare("TrapezoidRiseTime") == 0)
+                    {
                         SetChannelTrapezoidRiseTime(channel, value);
-                        if (value - GetChannelTrapezoidRiseTime(channel) != 0) {
+                        if (value - GetChannelTrapezoidRiseTime(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("TrapezoidFlatTop") == 0) {
+                    if (keyword.compare("TrapezoidFlatTop") == 0)
+                    {
                         SetChannelTrapezoidFlatTop(channel, value);
-                        if (value - GetChannelTrapezoidFlatTop(channel) != 0) {
+                        if (value - GetChannelTrapezoidFlatTop(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("TrapezoidFlatTopDelay") == 0) {
+                    if (keyword.compare("TrapezoidFlatTopDelay") == 0)
+                    {
                         SetChannelPeakingTime(channel, value);
-                        if (value - GetChannelPeakingTime(channel) != 0) {
+                        if (value - GetChannelPeakingTime(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("PeakingTime") == 0) {
+                    if (keyword.compare("PeakingTime") == 0)
+                    {
                         SetChannelPeakingTime(channel, value);
-                        if (value - GetChannelPeakingTime(channel) != 0) {
+                        if (value - GetChannelPeakingTime(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("DecayTime") == 0) {
+                    if (keyword.compare("DecayTime") == 0)
+                    {
                         SetChannelDecayTime(channel, value);
-                        if (value - GetChannelDecayTime(channel) != 0) {
+                        if (value - GetChannelDecayTime(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("RTDWindowWidth") == 0) {
+                    if (keyword.compare("RTDWindowWidth") == 0)
+                    {
                         SetChannelRTDWindowWidth(channel, value);
-                        if (value - GetChannelRTDWindowWidth(channel) != 0) {
+                        if (value - GetChannelRTDWindowWidth(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("PeakHoldOffExtension") == 0) {
+                    if (keyword.compare("PeakHoldOffExtension") == 0)
+                    {
                         SetChannelPeakHoldOffExtension(channel, value);
-                        if (value - GetChannelPeakHoldOffExtension(channel) != 0) {
+                        if (value - GetChannelPeakHoldOffExtension(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("BaselineHoldOffExtension") == 0) {
+                    if (keyword.compare("BaselineHoldOffExtension") == 0)
+                    {
                         SetChannelBaselineHoldOffExtension(channel, value);
-                        if (value - GetChannelBaselineHoldOffExtension(channel) != 0) {
+                        if (value - GetChannelBaselineHoldOffExtension(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("TrapezoidRescaling") == 0) {
+                    if (keyword.compare("TrapezoidRescaling") == 0)
+                    {
                         SetChannelTrapezoidRescaling(channel, value);
-                        if (value - GetChannelTrapezoidRescaling(channel) != 0) {
+                        if (value - GetChannelTrapezoidRescaling(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("Decimation") == 0) {
+                    if (keyword.compare("Decimation") == 0)
+                    {
                         SetChannelDecimation(channel, value);
-                        if (value - GetChannelDecimation(channel) != 0) {
+                        if (value - GetChannelDecimation(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("DigitalGain") == 0) {
+                    if (keyword.compare("DigitalGain") == 0)
+                    {
                         SetChannelDigitalGain(channel, value);
-                        if (value - GetChannelDigitalGain(channel) != 0) {
+                        if (value - GetChannelDigitalGain(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("PeakAveragingWindow") == 0) {
+                    if (keyword.compare("PeakAveragingWindow") == 0)
+                    {
                         SetChannelPeakAveragingWindow(channel, value);
-                        if (value - GetChannelPeakAveragingWindow(channel) != 0) {
+                        if (value - GetChannelPeakAveragingWindow(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("EnabledRollOverEvents") == 0) {
+                    if (keyword.compare("EnabledRollOverEvents") == 0)
+                    {
                         SetChannelEnabledRollOverEvents(channel, value);
-                        if (value - GetChannelEnabledRollOverEvents(channel) != 0) {
+                        if (value - GetChannelEnabledRollOverEvents(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
                         }
                         continue;
                     }
-                    if (keyword.compare("PileUpFlagging") == 0) {
+                    if (keyword.compare("PileUpFlagging") == 0)
+                    {
                         SetChannelPileUpFlagging(channel, value);
-                        if (value - GetChannelPileUpFlagging(channel) != 0) {
+                        if (value - GetChannelPileUpFlagging(channel) != 0)
+                        {
                             std::cout << "(!)  ^--- problem here" << std::endl;
                             error = -3;
                             EmitError();
@@ -6120,21 +7591,25 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
             const std::string keyword = member;
             std::string s_value;
             int value = 0;
-                
+
             try
             {
                 s_value = abcd_config[keyword].asString();
             }
-            catch (...) {}
+            catch (...)
+            {
+            }
             // We cannot use Json::LogicError to keep retrocompatibility with Ubuntu 14
-            //catch (Json::LogicError &je) { std::cout << "JSON Logic error: " << je.what() << std::endl; }
+            // catch (Json::LogicError &je) { std::cout << "JSON Logic error: " << je.what() << std::endl; }
 
             try
             {
                 value = abcd_config[keyword].asInt();
             }
-            catch (...) {}
-            //catch (Json::LogicError &je) { std::cout << "JSON Logic error: " << je.what() << std::endl; }
+            catch (...)
+            {
+            }
+            // catch (Json::LogicError &je) { std::cout << "JSON Logic error: " << je.what() << std::endl; }
 
             std::cout << "config[\"abcd\"][\"" << keyword << "\"]: '" << s_value << "', " << value << std::endl;
 
@@ -6146,12 +7621,9 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                 //   "value": 100,
                 //   "start": 0,
                 //   "n": 8 }
-                for (const Json::Value &register_obj: abcd_config[keyword])
+                for (const Json::Value &register_obj : abcd_config[keyword])
                 {
-                    if (register_obj.isMember("address")
-                        && register_obj.isMember("value")
-                        && register_obj.isMember("start")
-                        && register_obj.isMember("n"))
+                    if (register_obj.isMember("address") && register_obj.isMember("value") && register_obj.isMember("start") && register_obj.isMember("n"))
                     {
                         try
                         {
@@ -6172,16 +7644,18 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                             try
                             {
                                 std::cout << "Note: " << register_obj["note"].asString() << std::endl;
-                            } catch (...) {}
+                            }
+                            catch (...)
+                            {
+                            }
                             std::cout << "Before: 0x" << std::hex << (int)register_before << std::dec << std::endl;
                             std::cout << " After: 0x" << std::hex << (int)register_after << std::dec << std::endl;
                         }
-                        catch (...) { }
+                        catch (...)
+                        {
+                        }
                     }
-                    else if (register_obj.isMember("address")
-                             && register_obj.isMember("value")
-                             && !register_obj.isMember("start")
-                             && !register_obj.isMember("n"))
+                    else if (register_obj.isMember("address") && register_obj.isMember("value") && !register_obj.isMember("start") && !register_obj.isMember("n"))
                     {
                         try
                         {
@@ -6194,11 +7668,16 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
                             try
                             {
                                 std::cout << "Note: " << register_obj["note"].asString() << std::endl;
-                            } catch (...) {}
+                            }
+                            catch (...)
+                            {
+                            }
 
                             CAEN_DGTZ_WriteRegister(handle, address, value);
                         }
-                        catch (...) { }
+                        catch (...)
+                        {
+                        }
                     }
                 }
             }
@@ -6206,35 +7685,53 @@ void CAENDgtz::ConfigureFromJSON(const Json::Value &config)
     }
 
     // digital traces settings
-    if (boardInfo.dppVersion == 3) {
-        switch (boardInfo.vers) {
-        case 751: {
-            if (showGates == 1) {
+    if (boardInfo.dppVersion == 3)
+    {
+        switch (boardInfo.vers)
+        {
+        case 751:
+        {
+            if (showGates == 1)
+            {
                 SetRegisterSpecificBits(0x8000, 23, 24, 3);
-            } else {
+            }
+            else
+            {
                 SetRegisterSpecificBits(0x8000, 23, 24, 0);
             }
-        } break;
-        case 725: {
-            if (showGates == 1) {
+        }
+        break;
+        case 725:
+        {
+            if (showGates == 1)
+            {
                 SetRegisterSpecificBits(0x8000, 23, 28, 0);
             }
-        } break;
-        case 730: {
-            if (showGates == 1) {
+        }
+        break;
+        case 730:
+        {
+            if (showGates == 1)
+            {
                 SetRegisterSpecificBits(0x8000, 23, 28, 0);
             }
-        } break;
-        case 720: {
-            if (showGates == 1) {
+        }
+        break;
+        case 720:
+        {
+            if (showGates == 1)
+            {
                 SetRegisterSpecificBits(0x8000, 23, 25, 0);
             }
-        } break;
-        default: {
+        }
+        break;
+        default:
+        {
         }
         } // end switch
         // enables/disable gates
     }
 
-    //DumpRegister(0xEF1C);
+    // DumpRegister(0xEF1C);
 }
+
