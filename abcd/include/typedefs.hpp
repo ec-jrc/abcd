@@ -68,6 +68,7 @@ struct status
     CAEN_DGTZ_UINT16_EVENT_t *Evt_STD = nullptr;
     CAEN_DGTZ_DPP_PSD_Event_t **Evt_PSD = nullptr;
     CAEN_DGTZ_DPP_PSD_Waveforms_t *Waveforms_PSD = nullptr;
+    unsigned int data_reading_timeout = defaults_abcd_data_reading_timeout;
 
     uint32_t *numEvents = nullptr;
     uint64_t *previous_timestamp = nullptr;
