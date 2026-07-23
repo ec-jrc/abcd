@@ -131,6 +131,7 @@
 #define defaults_abcd_events_buffer_max_size 4096
 #define defaults_abcd_publish_timeout 3
 #define defaults_abcd_zmq_delay 500
+#define defaults_abcd_data_reading_timeout 1000
 
 #define defaults_abad2_device_number -1
 
