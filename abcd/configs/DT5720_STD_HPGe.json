@@ -1,15 +1,24 @@
 {
+    "abcd": {
+        "data_reading_timeout": 3000,
+        "data_reading_timeout_note": "in ms, the timeout of the inner data fetching loop",
+        "zzz": null
+    },
     "dgtzs": {
         "BoardName": "DT5720",
         "ChannelEnableMask": 1,
-        "RecordLength": 10000,
-        "PostTriggerSamples": 5000,
-        "PostTriggerSamples_note": "must be a multiple of 4",
-        "SWTriggerMode": 1,
+        "ChannelEnableMask_note": "the binary mask to enable the channels reading",
         "TriggerEnableMask": 1,
+        "TriggerEnableMask_note": "the binary mask to enable the triggering of the channels",
+        "RecordLength": 20000,
+        "RecordLength_note": "the waveform length in samples",
+        "PostTriggerSamples": 10000,
+        "PostTriggerSamples_note": "the number of samples in the waveform after the trigger, must be a multiple of 4",
+        "SWTriggerMode": 1,
+        "SWTriggerMode_note": "source of trigger, with 1 it is from the channels",
         "ch0": {
             "DCOffsetPercent": -40,
-            "DCOffsetPercent_note": "should be negative for negative signals, positive for positive signals",
+            "DCOffsetPercent_note": "values from -50 to +50, should be negative for negative signals, positive for positive signals",
             "TriggerPolarity": 1,
             "TriggerPolarity_positive_signals": 0,
             "TriggerPolarity_negative_signals": 1,
@@ -17,6 +26,16 @@
             "TriggerThreshold_note": "absolute ADC value, not relative to the baseline"
         },
         "ch1": {
+            "DCOffsetPercent": -40,
+            "TriggerPolarity": 0,
+            "TriggerThreshold": 4080
+        },
+        "ch2": {
+            "DCOffsetPercent": -40,
+            "TriggerPolarity": 0,
+            "TriggerThreshold": 4080
+        },
+        "ch3": {
             "DCOffsetPercent": -40,
             "TriggerPolarity": 0,
             "TriggerThreshold": 4080
