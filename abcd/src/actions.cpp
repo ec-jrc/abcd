@@ -62,13 +62,13 @@ void actions::generic::publish_events(status &global_status)
             std::cout << "Topic: " << topic << "; ";
             std::cout << "events: " << buffer_size << "; ";
             std::cout << "buffer size: " << data_size << "; ";
-            //std::cout << "event_PSD size: " << sizeof(event_PSD) << "; ";
+            // std::cout << "event_PSD size: " << sizeof(event_PSD) << "; ";
             std::cout << std::endl;
         }
 
-        const bool result = socket_functions::send_byte_message(global_status.data_socket, \
-                                                                topic, \
-                                                                global_status.events_buffer.data(), \
+        const bool result = socket_functions::send_byte_message(global_status.data_socket,
+                                                                topic,
+                                                                global_status.events_buffer.data(),
                                                                 data_size);
 
         global_status.events_msg_ID += 1;
@@ -83,8 +83,7 @@ void actions::generic::publish_events(status &global_status)
         // Cleanup vector
         global_status.events_buffer.clear();
         // Initialize vector size to its max size plus a 10%
-        global_status.events_buffer.reserve(global_status.events_buffer_max_size \
-                                            + \
+        global_status.events_buffer.reserve(global_status.events_buffer_max_size +
                                             global_status.events_buffer_max_size / 10);
     }
 
@@ -94,7 +93,7 @@ void actions::generic::publish_events(status &global_status)
     {
         size_t total_size = 0;
 
-        for (auto event: global_status.waveforms_buffer)
+        for (auto event : global_status.waveforms_buffer)
         {
             total_size += event.size();
         }
@@ -103,13 +102,13 @@ void actions::generic::publish_events(status &global_status)
 
         size_t portion = 0;
 
-        for (auto event: global_status.waveforms_buffer)
+        for (auto event : global_status.waveforms_buffer)
         {
             const size_t event_size = event.size();
             const std::vector<uint8_t> event_buffer = event.serialize();
-            
+
             memcpy(output_buffer.data() + portion,
-                   reinterpret_cast<const void*>(event_buffer.data()),
+                   reinterpret_cast<const void *>(event_buffer.data()),
                    event_size);
 
             portion += event_size;
@@ -132,9 +131,9 @@ void actions::generic::publish_events(status &global_status)
             std::cout << std::endl;
         }
 
-        const bool result = socket_functions::send_byte_message(global_status.data_socket, \
-                                                                topic, \
-                                                                output_buffer.data(), \
+        const bool result = socket_functions::send_byte_message(global_status.data_socket,
+                                                                topic,
+                                                                output_buffer.data(),
                                                                 total_size);
         global_status.waveforms_msg_ID += 1;
 
@@ -148,15 +147,14 @@ void actions::generic::publish_events(status &global_status)
         // Cleanup vector
         global_status.waveforms_buffer.clear();
         // Initialize vector size to its max size plus a 10%
-        global_status.waveforms_buffer.reserve(global_status.events_buffer_max_size \
-                                               + \
+        global_status.waveforms_buffer.reserve(global_status.events_buffer_max_size +
                                                global_status.events_buffer_max_size / 10);
     }
 }
 
 void actions::generic::publish_message(status &global_status,
-                                      std::string topic,
-                                      Json::Value status_message)
+                                       std::string topic,
+                                       Json::Value status_message)
 {
     std::chrono::time_point<std::chrono::system_clock> last_publication = std::chrono::system_clock::now();
     global_status.last_publication = last_publication;
@@ -168,8 +166,8 @@ void actions::generic::publish_message(status &global_status,
     status_message["timestamp"] = utilities_functions::time_string();
     status_message["msg_ID"] = Json::Value::UInt64(status_msg_ID);
 
-    //Json::FastWriter writer;
-    //std::string message = writer.write(status_message);
+    // Json::FastWriter writer;
+    // std::string message = writer.write(status_message);
     Json::StreamWriterBuilder builder;
     builder.settings_["indentation"] = "";
     std::string message = Json::writeString(builder, status_message);
@@ -189,7 +187,7 @@ void actions::generic::publish_message(status &global_status,
         std::cout << std::endl;
     }
 
-    void *pointer = const_cast<void*>(reinterpret_cast<const void*>(message.data()));
+    void *pointer = const_cast<void *>(reinterpret_cast<const void *>(message.data()));
 
     socket_functions::send_byte_message(status_socket, topic, pointer, total_size);
 
@@ -198,7 +196,7 @@ void actions::generic::publish_message(status &global_status,
 
 void actions::generic::stop_acquisition(status &global_status)
 {
-    CAENDgtz * const digitizer = global_status.digitizer;
+    CAENDgtz *const digitizer = global_status.digitizer;
     const unsigned int verbosity = global_status.verbosity;
 
     digitizer->SWStopAcquisition();
@@ -219,7 +217,7 @@ void actions::generic::stop_acquisition(status &global_status)
 
 void actions::generic::clear_memory(status &global_status)
 {
-    CAENDgtz * const digitizer = global_status.digitizer;
+    CAENDgtz *const digitizer = global_status.digitizer;
     const unsigned int verbosity = global_status.verbosity;
 
     global_status.counts.clear();
@@ -250,17 +248,17 @@ void actions::generic::clear_memory(status &global_status)
             std::cout << std::endl;
         }
 
-        digitizer->FreeEvent((void**)(&global_status.Evt_STD));
+        digitizer->FreeEvent((void **)(&global_status.Evt_STD));
         global_status.Evt_STD = nullptr;
 
-        //if (global_status.Evt_STD != nullptr)
+        // if (global_status.Evt_STD != nullptr)
         //{
-        //    if (verbosity > 0)
-        //    {
-        //        std::cout << '[' << utilities_functions::time_string() << "] ";
-        //        std::cout << "Clearing Evt_STD...";
-        //        std::cout << std::endl;
-        //    }
+        //     if (verbosity > 0)
+        //     {
+        //         std::cout << '[' << utilities_functions::time_string() << "] ";
+        //         std::cout << "Clearing Evt_STD...";
+        //         std::cout << std::endl;
+        //     }
 
         //    delete global_status.Evt_STD;
         //    global_status.Evt_STD = nullptr;
@@ -275,7 +273,7 @@ void actions::generic::clear_memory(status &global_status)
             std::cout << std::endl;
         }
 
-        digitizer->FreeDPPEvents((void**)global_status.Evt_PSD);
+        digitizer->FreeDPPEvents((void **)global_status.Evt_PSD);
 
         if (global_status.enabled_waveforms)
         {
@@ -286,7 +284,7 @@ void actions::generic::clear_memory(status &global_status)
                 std::cout << std::endl;
             }
 
-            digitizer->FreeDPPWaveforms((void**)global_status.Waveforms_PSD);
+            digitizer->FreeDPPWaveforms((void **)global_status.Waveforms_PSD);
         }
 
         if (global_status.Evt_PSD != nullptr)
@@ -301,7 +299,7 @@ void actions::generic::clear_memory(status &global_status)
             delete global_status.Evt_PSD;
             global_status.Evt_PSD = nullptr;
         }
-        //delete global_status.Waveforms_PSD;
+        // delete global_status.Waveforms_PSD;
     }
     else
     {
@@ -319,7 +317,7 @@ void actions::generic::clear_memory(status &global_status)
     delete global_status.numEvents;
     global_status.numEvents = nullptr;
 
-    //delete global_status.numSamples;
+    // delete global_status.numSamples;
 
     if (verbosity > 0)
     {
@@ -443,14 +441,14 @@ bool actions::generic::configure_digitizer(status &global_status)
         digitizer->SetVerboseDebug(false);
     }
 
-    //if (verbosity > 0)
+    // if (verbosity > 0)
     //{
-    //    std::cout << '[' << utilities_functions::time_string() << "] ";
-    //    std::cout << "Configuring with file: ";
-    //    std::cout << config_file;
-    //    std::cout << std::endl;
-    //}
-    //digitizer->ConfigureFromFile(config_file.c_str());
+    //     std::cout << '[' << utilities_functions::time_string() << "] ";
+    //     std::cout << "Configuring with file: ";
+    //     std::cout << config_file;
+    //     std::cout << std::endl;
+    // }
+    // digitizer->ConfigureFromFile(config_file.c_str());
 
     digitizer->ConfigureFromJSON(global_status.config);
 
@@ -480,7 +478,7 @@ bool actions::generic::configure_digitizer(status &global_status)
     //            appropriate value automatically.
     if (global_status.dpp_version > 0)
     {
-        digitizer->SetDPPEventAggregation(0,0);
+        digitizer->SetDPPEventAggregation(0, 0);
     }
 
     const auto model = digitizer->GetModel();
@@ -584,24 +582,22 @@ bool actions::generic::allocate_memory(status &global_status)
         }
 
         // STD firmware
-        //global_status.Evt_STD = new CAEN_DGTZ_UINT16_EVENT_t *[channels_number];
+        // global_status.Evt_STD = new CAEN_DGTZ_UINT16_EVENT_t *[channels_number];
 
-        //if (global_status.Evt_STD == nullptr)
+        // if (global_status.Evt_STD == nullptr)
         //{
-        //    std::cout << '[' << utilities_functions::time_string() << "] ";
-        //    std::cout << "ERROR: Unable to allocate Evt_STD";
-        //    std::cout << std::endl;
+        //     std::cout << '[' << utilities_functions::time_string() << "] ";
+        //     std::cout << "ERROR: Unable to allocate Evt_STD";
+        //     std::cout << std::endl;
 
         //    return false;
         //}
 
-        //for (unsigned int ch = 0; ch < channels_number; ch++) {
-        //    global_status.Evt_STD[ch] = nullptr;
-        //}
+        // for (unsigned int ch = 0; ch < channels_number; ch++) {
+        //     global_status.Evt_STD[ch] = nullptr;
+        // }
 
-        digitizer->AllocateEvent((void**)(&global_status.Evt_STD));
-
-
+        digitizer->AllocateEvent((void **)(&global_status.Evt_STD));
     }
     else if (global_status.dpp_version == 3)
     {
@@ -624,13 +620,14 @@ bool actions::generic::allocate_memory(status &global_status)
             return false;
         }
 
-        for (unsigned int ch = 0; ch < MAXC_DG; ch++) {
+        for (unsigned int ch = 0; ch < MAXC_DG; ch++)
+        {
             global_status.Evt_PSD[ch] = nullptr;
         }
 
         uint32_t bsize = 0;
 
-        digitizer->MallocDPPEvents((void**)global_status.Evt_PSD, &bsize);
+        digitizer->MallocDPPEvents((void **)global_status.Evt_PSD, &bsize);
 
         if (verbosity > 0)
         {
@@ -649,13 +646,13 @@ bool actions::generic::allocate_memory(status &global_status)
                 std::cout << ch << std::endl;
                 std::cout << std::endl;
 
-                //return false;
+                // return false;
             }
         }
 
         if (digitizer->GetEnabledScope())
         {
-            digitizer->MallocDPPWaveforms((void**)&global_status.Waveforms_PSD, &bsize);
+            digitizer->MallocDPPWaveforms((void **)&global_status.Waveforms_PSD, &bsize);
 
             if (verbosity > 0)
             {
@@ -685,11 +682,12 @@ bool actions::generic::allocate_memory(status &global_status)
     }
 
     uint32_t *numEvents = new uint32_t[channels_number];
-    //uint16_t *numSamples = new uint16_t[channels_number];
+    // uint16_t *numSamples = new uint16_t[channels_number];
 
-    for (unsigned int ch = 0; ch < channels_number; ch++) {
+    for (unsigned int ch = 0; ch < channels_number; ch++)
+    {
         numEvents[ch] = 0;
-        //numSamples[ch] = digitizer->GetChannelScopeSamples(ch);
+        // numSamples[ch] = digitizer->GetChannelScopeSamples(ch);
     }
 
     uint64_t *previous_timestamp = new uint64_t[channels_number];
@@ -702,12 +700,11 @@ bool actions::generic::allocate_memory(status &global_status)
     }
 
     // Reserve the events_buffer in order to have a good starting size of its buffer
-    global_status.events_buffer.reserve(global_status.events_buffer_max_size \
-                                        + \
+    global_status.events_buffer.reserve(global_status.events_buffer_max_size +
                                         global_status.events_buffer_max_size / 10);
 
     // The first event will give the buffer size in its timestamp member
-    //global_status.events_buffer.emplace_back(0, 0, 0, 0);
+    // global_status.events_buffer.emplace_back(0, 0, 0, 0);
 
     // Writing to the global status all the important variables
     global_status.numEvents = numEvents;
@@ -721,7 +718,7 @@ bool actions::generic::allocate_memory(status &global_status)
 /* Specific actions                                                           */
 /******************************************************************************/
 
-state actions::start(status&)
+state actions::start(status &)
 {
     return states::CREATE_CONTEXT;
 }
@@ -871,8 +868,8 @@ state actions::read_config(status &global_status)
     }
 
     Json::Value config;
-    //Json::Reader reader;
-    //const bool parse_success = reader.parse(config_file, config, false);
+    // Json::Reader reader;
+    // const bool parse_success = reader.parse(config_file, config, false);
     Json::CharReaderBuilder json_reader;
     std::string json_parsing_error;
     const bool parse_success = Json::parseFromStream(json_reader,
@@ -936,7 +933,6 @@ state actions::recreate_digitizer(status &global_status)
     }
 }
 
-
 state actions::configure_digitizer(status &global_status)
 {
     const bool success = actions::generic::configure_digitizer(global_status);
@@ -971,7 +967,9 @@ state actions::receive_commands(status &global_status)
         {
             command = json_message["command"].asString();
         }
-        catch (...) { }
+        catch (...)
+        {
+        }
 
         if (command == std::string("start"))
         {
@@ -1077,7 +1075,7 @@ state actions::restart_allocate_memory(status &global_status)
     }
 }
 
-state actions::stop(status&)
+state actions::stop(status &)
 {
     return states::STOP;
 }
@@ -1093,7 +1091,7 @@ state actions::start_acquisition(status &global_status)
 
     std::chrono::time_point<std::chrono::system_clock> start_time = std::chrono::system_clock::now();
 
-    CAENDgtz * const digitizer = global_status.digitizer;
+    CAENDgtz *const digitizer = global_status.digitizer;
 
     if (!digitizer)
     {
@@ -1113,7 +1111,8 @@ state actions::start_acquisition(status &global_status)
 
     const unsigned int channels_number = digitizer->GetNumChannels();
 
-    for (unsigned int ch = 0; ch < channels_number; ch++) {
+    for (unsigned int ch = 0; ch < channels_number; ch++)
+    {
         global_status.numEvents[ch] = 0;
         global_status.previous_timestamp[ch] = 0;
         global_status.time_offset[ch] = 0;
@@ -1128,9 +1127,10 @@ state actions::start_acquisition(status &global_status)
 
     // remove when switching to V1730
     // Remove?! Setting it to 1 if 730 is detected? What?!
-    global_status.flag_tt64 = (digitizer->GetEnabledBSL() == 1 \
-                               && \
-                               digitizer->GetModel() == 730) ? true : false;
+    global_status.flag_tt64 = (digitizer->GetEnabledBSL() == 1 &&
+                               digitizer->GetModel() == 730)
+                                  ? true
+                                  : false;
     global_status.enabled_waveforms = digitizer->GetEnabledScope();
     global_status.show_gates = digitizer->GetShowGates();
 
@@ -1168,7 +1168,9 @@ state actions::acquisition_receive_commands(status &global_status)
         {
             command = json_message["command"].asString();
         }
-        catch (...) { }
+        catch (...)
+        {
+        }
 
         if (command == std::string("stop"))
         {
@@ -1181,7 +1183,7 @@ state actions::acquisition_receive_commands(status &global_status)
     }
 
     // Carlo Tintori suggests to read directly the data
-    //return states::POLL_DIGITIZER;
+    // return states::POLL_DIGITIZER;
     return states::ADD_TO_BUFFER;
 }
 
@@ -1233,7 +1235,7 @@ state actions::poll_digitizer(status &global_status)
 
 state actions::add_to_buffer(status &global_status)
 {
-    CAENDgtz * const digitizer = global_status.digitizer;
+    CAENDgtz *const digitizer = global_status.digitizer;
 
     if (!digitizer)
     {
@@ -1271,7 +1273,7 @@ state actions::add_to_buffer(status &global_status)
         std::cout << "ERROR: ReadData error";
         std::cout << std::endl;
         // Let us continue at the moment
-        //return states::ACQUISITION_ERROR;
+        // return states::ACQUISITION_ERROR;
     }
 
     const unsigned int verbosity = global_status.verbosity;
@@ -1283,8 +1285,8 @@ state actions::add_to_buffer(status &global_status)
         std::cout << std::endl;
     }
 
-    uint64_t * const previous_timestamp = global_status.previous_timestamp;
-    uint64_t * const time_offset = global_status.time_offset;
+    uint64_t *const previous_timestamp = global_status.previous_timestamp;
+    uint64_t *const time_offset = global_status.time_offset;
 
     if (bsize > 0)
     {
@@ -1319,10 +1321,10 @@ state actions::add_to_buffer(status &global_status)
             {
                 char *event_pointer = nullptr;
 
-                const CAEN_DGTZ_EventInfo_t event_info = \
+                const CAEN_DGTZ_EventInfo_t event_info =
                     digitizer->GetEventInfo(global_status.readout_buffer, bsize, i, &event_pointer);
 
-                digitizer->DecodeEvent(event_pointer, (void**)(&global_status.Evt_STD));
+                digitizer->DecodeEvent(event_pointer, (void **)(&global_status.Evt_STD));
 
                 // loop on channels
                 for (unsigned int ch = 0; ch < channels_number; ch++)
@@ -1348,16 +1350,16 @@ state actions::add_to_buffer(status &global_status)
                         previous_timestamp[ch] = trigger_time_tag;
 
                         const uint64_t timestamp = trigger_time_tag + time_offset[ch];
-                        const uint8_t  channel = ch;
+                        const uint8_t channel = ch;
 
                         global_status.counts[channel] += 1;
                         global_status.partial_counts[channel] += 1;
 
                         global_status.waveforms_buffer.emplace_back(timestamp, channel, samples_number);
 
-                        memcpy(global_status.waveforms_buffer.back().samples.data(), \
-                            global_status.Evt_STD->DataChannel[ch], \
-                            samples_number * sizeof(uint16_t));
+                        memcpy(global_status.waveforms_buffer.back().samples.data(),
+                               global_status.Evt_STD->DataChannel[ch],
+                               samples_number * sizeof(uint16_t));
                     }
                 }
             }
@@ -1372,7 +1374,7 @@ state actions::add_to_buffer(status &global_status)
             }
 
             // DPP-PSD firmware
-            digitizer->GetDPPEvents(global_status.readout_buffer, bsize, (void**)global_status.Evt_PSD, numEvents);
+            digitizer->GetDPPEvents(global_status.readout_buffer, bsize, (void **)global_status.Evt_PSD, numEvents);
 
             // loop on channels
             for (unsigned int ch = 0; ch < channels_number; ch++)
@@ -1389,7 +1391,7 @@ state actions::add_to_buffer(status &global_status)
                 {
                     // reject events with small, negative energy (mostly noise peaks)
                     // Negative but in an unsigned int, so buffer underflows (?)
-                    //if ((uint16_t)global_status.Evt_PSD[ch][i].ChargeLong > defaults_abcd_negative_limit \
+                    // if ((uint16_t)global_status.Evt_PSD[ch][i].ChargeLong > defaults_abcd_negative_limit \
                     //    || \
                     //    (uint16_t)global_status.Evt_PSD[ch][i].ChargeShort > defaults_abcd_negative_limit)
                     //{
@@ -1397,14 +1399,14 @@ state actions::add_to_buffer(status &global_status)
                     //}
 
                     // reject low charge events
-                    //if ((uint16_t)global_status.Evt_PSD[ch][i].ChargeLong < spectrumThr[ch])
+                    // if ((uint16_t)global_status.Evt_PSD[ch][i].ChargeLong < spectrumThr[ch])
                     //{
                     //    continue;
                     //}
 
                     // Reading the ICR flag from Extra word in the DPP firmware
                     // When the flag is seen the digitizer's input counter saw 1024 events
-                    if ((((uint64_t)global_status.Evt_PSD[ch][i].Extras) >> 13 ) & 1)
+                    if ((((uint64_t)global_status.Evt_PSD[ch][i].Extras) >> 13) & 1)
                     {
                         global_status.ICR_counts[ch] += 1024;
                     }
@@ -1415,22 +1417,19 @@ state actions::add_to_buffer(status &global_status)
 
                     if (global_status.flag_tt64)
                     {
-                        timestamp64bit = (global_status.Evt_PSD[ch][i].TimeTag & 0x7FFFFFFF) \
-                                    | \
-                                    ((((uint64_t)global_status.Evt_PSD[ch][i].Extras) & 0xFFFF0000) << 15 );
+                        timestamp64bit = (global_status.Evt_PSD[ch][i].TimeTag & 0x7FFFFFFF) |
+                                         ((((uint64_t)global_status.Evt_PSD[ch][i].Extras) & 0xFFFF0000) << 15);
 
                         fine_timestamp = global_status.Evt_PSD[ch][i].Extras & 0x3FF;
 
                         // corrections for isolated 4 s jumps in future
                         // LSB of Extras (bit 31 of 64 bit timestamp) flips to 1 (shark peak)
-                        if ((previous_timestamp[ch] + ((uint64_t)(1 << 30)) < timestamp64bit) \
-                            && \
+                        if ((previous_timestamp[ch] + ((uint64_t)(1 << 30)) < timestamp64bit) &&
                             (i + 1 < numEvents[ch]))
                         {
                             // jump greater than 4 seconds && we have following event to check
-                            uint64_t nexttag64bit = (global_status.Evt_PSD[ch][i+1].TimeTag & 0x7FFFFFFF) \
-                                                    | \
-                                                    ((((uint64_t)global_status.Evt_PSD[ch][i + 1].Extras) & 0xFFFF0000) << 15 );
+                            uint64_t nexttag64bit = (global_status.Evt_PSD[ch][i + 1].TimeTag & 0x7FFFFFFF) |
+                                                    ((((uint64_t)global_status.Evt_PSD[ch][i + 1].Extras) & 0xFFFF0000) << 15);
                             if (nexttag64bit + ((uint64_t)1 << 30) < timestamp64bit)
                             {
                                 timestamp64bit -= ((uint64_t)1 << 31);
@@ -1463,19 +1462,19 @@ state actions::add_to_buffer(status &global_status)
                     // If we shift the timestamp by 10 bits we should be able to fit the fine time tag
                     // that we get from the DCFD of the v1730s
                     const uint64_t timestamp = (temporary_timestamp << 10) + fine_timestamp;
-                    
-                    const uint16_t qshort = 0 + global_status.Evt_PSD[ch][i].ChargeShort;
-                    const uint16_t qlong  = 0 + global_status.Evt_PSD[ch][i].ChargeLong;
-                    //const uint16_t baseline = 0 + (global_status.Evt_PSD[ch][i].Extras & 0x0000FFFF);
-                    const uint16_t baseline = global_status.Evt_PSD[ch][i].Baseline;
-                    const uint8_t  channel = ch;
-                    const uint8_t  group_counter = global_status.Evt_PSD[ch][i].Pur;
 
-                    //std::cerr << "MAIN: Event: timestamp: " << timestamp << std::endl;
-                    //std::cerr << "MAIN: Event: baseline: " << baseline << std::endl;
-                    //std::cerr << "MAIN: Event: qshort: " << qshort << std::endl;
-                    //std::cerr << "MAIN: Event: qlong: " << qlong << std::endl;
-                    //std::cerr << "MAIN: Event: extras: " << global_status.Evt_PSD[ch][i].Extras << std::endl;
+                    const uint16_t qshort = 0 + global_status.Evt_PSD[ch][i].ChargeShort;
+                    const uint16_t qlong = 0 + global_status.Evt_PSD[ch][i].ChargeLong;
+                    // const uint16_t baseline = 0 + (global_status.Evt_PSD[ch][i].Extras & 0x0000FFFF);
+                    const uint16_t baseline = global_status.Evt_PSD[ch][i].Baseline;
+                    const uint8_t channel = ch;
+                    const uint8_t group_counter = global_status.Evt_PSD[ch][i].Pur;
+
+                    // std::cerr << "MAIN: Event: timestamp: " << timestamp << std::endl;
+                    // std::cerr << "MAIN: Event: baseline: " << baseline << std::endl;
+                    // std::cerr << "MAIN: Event: qshort: " << qshort << std::endl;
+                    // std::cerr << "MAIN: Event: qlong: " << qlong << std::endl;
+                    // std::cerr << "MAIN: Event: extras: " << global_status.Evt_PSD[ch][i].Extras << std::endl;
 
                     global_status.events_buffer.emplace_back(timestamp, qshort, qlong, baseline, channel, group_counter);
 
@@ -1498,29 +1497,29 @@ state actions::add_to_buffer(status &global_status)
 
                         const uint32_t samples_number = global_status.Waveforms_PSD->Ns;
 
-                        //std::cerr << "MAIN: Event: Number of samples: " << global_status.Waveforms_PSD->Ns << std::endl;
+                        // std::cerr << "MAIN: Event: Number of samples: " << global_status.Waveforms_PSD->Ns << std::endl;
 
                         if (global_status.show_gates)
                         {
                             global_status.waveforms_buffer.emplace_back(timestamp, channel, samples_number, 4);
 
-                            memcpy(global_status.waveforms_buffer.back().samples.data(), \
-                                   global_status.Waveforms_PSD->Trace1, \
+                            memcpy(global_status.waveforms_buffer.back().samples.data(),
+                                   global_status.Waveforms_PSD->Trace1,
                                    samples_number * sizeof(uint16_t));
 
                             // Reading the gates waveforms
                             memcpy(global_status.waveforms_buffer.back().additional_samples[0].data(),
-                                global_status.Waveforms_PSD->DTrace1,
-                                samples_number * sizeof(uint8_t));
+                                   global_status.Waveforms_PSD->DTrace1,
+                                   samples_number * sizeof(uint8_t));
                             memcpy(global_status.waveforms_buffer.back().additional_samples[1].data(),
-                                global_status.Waveforms_PSD->DTrace2,
-                                samples_number * sizeof(uint8_t));
+                                   global_status.Waveforms_PSD->DTrace2,
+                                   samples_number * sizeof(uint8_t));
                             memcpy(global_status.waveforms_buffer.back().additional_samples[2].data(),
-                                global_status.Waveforms_PSD->DTrace3,
-                                samples_number * sizeof(uint8_t));
+                                   global_status.Waveforms_PSD->DTrace3,
+                                   samples_number * sizeof(uint8_t));
                             memcpy(global_status.waveforms_buffer.back().additional_samples[3].data(),
-                                global_status.Waveforms_PSD->DTrace4,
-                                samples_number * sizeof(uint8_t));
+                                   global_status.Waveforms_PSD->DTrace4,
+                                   samples_number * sizeof(uint8_t));
                         }
                         else
                         {
@@ -1543,8 +1542,7 @@ state actions::add_to_buffer(status &global_status)
             std::cout << std::endl;
         }
 
-        if (global_status.events_buffer.size() >= global_status.events_buffer_max_size \
-            || \
+        if (global_status.events_buffer.size() >= global_status.events_buffer_max_size ||
             global_status.waveforms_buffer.size() >= global_status.events_buffer_max_size)
         {
             return states::PUBLISH_EVENTS;
@@ -1657,7 +1655,6 @@ state actions::acquisition_publish_status(status &global_status)
         global_status.ICR_counts[i] = 0;
     }
 
-
     actions::generic::publish_message(global_status, defaults_abcd_status_topic, status_message);
 
     if (digitizer)
@@ -1720,8 +1717,6 @@ state actions::reconfigure_clear_memory(status &global_status)
     return states::RECONFIGURE_DESTROY_DIGITIZER;
 }
 
-
-
 state actions::destroy_digitizer(status &global_status)
 {
     Json::Value event_message;
@@ -1772,7 +1767,6 @@ state actions::restart_clear_memory(status &global_status)
 
     return states::RESTART_DESTROY_DIGITIZER;
 }
-
 
 state actions::restart_destroy_digitizer(status &global_status)
 {
@@ -1936,4 +1930,3 @@ state actions::restart_configure_error(status &global_status)
 
     return states::RESTART_DESTROY_DIGITIZER;
 }
-
