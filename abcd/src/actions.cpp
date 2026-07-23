@@ -452,6 +452,30 @@ bool actions::generic::configure_digitizer(status &global_status)
 
     digitizer->ConfigureFromJSON(global_status.config);
 
+    global_status.data_reading_timeout = defaults_abcd_data_reading_timeout;
+
+    if (global_status.config.isMember("abcd"))
+    {
+        // Let us put here the new configuration format
+        const Json::Value abcd_config = global_status.config["abcd"];
+
+        if (abcd_config.isMember("data_reading_timeout"))
+        {
+            int value = defaults_abcd_data_reading_timeout;
+
+            try
+            {
+                value = abcd_config["data_reading_timeout"].asInt();
+            }
+            catch (Json::LogicError &je)
+            {
+                std::cout << "JSON Logic error: " << je.what() << std::endl;
+            }
+
+            global_status.data_reading_timeout = value;
+        }
+    }
+
     if (digitizer->GetError() != 0)
     {
         std::cout << '[' << utilities_functions::time_string() << "] ";
@@ -1237,6 +1261,8 @@ state actions::add_to_buffer(status &global_status)
 {
     CAENDgtz *const digitizer = global_status.digitizer;
 
+    const unsigned int verbosity = global_status.verbosity;
+
     if (!digitizer)
     {
         std::cout << '[' << utilities_functions::time_string() << "] ";
@@ -1253,302 +1279,325 @@ state actions::add_to_buffer(status &global_status)
         return states::ACQUISITION_ERROR;
     }
 
-    CAENDgtz::acqStatus_t acq_status = digitizer->GetAcquisitionStatus();
+    // It seems that for this DT5720 with the STD firmware we only get
+    // one waveform at a time, so we create this fast inner loop to
+    // read more than one for the current state.
+    const std::chrono::time_point<std::chrono::system_clock> waveforms_reading_start = std::chrono::system_clock::now();
+    auto delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - waveforms_reading_start);
 
-    if (acq_status.run == 0)
-    {
-        std::cout << '[' << utilities_functions::time_string() << "] ";
-        std::cout << "ERROR: Acquisition is not running";
-        std::cout << std::endl;
-        return states::ACQUISITION_ERROR;
-    }
+    size_t inner_counter = 0;
 
     uint32_t bsize = 0;
 
-    digitizer->ReadData(CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, global_status.readout_buffer, &bsize);
-
-    if (digitizer->GetError() != 0)
+    do
     {
-        std::cout << '[' << utilities_functions::time_string() << "] ";
-        std::cout << "ERROR: ReadData error";
-        std::cout << std::endl;
-        // Let us continue at the moment
-        // return states::ACQUISITION_ERROR;
-    }
-
-    const unsigned int verbosity = global_status.verbosity;
-
-    if (verbosity > 0)
-    {
-        std::cout << '[' << utilities_functions::time_string() << "] ";
-        std::cout << "Read buffer size: " << bsize;
-        std::cout << std::endl;
-    }
-
-    uint64_t *const previous_timestamp = global_status.previous_timestamp;
-    uint64_t *const time_offset = global_status.time_offset;
-
-    if (bsize > 0)
-    {
-        // We have events...
-        const unsigned int channels_number = digitizer->GetNumChannels();
-        uint32_t *numEvents = global_status.numEvents;
-
-        /**********************************************************************/
-        /* 1. DATA DOWNLOAD                                                   */
-        /**********************************************************************/
-
-        if (global_status.dpp_version == 0)
+        if (verbosity > 0)
         {
-            if (verbosity > 0)
-            {
-                std::cout << '[' << utilities_functions::time_string() << "] ";
-                std::cout << "STD Firmware ";
-                std::cout << std::endl;
-            }
+            std::cout << '[' << utilities_functions::time_string() << "] ";
+            std::cout << "inner_counter: " << inner_counter << "; ";
+            std::cout << "bsize: " << bsize << "; ";
+            std::cout << "delta_time: " << delta_time.count() << " ms; ";
+            std::cout << "data_reading_timeout: " << global_status.data_reading_timeout << " ms; ";
+            std::cout << std::endl;
+        }
 
-            // STD firmware
-            uint32_t events_number = digitizer->GetNumEvents(global_status.readout_buffer, bsize);
+        CAENDgtz::acqStatus_t acq_status = digitizer->GetAcquisitionStatus();
 
-            if (verbosity > 0)
-            {
-                std::cout << '[' << utilities_functions::time_string() << "] ";
-                std::cout << "events_number: " << events_number << "; ";
-                std::cout << std::endl;
-            }
-
-            for (uint32_t i = 0; i < events_number; i++)
-            {
-                char *event_pointer = nullptr;
-
-                const CAEN_DGTZ_EventInfo_t event_info =
-                    digitizer->GetEventInfo(global_status.readout_buffer, bsize, i, &event_pointer);
-
-                digitizer->DecodeEvent(event_pointer, (void **)(&global_status.Evt_STD));
-
-                // loop on channels
-                for (unsigned int ch = 0; ch < channels_number; ch++)
-                {
-                    const uint32_t samples_number = global_status.Evt_STD->ChSize[ch];
-
-                    if (verbosity > 1)
-                    {
-                        std::cout << '[' << utilities_functions::time_string() << "] ";
-                        std::cout << "ChSize[" << ch << "]: " << samples_number << "; ";
-                        std::cout << std::endl;
-                    }
-
-                    if (samples_number > 0)
-                    {
-                        // 64-bit timestamp management
-                        const uint64_t trigger_time_tag = event_info.TriggerTimeTag & 0x3FFFFFFF;
-
-                        if (trigger_time_tag < previous_timestamp[ch])
-                        {
-                            time_offset[ch] += global_status.offset_step;
-                        }
-                        previous_timestamp[ch] = trigger_time_tag;
-
-                        const uint64_t timestamp = trigger_time_tag + time_offset[ch];
-                        const uint8_t channel = ch;
-
-                        global_status.counts[channel] += 1;
-                        global_status.partial_counts[channel] += 1;
-
-                        global_status.waveforms_buffer.emplace_back(timestamp, channel, samples_number);
-
-                        memcpy(global_status.waveforms_buffer.back().samples.data(),
-                               global_status.Evt_STD->DataChannel[ch],
-                               samples_number * sizeof(uint16_t));
-                    }
-                }
-            }
-        } // end of STD firmware
-        else if (global_status.dpp_version == 3)
+        if (acq_status.run == 0)
         {
-            if (verbosity > 0)
-            {
-                std::cout << '[' << utilities_functions::time_string() << "] ";
-                std::cout << "DPP-PSD Firmware ";
-                std::cout << std::endl;
-            }
+            std::cout << '[' << utilities_functions::time_string() << "] ";
+            std::cout << "ERROR: Acquisition is not running";
+            std::cout << std::endl;
+            return states::ACQUISITION_ERROR;
+        }
 
-            // DPP-PSD firmware
-            digitizer->GetDPPEvents(global_status.readout_buffer, bsize, (void **)global_status.Evt_PSD, numEvents);
+        digitizer->ReadData(CAEN_DGTZ_SLAVE_TERMINATED_READOUT_MBLT, global_status.readout_buffer, &bsize);
 
-            // loop on channels
-            for (unsigned int ch = 0; ch < channels_number; ch++)
-            {
-                if (verbosity > 0)
-                {
-                    std::cout << '[' << utilities_functions::time_string() << "] ";
-                    std::cout << "numEvents[" << ch << "]: " << numEvents[ch] << "; ";
-                    std::cout << std::endl;
-                }
-
-                // loop on events
-                for (uint32_t i = 0; i < numEvents[ch]; i++)
-                {
-                    // reject events with small, negative energy (mostly noise peaks)
-                    // Negative but in an unsigned int, so buffer underflows (?)
-                    // if ((uint16_t)global_status.Evt_PSD[ch][i].ChargeLong > defaults_abcd_negative_limit \
-                    //    || \
-                    //    (uint16_t)global_status.Evt_PSD[ch][i].ChargeShort > defaults_abcd_negative_limit)
-                    //{
-                    //    continue;
-                    //}
-
-                    // reject low charge events
-                    // if ((uint16_t)global_status.Evt_PSD[ch][i].ChargeLong < spectrumThr[ch])
-                    //{
-                    //    continue;
-                    //}
-
-                    // Reading the ICR flag from Extra word in the DPP firmware
-                    // When the flag is seen the digitizer's input counter saw 1024 events
-                    if ((((uint64_t)global_status.Evt_PSD[ch][i].Extras) >> 13) & 1)
-                    {
-                        global_status.ICR_counts[ch] += 1024;
-                    }
-
-                    // 64-bit timestamp management
-                    uint64_t timestamp64bit;
-                    uint64_t fine_timestamp = 0;
-
-                    if (global_status.flag_tt64)
-                    {
-                        timestamp64bit = (global_status.Evt_PSD[ch][i].TimeTag & 0x7FFFFFFF) |
-                                         ((((uint64_t)global_status.Evt_PSD[ch][i].Extras) & 0xFFFF0000) << 15);
-
-                        fine_timestamp = global_status.Evt_PSD[ch][i].Extras & 0x3FF;
-
-                        // corrections for isolated 4 s jumps in future
-                        // LSB of Extras (bit 31 of 64 bit timestamp) flips to 1 (shark peak)
-                        if ((previous_timestamp[ch] + ((uint64_t)(1 << 30)) < timestamp64bit) &&
-                            (i + 1 < numEvents[ch]))
-                        {
-                            // jump greater than 4 seconds && we have following event to check
-                            uint64_t nexttag64bit = (global_status.Evt_PSD[ch][i + 1].TimeTag & 0x7FFFFFFF) |
-                                                    ((((uint64_t)global_status.Evt_PSD[ch][i + 1].Extras) & 0xFFFF0000) << 15);
-                            if (nexttag64bit + ((uint64_t)1 << 30) < timestamp64bit)
-                            {
-                                timestamp64bit -= ((uint64_t)1 << 31);
-                            }
-                        }
-
-                        // This is to check if there is a jump of more than 4.3 s to the past
-                        if (timestamp64bit + ((uint64_t)1 << 31) < previous_timestamp[ch])
-                        {
-                            time_offset[ch] += ((uint64_t)1 << 47);
-                        }
-                    }
-                    else
-                    {
-                        // x720
-                        timestamp64bit = (global_status.Evt_PSD[ch][i].TimeTag & 0x3FFFFFFF);
-
-                        if (timestamp64bit < previous_timestamp[ch])
-                        {
-                            time_offset[ch] += 0x40000000;
-                        }
-                    } // end if for 64-bit timestamp
-
-                    previous_timestamp[ch] = timestamp64bit;
-                    // end 64-bit timestamp management
-
-                    const uint64_t temporary_timestamp = (previous_timestamp[ch] + time_offset[ch]);
-
-                    // FIXME: Testing the fine time tag from the V1730 DCFD
-                    // If we shift the timestamp by 10 bits we should be able to fit the fine time tag
-                    // that we get from the DCFD of the v1730s
-                    const uint64_t timestamp = (temporary_timestamp << 10) + fine_timestamp;
-
-                    const uint16_t qshort = 0 + global_status.Evt_PSD[ch][i].ChargeShort;
-                    const uint16_t qlong = 0 + global_status.Evt_PSD[ch][i].ChargeLong;
-                    // const uint16_t baseline = 0 + (global_status.Evt_PSD[ch][i].Extras & 0x0000FFFF);
-                    const uint16_t baseline = global_status.Evt_PSD[ch][i].Baseline;
-                    const uint8_t channel = ch;
-                    const uint8_t group_counter = global_status.Evt_PSD[ch][i].Pur;
-
-                    // std::cerr << "MAIN: Event: timestamp: " << timestamp << std::endl;
-                    // std::cerr << "MAIN: Event: baseline: " << baseline << std::endl;
-                    // std::cerr << "MAIN: Event: qshort: " << qshort << std::endl;
-                    // std::cerr << "MAIN: Event: qlong: " << qlong << std::endl;
-                    // std::cerr << "MAIN: Event: extras: " << global_status.Evt_PSD[ch][i].Extras << std::endl;
-
-                    global_status.events_buffer.emplace_back(timestamp, qshort, qlong, baseline, channel, group_counter);
-
-                    global_status.counts[channel] += 1;
-                    global_status.partial_counts[channel] += 1;
-
-                    if (verbosity > 1 && (i % 1000 == 0))
-                    {
-                        std::cout << '[' << utilities_functions::time_string() << "] ";
-                        std::cout << "Event[" << i << "]: ";
-                        std::cout << "timestamp: " << timestamp << "; ";
-                        std::cout << "qshort: " << qshort << "; ";
-                        std::cout << "qlong: " << qlong << "; ";
-                        std::cout << std::endl;
-                    }
-
-                    if (global_status.enabled_waveforms)
-                    {
-                        digitizer->DecodeDPPWaveforms(&global_status.Evt_PSD[ch][i], global_status.Waveforms_PSD);
-
-                        const uint32_t samples_number = global_status.Waveforms_PSD->Ns;
-
-                        // std::cerr << "MAIN: Event: Number of samples: " << global_status.Waveforms_PSD->Ns << std::endl;
-
-                        if (global_status.show_gates)
-                        {
-                            global_status.waveforms_buffer.emplace_back(timestamp, channel, samples_number, 4);
-
-                            memcpy(global_status.waveforms_buffer.back().samples.data(),
-                                   global_status.Waveforms_PSD->Trace1,
-                                   samples_number * sizeof(uint16_t));
-
-                            // Reading the gates waveforms
-                            memcpy(global_status.waveforms_buffer.back().additional_samples[0].data(),
-                                   global_status.Waveforms_PSD->DTrace1,
-                                   samples_number * sizeof(uint8_t));
-                            memcpy(global_status.waveforms_buffer.back().additional_samples[1].data(),
-                                   global_status.Waveforms_PSD->DTrace2,
-                                   samples_number * sizeof(uint8_t));
-                            memcpy(global_status.waveforms_buffer.back().additional_samples[2].data(),
-                                   global_status.Waveforms_PSD->DTrace3,
-                                   samples_number * sizeof(uint8_t));
-                            memcpy(global_status.waveforms_buffer.back().additional_samples[3].data(),
-                                   global_status.Waveforms_PSD->DTrace4,
-                                   samples_number * sizeof(uint8_t));
-                        }
-                        else
-                        {
-                            global_status.waveforms_buffer.emplace_back(timestamp, channel, samples_number);
-
-                            memcpy(global_status.waveforms_buffer.back().samples.data(),
-                                   global_status.Waveforms_PSD->Trace1,
-                                   samples_number * sizeof(uint16_t));
-                        }
-                    }
-                } // end loop on events
-            } // end loop on channels
-        } // end of DPP-PSD firmware
+        if (digitizer->GetError() != 0)
+        {
+            std::cout << '[' << utilities_functions::time_string() << "] ";
+            std::cout << "ERROR: ReadData error";
+            std::cout << std::endl;
+            // Let us continue at the moment
+            // return states::ACQUISITION_ERROR;
+        }
 
         if (verbosity > 0)
         {
             std::cout << '[' << utilities_functions::time_string() << "] ";
-            std::cout << "Events buffer size: " << global_status.events_buffer.size() << "; ";
-            std::cout << "Waveforms buffer size: " << global_status.waveforms_buffer.size() << "; ";
+            std::cout << "Read buffer size: " << bsize;
             std::cout << std::endl;
         }
 
-        if (global_status.events_buffer.size() >= global_status.events_buffer_max_size ||
-            global_status.waveforms_buffer.size() >= global_status.events_buffer_max_size)
+        uint64_t *const previous_timestamp = global_status.previous_timestamp;
+        uint64_t *const time_offset = global_status.time_offset;
+
+        if (bsize > 0)
         {
-            return states::PUBLISH_EVENTS;
+            // We have events...
+            const unsigned int channels_number = digitizer->GetNumChannels();
+            uint32_t *numEvents = global_status.numEvents;
+
+            /**********************************************************************/
+            /* 1. DATA DOWNLOAD                                                   */
+            /**********************************************************************/
+
+            if (global_status.dpp_version == 0)
+            {
+                if (verbosity > 0)
+                {
+                    std::cout << '[' << utilities_functions::time_string() << "] ";
+                    std::cout << "STD Firmware ";
+                    std::cout << std::endl;
+                }
+
+                // STD firmware
+                int64_t events_number = digitizer->GetNumEvents(global_status.readout_buffer, bsize);
+
+                if (verbosity > 0)
+                {
+                    std::cout << '[' << utilities_functions::time_string() << "] ";
+                    std::cout << "inner_counter: " << inner_counter << "; ";
+                    std::cout << "events_number: " << events_number << "; ";
+                    std::cout << "delta_time: " << delta_time.count() << " ms; ";
+                    std::cout << "Read buffer size: " << bsize << "; ";
+                    std::cout << std::endl;
+                }
+
+                for (uint32_t i = 0; i < events_number; i++)
+                {
+                    char *event_pointer = nullptr;
+
+                    const CAEN_DGTZ_EventInfo_t event_info =
+                        digitizer->GetEventInfo(global_status.readout_buffer, bsize, i, &event_pointer);
+
+                    digitizer->DecodeEvent(event_pointer, (void **)(&global_status.Evt_STD));
+
+                    // loop on channels
+                    for (unsigned int ch = 0; ch < channels_number; ch++)
+                    {
+                        const uint32_t samples_number = global_status.Evt_STD->ChSize[ch];
+
+                        if (verbosity > 1)
+                        {
+                            std::cout << '[' << utilities_functions::time_string() << "] ";
+                            std::cout << "ChSize[" << ch << "]: " << samples_number << "; ";
+                            std::cout << std::endl;
+                        }
+
+                        if (samples_number > 0)
+                        {
+                            // 64-bit timestamp management
+                            const uint64_t trigger_time_tag = event_info.TriggerTimeTag & 0x3FFFFFFF;
+
+                            if (trigger_time_tag < previous_timestamp[ch])
+                            {
+                                time_offset[ch] += global_status.offset_step;
+                            }
+                            previous_timestamp[ch] = trigger_time_tag;
+
+                            const uint64_t timestamp = trigger_time_tag + time_offset[ch];
+                            const uint8_t channel = ch;
+
+                            global_status.counts[channel] += 1;
+                            global_status.partial_counts[channel] += 1;
+
+                            global_status.waveforms_buffer.emplace_back(timestamp, channel, samples_number);
+
+                            memcpy(global_status.waveforms_buffer.back().samples.data(),
+                                   global_status.Evt_STD->DataChannel[ch],
+                                   samples_number * sizeof(uint16_t));
+                        }
+                    }
+                }
+            } // end of STD firmware
+            else if (global_status.dpp_version == 3)
+            {
+                if (verbosity > 0)
+                {
+                    std::cout << '[' << utilities_functions::time_string() << "] ";
+                    std::cout << "DPP-PSD Firmware ";
+                    std::cout << std::endl;
+                }
+
+                // DPP-PSD firmware
+                digitizer->GetDPPEvents(global_status.readout_buffer, bsize, (void **)global_status.Evt_PSD, numEvents);
+
+                // loop on channels
+                for (unsigned int ch = 0; ch < channels_number; ch++)
+                {
+                    if (verbosity > 0)
+                    {
+                        std::cout << '[' << utilities_functions::time_string() << "] ";
+                        std::cout << "numEvents[" << ch << "]: " << numEvents[ch] << "; ";
+                        std::cout << std::endl;
+                    }
+
+                    // loop on events
+                    for (uint32_t i = 0; i < numEvents[ch]; i++)
+                    {
+                        // reject events with small, negative energy (mostly noise peaks)
+                        // Negative but in an unsigned int, so buffer underflows (?)
+                        // if ((uint16_t)global_status.Evt_PSD[ch][i].ChargeLong > defaults_abcd_negative_limit  || (uint16_t)global_status.Evt_PSD[ch][i].ChargeShort > defaults_abcd_negative_limit)
+                        //{
+                        //    continue;
+                        //}
+
+                        // reject low charge events
+                        // if ((uint16_t)global_status.Evt_PSD[ch][i].ChargeLong < spectrumThr[ch])
+                        //{
+                        //    continue;
+                        //}
+
+                        // Reading the ICR flag from Extra word in the DPP firmware
+                        // When the flag is seen the digitizer's input counter saw 1024 events
+                        if ((((uint64_t)global_status.Evt_PSD[ch][i].Extras) >> 13) & 1)
+                        {
+                            global_status.ICR_counts[ch] += 1024;
+                        }
+
+                        // 64-bit timestamp management
+                        uint64_t timestamp64bit;
+                        uint64_t fine_timestamp = 0;
+
+                        if (global_status.flag_tt64)
+                        {
+                            timestamp64bit = (global_status.Evt_PSD[ch][i].TimeTag & 0x7FFFFFFF) |
+                                             ((((uint64_t)global_status.Evt_PSD[ch][i].Extras) & 0xFFFF0000) << 15);
+
+                            fine_timestamp = global_status.Evt_PSD[ch][i].Extras & 0x3FF;
+
+                            // corrections for isolated 4 s jumps in future
+                            // LSB of Extras (bit 31 of 64 bit timestamp) flips to 1 (shark peak)
+                            if ((previous_timestamp[ch] + ((uint64_t)(1 << 30)) < timestamp64bit) &&
+                                (i + 1 < numEvents[ch]))
+                            {
+                                // jump greater than 4 seconds && we have following event to check
+                                uint64_t nexttag64bit = (global_status.Evt_PSD[ch][i + 1].TimeTag & 0x7FFFFFFF) |
+                                                        ((((uint64_t)global_status.Evt_PSD[ch][i + 1].Extras) & 0xFFFF0000) << 15);
+                                if (nexttag64bit + ((uint64_t)1 << 30) < timestamp64bit)
+                                {
+                                    timestamp64bit -= ((uint64_t)1 << 31);
+                                }
+                            }
+
+                            // This is to check if there is a jump of more than 4.3 s to the past
+                            if (timestamp64bit + ((uint64_t)1 << 31) < previous_timestamp[ch])
+                            {
+                                time_offset[ch] += ((uint64_t)1 << 47);
+                            }
+                        }
+                        else
+                        {
+                            // x720
+                            timestamp64bit = (global_status.Evt_PSD[ch][i].TimeTag & 0x3FFFFFFF);
+
+                            if (timestamp64bit < previous_timestamp[ch])
+                            {
+                                time_offset[ch] += 0x40000000;
+                            }
+                        } // end if for 64-bit timestamp
+
+                        previous_timestamp[ch] = timestamp64bit;
+                        // end 64-bit timestamp management
+
+                        const uint64_t temporary_timestamp = (previous_timestamp[ch] + time_offset[ch]);
+
+                        // FIXME: Testing the fine time tag from the V1730 DCFD
+                        // If we shift the timestamp by 10 bits we should be able to fit the fine time tag
+                        // that we get from the DCFD of the v1730s
+                        const uint64_t timestamp = (temporary_timestamp << 10) + fine_timestamp;
+
+                        const uint16_t qshort = 0 + global_status.Evt_PSD[ch][i].ChargeShort;
+                        const uint16_t qlong = 0 + global_status.Evt_PSD[ch][i].ChargeLong;
+                        // const uint16_t baseline = 0 + (global_status.Evt_PSD[ch][i].Extras & 0x0000FFFF);
+                        const uint16_t baseline = global_status.Evt_PSD[ch][i].Baseline;
+                        const uint8_t channel = ch;
+                        const uint8_t group_counter = global_status.Evt_PSD[ch][i].Pur;
+
+                        // std::cerr << "MAIN: Event: timestamp: " << timestamp << std::endl;
+                        // std::cerr << "MAIN: Event: baseline: " << baseline << std::endl;
+                        // std::cerr << "MAIN: Event: qshort: " << qshort << std::endl;
+                        // std::cerr << "MAIN: Event: qlong: " << qlong << std::endl;
+                        // std::cerr << "MAIN: Event: extras: " << global_status.Evt_PSD[ch][i].Extras << std::endl;
+
+                        global_status.events_buffer.emplace_back(timestamp, qshort, qlong, baseline, channel, group_counter);
+
+                        global_status.counts[channel] += 1;
+                        global_status.partial_counts[channel] += 1;
+
+                        if (verbosity > 1 && (i % 1000 == 0))
+                        {
+                            std::cout << '[' << utilities_functions::time_string() << "] ";
+                            std::cout << "Event[" << i << "]: ";
+                            std::cout << "timestamp: " << timestamp << "; ";
+                            std::cout << "qshort: " << qshort << "; ";
+                            std::cout << "qlong: " << qlong << "; ";
+                            std::cout << std::endl;
+                        }
+
+                        if (global_status.enabled_waveforms)
+                        {
+                            digitizer->DecodeDPPWaveforms(&global_status.Evt_PSD[ch][i], global_status.Waveforms_PSD);
+
+                            const uint32_t samples_number = global_status.Waveforms_PSD->Ns;
+
+                            // std::cerr << "MAIN: Event: Number of samples: " << global_status.Waveforms_PSD->Ns << std::endl;
+
+                            if (global_status.show_gates)
+                            {
+                                global_status.waveforms_buffer.emplace_back(timestamp, channel, samples_number, 4);
+
+                                memcpy(global_status.waveforms_buffer.back().samples.data(),
+                                       global_status.Waveforms_PSD->Trace1,
+                                       samples_number * sizeof(uint16_t));
+
+                                // Reading the gates waveforms
+                                memcpy(global_status.waveforms_buffer.back().additional_samples[0].data(),
+                                       global_status.Waveforms_PSD->DTrace1,
+                                       samples_number * sizeof(uint8_t));
+                                memcpy(global_status.waveforms_buffer.back().additional_samples[1].data(),
+                                       global_status.Waveforms_PSD->DTrace2,
+                                       samples_number * sizeof(uint8_t));
+                                memcpy(global_status.waveforms_buffer.back().additional_samples[2].data(),
+                                       global_status.Waveforms_PSD->DTrace3,
+                                       samples_number * sizeof(uint8_t));
+                                memcpy(global_status.waveforms_buffer.back().additional_samples[3].data(),
+                                       global_status.Waveforms_PSD->DTrace4,
+                                       samples_number * sizeof(uint8_t));
+                            }
+                            else
+                            {
+                                global_status.waveforms_buffer.emplace_back(timestamp, channel, samples_number);
+
+                                memcpy(global_status.waveforms_buffer.back().samples.data(),
+                                       global_status.Waveforms_PSD->Trace1,
+                                       samples_number * sizeof(uint16_t));
+                            }
+                        }
+                    } // end loop on events
+                } // end loop on channels
+            } // end of DPP-PSD firmware
         }
+
+        inner_counter += 1;
+        delta_time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - waveforms_reading_start);
+
+    } while ((bsize >= 0) && (delta_time < std::chrono::milliseconds(global_status.data_reading_timeout)));
+
+    if (verbosity > 0)
+    {
+        std::cout << '[' << utilities_functions::time_string() << "] ";
+        std::cout << "Events buffer size: " << global_status.events_buffer.size() << "; ";
+        std::cout << "Waveforms buffer size: " << global_status.waveforms_buffer.size() << "; ";
+        std::cout << std::endl;
     }
 
+    if (global_status.events_buffer.size() >= global_status.events_buffer_max_size ||
+        global_status.waveforms_buffer.size() >= global_status.events_buffer_max_size)
+    {
+        return states::PUBLISH_EVENTS;
+    }
     const std::chrono::time_point<std::chrono::system_clock> now = std::chrono::system_clock::now();
     if (now - global_status.last_publication > global_status.publish_timeout)
     {
