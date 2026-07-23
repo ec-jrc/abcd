@@ -322,7 +322,7 @@ public:
     void        DecodeEvent(char *evtPtr, void **Evt);
     void        FreeEvent(void **Evt);
     CAEN_DGTZ_EventInfo_t    GetEventInfo(char *buffer, uint32_t buffsize, int32_t numEvent, char **EventPtr);
-    uint32_t    GetNumEvents(char *buffer, uint32_t buffsize);
+    int64_t     GetNumEvents(char *buffer, uint32_t buffsize);
 // ------------------------
 // DPP-CI  specific methods
     int         isPowerOfTwo(unsigned int x);

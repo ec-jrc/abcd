@@ -2796,13 +2796,15 @@ CAEN_DGTZ_EventInfo_t CAENDgtz::GetEventInfo(char *buffer, uint32_t buffsize, in
     return eventInfo;
 }
 
-uint32_t CAENDgtz::GetNumEvents(char *buffer, uint32_t buffsize)
+int64_t CAENDgtz::GetNumEvents(char *buffer, uint32_t buffsize)
 {
     uint32_t numEvents;
     error = (int)CAEN_DGTZ_GetNumEvents(handle, buffer, buffsize, &numEvents);
     if (error != 0)
     {
         EmitError("GetNumEvents");
+
+        return error;
     }
     return numEvents;
 }
