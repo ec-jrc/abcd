@@ -395,7 +395,7 @@ bool actions::generic::create_digitizer(status &global_status)
     for (unsigned int device_index = 0; device_index < number_of_devices; device_index++)
     {
         absp_logger_console->info("Device index: {};", device_index);
-        absp_logger_console->info("Product id: {};", ADQlist[device_index].ProductID);
+        absp_logger_console->info("Product id: {};", static_cast<unsigned int>(ADQlist[device_index].ProductID));
         absp_logger_console->info("Address: {} {};", ADQlist[device_index].AddressField1, ADQlist[device_index].AddressField2);
         absp_logger_console->info("Device file: {};", ADQlist[device_index].DevFile);
         absp_logger_console->info("Opened interface: {};", ADQlist[device_index].DeviceInterfaceOpened);
