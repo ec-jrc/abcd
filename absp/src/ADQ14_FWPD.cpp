@@ -537,7 +537,7 @@ int ABCD::ADQ14_FWPD::Configure()
             return DIGITIZER_FAILURE;
         }
 
-        absp_logger_console->info("{} FWPD settings; Readout memory owner: {};", log_name, readout_parameters.common.memory_owner);
+        absp_logger_console->info("{} FWPD settings; Readout memory owner: {};", log_name, static_cast<unsigned int>(readout_parameters.common.memory_owner));
 
         // Momery is managed by the API, the memory consumption is bound for each channel
         readout_parameters.common.memory_owner = ADQ_MEMORY_OWNER_API;
