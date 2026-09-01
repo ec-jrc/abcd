@@ -2,6 +2,26 @@ set(CPACK_GENERATOR "DEB")
 
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 
+execute_process(
+    COMMAND lsb_release -rs
+    OUTPUT_VARIABLE UBUNTU_VERSION
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Fixing the difference between CMake and debs in naming architectures
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
+    set(DEB_ARCH "amd64")
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+    set(DEB_ARCH "arm64")
+else()
+    set(DEB_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
+set(CPACK_DEBIAN_CORE_FILE_NAME "abcd-core_${PROJECT_VERSION}_ubuntu${UBUNTU_VERSION}_${DEB_ARCH}.deb")
+set(CPACK_DEBIAN_WIT_FILE_NAME "abcd-wit_${PROJECT_VERSION}_ubuntu${UBUNTU_VERSION}_${DEB_ARCH}.deb")
+set(CPACK_DEBIAN_ABSP_FILE_NAME "abcd-absp_${PROJECT_VERSION}_ubuntu${UBUNTU_VERSION}_${DEB_ARCH}.deb")
+set(CPACK_DEBIAN_ABCD_FILE_NAME "abcd-abcd_${PROJECT_VERSION}_ubuntu${UBUNTU_VERSION}_${DEB_ARCH}.deb")
+
 set(CPACK_DEB_COMPONENT_INSTALL ON)
 set(CPACK_COMPONENTS_ALL core wit)
 
