@@ -10,7 +10,7 @@ The official documentation and tutorial reside at: https://abcd-docs.readthedocs
 
 ## Installation
 
-It is advisable to use the precompiled packages for Ubuntu 24.04 LTS.
+It is advisable to use the precompiled packages for Ubuntu 24.04 LTS or Ubuntu 26.04 LTS.
 The most updated version can be found in the releases section of the repository.
 
 To install packages use `dpkg`, _e.g._:
