@@ -87,7 +87,7 @@ int ABCD::ADQ36_FWDAQ::Initialize()
     absp_logger_console->info("{} ADQAPI revision: {}; ", log_name, ADQAPI_GetRevisionString());
 
     absp_logger_console->info("{} Channels number: {};", log_name, GetChannelsNumber());
-    absp_logger_console->info("{} Firmware type: {}; name: {}; revision: {}; customization: {}; part number: {};", log_name, adq_parameters.constant.firmware.type, adq_parameters.constant.firmware.name, adq_parameters.constant.firmware.revision, adq_parameters.constant.firmware.customization, adq_parameters.constant.firmware.part_number);
+    absp_logger_console->info("{} Firmware type: {}; name: {}; revision: {}; customization: {}; part number: {};", log_name, static_cast<unsigned int>(adq_parameters.constant.firmware.type), adq_parameters.constant.firmware.name, adq_parameters.constant.firmware.revision, adq_parameters.constant.firmware.customization, adq_parameters.constant.firmware.part_number);
 
     std::string output_string(ADQAPI_JSON_BUFFER_SIZE, '\0');
 
