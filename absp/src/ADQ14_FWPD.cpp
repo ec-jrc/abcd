@@ -1095,7 +1095,10 @@ std::vector<size_t> ABCD::ADQ14_FWPD::GetEventCounters()
     {
         const uint32_t address = event_counters_base_address + 0x2C + channel * 4;
 
-        event_counters[channel] = ADQ_ReadRegister(adq_cu_ptr, adq_num, address) & 0xFFFFu;
+        uint32_t event_counter = 0;
+
+        ADQ_ReadRegister(adq_cu_ptr, adq_num, address, &event_counter) & 0xFFFFu;
+        event_counters[channel] = event_counter;
     }
 
     return event_counters;
